@@ -1,14 +1,33 @@
-def app(environ, start_response):
-    """Simplest possible application object"""
-    data = b'Hello, World!\n'
-    data += environ['REQUEST_METHOD'].encode('latin-1')
-    data += b' '
-    data += environ['PATH_INFO'].encode('latin-1')
+import asyncio
 
-    status = '200 OK'
-    response_headers = [
-        ('Content-type','text/plain'),
-        ('Content-Length', str(len(data)))
-    ]
-    start_response(status, response_headers)
-    return [data]
+
+def hello_world(message):
+    content = b'<html><h1>Hello, world</h1></html>'
+    reply_channel = message['reply_channel']
+    reply_channel.send({
+        'status': 200,
+        'headers': [
+            [b'content-type', b'text/html'],
+            [b'content-length', str(len(content)).encode('ascii')]
+        ],
+        'content': content
+    })
+
+
+def async_hello_world(message):
+    loop = message['channel_layer'].loop
+    loop.create_task(_async_hello_world(message))
+
+
+async def _async_hello_world(message):
+    await asyncio.sleep(1)
+    content = b'<html><h1>Hello, world</h1></html>'
+    reply_channel = message['reply_channel']
+    reply_channel.send({
+        'status': 200,
+        'headers': [
+            [b'content-type', b'text/html'],
+            [b'content-length', str(len(content)).encode('ascii')]
+        ],
+        'content': content
+    })

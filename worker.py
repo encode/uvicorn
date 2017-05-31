@@ -7,38 +7,35 @@
 # https://github.com/jeamland/guvnor - Gunicorn worker implementation
 import asyncio
 import functools
-import httptools
 import io
 import os
+
+import httptools
 import uvloop
 
-from gunicorn.http.wsgi import base_environ
 from gunicorn.workers.base import Worker
 
 
 class HttpProtocol(asyncio.Protocol):
-    def __init__(self, wsgi, loop, sock, cfg):
+    def __init__(self, consumer, loop, sock, cfg):
         self.request_parser = httptools.HttpRequestParser(self)
-        self.wsgi = wsgi
+        self.consumer = consumer
         self.loop = loop
         self.transport = None
 
-        sockname = sock.getsockname()
-
-        self.base_environ = base_environ(cfg)
-        self.base_environ.update({
-            'SCRIPT_NAME': os.environ.get('SCRIPT_NAME', ''),
-            'SERVER_NAME': sockname[0],
-            'SERVER_PORT': str(sockname[1]),
-            'wsgi.url_scheme': 'https' if cfg.is_ssl else 'http',
-        })
+        self.base_message = {
+            'reply_channel': self,
+            'scheme': 'https' if cfg.is_ssl else 'http',
+            'root_path': os.environ.get('SCRIPT_NAME', ''),
+            'server': sock.getsockname()
+        }
 
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
         self.transport = transport
 
     def connection_lost(self, exc):
-        pass
+        self.transport = None
 
     def eof_received(self):
         pass
@@ -46,51 +43,38 @@ class HttpProtocol(asyncio.Protocol):
     def data_received(self, data):
         self.request_parser.feed_data(data)
 
-    # Event hooks called by request_parser...
+    # Event hooks called back into by HttpRequestParser...
     def on_message_begin(self):
-        self.environ = self.base_environ.copy()
-        self.environ['wsgi.input'] = self.input = io.BytesIO()
+        self.message = self.base_message.copy()
+        self.headers = []
+        self.body = []
 
     def on_url(self, url):
         parsed = httptools.parse_url(url)
         method = self.request_parser.get_method()
         http_version = self.request_parser.get_http_version()
-        self.environ.update({
-            'SERVER_PROTOCOL': http_version,
-            'PATH_INFO': parsed.path.decode('ascii'),
-            'QUERY_STRING': parsed.query.decode('ascii') if parsed.query else '',
-            'REQUEST_METHOD': method.decode('ascii'),
+
+        self.message.update({
+            'http_version': http_version,
+            'method': method.decode('ascii'),
+            'path': parsed.path.decode('ascii'),
+            'query_string': parsed.query if parsed.query else b'',
         })
 
     def on_header(self, name: bytes, value: bytes):
-        key = name.decode('ascii').upper().replace('-', '_')
-        content = value.decode('ascii')
-
-        if key in ('HOST', 'CONTENT_LENGTH', 'CONTENT_TYPE', 'SCRIPT_NAME'):
-            self.environ[key] = content
-        elif key == 'EXPECT':
-            # Respond to 'Expect: 100-Continue' headers.
-            if content.lower() == '100-continue':
-                self.transport.write('HTTP/1.1 100 Continue\r\n\r\n')
-        else:
-            key = 'HTTP_' + key
-            if key in self.environ:
-                # Handle repeated headers.
-                content = self.environ[key] + ',' + content
-            self.environ[key] = content
+        self.headers.append([name.lower(), value])
 
     def on_body(self, body: bytes):
-        self.input.write(body)
+        self.body.append(body)
 
     def on_message_complete(self):
-        self.input.seek(0)
-
-        body_iterator = self.wsgi(self.environ, self.start_response)
-        self.transport.write(self.response_bytes)
-        for body_chunk in body_iterator:
-            self.transport.write(body_chunk)
-        if not self.request_parser.should_keep_alive():
-            self.transport.close()
+        self.message['headers'] = self.headers
+        self.message['body'] = b''.join(self.body)
+        self.consumer({
+            'reply_channel': self,
+            'channel_layer': self,
+            'message': self.message
+        })
 
     def on_chunk_header(self):
         pass
@@ -98,23 +82,36 @@ class HttpProtocol(asyncio.Protocol):
     def on_chunk_complete(self):
         pass
 
-    # Called by the WSGI app...
-    def start_response(self, status, response_headers):
-        response = [
-            b'HTTP/1.1 ',
-            status.encode('ascii'),
-            b'\r\n'
-        ]
-        for header_name, header_value in response_headers:
-            response.extend([
-                header_name.encode('ascii'), b': ',
-                header_value.encode('ascii'), b'\r\n'
-            ])
+    # Called back into by the ASGI consumer...
+    def send(self, message):
+        if self.transport is None:
+            return
+
+        status_bytes = str(message['status']).encode()
+        content = message.get('content')
+
+        response = [b'HTTP/1.1 ', status_bytes, b'\r\n']
+        for header_name, header_value in message['headers']:
+            response.extend([header_name, b': ', header_value, b'\r\n'])
         response.append(b'\r\n')
-        self.response_bytes = b''.join(response)
+
+        self.transport.write(b''.join(response))
+        if content:
+            self.transport.write(content)
+
+        if not self.request_parser.should_keep_alive():
+            self.transport.close()
 
 
-class AsyncioWorker(Worker):
+class ASGIWorker(Worker):
+    """
+    A worker class for GUnicorn that interfaces with an ASGI consumer callable,
+    rather than a WSGI callable.
+
+    * `uvloop` as the event loop policy.
+    * MagicStack's `httptools` as the HTTP request parser.
+    """
+
     def init_process(self):
         # Close any existing event loop before setting a
         # new policy.
@@ -134,11 +131,11 @@ class AsyncioWorker(Worker):
 
     async def create_servers(self, loop):
         cfg = self.cfg
-        wsgi = self.wsgi
+        consumer = self.wsgi
 
         for sock in self.sockets:
             protocol = functools.partial(
                 HttpProtocol,
-                wsgi=wsgi, loop=loop, sock=sock, cfg=cfg
+                consumer=consumer, loop=loop, sock=sock, cfg=cfg
             )
             await loop.create_server(protocol, sock=sock)
