@@ -3,15 +3,15 @@ import asyncio
 
 def hello_world(message):
     content = b'<html><h1>Hello, world</h1></html>'
-    reply_channel = message['reply_channel']
-    reply_channel.send({
+    message = {
         'status': 200,
         'headers': [
             [b'content-type', b'text/html'],
             [b'content-length', str(len(content)).encode('ascii')]
         ],
         'content': content
-    })
+    }
+    message['reply_channel'].send(message)
 
 
 def async_hello_world(message):

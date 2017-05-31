@@ -1,5 +1,5 @@
 # wrk -d20s -t10 -c200 http://127.0.0.1:8080/
-# gunicorn app:app --bind localhost:8080 --worker-class worker.AsyncioWorker
+# gunicorn app:hello_world --bind localhost:8080 --worker-class worker.ASGIWorker
 # https://github.com/MagicStack/httptools - Fast HTTP parsing.
 # https://github.com/aio-libs/aiohttp - An asyncio framework, including gunicorn worker.
 # https://github.com/channelcat/sanic - An asyncio framework, including gunicorn worker.
@@ -108,8 +108,11 @@ class ASGIWorker(Worker):
     A worker class for GUnicorn that interfaces with an ASGI consumer callable,
     rather than a WSGI callable.
 
+    We use a couple of packages from MagicStack in order to achieve an
+    extremely high-throughput and low-latency implementation:
+
     * `uvloop` as the event loop policy.
-    * MagicStack's `httptools` as the HTTP request parser.
+    * `httptools` as the HTTP request parser.
     """
 
     def init_process(self):
