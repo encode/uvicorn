@@ -11,7 +11,7 @@ We use a couple of packages from MagicStack in order to achieve an extremely hig
 
 ## Examples
 
-1. An ASGI consumer, returning "Hello, world".
+### An ASGI consumer, returning "Hello, world".
 
 **app.py**:
 
@@ -35,7 +35,7 @@ def hello_world(message):
 gunicorn app:hello_world --bind localhost:8080 --worker-class asgiworker.ASGIWorker
 ```
 
-2. An ASGI consumer, returning "Hello, world" after a (non-blocking) 1 second delay.
+### An ASGI consumer, returning "Hello, world" after a (non-blocking) 1 second delay.
 
 ```python
 import asyncio
