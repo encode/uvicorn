@@ -9,6 +9,7 @@ import asyncio
 import functools
 import httptools
 import io
+import os
 import uvloop
 
 from gunicorn.http.wsgi import base_environ
@@ -16,13 +17,21 @@ from gunicorn.workers.base import Worker
 
 
 class HttpProtocol(asyncio.Protocol):
-    def __init__(self, wsgi, loop, sockname, cfg):
+    def __init__(self, wsgi, loop, sock, cfg):
         self.request_parser = httptools.HttpRequestParser(self)
         self.wsgi = wsgi
         self.loop = loop
-        self.sockname = sockname
-        self.cfg = cfg
         self.transport = None
+
+        sockname = sock.getsockname()
+
+        self.base_environ = base_environ(cfg)
+        self.base_environ.update({
+            'SCRIPT_NAME': os.environ.get('SCRIPT_NAME', ''),
+            'SERVER_NAME': sockname[0],
+            'SERVER_PORT': str(sockname[1]),
+            'wsgi.url_scheme': 'https' if cfg.is_ssl else 'http',
+        })
 
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
@@ -39,35 +48,44 @@ class HttpProtocol(asyncio.Protocol):
 
     # Event hooks called by request_parser...
     def on_message_begin(self):
-        self.headers = {}
-        self.body = b''
-        self.url = None
+        self.environ = self.base_environ.copy()
+        self.environ['wsgi.input'] = self.input = io.BytesIO()
 
     def on_url(self, url):
-        self.url = httptools.parse_url(url)
-
-    def on_header(self, name: bytes, value: bytes):
-        self.headers[name] = value
-
-    def on_headers_complete(self):
-        pass
-
-    def on_body(self, body: bytes):
-        self.body += body
-
-    def on_message_complete(self):
-        url = self.url
+        parsed = httptools.parse_url(url)
         method = self.request_parser.get_method()
-
-        environ = base_environ(self.cfg)
-        environ.update({
-            'PATH_INFO': url.path.decode('latin-1'),
-            'QUERY_STRING': url.query.decode('latin-1') if url.query else '',
-            'REQUEST_METHOD': method.decode('latin-1'),
-            'wsgi.input': io.BytesIO(self.body),
+        http_version = self.request_parser.get_http_version()
+        self.environ.update({
+            'SERVER_PROTOCOL': http_version,
+            'PATH_INFO': parsed.path.decode('ascii'),
+            'QUERY_STRING': parsed.query.decode('ascii') if parsed.query else '',
+            'REQUEST_METHOD': method.decode('ascii'),
         })
 
-        body_iterator = self.wsgi(environ, self.start_response)
+    def on_header(self, name: bytes, value: bytes):
+        key = name.decode('ascii').upper().replace('-', '_')
+        content = value.decode('ascii')
+
+        if key in ('HOST', 'CONTENT_LENGTH', 'CONTENT_TYPE', 'SCRIPT_NAME'):
+            self.environ[key] = content
+        elif key == 'EXPECT':
+            # Respond to 'Expect: 100-Continue' headers.
+            if content.lower() == '100-continue':
+                self.transport.write('HTTP/1.1 100 Continue\r\n\r\n')
+        else:
+            key = 'HTTP_' + key
+            if key in self.environ:
+                # Handle repeated headers.
+                content = self.environ[key] + ',' + content
+            self.environ[key] = content
+
+    def on_body(self, body: bytes):
+        self.input.write(body)
+
+    def on_message_complete(self):
+        self.input.seek(0)
+
+        body_iterator = self.wsgi(self.environ, self.start_response)
         self.transport.write(self.response_bytes)
         for body_chunk in body_iterator:
             self.transport.write(body_chunk)
@@ -82,16 +100,18 @@ class HttpProtocol(asyncio.Protocol):
 
     # Called by the WSGI app...
     def start_response(self, status, response_headers):
-        response_bytes = b'HTTP/1.1 '
-        response_bytes += status.encode('latin-1')
-        response_bytes += b'\r\n'
+        response = [
+            b'HTTP/1.1 ',
+            status.encode('ascii'),
+            b'\r\n'
+        ]
         for header_name, header_value in response_headers:
-            response_bytes += header_name.encode('latin-1')
-            response_bytes += b': '
-            response_bytes += header_value.encode('latin-1')
-            response_bytes += b'\r\n'
-        response_bytes += b'\r\n'
-        self.response_bytes = response_bytes
+            response.extend([
+                header_name.encode('ascii'), b': ',
+                header_value.encode('ascii'), b'\r\n'
+            ])
+        response.append(b'\r\n')
+        self.response_bytes = b''.join(response)
 
 
 class AsyncioWorker(Worker):
@@ -117,9 +137,8 @@ class AsyncioWorker(Worker):
         wsgi = self.wsgi
 
         for sock in self.sockets:
-            sockname = sock.getsockname()
             protocol = functools.partial(
                 HttpProtocol,
-                wsgi=wsgi, loop=loop, sockname=sockname, cfg=cfg
+                wsgi=wsgi, loop=loop, sock=sock, cfg=cfg
             )
             await loop.create_server(protocol, sock=sock)
