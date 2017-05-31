@@ -52,7 +52,7 @@ def hello_world(message):
     loop.create_task(sleepy_hello_world(message))
 
 
-async def sleepy_hello_world(response):
+async def sleepy_hello_world(message):
     await asyncio.sleep(1)
     content = b'<html><h1>Hello, world</h1></html>'
     response = {
