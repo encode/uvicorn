@@ -2,6 +2,8 @@
 
 *An ASGI worker class for Gunicorn.*
 
+[Discussion on django-dev](https://groups.google.com/forum/#!topic/django-developers/_314PGl3Ao0).
+
 A Gunicorn worker class that interfaces with an ASGI Consumer callable, rather than a WSGI callable.
 
 We use a couple of packages from [MagicStack](https://github.com/MagicStack/) in
