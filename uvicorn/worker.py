@@ -22,6 +22,7 @@ class HttpProtocol(asyncio.Protocol):
         self.consumer = consumer
         self.loop = loop
         self.transport = None
+        self.coroutine = asyncio.iscoroutinefunction(consumer)
 
         self.base_message = {
             'reply_channel': self,
@@ -72,11 +73,15 @@ class HttpProtocol(asyncio.Protocol):
 
     def on_message_complete(self):
         self.message['body'] = b''.join(self.body)
-        self.consumer({
+        content = {
             'reply_channel': self,
             'channel_layer': self,
             'message': self.message
-        })
+        }
+        if self.coroutine:
+            self.loop.create_task(self.consumer(content))
+        else:
+            self.consumer(content)
 
     def on_chunk_header(self):
         pass

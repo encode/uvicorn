@@ -40,7 +40,7 @@ def hello_world(message):
 **Run the server**:
 
 ```shell
-uvicorn app:hello_world --bind localhost:8080
+uvicorn app:hello_world
 ```
 
 ### An ASGI consumer, returning "Hello, world" after a (non-blocking) 1 second delay.
@@ -49,12 +49,7 @@ uvicorn app:hello_world --bind localhost:8080
 import asyncio
 
 
-def hello_world(message):
-    loop = message['channel_layer'].loop
-    loop.create_task(sleepy_hello_world(message))
-
-
-async def sleepy_hello_world(response):
+async hello_world(response):
     await asyncio.sleep(1)
     content = b'<html><h1>Hello, world</h1></html>'
     response = {
@@ -71,20 +66,17 @@ async def sleepy_hello_world(response):
 **Run the server**:
 
 ```shell
-gunicorn app:hello_world --bind localhost:8080 --worker-class uvicorn.ASGIWorker
+uvicorn app:hello_world
 ```
 
 ## Notes
 
-* We could allow ASGIWorker to (optionally) accept a co-routine directly, and
-handle the `loop.create_task` dance itself. I've left things as-is right now
-to demonstrate that it works without modifying the ASGI Consumer contract.
-* I've included a `.loop` attribute on the channel_layer. This isn't strictly
-neccessary, as we could call `asyncio.get_event_loop()`, but it'd be nice to
-avoid that if we can.
-* Streaming responses could be supported with minimal work. The handler function
-is already free to call `.send(...)` any number of times, but we don't yet
-handle the different message cases, and naively assume a single response message.
+* I've modified the consumer contract slightly, to allow coroutine functions.
+This provides a nicer interface for asyncio implemntations. It's not strictly
+neccessary to make this change as it's possible to instead have the application
+be responsible for adding a new task to the event loop.
+* Streaming responses are supported, using "Response Chunk" ASGI messages.
+* Streaming requests are not currently supported.
 
 ## Comparative performance vs Meinheld
 
