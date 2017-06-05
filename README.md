@@ -1,4 +1,4 @@
-# ASGIWorker
+# Uvicorn
 
 *An ASGI worker class for Gunicorn.*
 
@@ -40,7 +40,7 @@ def hello_world(message):
 **Run the server**:
 
 ```shell
-gunicorn app:hello_world --bind localhost:8080 --worker-class asgiworker.ASGIWorker
+gunicorn app:hello_world --bind localhost:8080 --worker-class uvicorn.ASGIWorker
 ```
 
 ### An ASGI consumer, returning "Hello, world" after a (non-blocking) 1 second delay.
@@ -71,7 +71,7 @@ async def sleepy_hello_world(response):
 **Run the server**:
 
 ```shell
-gunicorn app:hello_world --bind localhost:8080 --worker-class asgiworker.ASGIWorker
+gunicorn app:hello_world --bind localhost:8080 --worker-class uvicorn.ASGIWorker
 ```
 
 ## Notes

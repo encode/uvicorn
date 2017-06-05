@@ -103,9 +103,9 @@ class HttpProtocol(asyncio.Protocol):
             self.transport.close()
 
 
-class ASGIWorker(Worker):
+class UvicornWorker(Worker):
     """
-    A worker class for GUnicorn that interfaces with an ASGI consumer callable,
+    A worker class for Gunicorn that interfaces with an ASGI consumer callable,
     rather than a WSGI callable.
 
     We use a couple of packages from MagicStack in order to achieve an
