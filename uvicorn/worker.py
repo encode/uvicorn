@@ -64,11 +64,13 @@ class HttpProtocol(asyncio.Protocol):
     def on_header(self, name: bytes, value: bytes):
         self.headers.append([name.lower(), value])
 
+    def on_headers_complete(self):
+        self.message['headers'] = self.headers
+
     def on_body(self, body: bytes):
         self.body.append(body)
 
     def on_message_complete(self):
-        self.message['headers'] = self.headers
         self.message['body'] = b''.join(self.body)
         self.consumer({
             'reply_channel': self,
