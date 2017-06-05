@@ -4,7 +4,8 @@
 
 [Discussion on django-dev](https://groups.google.com/forum/#!topic/django-developers/_314PGl3Ao0).
 
-A Gunicorn worker class that interfaces with an ASGI Consumer callable, rather than a WSGI callable.
+The server is implemented as a Gunicorn worker class that interfaces with an
+ASGI Consumer callable, rather than a WSGI callable.
 
 We use a couple of packages from [MagicStack](https://github.com/MagicStack/) in
 order to achieve an extremely high-throughput and low-latency implementation:
@@ -16,6 +17,12 @@ You can use this worker class to interface with either a traditional syncronous
 application codebase, or an asyncronous application codebase using asyncio.
 
 These are the same packages used by the [Sanic web framework](https://github.com/channelcat/sanic).
+
+## Installation
+
+Install using `pip`:
+
+    pip install uvicorn
 
 ## Examples
 
@@ -49,7 +56,7 @@ uvicorn app:hello_world
 import asyncio
 
 
-async hello_world(response):
+async hello_world(message):
     await asyncio.sleep(1)
     content = b'<html><h1>Hello, world</h1></html>'
     response = {
@@ -71,9 +78,9 @@ uvicorn app:hello_world
 
 ## Notes
 
-* I've modified the consumer contract slightly, to allow coroutine functions.
-This provides a nicer interface for asyncio implemntations. It's not strictly
-neccessary to make this change as it's possible to instead have the application
+* I've modified the ASGI consumer contract slightly, to allow coroutine functions.
+This provides a nicer interface for asyncio implementations. It's not strictly
+necessary to make this change as it's possible to instead have the application
 be responsible for adding a new task to the event loop.
 * Streaming responses are supported, using "Response Chunk" ASGI messages.
 * Streaming requests are not currently supported.
