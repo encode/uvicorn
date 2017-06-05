@@ -1,6 +1,6 @@
 # Uvicorn
 
-*An ASGI worker class for Gunicorn.*
+*An ASGI server, using Gunicorn and uvloop.*
 
 [Discussion on django-dev](https://groups.google.com/forum/#!topic/django-developers/_314PGl3Ao0).
 
@@ -40,7 +40,7 @@ def hello_world(message):
 **Run the server**:
 
 ```shell
-gunicorn app:hello_world --bind localhost:8080 --worker-class uvicorn.ASGIWorker
+uvicorn app:hello_world --bind localhost:8080
 ```
 
 ### An ASGI consumer, returning "Hello, world" after a (non-blocking) 1 second delay.
