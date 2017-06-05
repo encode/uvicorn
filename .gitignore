@@ -1,2 +1,3 @@
 __pycache__/
+uvicorn.egg-info/
 venv/
