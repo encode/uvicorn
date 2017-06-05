@@ -12,8 +12,8 @@ if ! command -v "${PREFIX}twine" &>/dev/null ; then
     exit 1
 fi
 
-find apistar -type f -name "*.py[co]" -delete
-find apistar -type d -name __pycache__ -delete
+find uvicorn -type f -name "*.py[co]" -delete
+find uvicorn -type d -name __pycache__ -delete
 
 ${PREFIX}python setup.py sdist
 ${PREFIX}twine upload dist/*

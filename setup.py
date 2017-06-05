@@ -35,7 +35,7 @@ setup(
     version=version,
     url='https://github.com/tomchristie/uvicorn',
     license='BSD',
-    description='Blazingly fast & beautifully expressive Web APIs',
+    description='An ASGI server, using Gunicorn and uvloop.',
     author='Tom Christie',
     author_email='tom@tomchristie.com',
     packages=get_packages('uvicorn'),
