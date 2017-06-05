@@ -87,19 +87,25 @@ class HttpProtocol(asyncio.Protocol):
         if self.transport is None:
             return
 
-        status_bytes = str(message['status']).encode()
+        status = message.get('status')
+        if 'status' is not None:
+            status_line = [b'HTTP/1.1 ', str(status).encode(), b'\r\n']
+            self.transport.write(b''.join(status_line))
+
+        headers = message.get('headers')
+        if 'headers' is not None:
+            headers_lines = []
+            for header_name, header_value in headers:
+                headers_lines.extend([header_name, b': ', header_value, b'\r\n'])
+            headers_lines.append(b'\r\n')
+            self.transport.write(b''.join(headers_lines))
+
         content = message.get('content')
-
-        response = [b'HTTP/1.1 ', status_bytes, b'\r\n']
-        for header_name, header_value in message['headers']:
-            response.extend([header_name, b': ', header_value, b'\r\n'])
-        response.append(b'\r\n')
-
-        self.transport.write(b''.join(response))
-        if content:
+        if content is not None:
             self.transport.write(content)
 
-        if not self.request_parser.should_keep_alive():
+        more_content = message.get('more_content', False)
+        if not more_content and not self.request_parser.should_keep_alive():
             self.transport.close()
 
 
