@@ -1,8 +1,8 @@
-<div text-align="center">
+<p align="center">
 # uvicorn
 
 *An ASGI server, using Gunicorn and uvloop.*
-</div>
+</p>
 
 <p align="center">
   <img width="350" height="350" src="https://raw.githubusercontent.com/tomchristie/uvicorn/master/docs/uvicorn.png">
