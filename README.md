@@ -1,7 +1,9 @@
 <p align="center">
-# uvicorn
+<h1>uvicorn</h1>
+</p>
 
-*An ASGI server, using Gunicorn and uvloop.*
+<p align="center">
+<em>A lightning-fast asyncio server for Python 3.</em>
 </p>
 
 <p align="center">
