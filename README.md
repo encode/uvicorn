@@ -1,9 +1,11 @@
-# Uvicorn
+<div text-align="center">
+# uvicorn
 
 *An ASGI server, using Gunicorn and uvloop.*
+</div>
 
 <p align="center">
-  <img width="300" height="300" src="https://raw.githubusercontent.com/tomchristie/uvicorn/master/docs/uvicorn.png">
+  <img width="350" height="350" src="https://raw.githubusercontent.com/tomchristie/uvicorn/master/docs/uvicorn.png">
 </p>
 
 [Discussion on django-dev](https://groups.google.com/forum/#!topic/django-developers/_314PGl3Ao0).
