@@ -18,24 +18,40 @@ from gunicorn.workers.base import Worker
 
 
 CURRENT_TIME = time.time()
-DATE_HEADER = email.utils.formatdate(CURRENT_TIME, usegmt=True).encode()
-SERVER_HEADER = b'uvicorn'
+DATE_HEADER = b''.join([
+    b'date: ',
+    email.utils.formatdate(CURRENT_TIME, usegmt=True).encode(),
+    b'\r\n'
+])
+SERVER_HEADER = b'server: uvicorn\r\n'
+STATUS_LINE = {
+    status_code: b''.join([b'HTTP/1.1 ', str(status_code).encode(), b'\r\n'])
+    for status_code in range(100, 599)
+}
 
 
 class HttpProtocol(asyncio.Protocol):
+    __slots__ = [
+        'request_parser', 'consumer', 'loop', 'coroutine', 'base_message',
+        'transport', 'message', 'headers', 'body'
+    ]
+
     def __init__(self, consumer, loop, sock, cfg):
         self.request_parser = httptools.HttpRequestParser(self)
         self.consumer = consumer
         self.loop = loop
-        self.transport = None
         self.coroutine = asyncio.iscoroutinefunction(consumer)
-
         self.base_message = {
             'reply_channel': self,
             'scheme': 'https' if cfg.is_ssl else 'http',
             'root_path': os.environ.get('SCRIPT_NAME', ''),
             'server': sock.getsockname()
         }
+
+        self.transport = None
+        self.message = None
+        self.headers = None
+        self.body = None
 
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
@@ -71,13 +87,11 @@ class HttpProtocol(asyncio.Protocol):
     def on_header(self, name: bytes, value: bytes):
         self.headers.append([name.lower(), value])
 
-    def on_headers_complete(self):
-        self.message['headers'] = self.headers
-
     def on_body(self, body: bytes):
         self.body.append(body)
 
     def on_message_complete(self):
+        self.message['headers'] = self.headers
         self.message['body'] = b''.join(self.body)
         content = {
             'reply_channel': self,
@@ -101,13 +115,18 @@ class HttpProtocol(asyncio.Protocol):
             return
 
         status = message.get('status')
-        if 'status' is not None:
+        if status is not None:
             response = [
-                b'HTTP/1.1 ', str(status).encode(), b'\r\n',
-                b'server: ', SERVER_HEADER, b'\r\n',
-                b'date: ', DATE_HEADER, b'\r\n',
+                STATUS_LINE[status],
+                SERVER_HEADER,
+                DATE_HEADER,
             ]
-            for header_name, header_value in message.get('headers', []):
+            self.transport.write(b''.join(response))
+
+        headers = message.get('headers')
+        if headers is not None:
+            response = []
+            for header_name, header_value in headers:
                 response.extend([header_name, b': ', header_value, b'\r\n'])
             response.append(b'\r\n')
             self.transport.write(b''.join(response))
@@ -119,6 +138,7 @@ class HttpProtocol(asyncio.Protocol):
         more_content = message.get('more_content', False)
         if not more_content and not self.request_parser.should_keep_alive():
             self.transport.close()
+            self.transport = None
 
 
 class UvicornWorker(Worker):
@@ -170,7 +190,11 @@ async def tick(loop, notify):
     cycle = 0
     while True:
         CURRENT_TIME = time.time()
-        DATE_HEADER = email.utils.formatdate(CURRENT_TIME, usegmt=True).encode()
+        DATE_HEADER = b''.join([
+            b'date: ',
+            email.utils.formatdate(CURRENT_TIME, usegmt=True).encode(),
+            b'\r\n'
+        ])
         cycle = (cycle + 1) % 10
         if cycle == 0:
             notify()
