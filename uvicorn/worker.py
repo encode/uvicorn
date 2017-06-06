@@ -4,16 +4,22 @@
 # https://github.com/aio-libs/aiohttp - An asyncio framework, including gunicorn worker.
 # https://github.com/channelcat/sanic - An asyncio framework, including gunicorn worker.
 # https://python-hyper.org/projects/h2/en/stable/asyncio-example.html - HTTP2 parser
-# https://github.com/jeamland/guvnor - Gunicorn worker implementation
 import asyncio
+import email
 import functools
 import io
 import os
+import time
 
 import httptools
 import uvloop
 
 from gunicorn.workers.base import Worker
+
+
+CURRENT_TIME = time.time()
+DATE_HEADER = email.utils.formatdate(CURRENT_TIME, usegmt=True).encode()
+SERVER_HEADER = b'uvicorn'
 
 
 class HttpProtocol(asyncio.Protocol):
@@ -96,16 +102,15 @@ class HttpProtocol(asyncio.Protocol):
 
         status = message.get('status')
         if 'status' is not None:
-            status_line = [b'HTTP/1.1 ', str(status).encode(), b'\r\n']
-            self.transport.write(b''.join(status_line))
-
-        headers = message.get('headers')
-        if 'headers' is not None:
-            headers_lines = []
-            for header_name, header_value in headers:
-                headers_lines.extend([header_name, b': ', header_value, b'\r\n'])
-            headers_lines.append(b'\r\n')
-            self.transport.write(b''.join(headers_lines))
+            response = [
+                b'HTTP/1.1 ', str(status).encode(), b'\r\n',
+                b'server: ', SERVER_HEADER, b'\r\n',
+                b'date: ', DATE_HEADER, b'\r\n',
+            ]
+            for header_name, header_value in message.get('headers', []):
+                response.extend([header_name, b': ', header_value, b'\r\n'])
+            response.append(b'\r\n')
+            self.transport.write(b''.join(response))
 
         content = message.get('content')
         if content is not None:
@@ -143,6 +148,7 @@ class UvicornWorker(Worker):
     def run(self):
         loop = asyncio.get_event_loop()
         loop.create_task(self.create_servers(loop))
+        loop.create_task(tick(loop, self.notify))
         loop.run_forever()
 
     async def create_servers(self, loop):
@@ -155,3 +161,17 @@ class UvicornWorker(Worker):
                 consumer=consumer, loop=loop, sock=sock, cfg=cfg
             )
             await loop.create_server(protocol, sock=sock)
+
+
+async def tick(loop, notify):
+    global CURRENT_TIME
+    global DATE_HEADER
+
+    cycle = 0
+    while True:
+        CURRENT_TIME = time.time()
+        DATE_HEADER = email.utils.formatdate(CURRENT_TIME, usegmt=True).encode()
+        cycle = (cycle + 1) % 10
+        if cycle == 0:
+            notify()
+        await asyncio.sleep(1)
