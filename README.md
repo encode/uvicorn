@@ -1,6 +1,4 @@
-<p align="center">
-<h1>uvicorn</h1>
-</p>
+<h1 align="center">uvicorn</h1>
 
 <p align="center">
 <em>A lightning-fast asyncio server for Python 3.</em>
