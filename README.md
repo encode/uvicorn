@@ -2,7 +2,9 @@
 
 *An ASGI server, using Gunicorn and uvloop.*
 
+<div style="text-align:center">
 ![uvicorn](docs/uvicorn.png)
+</div>
 
 [Discussion on django-dev](https://groups.google.com/forum/#!topic/django-developers/_314PGl3Ao0).
 
