@@ -8,22 +8,6 @@
 
 ---
 
-[Discussion on django-dev](https://groups.google.com/forum/#!topic/django-developers/_314PGl3Ao0).
-
-The server is implemented as a Gunicorn worker class that interfaces with an
-ASGI Consumer callable, rather than a WSGI callable.
-
-We use a couple of packages from [MagicStack](https://github.com/MagicStack/) in
-order to achieve an extremely high-throughput and low-latency implementation:
-
-* `uvloop` as the event loop policy.
-* `httptools` as the HTTP request parser.
-
-You can use this worker class to interface with either a traditional syncronous
-application codebase, or an asyncronous application codebase using asyncio.
-
-These are the same packages used by the [Sanic web framework](https://github.com/channelcat/sanic).
-
 ## Installation
 
 Install using `pip`:
@@ -32,7 +16,7 @@ Install using `pip`:
 
 ## Examples
 
-### An ASGI consumer, returning "Hello, world".
+### Hello, world...
 
 **app.py**:
 
@@ -55,7 +39,7 @@ def hello_world(message):
 uvicorn app:hello_world
 ```
 
-### An ASGI consumer, returning "Hello, world" after a (non-blocking) 1 second delay.
+### Using async...
 
 ```python
 import asyncio
@@ -79,6 +63,24 @@ async hello_world(message):
 ```shell
 uvicorn app:hello_world
 ```
+
+---
+
+[Discussion on django-dev](https://groups.google.com/forum/#!topic/django-developers/_314PGl3Ao0).
+
+The server is implemented as a Gunicorn worker class that interfaces with an
+ASGI Consumer callable, rather than a WSGI callable.
+
+We use a couple of packages from [MagicStack](https://github.com/MagicStack/) in
+order to achieve an extremely high-throughput and low-latency implementation:
+
+* `uvloop` as the event loop policy.
+* `httptools` as the HTTP request parser.
+
+You can use this worker class to interface with either a traditional syncronous
+application codebase, or an asyncronous application codebase using asyncio.
+
+These are the same packages used by the [Sanic web framework](https://github.com/channelcat/sanic).
 
 ## Notes
 
@@ -107,11 +109,4 @@ significant overhead.
 This worker class interfaces directly with an ASGI Consumer.
 
 This is in contrast to Django Channels, where server processes communicate
-with worker processes, via an intermediary channel layer.
-
-This doesn't quite fit the original design intent behind ASGI, but the
-introduction of a channel layer seems unneccessary for eg. HTTP requests.
-
-We can still introduce backpressure, by capping a maximum number of allowable
-concurrent connections, which as far as I can tell would have pretty much
-an equivelent effect to capping the maximum number of allowable queued messages.
+with worker processes via an intermediary channel layer.
