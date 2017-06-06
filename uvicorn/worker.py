@@ -76,7 +76,6 @@ class HttpProtocol(asyncio.Protocol):
         parsed = httptools.parse_url(url)
         method = self.request_parser.get_method()
         http_version = self.request_parser.get_http_version()
-
         self.message.update({
             'http_version': http_version,
             'method': method.decode('ascii'),
@@ -93,15 +92,14 @@ class HttpProtocol(asyncio.Protocol):
     def on_message_complete(self):
         self.message['headers'] = self.headers
         self.message['body'] = b''.join(self.body)
-        content = {
-            'reply_channel': self,
-            'channel_layer': self,
-            'message': self.message
+        message = {
+            'content': self.message,
+            'reply_channel': self
         }
         if self.coroutine:
-            self.loop.create_task(self.consumer(content))
+            self.loop.create_task(self.consumer(message))
         else:
-            self.consumer(content)
+            self.consumer(message)
 
     def on_chunk_header(self):
         pass
@@ -115,6 +113,10 @@ class HttpProtocol(asyncio.Protocol):
             return
 
         status = message.get('status')
+        headers = message.get('headers')
+        content = message.get('content')
+        more_content = message.get('more_content', False)
+
         if status is not None:
             response = [
                 STATUS_LINE[status],
@@ -123,19 +125,21 @@ class HttpProtocol(asyncio.Protocol):
             ]
             self.transport.write(b''.join(response))
 
-        headers = message.get('headers')
         if headers is not None:
-            response = []
+            if more_content:
+                response = []
+            else:
+                response = [b'content-length: ', str(len(content)).encode(), b'\r\n']
+
             for header_name, header_value in headers:
                 response.extend([header_name, b': ', header_value, b'\r\n'])
             response.append(b'\r\n')
+
             self.transport.write(b''.join(response))
 
-        content = message.get('content')
         if content is not None:
             self.transport.write(content)
 
-        more_content = message.get('more_content', False)
         if not more_content and not self.request_parser.should_keep_alive():
             self.transport.close()
             self.transport = None

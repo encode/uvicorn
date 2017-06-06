@@ -1,10 +1,10 @@
 def hello_world(message):
-    content = b"Hello, world!\n"
-    return message['reply_channel'].send({
+    content = b'<html><h1>Hello, world</h1></html>'
+    response = {
         'status': 200,
         'headers': [
-            [b'content-type', b'text/plain'],
-            [b'content-length', str(len(content)).encode('ascii')],
+            [b'content-type', b'text/html'],
         ],
         'content': content
-    })
+    }
+    message['reply_channel'].send(response)

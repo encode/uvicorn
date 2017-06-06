@@ -37,7 +37,6 @@ def hello_world(message):
         'status': 200,
         'headers': [
             [b'content-type', b'text/html'],
-            [b'content-length', str(len(content)).encode('ascii')]
         ],
         'content': content
     }
@@ -63,7 +62,6 @@ async hello_world(message):
         'status': 200,
         'headers': [
             [b'content-type', b'text/html'],
-            [b'content-length', str(len(content)).encode('ascii')]
         ],
         'content': content
     }
