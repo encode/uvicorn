@@ -1,12 +1,12 @@
-<h1 align="center">uvicorn</h1>
+<p align="center">
+  <img width="350" height="350" src="https://raw.githubusercontent.com/tomchristie/uvicorn/master/docs/uvicorn.png" alt='uvicorn'>
+</p>
 
 <p align="center">
 <em>A lightning-fast asyncio server for Python 3.</em>
 </p>
 
-<p align="center">
-  <img width="350" height="350" src="https://raw.githubusercontent.com/tomchristie/uvicorn/master/docs/uvicorn.png">
-</p>
+---
 
 [Discussion on django-dev](https://groups.google.com/forum/#!topic/django-developers/_314PGl3Ao0).
 
