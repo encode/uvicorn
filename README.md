@@ -2,6 +2,8 @@
 
 *An ASGI server, using Gunicorn and uvloop.*
 
+![uvicorn](docs/uvicorn.png)
+
 [Discussion on django-dev](https://groups.google.com/forum/#!topic/django-developers/_314PGl3Ao0).
 
 The server is implemented as a Gunicorn worker class that interfaces with an
