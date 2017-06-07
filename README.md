@@ -95,9 +95,9 @@ be responsible for adding a new task to the event loop.
 
 Using `wrk -d20s -t10 -c200 http://127.0.0.1:8080/` on a 2013 MacBook Air...
 
-Worker Class | Requests/sec | Avg latency
+Server       | Requests/sec | Avg latency
 -------------|--------------|------------
-ASGIWorker   |      ~34,000 |        ~6ms
+Uvicorn      |      ~34,000 |        ~6ms
 Meinheld     |      ~16,000 |       ~12ms
 
 Not *quite* a like-for-like as there's a few extra bits of processing currently
