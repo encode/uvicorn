@@ -77,8 +77,8 @@ order to achieve an extremely high-throughput and low-latency implementation:
 * `uvloop` as the event loop policy.
 * `httptools` as the HTTP request parser.
 
-You can use this worker class to interface with either a traditional syncronous
-application codebase, or an asyncronous application codebase using asyncio.
+You can use uvicorn to interface with either a traditional syncronous
+application codebase, or an asyncio application codebase.
 
 These are the same packages used by the [Sanic web framework](https://github.com/channelcat/sanic).
 
@@ -99,10 +99,6 @@ Server       | Requests/sec | Avg latency
 -------------|--------------|------------
 Uvicorn      |      ~34,000 |        ~6ms
 Meinheld     |      ~16,000 |       ~12ms
-
-Not *quite* a like-for-like as there's a few extra bits of processing currently
-missing from ASGIWorker, but I don't believe there's anything that would add
-significant overhead.
 
 ## ASGI Consumers vs Channels.
 
