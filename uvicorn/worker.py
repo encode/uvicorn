@@ -26,92 +26,31 @@ DATE_HEADER = b''.join([
 SERVER_HEADER = b'server: uvicorn\r\n'
 STATUS_LINE = {
     status_code: b''.join([b'HTTP/1.1 ', str(status_code).encode(), b'\r\n'])
-    for status_code in range(100, 599)
+    for status_code in range(200, 600)
 }
 
 
-class HttpProtocol(asyncio.Protocol):
-    __slots__ = [
-        'request_parser', 'consumer', 'loop', 'coroutine', 'base_message',
-        'transport', 'message', 'headers', 'body'
-    ]
+class BodyChannel(object):
+    __slots__ = ['_queue']
 
-    def __init__(self, consumer, loop, sock, cfg):
-        self.request_parser = httptools.HttpRequestParser(self)
-        self.consumer = consumer
-        self.loop = loop
-        self.coroutine = asyncio.iscoroutinefunction(consumer)
-        self.base_message = {
-            'reply_channel': self,
-            'scheme': 'https' if cfg.is_ssl else 'http',
-            'root_path': os.environ.get('SCRIPT_NAME', ''),
-            'server': sock.getsockname()
-        }
+    def __init__(self):
+        self._queue = asyncio.Queue()
 
-        self.transport = None
-        self.message = None
-        self.headers = None
-        self.body = None
+    async def send(self, message):
+        await self._queue.put(message)
 
-    # The asyncio.Protocol hooks...
-    def connection_made(self, transport):
-        self.transport = transport
+    async def recieve(self):
+        return await self._queue.get()
 
-    def connection_lost(self, exc):
-        self.transport = None
 
-    def eof_received(self):
-        pass
+class ReplyChannel(object):
+    __slots__ = ['_transport', '_keep_alive']
 
-    def data_received(self, data):
-        self.request_parser.feed_data(data)
+    def __init__(self, transport=None, keep_alive=True):
+        self._transport = transport
+        self._keep_alive = keep_alive
 
-    # Event hooks called back into by HttpRequestParser...
-    def on_message_begin(self):
-        self.message = self.base_message.copy()
-        self.headers = []
-        self.body = []
-
-    def on_url(self, url):
-        parsed = httptools.parse_url(url)
-        method = self.request_parser.get_method()
-        http_version = self.request_parser.get_http_version()
-        self.message.update({
-            'http_version': http_version,
-            'method': method.decode('ascii'),
-            'path': parsed.path.decode('ascii'),
-            'query_string': parsed.query if parsed.query else b'',
-        })
-
-    def on_header(self, name: bytes, value: bytes):
-        self.headers.append([name.lower(), value])
-
-    def on_body(self, body: bytes):
-        self.body.append(body)
-
-    def on_message_complete(self):
-        self.message['headers'] = self.headers
-        self.message['body'] = b''.join(self.body)
-        message = {
-            'content': self.message,
-            'reply_channel': self
-        }
-        if self.coroutine:
-            self.loop.create_task(self.consumer(message))
-        else:
-            self.consumer(message)
-
-    def on_chunk_header(self):
-        pass
-
-    def on_chunk_complete(self):
-        pass
-
-    # Called back into by the ASGI consumer...
-    def send(self, message):
-        if self.transport is None:
-            return
-
+    async def send(self, message):
         status = message.get('status')
         headers = message.get('headers')
         content = message.get('content')
@@ -123,7 +62,7 @@ class HttpProtocol(asyncio.Protocol):
                 SERVER_HEADER,
                 DATE_HEADER,
             ]
-            self.transport.write(b''.join(response))
+            self._transport.write(b''.join(response))
 
         if headers is not None:
             if more_content:
@@ -135,14 +74,104 @@ class HttpProtocol(asyncio.Protocol):
                 response.extend([header_name, b': ', header_value, b'\r\n'])
             response.append(b'\r\n')
 
-            self.transport.write(b''.join(response))
+            self._transport.write(b''.join(response))
 
         if content is not None:
-            self.transport.write(content)
+            self._transport.write(content)
 
-        if not more_content and not self.request_parser.should_keep_alive():
-            self.transport.close()
-            self.transport = None
+        if not more_content and not self._keep_alive:
+            self._transport.close()
+
+
+class HttpProtocol(asyncio.Protocol):
+    __slots__ = [
+        'consumer', 'loop', 'request_parser',
+        'base_message', 'base_channels',
+        'message', 'channels',
+        'headers'
+    ]
+
+    def __init__(self, consumer, loop, sock, cfg):
+        assert asyncio.iscoroutinefunction(consumer)
+        self.consumer = consumer
+        self.loop = loop
+        self.request_parser = httptools.HttpRequestParser(self)
+
+        self.base_message = {
+            'scheme': 'https' if cfg.is_ssl else 'http',
+            'root_path': os.environ.get('SCRIPT_NAME', ''),
+            'server': sock.getsockname()
+        }
+        self.base_channels = None
+
+        self.transport = None
+        self.message = None
+        self.headers = None
+
+    # The asyncio.Protocol hooks...
+    def connection_made(self, transport):
+        self.base_channels = {
+            'reply': ReplyChannel(transport)
+        }
+
+    def connection_lost(self, exc):
+        pass
+
+    def eof_received(self):
+        pass
+
+    def data_received(self, data):
+        self.request_parser.feed_data(data)
+
+    # Event hooks called back into by HttpRequestParser...
+    def on_message_begin(self):
+        self.message = self.base_message.copy()
+        self.channels = self.base_channels.copy()
+        self.headers = []
+
+    def on_url(self, url):
+        parsed = httptools.parse_url(url)
+        method = self.request_parser.get_method()
+        http_version = self.request_parser.get_http_version()
+        self.message.update({
+            'http_version': http_version,
+            'method': method.decode('ascii'),
+            'path': parsed.path.decode('ascii'),
+            'query_string': parsed.query if parsed.query else b'',
+            'headers': self.headers
+        })
+
+    def on_header(self, name: bytes, value: bytes):
+        self.headers.append([name.lower(), value])
+
+    def on_body(self, body: bytes):
+        if 'body' not in self.channels:
+            self.channels['body'] = BodyChannel()
+            self.loop.create_task(self.consumer(self.message, self.channels))
+        message = {
+            'content': body,
+            'more_content': True
+        }
+        self.loop.create_task(self.channels['body'].send(message))
+
+    def on_message_complete(self):
+        if not self.request_parser.should_keep_alive():
+            self.channels['reply']._keep_alive = False
+
+        if 'body' not in self.channels:
+            self.loop.create_task(self.consumer(self.message, self.channels))
+        else:
+            message = {
+                'content': b'',
+                'more_content': False
+            }
+            self.loop.create_task(self.channels['body'].send(message))
+
+    def on_chunk_header(self):
+        pass
+
+    def on_chunk_complete(self):
+        pass
 
 
 class UvicornWorker(Worker):
