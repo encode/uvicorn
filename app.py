@@ -1,21 +1,34 @@
-async def read_body(channels):
-    body = b''
-    if 'body' in channels:
-        while True:
-            message_chunk = await channels['body'].recieve()
-            body += message_chunk['content']
-            if not message_chunk['more_content']:
-                break
-    return body
+from uvicorn.utils import ASGIAdapter, WSGIAdapter
 
 
-async def hello_world(message, channels):
-    body = await read_body(channels)
-    response = {
+# Run: `uvicorn app:asgi`
+async def asgi(message, channels):
+    """
+    ASGI-style 'Hello, world' application.
+    """
+    await channels['reply'].send({
         'status': 200,
         'headers': [
-            [b'content-type', b'text/html'],
+            [b'content-type', b'text/plain'],
         ],
-        'content': b'<html><h1>Hello, world</h1></html>'
-    }
-    await channels['reply'].send(response)
+        'content': b'Hello, world\n'
+    })
+
+
+# Run: `gunicorn app:wsgi`
+def wsgi(environ, start_response):
+    """
+    WSGI 'Hello, world' application.
+    """
+    status = '200 OK'
+    response_headers = [('Content-type','text/plain')]
+    start_response(status, response_headers)
+    return [b'Hello, world\n']
+
+
+# Run: `uvicorn app:asgi_from_wsgi`
+asgi_from_wsgi = ASGIAdapter(wsgi)
+
+
+# Run: `gunicorn app:wsgi_from_asgi`
+wsgi_from_asgi = WSGIAdapter(asgi)

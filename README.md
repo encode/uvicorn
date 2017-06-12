@@ -8,54 +8,33 @@
 
 ---
 
+# Introduction
+
+Uvicorn is intended to be the basis for providing Python 3 with a simple
+interface on which to build asyncio web frameworks. It provides the following:
+
+* A lightning-fast asyncio server implementation, using [uvloop][uvloop] and [httptools][httptools].
+* A minimal application interface, based on [ASGI][asgi].
+
 ## Installation
 
 Install using `pip`:
 
     pip install uvicorn
 
-## Examples
-
-### Hello, world...
-
-**app.py**:
+## Example
 
 ```python
-def hello_world(message):
-    content = b'<html><h1>Hello, world</h1></html>'
+async hello_world(message, channels):
+    content = b'Hello, world'
     response = {
         'status': 200,
         'headers': [
-            [b'content-type', b'text/html'],
+            [b'content-type', b'text/plain'],
         ],
         'content': content
     }
-    message['reply_channel'].send(response)
-```
-
-**Run the server**:
-
-```shell
-uvicorn app:hello_world
-```
-
-### Using async...
-
-```python
-import asyncio
-
-
-async hello_world(message):
-    await asyncio.sleep(1)
-    content = b'<html><h1>Hello, world</h1></html>'
-    response = {
-        'status': 200,
-        'headers': [
-            [b'content-type', b'text/html'],
-        ],
-        'content': content
-    }
-    message['reply_channel'].send(response)
+    channels['reply'].send(response)
 ```
 
 **Run the server**:
@@ -66,47 +45,130 @@ uvicorn app:hello_world
 
 ---
 
-[Discussion on django-dev](https://groups.google.com/forum/#!topic/django-developers/_314PGl3Ao0).
+# The messaging interface
 
-The server is implemented as a Gunicorn worker class that interfaces with an
-ASGI Consumer callable, rather than a WSGI callable.
+Uvicorn introduces a messaging interface based on ASGI...
 
-We use a couple of packages from [MagicStack](https://github.com/MagicStack/) in
-order to achieve an extremely high-throughput and low-latency implementation:
+* `message` is an [ASGI message][asgi-message].  (But see below for ammendments.)
+* `channels` is a dictionary of <unicode string>:<channel interface>.
 
-* `uvloop` as the event loop policy.
-* `httptools` as the HTTP request parser.
+The channel interface is an object with the following attributes:
 
-You can use this worker class to interface with either a traditional syncronous
-application codebase, or an asyncronous application codebase using asyncio.
+* `.send(message)` - A coroutine for sending outbound messages. Optional.
+* `.receive()` - A coroutine for receiving incoming messages. Optional.
+* `.name` - A unicode string, uniquely identifying the channel. Optional.
 
-These are the same packages used by the [Sanic web framework](https://github.com/channelcat/sanic).
+Messages diverge from ASGI in the following ways:
 
-## Notes
+* Messages additionally include a `channel` key, to allow for routing eg. `'channel': 'http.request'`
+* Messages do not include channel names, such as `reply_channel` or `body_channel`,
+  instead the `channels` dictionary presents the available channels.
 
-* I've modified the ASGI consumer contract slightly, to allow coroutine functions.
-This provides a nicer interface for asyncio implementations. It's not strictly
-necessary to make this change as it's possible to instead have the application
-be responsible for adding a new task to the event loop.
-* Streaming responses are supported, using "Response Chunk" ASGI messages.
-* Streaming requests are not currently supported.
+---
 
-## Comparative performance vs Meinheld
+## Reading the request body:
 
-Using `wrk -d20s -t10 -c200 http://127.0.0.1:8080/` on a 2013 MacBook Air...
+You can stream the request body without blocking the asyncio task pool,
+by receiving [request body chunks][request-body-chunk] from the `body` channel.
 
-Worker Class | Requests/sec | Avg latency
--------------|--------------|------------
-ASGIWorker   |      ~34,000 |        ~6ms
-Meinheld     |      ~16,000 |       ~12ms
+```python
+async def read_body(message, channels):
+    """
+    Read and return the entire body from an incoming ASGI message.
+    """
+    body = message.get('body', b'')
+    if 'body' in channels:
+        while True:
+            message_chunk = await channels['body'].receive()
+            body += message_chunk['content']
+            if not message_chunk.get('more_content', False):
+                break
+    return body
 
-Not *quite* a like-for-like as there's a few extra bits of processing currently
-missing from ASGIWorker, but I don't believe there's anything that would add
-significant overhead.
 
-## ASGI Consumers vs Channels.
+async def echo_body(message, channels):
+    body = await read_body(message, channels)
+    response = {
+        'status': 200,
+        'headers': [
+            [b'content-type', b'text/plain'],
+        ],
+        'content': body
+    }
+    channels['reply'].send(response)
+```
 
-This worker class interfaces directly with an ASGI Consumer.
+## Sending streaming responses:
 
-This is in contrast to Django Channels, where server processes communicate
-with worker processes via an intermediary channel layer.
+You can stream responses by sending [response chunks][response-chunk] to the
+`reply` channel:
+
+```python
+async def stream_response(message, channels):
+    # Send the start of the response.
+    channels['reply'].send({
+        'status': 200,
+        'headers': [
+            [b'content-type', b'text/plain'],
+        ],
+        'content': b'',
+        'more_content': True
+    })
+
+    # Stream response content.
+    for chunk in [b'Hello', b', ', b'world']:
+        await asyncio.sleep(1)
+        channels['reply'].send({
+            'content': chunk,
+            'more_content': True
+        })
+
+    # End the response.
+    channels['reply'].send({
+        'content': b'',
+        'more_content': False
+    })
+```
+
+---
+
+# Adapters
+
+## ASGIAdapter
+
+Provides an ASGI-style interface for an existing WSGI application.
+
+```python
+from uvicorn.utils import ASGIAdapter
+
+def app(environ, start_response):
+    ...
+
+asgi = ASGIAdapter(app)
+```
+
+## WSGIAdapter
+
+Provides a WSGI interface for an existing ASGI-style application.
+
+Useful if you're writing an asyncio application, but want to provide
+a backwards-compatibility interface for WSGI.
+
+```python
+from uvicorn.utils import WSGIAdapter
+
+
+async def app(message, channels):
+    ...
+
+wsgi = WSGIAdapter(app)
+```
+
+---
+
+[uvloop]: https://github.com/MagicStack/uvloop
+[httptools]: https://github.com/MagicStack/httptools
+[asgi]: http://channels.readthedocs.io/en/stable/asgi.html
+[asgi-message]: http://channels.readthedocs.io/en/stable/asgi/www.html#http-websocket-asgi-message-format-draft-spec
+[request-body-chunk]: http://channels.readthedocs.io/en/stable/asgi/www.html#request-body-chunk
+[response-chunk]: http://channels.readthedocs.io/en/stable/asgi/www.html#response-chunk
