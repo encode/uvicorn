@@ -34,7 +34,7 @@ async hello_world(message, channels):
         ],
         'content': content
     }
-    channels['reply'].send(response)
+    await channels['reply'].send(response)
 ```
 
 Run the server:
@@ -95,7 +95,7 @@ async def echo_body(message, channels):
         ],
         'content': body
     }
-    channels['reply'].send(response)
+    await channels['reply'].send(response)
 ```
 
 ## Sending streaming responses
@@ -106,7 +106,7 @@ You can stream responses by sending [response chunks][response-chunk] to the
 ```python
 async def stream_response(message, channels):
     # Send the start of the response.
-    channels['reply'].send({
+    await channels['reply'].send({
         'status': 200,
         'headers': [
             [b'content-type', b'text/plain'],
@@ -117,14 +117,13 @@ async def stream_response(message, channels):
 
     # Stream response content.
     for chunk in [b'Hello', b', ', b'world']:
-        await asyncio.sleep(1)
-        channels['reply'].send({
+        await channels['reply'].send({
             'content': chunk,
             'more_content': True
         })
 
     # End the response.
-    channels['reply'].send({
+    await channels['reply'].send({
         'content': b'',
         'more_content': False
     })

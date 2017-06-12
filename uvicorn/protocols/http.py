@@ -80,7 +80,7 @@ class ReplyChannel(object):
         if content is not None:
             transport.write(content)
 
-        if not more_content and not self._protocol.request_parser.should_keep_alive():
+        if not more_content and (not status) or (not self._protocol.request_parser.should_keep_alive()):
             transport.close()
 
 
