@@ -22,7 +22,7 @@ Install using `pip`:
 
     pip install uvicorn
 
-**`app.py`**:
+Create an application:
 
 ```python
 async hello_world(message, channels):
@@ -37,7 +37,7 @@ async hello_world(message, channels):
     channels['reply'].send(response)
 ```
 
-**Run the server**:
+Run the server:
 
 ```shell
 $ uvicorn app:hello_world
