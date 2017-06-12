@@ -22,9 +22,7 @@ Install using `pip`:
 
     $ pip install uvicorn
 
-Create an application:
-
-**app.py**
+Create an application, in `app.py`:
 
 ```python
 async hello_world(message, channels):
