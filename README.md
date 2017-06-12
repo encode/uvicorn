@@ -24,6 +24,8 @@ Install using `pip`:
 
 Create an application:
 
+**app.py**
+
 ```python
 async hello_world(message, channels):
     content = b'Hello, world'
