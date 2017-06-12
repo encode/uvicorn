@@ -93,7 +93,6 @@ class HttpProtocol(asyncio.Protocol):
     ]
 
     def __init__(self, consumer, loop, sock, cfg):
-        #assert asyncio.iscoroutinefunction(consumer)
         self.consumer = consumer
         self.loop = loop
         self.request_parser = httptools.HttpRequestParser(self)
