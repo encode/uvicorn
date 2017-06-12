@@ -161,6 +161,7 @@ async def app(message, channels):
     ...
 
 wsgi = WSGIAdapter(app)
+```
 
 ---
 
