@@ -20,7 +20,7 @@ interface on which to build asyncio web frameworks. It provides the following:
 
 Install using `pip`:
 
-    pip install uvicorn
+    $ pip install uvicorn
 
 Create an application:
 
@@ -162,8 +162,6 @@ async def app(message, channels):
 
 wsgi = WSGIAdapter(app)
 ```
-
----
 
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
