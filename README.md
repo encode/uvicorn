@@ -16,13 +16,13 @@ interface on which to build asyncio web frameworks. It provides the following:
 * A lightning-fast asyncio server implementation, using [uvloop][uvloop] and [httptools][httptools].
 * A minimal application interface, based on [ASGI][asgi].
 
-## Installation
+## Quickstart
 
 Install using `pip`:
 
     pip install uvicorn
 
-## Example
+**`app.py`**:
 
 ```python
 async hello_world(message, channels):
@@ -40,7 +40,7 @@ async hello_world(message, channels):
 **Run the server**:
 
 ```shell
-uvicorn app:hello_world
+$ uvicorn app:hello_world
 ```
 
 ---
@@ -66,7 +66,7 @@ Messages diverge from ASGI in the following ways:
 
 ---
 
-## Reading the request body:
+## Reading the request body
 
 You can stream the request body without blocking the asyncio task pool,
 by receiving [request body chunks][request-body-chunk] from the `body` channel.
@@ -98,7 +98,7 @@ async def echo_body(message, channels):
     channels['reply'].send(response)
 ```
 
-## Sending streaming responses:
+## Sending streaming responses
 
 You can stream responses by sending [response chunks][response-chunk] to the
 `reply` channel:
