@@ -157,12 +157,10 @@ a backwards-compatibility interface for WSGI.
 ```python
 from uvicorn.utils import WSGIAdapter
 
-
 async def app(message, channels):
     ...
 
 wsgi = WSGIAdapter(app)
-```
 
 ---
 
