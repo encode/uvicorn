@@ -99,6 +99,7 @@ class HttpProtocol(asyncio.Protocol):
         self.request_parser = httptools.HttpRequestParser(self)
 
         self.base_message = {
+            'channel': 'http.request',
             'scheme': 'https' if cfg.is_ssl else 'http',
             'root_path': os.environ.get('SCRIPT_NAME', ''),
             'server': sock.getsockname()
