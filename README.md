@@ -25,7 +25,7 @@ Install using `pip`:
 Create an application, in `app.py`:
 
 ```python
-async hello_world(message, channels):
+async def hello_world(message, channels):
     content = b'Hello, world'
     response = {
         'status': 200,
