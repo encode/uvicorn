@@ -50,7 +50,7 @@ $ uvicorn app:hello_world
 Uvicorn introduces a messaging interface based on ASGI...
 
 * `message` is an [ASGI message][asgi-message].  (But see below for ammendments.)
-* `channels` is a dictionary of <unicode string>:<channel interface>.
+* `channels` is a dictionary of `<unicode string>:<channel interface>`.
 
 The channel interface is an object with the following attributes:
 
