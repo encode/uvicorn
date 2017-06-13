@@ -18,6 +18,8 @@ interface on which to build asyncio web frameworks. It provides the following:
 
 ## Quickstart
 
+Requirements: Python 3.5.3+
+
 Install using `pip`:
 
     $ pip install uvicorn
@@ -133,6 +135,99 @@ async def stream_response(message, channels):
 
 ---
 
+# WebSockets
+
+Uvicorn supports websockets, using the same messaging interface described
+above, with [ASGI WebSocket messages][websocket-message].
+
+```python
+import datetime
+import asyncio
+
+
+async def clock_tick(message, channels):
+    if message['channel'] != 'websocket.connect':
+        return
+
+    while True:
+        text = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        channels['reply'].send({'text': text})
+        await asyncio.sleep(1)
+```
+
+Here's a more complete example that demonstrates a basic WebSocket chat server:
+
+```python
+index_html = b"""
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket demo</title>
+    </head>
+    <body>
+        <h1>WebSocket Chat</h1>
+        <form action="" onsubmit="sendMessage(event)">
+            <input type="text" id="messageText" autocomplete="off"/>
+            <button>Send</button>
+        </form>
+        <ul id='messages'>
+        </ul>
+        <script>
+            var ws = new WebSocket("ws://127.0.0.1:8000/");
+
+            ws.onmessage = function(event) {
+                var messages = document.getElementById('messages')
+                var message = document.createElement('li')
+                var content = document.createTextNode(event.data)
+                message.appendChild(content)
+                messages.appendChild(message)
+            };
+
+            function sendMessage(event) {
+                var input = document.getElementById("messageText")
+                ws.send(input.value)
+                input.value = ''
+                event.preventDefault()
+            }
+        </script>
+    </body>
+</html>
+"""
+
+
+clients = set()
+
+
+async def chat_server(message, channels):
+    """
+    ASGI-style 'Hello, world' application.
+    """
+    if message['channel'] == 'websocket.connect':
+        clients.add(channels['reply'])
+
+    elif message['channel'] == 'websocket.receive':
+        for client in clients:
+            await client.send({'text': message['text']})
+
+    elif message['channel'] == 'websocket.disconnect':
+        clients.remove(channels['reply'])
+
+    elif message['channel'] == 'http.request':
+        await channels['reply'].send({
+            'status': 200,
+            'headers': [
+                [b'content-type', b'text/html'],
+            ],
+            'content': index_html
+        })
+```
+
+Note that the example above would not currently scale past a single process,
+since the set of connected clients is stored in memory. We will be properly
+addressing broadcast functionality in the near future.
+
+---
+
 # Adapters
 
 ## ASGIAdapter
@@ -170,3 +265,4 @@ wsgi = WSGIAdapter(app)
 [asgi-message]: http://channels.readthedocs.io/en/stable/asgi/www.html#http-websocket-asgi-message-format-draft-spec
 [request-body-chunk]: http://channels.readthedocs.io/en/stable/asgi/www.html#request-body-chunk
 [response-chunk]: http://channels.readthedocs.io/en/stable/asgi/www.html#response-chunk
+[websocket-message]: http://channels.readthedocs.io/en/latest/asgi/www.html#websocket

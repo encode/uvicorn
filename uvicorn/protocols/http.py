@@ -1,5 +1,6 @@
 import asyncio
 import email
+import http
 import httptools
 import os
 import time
@@ -19,12 +20,21 @@ def set_time_and_date():
     ])
 
 
+def get_status_line(status_code):
+    try:
+        phrase = http.HTTPStatus(status_code).phrase.encode()
+    except ValueError:
+        phrase = b''
+    return b''.join([
+        b'HTTP/1.1 ', str(status_code).encode(), b' ', phrase, b'\r\n'
+    ])
+
+
 CURRENT_TIME = 0.0
 DATE_HEADER = b''
 SERVER_HEADER = b'server: uvicorn\r\n'
 STATUS_LINE = {
-    status_code: b''.join([b'HTTP/1.1 ', str(status_code).encode(), b'\r\n'])
-    for status_code in range(200, 600)
+    status_code: get_status_line(status_code) for status_code in range(100, 600)
 }
 
 
@@ -68,7 +78,7 @@ class ReplyChannel(object):
 
         if headers is not None:
             response = []
-            if not more_content:
+            if content is not None and not more_content:
                 response = [b'content-length: ', str(len(content)).encode(), b'\r\n']
 
             for header_name, header_value in headers:
@@ -84,12 +94,27 @@ class ReplyChannel(object):
             transport.close()
 
 
+class NullProtocol(asyncio.Protocol):
+    def connection_made(self, transport):
+        pass
+
+    def connection_lost(self, exc):
+        pass
+
+    def eof_received(self):
+        pass
+
+    def data_received(self, data):
+        pass
+
+
 class HttpProtocol(asyncio.Protocol):
     __slots__ = [
         'consumer', 'loop', 'request_parser',
         'base_message', 'base_channels',
         'message', 'channels',
-        'headers', 'transport'
+        'headers', 'transport',
+        'upgrade'
     ]
 
     def __init__(self, consumer, loop, sock, cfg):
@@ -126,9 +151,7 @@ class HttpProtocol(asyncio.Protocol):
         try:
             self.request_parser.feed_data(data)
         except httptools.HttpParserUpgrade:
-            upgrade = dict(self.headers)[b'upgrade']
-            if upgrade.lower() == b'websocket':
-                websocket_upgrade(self)
+            websocket_upgrade(self)
 
     # Event hooks called back into by HttpRequestParser...
     def on_message_begin(self):
@@ -149,7 +172,12 @@ class HttpProtocol(asyncio.Protocol):
         })
 
     def on_header(self, name: bytes, value: bytes):
-        self.headers.append([name.lower(), value])
+        name = name.lower()
+        if name == b'upgrade':
+            self.upgrade = value
+        elif name == b'expect' and value.lower() == b'100-continue':
+            self.transport.write(b'HTTP/1.1 100 Continue\r\n\r\n')
+        self.headers.append([name, value])
 
     def on_body(self, body: bytes):
         if 'body' not in self.channels:
@@ -162,6 +190,9 @@ class HttpProtocol(asyncio.Protocol):
         self.loop.create_task(self.channels['body'].send(message))
 
     def on_message_complete(self):
+        if self.upgrade is not None:
+            return
+
         if 'body' not in self.channels:
             self.loop.create_task(self.consumer(self.message, self.channels))
         else:

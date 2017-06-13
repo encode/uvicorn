@@ -1,5 +1,4 @@
-# In progress...
-from websockets import handshake, InvalidHandshake
+import websockets
 
 
 def websocket_upgrade(http):
@@ -14,44 +13,83 @@ def websocket_upgrade(http):
         response_headers.append((key.encode('utf-8'), val.encode('utf-8')))
 
     try:
-        key = handshake.check_request(get_header)
-        handshake.build_response(set_header, key)
-    except InvalidHandshake:
+        key = websockets.handshake.check_request(get_header)
+        websockets.handshake.build_response(set_header, key)
+    except websockets.InvalidHandshake:
         http.loop.create_task(http.channels['reply'].send({
-            'status': 404,
-            'headers': [[b'content-type', 'text/plain']],
+            'status': 400,
+            'headers': [[b'content-type', b'text/plain']],
             'content': b'Invalid WebSocket handshake'
         }))
-    else:
-        http.loop.create_task(http.channels['reply'].send({
-            'status': 101,
-            'headers': response_headers
-        }))
+        return
+
+    http.loop.create_task(http.channels['reply'].send({
+        'status': 101,
+        'headers': response_headers
+    }))
+    protocol = WebSocketProtocol(http)
+    protocol.connection_made(http.transport, http.message)
+    http.transport.set_protocol(protocol)
 
 
-# class WebSocketChannel():
-#     def __init__(self, websocket):
-#         self._websocket = websocket
-#
-#     async def send(message):
-#         await self._websocket.put(message['text'])
-#
-#     async def receive(message):
-#         return await self._websocket.recv()
-#
-#
-# class WebSocketProtocol(WebSocketCommonProtocol):
-#     def __init__(self, message, loop, consumer):
-#         self.message = message
-#         self.loop = loop
-#
-#     def on_message_complete(self):
-#
-#
-#         protocol = WebSocketCommonProtocol(max_size=10000000, max_queue=10000000)
-#         protocol.connection_made(transport)
-#         self.transport.set_protocol(protocol)
-#         channels = {
-#             'websocket': WebSocketChannel(websocket)
-#         }
-#         self.loop.create_task(self.consumer(self.message, channels))
+class ReplyChannel():
+    def __init__(self, websocket):
+        self._websocket = websocket
+
+    async def send(self, message):
+        if message.get('text'):
+            await self._websocket.send(message['text'])
+        elif message.get('bytes'):
+            await self._websocket.send(message['bytes'])
+
+
+async def reader(protocol, path):
+    close_code = None
+    order = 1
+    while True:
+        try:
+            data = await protocol.recv()
+        except websockets.exceptions.ConnectionClosed as exc:
+            close_code = exc.code
+            break
+
+        message = {
+            'channel': 'websocket.receive',
+            'path': path,
+            'order': order,
+            'text': None,
+            'bytes': None
+        }
+        if isinstance(data, str):
+            message['text'] = data
+        elif isinstance(data, bytes):
+            message['bytes'] = data
+        protocol.loop.create_task(protocol.consumer(message, protocol.channels))
+        order += 1
+
+    message = {
+        'channel': 'websocket.disconnect',
+        'code': close_code,
+        'path': path,
+        'order': order
+    }
+    protocol.loop.create_task(protocol.consumer(message, protocol.channels))
+
+
+class WebSocketProtocol(websockets.WebSocketCommonProtocol):
+    def __init__(self, http):
+        super().__init__(max_size=10000000, max_queue=10000000)
+        self.loop = http.loop
+        self.consumer = http.consumer
+        self.channels = {
+            'reply': ReplyChannel(self)
+        }
+
+    def connection_made(self, transport, message):
+        super().connection_made(transport)
+        message.update({
+            'channel': 'websocket.connect',
+            'order': 0
+        })
+        self.loop.create_task(self.consumer(message, self.channels))
+        self.loop.create_task(reader(self, message['path']))
