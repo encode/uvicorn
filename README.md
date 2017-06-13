@@ -160,8 +160,9 @@ async def clock_tick(message, channels):
 
 Here's a more complete example that demonstrates a basic WebSocket chat server:
 
-```python
-index_html = b"""
+**index.html**:
+
+```html
 <!DOCTYPE html>
 <html>
     <head>
@@ -195,11 +196,14 @@ index_html = b"""
         </script>
     </body>
 </html>
-"""
+```
 
+**app.py**:
 
+```python
 clients = set()
-
+with open('index.html', 'rb') as file:
+    homepage = file.read()
 
 async def chat_server(message, channels):
     """
@@ -221,7 +225,7 @@ async def chat_server(message, channels):
             'headers': [
                 [b'content-type', b'text/html'],
             ],
-            'content': index_html
+            'content': homepage
         })
 ```
 
