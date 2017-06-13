@@ -47,7 +47,9 @@ $ uvicorn app:hello_world
 
 # The messaging interface
 
-Uvicorn introduces a messaging interface based on ASGI...
+Uvicorn introduces a messaging interface broadly based on ASGI...
+
+The application should expose a coroutine callable which takes two arguments:
 
 * `message` is an [ASGI message][asgi-message].  (But see below for ammendments.)
 * `channels` is a dictionary of `<unicode string>:<channel interface>`.
