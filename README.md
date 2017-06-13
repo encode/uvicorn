@@ -140,6 +140,9 @@ async def stream_response(message, channels):
 Uvicorn supports websockets, using the same messaging interface described
 above, with [ASGI WebSocket messages][websocket-message].
 
+A basic example, that sends the time to any connected client,
+roughly once per second.
+
 ```python
 import datetime
 import asyncio
