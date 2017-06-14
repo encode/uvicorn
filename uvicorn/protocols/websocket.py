@@ -35,6 +35,7 @@ def websocket_upgrade(http):
 class ReplyChannel():
     def __init__(self, websocket):
         self._websocket = websocket
+        self.name = 'reply:%d' % id(self)
 
     async def send(self, message):
         if message.get('text'):

@@ -140,22 +140,37 @@ async def stream_response(message, channels):
 Uvicorn supports websockets, using the same messaging interface described
 above, with [ASGI WebSocket messages][websocket-message].
 
-A basic example, that sends the time to any connected client,
-roughly once per second.
+We'll start with an example that simply echos any incoming websocket messages
+back to the client.
+
+```python
+async def echo(message, channels):
+    if message['channel'] == 'websocket.receive':
+        text = message['text']
+        await channels['reply'].send({
+            'text': text
+        })
+```
+
+Another example, this time demonstrating a websocket connection that sends
+back the current time to each connected client, roughly once per second.
 
 ```python
 import datetime
 import asyncio
 
 
-async def clock_tick(message, channels):
-    if message['channel'] != 'websocket.connect':
-        return
-
+async def send_times(channel):
     while True:
         text = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        channels['reply'].send({'text': text})
+        await channel.send({'text': text})
         await asyncio.sleep(1)
+
+
+async def tick(message, channels):
+    if message['channel'] == 'websocket.connect':
+        loop = asyncio.get_event_loop()
+        loop.create_task(send_times(channels['reply']))
 ```
 
 Here's a more complete example that demonstrates a basic WebSocket chat server:
@@ -229,9 +244,134 @@ async def chat_server(message, channels):
         })
 ```
 
-Note that the example above would not currently scale past a single process,
-since the set of connected clients is stored in memory. We will be properly
-addressing broadcast functionality in the near future.
+Note that the example above will only work properly when running as a single
+process on a single machine, since the set of connected clients is stored in
+memory.
+
+In order to build properly scalable WebSocket services you'll typically want
+some way of sending messages across a group of client connections, each of
+which may be connected to different server instances...
+
+---
+
+# Broadcast
+
+Uvicorn includes broadcast functionality, using Redis Pub/Sub.
+
+Braodcast functionality is not integrated directly into the server, but is
+included as application-level middleware. You can install the broadcast module
+by wrapping it around your existing application, like so:
+
+```
+from uvicorn.broadcast import BroadCastMiddleware
+
+async def my_app(messages, channels):
+    ...
+
+app = BroadCastMiddleware(my_app, 'localhost', 6379)
+```
+
+This will make a `groups` channel available, which accepts the following
+messages:
+
+### Add
+
+```python
+await channels['groups'].send({
+    'group': <name>,
+    'add': <channel_name>
+})
+```
+
+Subscribe a channel to the given group.
+
+### Discard
+
+```python
+await channels['groups'].send({
+    'group': <name>,
+    'discard': <channel_name>
+})
+```
+
+Unsubscribe a channel from the given group.
+
+### Send
+
+```python
+await channels['groups'].send({
+    'group': <name>,
+    'send': <message>
+})
+```
+
+Send the given message to all connected channels across the network.
+
+## Example
+
+Let's add broadcast functionality to our previous chat server example...
+
+```python
+from uvicorn.broadcast import BroadcastMiddleware
+
+
+with open('index.html', 'rb') as file:
+    homepage = file.read()
+
+
+async def chat_server(message, channels):
+    """
+    A WebSocket based chat server.
+    """
+    if message['channel'] == 'websocket.connect':
+        await channels['groups'].send({
+            'group': 'chat',
+            'add': channels['reply'].name
+        })
+
+    elif message['channel'] == 'websocket.receive':
+        await channels['groups'].send({
+            'group': 'chat',
+            'send': {'text': message['text']}
+        })
+
+    elif message['channel'] == 'websocket.disconnect':
+        await channels['groups'].send({
+            'group': 'chat',
+            'discard': channels['reply'].name
+        })
+
+    elif message['channel'] == 'http.request':
+        await channels['reply'].send({
+            'status': 200,
+            'headers': [
+                [b'content-type', b'text/html'],
+            ],
+            'content': homepage
+        })
+
+
+chat_server = BroadcastMiddleware(chat_server)
+```
+
+We can now start up a connected group of chat server instances:
+
+First, start a Redis server:
+
+```shell
+$ redis-server
+```
+
+Then start one or more Uvicorn instances:
+
+```shell
+$ uvicorn app:chat_server --bind 127.0.0.1:8000
+$ uvicorn app:chat_server --bind 127.0.0.1:8001
+$ uvicorn app:chat_server --bind 127.0.0.1:8002
+```
+
+You can now open multiple browser windows, each connected to a different
+server instance, and send chat messages between them.
 
 ---
 
