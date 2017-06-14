@@ -250,7 +250,7 @@ memory.
 
 In order to build properly scalable WebSocket services you'll typically want
 some way of sending messages across a group of client connections, each of
-which may be connected to different server instances...
+which may be connected to a different server instance...
 
 ---
 
