@@ -258,11 +258,17 @@ which may be connected to a different server instance...
 
 Uvicorn includes broadcast functionality, using Redis Pub/Sub.
 
+First, make sure to install the `asyncio_redis` package:
+
+```shell
+$ pip install asyncio_redis
+```
+
 Broadcast functionality is not integrated directly into the server, but is
 included as application-level middleware. You can install the broadcast module
 by wrapping it around your existing application, like so:
 
-```
+```python
 from uvicorn.broadcast import BroadCastMiddleware
 
 async def my_app(messages, channels):
