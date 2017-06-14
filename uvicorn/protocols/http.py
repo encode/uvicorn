@@ -42,10 +42,11 @@ set_time_and_date()
 
 
 class BodyChannel(object):
-    __slots__ = ['_queue']
+    __slots__ = ['_queue', 'name']
 
     def __init__(self):
         self._queue = asyncio.Queue()
+        self.name = 'body:%d' % id(self)
 
     async def send(self, message):
         await self._queue.put(message)
@@ -55,10 +56,11 @@ class BodyChannel(object):
 
 
 class ReplyChannel(object):
-    __slots__ = ['_protocol']
+    __slots__ = ['_protocol', 'name']
 
     def __init__(self, protocol):
         self._protocol = protocol
+        self.name = 'reply:%d' % id(self)
 
     async def send(self, message):
         transport = self._protocol.transport
@@ -93,19 +95,6 @@ class ReplyChannel(object):
         if not more_content and (not status) or (not self._protocol.request_parser.should_keep_alive()):
             transport.close()
 
-
-class NullProtocol(asyncio.Protocol):
-    def connection_made(self, transport):
-        pass
-
-    def connection_lost(self, exc):
-        pass
-
-    def eof_received(self):
-        pass
-
-    def data_received(self, data):
-        pass
 
 
 class HttpProtocol(asyncio.Protocol):
