@@ -258,7 +258,7 @@ which may be connected to different server instances...
 
 Uvicorn includes broadcast functionality, using Redis Pub/Sub.
 
-Braodcast functionality is not integrated directly into the server, but is
+Broadcast functionality is not integrated directly into the server, but is
 included as application-level middleware. You can install the broadcast module
 by wrapping it around your existing application, like so:
 
@@ -283,7 +283,7 @@ await channels['groups'].send({
 })
 ```
 
-Subscribe a channel to the given group.
+Add a channel to the given group.
 
 ### Discard
 
@@ -294,7 +294,7 @@ await channels['groups'].send({
 })
 ```
 
-Unsubscribe a channel from the given group.
+Remove a channel from the given group.
 
 ### Send
 
@@ -305,7 +305,7 @@ await channels['groups'].send({
 })
 ```
 
-Send the given message to all connected channels across the network.
+Send a message to all channels in the given group.
 
 ## Example
 
