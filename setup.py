@@ -42,7 +42,8 @@ setup(
     install_requires=[
         'gunicorn',
         'httptools',
-        'uvloop'
+        'uvloop',
+        'websockets'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
