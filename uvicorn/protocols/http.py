@@ -65,6 +65,9 @@ class ReplyChannel(object):
     async def send(self, message):
         transport = self._protocol.transport
 
+        if transport is None:
+            return
+
         status = message.get('status')
         headers = message.get('headers')
         content = message.get('content')
@@ -131,7 +134,7 @@ class HttpProtocol(asyncio.Protocol):
         self.transport = transport
 
     def connection_lost(self, exc):
-        pass
+        self.transport = None
 
     def eof_received(self):
         pass
