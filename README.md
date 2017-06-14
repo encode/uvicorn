@@ -274,7 +274,7 @@ app = BroadCastMiddleware(my_app, 'localhost', 6379)
 This will make a `groups` channel available, which accepts the following
 messages:
 
-### Add
+#### Add
 
 ```python
 await channels['groups'].send({
@@ -285,7 +285,7 @@ await channels['groups'].send({
 
 Add a channel to the given group.
 
-### Discard
+#### Discard
 
 ```python
 await channels['groups'].send({
@@ -296,7 +296,7 @@ await channels['groups'].send({
 
 Remove a channel from the given group.
 
-### Send
+#### Send
 
 ```python
 await channels['groups'].send({
