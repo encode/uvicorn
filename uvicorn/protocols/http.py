@@ -51,7 +51,7 @@ class BodyChannel(object):
     async def send(self, message):
         await self._queue.put(message)
 
-    async def recieve(self):
+    async def receive(self):
         return await self._queue.get()
 
 
