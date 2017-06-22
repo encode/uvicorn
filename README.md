@@ -10,6 +10,8 @@
 
 **Documentation**: [http://www.uvicorn.org](http://www.uvicorn.org)
 
+**Requirements**: Python 3.5.3+
+
 Uvicorn is intended to be the basis for providing Python 3 with a simple
 interface on which to build asyncio web frameworks. It provides the following:
 
@@ -17,8 +19,6 @@ interface on which to build asyncio web frameworks. It provides the following:
 * A minimal application interface, based on [ASGI][asgi].
 
 ## Quickstart
-
-Requirements: Python 3.5.3+
 
 Install using `pip`:
 
@@ -47,7 +47,9 @@ Run the server:
 $ uvicorn app:hello_world
 ```
 
-<p align="center"><i>Uvicorn is <a href="https://github.com/tomchristie/apistar/blob/master/LICENSE.md">BSD licensed</a> code.<br/>Designed & built in Brighton, England.</i><br/>&mdash; 🦄 &mdash;</p>
+---
+
+<p align="center"><i>Uvicorn is <a href="https://github.com/tomchristie/apistar/blob/master/LICENSE.md">BSD licensed</a> code.<br/>Designed & built in Brighton, England.</i><br/>&mdash; 🦄  &mdash;</p>
 
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
