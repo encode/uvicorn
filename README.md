@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-<em>A lightning-fast asyncio server for Python 3.</em>
+<em>The lightning-fast asyncio server, for Python 3.</em>
 </p>
 
 ---
