@@ -13,13 +13,16 @@
 **Requirements**: Python 3.5.3+
 
 Python currently lacks a minimal low-level server/application interface for
-`asyncio` frameworks. Filling this gap means we'd be able to start building
+asyncio frameworks. Filling this gap means we'd be able to start building
 a common set of tooling usable across all asyncio frameworks.
 
 Uvicorn is an attempt to resolve this, by providing:
 
 * A lightning-fast asyncio server implementation, using [uvloop][uvloop] and [httptools][httptools].
 * A minimal application interface, based on [ASGI][asgi].
+
+It currently supports HTTP, WebSockets, Pub/Sub broadcast, and is open
+to extension to other protocols & messaging styles.
 
 ## Quickstart
 
