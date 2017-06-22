@@ -1,7 +1,10 @@
 # Introduction
 
-Uvicorn is intended to be the basis for providing Python 3 with a simple
-interface on which to build asyncio web frameworks. It provides the following:
+Python currently lacks a minimal low-level server/application interface for
+`asyncio` frameworks. Filling this gap means we'd be able to start building
+a common set of tooling usable across all asyncio frameworks.
+
+Uvicorn is an attempt to resolve this, by providing:
 
 * A lightning-fast asyncio server implementation, using [uvloop][uvloop] and [httptools][httptools].
 * A minimal application interface, based on [ASGI][asgi].
@@ -39,7 +42,7 @@ $ uvicorn app:hello_world
 
 # Messaging interface
 
-Uvicorn introduces a messaging interface broadly based on ASGI...
+Uvicorn introduces a messaging interface broadly based on [ASGI][asgi]...
 
 The application should expose a coroutine callable which takes two arguments:
 
@@ -57,6 +60,51 @@ Messages diverge from ASGI in the following ways:
 * Messages additionally include a `channel` key, to allow for routing eg. `'channel': 'http.request'`
 * Messages do not include channel names, such as `reply_channel` or `body_channel`,
   instead the `channels` dictionary presents the available channels.
+
+## Example
+
+An incoming HTTP request might be represented with the following `message`
+and `channels` information:
+
+**message**:
+
+```python
+{
+    'channel': 'http.request',
+    'scheme': 'http',
+    'root_path': '',
+    'server': ('127.0.0.1', 8000),
+    'http_version': '1.1',
+    'method': 'GET',
+    'path': '/',
+    'headers': [
+        [b'host', b'127.0.0.1:8000'],
+        [b'user-agent', b'curl/7.51.0'],
+        [b'accept', b'*/*']
+    ]
+}
+```
+
+**channels**:
+
+```python
+{
+    'reply': <ReplyChannel>
+}
+```
+
+In order to respond, the application would `send()` an HTTP response to
+the reply channel, for instance:
+
+```python
+await channels['reply'].send({
+    'status': 200,
+    'headers': [
+        [b'content-type', b'text/plain'],
+    ],
+    'content': b'Hello, world'
+})
+```
 
 # HTTP
 
