@@ -37,7 +37,6 @@ STATUS_LINE = {
     status_code: get_status_line(status_code) for status_code in range(100, 600)
 }
 
-#
 MAX_BODY_QUEUE = 1024
 MAX_BODY_BUFFER = 65536
 
