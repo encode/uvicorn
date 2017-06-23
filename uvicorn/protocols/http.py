@@ -46,12 +46,12 @@ set_time_and_date()
 class BodyChannel(object):
     __slots__ = ['_queue', '_max_buffer', '_buffer', '_paused', '_transport', 'name']
 
-    def __init__(self, transport=None, max_items=MAX_BODY_QUEUE, max_buffer=MAX_BODY_BUFFER):
+    def __init__(self, transport=None, max_queue=MAX_BODY_QUEUE, max_buffer=MAX_BODY_BUFFER):
         if transport is None:
             max_items = 0
             max_buffer = 0
 
-        self._queue = asyncio.Queue(max_items)
+        self._queue = asyncio.Queue(max_queue)
         self._max_buffer = max_buffer
         self._buffer = 0
         self._paused = False
