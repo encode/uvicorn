@@ -21,7 +21,7 @@ class UvicornWorker(Worker):
     * `httptools` as the HTTP request parser.
     """
 
-    def __init__(self, *args, **kwargs):  # pragma: no cover
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.servers = []
         self.exit_code = 0
