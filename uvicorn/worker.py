@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import signal
+import ssl
 import sys
 
 import uvloop
@@ -85,13 +86,25 @@ class UvicornWorker(Worker):
         cfg = self.cfg
         consumer = self.wsgi
 
+        ssl_ctx = self.create_ssl_context(self.cfg) if self.cfg.is_ssl else None
+
         for sock in self.sockets:
             protocol = functools.partial(
                 http.HttpProtocol,
                 consumer=consumer, loop=loop, sock=sock, cfg=cfg
             )
-            server = await loop.create_server(protocol, sock=sock)
+            server = await loop.create_server(protocol, sock=sock, ssl=ssl_ctx)
             self.servers.append(server)
+
+    def create_ssl_context(self, cfg):
+        ctx = ssl.SSLContext(cfg.ssl_version)
+        ctx.load_cert_chain(cfg.certfile, cfg.keyfile)
+        ctx.verify_mode = cfg.cert_reqs
+        if cfg.ca_certs:
+            ctx.load_verify_locations(cfg.ca_certs)
+        if cfg.ciphers:
+            ctx.set_ciphers(cfg.ciphers)
+        return ctx
 
     async def tick(self, loop):
         cycle = 0
