@@ -37,22 +37,43 @@ STATUS_LINE = {
     status_code: get_status_line(status_code) for status_code in range(100, 600)
 }
 
+MAX_BODY_QUEUE = 1024
+MAX_BODY_BUFFER = 65536
 
 set_time_and_date()
 
 
 class BodyChannel(object):
-    __slots__ = ['_queue', 'name']
+    __slots__ = ['_queue', '_max_buffer', '_buffer', '_paused', '_transport', 'name']
 
-    def __init__(self):
-        self._queue = asyncio.Queue()
+    def __init__(self, transport=None, max_queue=MAX_BODY_QUEUE, max_buffer=MAX_BODY_BUFFER):
+        if transport is None:
+            max_items = 0
+            max_buffer = 0
+
+        self._queue = asyncio.Queue(max_queue)
+        self._max_buffer = max_buffer
+        self._buffer = 0
+        self._paused = False
+        self._transport = transport
         self.name = 'body:%d' % id(self)
 
     async def send(self, message):
         await self._queue.put(message)
+        self._buffer += len(message['content'])
+        if not self._paused and self._should_pause():
+            self._paused = True
+            self._transport.pause_reading()
 
-    async def recieve(self):
-        return await self._queue.get()
+    async def receive(self):
+        message = await self._queue.get()
+        self._buffer -= len(message['content'])
+        if self._paused and not self._should_pause():
+            self._paused = False
+            self._transport.resume_reading()
+
+    def _should_pause(self):
+        return (self._max_buffer and self._buffer > self._max_buffer) or self._queue.full()
 
 
 class ReplyChannel(object):
@@ -173,7 +194,7 @@ class HttpProtocol(asyncio.Protocol):
 
     def on_body(self, body: bytes):
         if 'body' not in self.channels:
-            self.channels['body'] = BodyChannel()
+            self.channels['body'] = BodyChannel(self.transport)
             self.loop.create_task(self.consumer(self.message, self.channels))
         message = {
             'content': body,
