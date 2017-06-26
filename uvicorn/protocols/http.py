@@ -172,11 +172,13 @@ class HttpProtocol(asyncio.Protocol):
         self.write_paused = False
 
     def pause_reading(self):
-        self.transport.pause_reading()
+        if self.transport is not None:
+            self.transport.pause_reading()
         self.read_paused = True
 
     def resume_reading(self):
-        self.transport.resume_reading()
+        if self.transport is not None:
+            self.transport.resume_reading()
         self.read_paused = False
 
     # Event hooks called back into by HttpRequestParser...
