@@ -1,4 +1,5 @@
 import asyncio
+import collections
 import email
 import http
 import httptools
@@ -53,8 +54,8 @@ class BodyChannel(object):
         self._protocol = protocol
         self.name = 'body:%d' % id(self)
 
-    async def send(self, message):
-        await self._queue.put(message)
+    def _put(self, message):
+        self._queue.put_nowait(message)
         self._buffer_size += len(message['content'])
         if not self._protocol.read_paused and self._buffer_size > self._high_water_limit:
             self._protocol.pause_reading()
@@ -110,9 +111,13 @@ class ReplyChannel(object):
         if content is not None:
             transport.write(content)
 
-        if not more_content and (not status) or (not self._protocol.request_parser.should_keep_alive()):
-            transport.close()
-
+        if not more_content:
+            protocol.concurrent_requests -= 1
+            if (not status) or (not self._protocol.request_parser.should_keep_alive()):
+                transport.close()
+            elif protocol.request_queue:
+                message, channels = protocol.request_queue.popleft()
+                protocol.loop.create_task(protocol.consumer(message, channels))
 
 
 class HttpProtocol(asyncio.Protocol):
@@ -122,7 +127,8 @@ class HttpProtocol(asyncio.Protocol):
         'message', 'channels',
         'headers', 'transport',
         'upgrade',
-        'read_paused', 'write_paused'
+        'read_paused', 'write_paused',
+        'concurrent_requests', 'request_queue'
     ]
 
     def __init__(self, consumer, loop, sock, cfg):
@@ -147,6 +153,9 @@ class HttpProtocol(asyncio.Protocol):
 
         self.read_paused = False
         self.write_paused = False
+
+        self.concurrent_requests = 0
+        self.request_queue = collections.deque()
 
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
@@ -210,25 +219,33 @@ class HttpProtocol(asyncio.Protocol):
     def on_body(self, body: bytes):
         if 'body' not in self.channels:
             self.channels['body'] = BodyChannel(self.transport)
-            self.loop.create_task(self.consumer(self.message, self.channels))
+            if self.concurrent_requests:
+                self.request_queue.append((self.message, self.channels))
+            else:
+                self.loop.create_task(self.consumer(self.message, self.channels))
+                self.concurrent_requests += 1
         message = {
             'content': body,
             'more_content': True
         }
-        self.loop.create_task(self.channels['body'].send(message))
+        self.channels['body']._put(message)
 
     def on_message_complete(self):
         if self.upgrade is not None:
             return
 
         if 'body' not in self.channels:
-            self.loop.create_task(self.consumer(self.message, self.channels))
+            if self.concurrent_requests:
+                self.request_queue.append((self.message, self.channels))
+            else:
+                self.loop.create_task(self.consumer(self.message, self.channels))
+                self.concurrent_requests += 1
         else:
             message = {
                 'content': b'',
                 'more_content': False
             }
-            self.loop.create_task(self.channels['body'].send(message))
+            self.channels['body']._put(message)
 
     def on_chunk_header(self):
         pass
