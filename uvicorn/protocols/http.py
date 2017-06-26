@@ -37,43 +37,33 @@ STATUS_LINE = {
     status_code: get_status_line(status_code) for status_code in range(100, 600)
 }
 
-MAX_BODY_QUEUE = 1024
-MAX_BODY_BUFFER = 65536
+(LOW_WATER_LIMIT, HIGH_WATER_LIMIT) = (16384, 65536)
 
 set_time_and_date()
 
 
 class BodyChannel(object):
-    __slots__ = ['_queue', '_max_buffer', '_buffer', '_paused', '_transport', 'name']
+    __slots__ = ['_queue', '_low_water_limit', '_high_water_limit', '_buffer_size', '_protocol', 'name']
 
-    def __init__(self, transport=None, max_queue=MAX_BODY_QUEUE, max_buffer=MAX_BODY_BUFFER):
-        if transport is None:
-            max_items = 0
-            max_buffer = 0
-
-        self._queue = asyncio.Queue(max_queue)
-        self._max_buffer = max_buffer
-        self._buffer = 0
-        self._paused = False
-        self._transport = transport
+    def __init__(self, protocol, low_water_limit=LOW_WATER_LIMIT, high_water_limit=HIGH_WATER_LIMIT):
+        self._queue = asyncio.Queue()
+        self._low_water_limit = low_water_limit
+        self._high_water_limit = high_water_limit
+        self._buffer_size = 0
+        self._protocol = protocol
         self.name = 'body:%d' % id(self)
 
     async def send(self, message):
         await self._queue.put(message)
-        self._buffer += len(message['content'])
-        if not self._paused and self._should_pause():
-            self._paused = True
-            self._transport.pause_reading()
+        self._buffer_size += len(message['content'])
+        if not self._protocol.read_paused and self._buffer_size > self._high_water_limit:
+            self._protocol.pause_reading()
 
     async def receive(self):
         message = await self._queue.get()
-        self._buffer -= len(message['content'])
-        if self._paused and not self._should_pause():
-            self._paused = False
-            self._transport.resume_reading()
-
-    def _should_pause(self):
-        return (self._max_buffer and self._buffer > self._max_buffer) or self._queue.full()
+        self._buffer_size -= len(message['content'])
+        if self._protocol.read_paused and self._buffer_size < self._low_water_limit:
+            self._protocol.resume_reading()
 
 
 class ReplyChannel(object):
@@ -84,10 +74,14 @@ class ReplyChannel(object):
         self.name = 'reply:%d' % id(self)
 
     async def send(self, message):
-        transport = self._protocol.transport
+        protocol = self._protocol
+        transport = protocol.transport
 
         if transport is None:
             return
+
+        if protocol.write_paused:
+            await transport.drain()
 
         status = message.get('status')
         headers = message.get('headers')
@@ -127,7 +121,8 @@ class HttpProtocol(asyncio.Protocol):
         'base_message', 'base_channels',
         'message', 'channels',
         'headers', 'transport',
-        'upgrade'
+        'upgrade',
+        'read_paused', 'write_paused'
     ]
 
     def __init__(self, consumer, loop, sock, cfg):
@@ -150,6 +145,9 @@ class HttpProtocol(asyncio.Protocol):
         self.headers = None
         self.upgrade = None
 
+        self.read_paused = False
+        self.write_paused = False
+
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
         self.transport = transport
@@ -165,6 +163,21 @@ class HttpProtocol(asyncio.Protocol):
             self.request_parser.feed_data(data)
         except httptools.HttpParserUpgrade:
             websocket_upgrade(self)
+
+    # Flow control...
+    def pause_writing(self):
+        self.write_paused = True
+
+    def resume_writing(self):
+        self.write_paused = False
+
+    def pause_reading(self):
+        self.transport.pause_reading()
+        self.read_paused = True
+
+    def resume_reading(self):
+        self.transport.resume_reading()
+        self.read_paused = False
 
     # Event hooks called back into by HttpRequestParser...
     def on_message_begin(self):
