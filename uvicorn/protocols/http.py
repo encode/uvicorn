@@ -228,7 +228,7 @@ class HttpProtocol(asyncio.Protocol):
 
     def on_body(self, body: bytes):
         if 'body' not in self.channels:
-            self.channels['body'] = BodyChannel(self.transport)
+            self.channels['body'] = BodyChannel(self)
             if not self.has_active_request:
                 self.loop.create_task(self.consumer(self.message, self.channels))
                 self.has_active_request = True
