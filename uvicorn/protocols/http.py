@@ -83,7 +83,7 @@ class ReplyChannel(object):
             await transport.drain()
 
         status = message.get('status')
-        headers = message.get('headers')
+        headers = message.get('headers', [])
         content = message.get('content', b'')
         more_content = message.get('more_content', False)
 
@@ -93,10 +93,6 @@ class ReplyChannel(object):
                 SERVER_HEADER,
                 DATE_HEADER,
             ]
-            transport.write(b''.join(response))
-
-        if headers is not None:
-            response = []
 
             seen_content_length = False
             for header_name, header_value in headers:
@@ -127,7 +123,7 @@ class ReplyChannel(object):
                 transport.write(b'0\r\n\r\n')
                 self._use_chunked_encoding = False
 
-            if (not status) or (not self._protocol.request_parser.should_keep_alive()):
+            if not self._protocol.request_parser.should_keep_alive():
                 transport.close()
             elif protocol.pipeline_queue:
                 message, channels = protocol.pipeline_queue.popleft()
