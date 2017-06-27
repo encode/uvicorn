@@ -58,6 +58,9 @@ class BodyChannel(object):
         self._protocol.buffer_size += len(message['content'])
         self._protocol.check_pause_reading()
 
+    def close(self):
+        self._protocol.transport.close()
+
     async def receive(self):
         message = await self._queue.get()
         self._protocol.buffer_size -= len(message['content'])
