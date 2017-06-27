@@ -272,9 +272,3 @@ class HttpProtocol(asyncio.Protocol):
                 'more_content': False
             }
             self.channels['body']._put(message)
-
-    def on_chunk_header(self):
-        pass
-
-    def on_chunk_complete(self):
-        pass
