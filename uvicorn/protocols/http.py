@@ -65,10 +65,11 @@ class BodyChannel(object):
 
 
 class ReplyChannel(object):
-    __slots__ = ['_protocol', 'name']
+    __slots__ = ['_protocol', '_use_chunked_encoding', 'name']
 
     def __init__(self, protocol):
         self._protocol = protocol
+        self._use_chunked_encoding = False
         self.name = 'reply:%d' % id(self)
 
     async def send(self, message):
@@ -83,7 +84,7 @@ class ReplyChannel(object):
 
         status = message.get('status')
         headers = message.get('headers')
-        content = message.get('content')
+        content = message.get('content', b'')
         more_content = message.get('more_content', False)
 
         if status is not None:
@@ -96,19 +97,36 @@ class ReplyChannel(object):
 
         if headers is not None:
             response = []
-            if content is not None and not more_content:
-                response = [b'content-length: ', str(len(content)).encode(), b'\r\n']
 
+            seen_content_length = False
             for header_name, header_value in headers:
+                if header_name.lower() == b'content-length':
+                    seen_content_length = True
                 response.extend([header_name, b': ', header_value, b'\r\n'])
-            response.append(b'\r\n')
 
+            if not seen_content_length:
+                if more_content:
+                    self._use_chunked_encoding = True
+                    response.append(b'transfer-encoding: chunked\r\n')
+                elif status != 204:
+                    response.append(b'content-length: ', str(len(content)).encode(), b'\r\n')
+
+            response.append(b'\r\n')
             transport.write(b''.join(response))
 
-        if content is not None:
-            transport.write(content)
+        if content:
+            if self._use_chunked_encoding:
+                transport.write(b'%x\r\n' % len(content))
+                transport.write(content)
+                transport.write(b'\r\n')
+            else:
+                transport.write(content)
 
         if not more_content:
+            if self._use_chunked_encoding:
+                transport.write(b'0\r\n\r\n')
+                self._use_chunked_encoding = False
+
             if (not status) or (not self._protocol.request_parser.should_keep_alive()):
                 transport.close()
             elif protocol.pipeline_queue:
