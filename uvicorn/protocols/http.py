@@ -106,7 +106,7 @@ class ReplyChannel(object):
                     self._use_chunked_encoding = True
                     response.append(b'transfer-encoding: chunked\r\n')
                 elif status != 204:
-                    response.append(b'content-length: ', str(len(content)).encode(), b'\r\n')
+                    response.extend([b'content-length: ', str(len(content)).encode(), b'\r\n'])
 
             response.append(b'\r\n')
             transport.write(b''.join(response))
