@@ -1,4 +1,5 @@
 import asyncio
+import collections
 import email
 import http
 import httptools
@@ -37,33 +38,30 @@ STATUS_LINE = {
     status_code: get_status_line(status_code) for status_code in range(100, 600)
 }
 
-(LOW_WATER_LIMIT, HIGH_WATER_LIMIT) = (16384, 65536)
+LOW_WATER_LIMIT = 16384
+HIGH_WATER_LIMIT = 65536
+MAX_PIPELINED_REQUESTS = 20
 
 set_time_and_date()
 
 
 class BodyChannel(object):
-    __slots__ = ['_queue', '_low_water_limit', '_high_water_limit', '_buffer_size', '_protocol', 'name']
+    __slots__ = ['_queue', '_protocol', 'name']
 
-    def __init__(self, protocol, low_water_limit=LOW_WATER_LIMIT, high_water_limit=HIGH_WATER_LIMIT):
+    def __init__(self, protocol):
         self._queue = asyncio.Queue()
-        self._low_water_limit = low_water_limit
-        self._high_water_limit = high_water_limit
-        self._buffer_size = 0
         self._protocol = protocol
         self.name = 'body:%d' % id(self)
 
-    async def send(self, message):
-        await self._queue.put(message)
-        self._buffer_size += len(message['content'])
-        if not self._protocol.read_paused and self._buffer_size > self._high_water_limit:
-            self._protocol.pause_reading()
+    def _put(self, message):
+        self._queue.put_nowait(message)
+        self._protocol.buffer_size += len(message['content'])
+        self._protocol.check_pause_reading()
 
     async def receive(self):
         message = await self._queue.get()
-        self._buffer_size -= len(message['content'])
-        if self._protocol.read_paused and self._buffer_size < self._low_water_limit:
-            self._protocol.resume_reading()
+        self._protocol.buffer_size -= len(message['content'])
+        self._protocol.check_resume_reading()
 
 
 class ReplyChannel(object):
@@ -110,19 +108,25 @@ class ReplyChannel(object):
         if content is not None:
             transport.write(content)
 
-        if not more_content and (not status) or (not self._protocol.request_parser.should_keep_alive()):
-            transport.close()
-
+        if not more_content:
+            if (not status) or (not self._protocol.request_parser.should_keep_alive()):
+                transport.close()
+            elif protocol.pipeline_queue:
+                message, channels = protocol.pipeline_queue.popleft()
+                protocol.loop.create_task(protocol.consumer(message, channels))
+                protocol.check_resume_reading()
+            else:
+                protocol.has_active_request = False
 
 
 class HttpProtocol(asyncio.Protocol):
     __slots__ = [
         'consumer', 'loop', 'request_parser',
         'base_message', 'base_channels',
-        'message', 'channels',
-        'headers', 'transport',
-        'upgrade',
-        'read_paused', 'write_paused'
+        'transport', 'message', 'channels', 'headers', 'upgrade',
+        'read_paused', 'write_paused',
+        'buffer_size', 'high_water_limit', 'low_water_limit',
+        'has_active_request', 'max_pipelined_requests', 'pipeline_queue'
     ]
 
     def __init__(self, consumer, loop, sock, cfg):
@@ -142,11 +146,20 @@ class HttpProtocol(asyncio.Protocol):
 
         self.transport = None
         self.message = None
+        self.channels = None
         self.headers = None
         self.upgrade = None
 
         self.read_paused = False
         self.write_paused = False
+
+        self.buffer_size = 0
+        self.high_water_limit = HIGH_WATER_LIMIT
+        self.low_water_limit = LOW_WATER_LIMIT
+
+        self.has_active_request = False
+        self.max_pipelined_requests = MAX_PIPELINED_REQUESTS
+        self.pipeline_queue = collections.deque()
 
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
@@ -171,15 +184,21 @@ class HttpProtocol(asyncio.Protocol):
     def resume_writing(self):
         self.write_paused = False
 
-    def pause_reading(self):
-        if self.transport is not None:
+    def check_pause_reading(self):
+        if self.transport is None or self.read_paused:
+            return
+        if (self.buffer_size > self.high_water_limit or
+            len(self.pipeline_queue) >= self.max_pipelined_requests):
             self.transport.pause_reading()
-        self.read_paused = True
+            self.read_paused = True
 
-    def resume_reading(self):
-        if self.transport is not None:
+    def check_resume_reading(self):
+        if self.transport is None or not self.read_paused:
+            return
+        if (self.buffer_size < self.low_water_limit and
+            len(self.pipeline_queue) < self.max_pipelined_requests):
             self.transport.resume_reading()
-        self.read_paused = False
+            self.read_paused = False
 
     # Event hooks called back into by HttpRequestParser...
     def on_message_begin(self):
@@ -210,25 +229,35 @@ class HttpProtocol(asyncio.Protocol):
     def on_body(self, body: bytes):
         if 'body' not in self.channels:
             self.channels['body'] = BodyChannel(self.transport)
-            self.loop.create_task(self.consumer(self.message, self.channels))
+            if not self.has_active_request:
+                self.loop.create_task(self.consumer(self.message, self.channels))
+                self.has_active_request = True
+            else:
+                self.pipeline_queue.append((self.message, self.channels))
+                self.check_pause_reading()
         message = {
             'content': body,
             'more_content': True
         }
-        self.loop.create_task(self.channels['body'].send(message))
+        self.channels['body']._put(message)
 
     def on_message_complete(self):
         if self.upgrade is not None:
             return
 
         if 'body' not in self.channels:
-            self.loop.create_task(self.consumer(self.message, self.channels))
+            if not self.has_active_request:
+                self.loop.create_task(self.consumer(self.message, self.channels))
+                self.has_active_request = True
+            else:
+                self.pipeline_queue.append((self.message, self.channels))
+                self.check_pause_reading()
         else:
             message = {
                 'content': b'',
                 'more_content': False
             }
-            self.loop.create_task(self.channels['body'].send(message))
+            self.channels['body']._put(message)
 
     def on_chunk_header(self):
         pass
