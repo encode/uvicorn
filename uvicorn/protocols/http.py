@@ -62,6 +62,7 @@ class BodyChannel(object):
         message = await self._queue.get()
         self._protocol.buffer_size -= len(message['content'])
         self._protocol.check_resume_reading()
+        return message
 
 
 class ReplyChannel(object):
