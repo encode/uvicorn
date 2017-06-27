@@ -123,9 +123,7 @@ class HttpProtocol(asyncio.Protocol):
     __slots__ = [
         'consumer', 'loop', 'request_parser',
         'base_message', 'base_channels',
-        'message', 'channels',
-        'headers', 'transport',
-        'upgrade',
+        'transport', 'message', 'channels', 'headers', 'upgrade',
         'read_paused', 'write_paused',
         'buffer_size', 'high_water_limit', 'low_water_limit',
         'has_active_request', 'max_pipelined_requests', 'pipeline_queue'
@@ -148,6 +146,7 @@ class HttpProtocol(asyncio.Protocol):
 
         self.transport = None
         self.message = None
+        self.channels = None
         self.headers = None
         self.upgrade = None
 
