@@ -10,20 +10,18 @@ class MockLoop(object):
         pass
 
 
-class MockSocket(object):
-    def getsockname(self):
-        return ('127.0.0.1', 8000)
-
-
-class MockConfig(object):
-    is_ssl = False
-
-
 class MockTransport(object):
     content = b''
 
     def write(self, content):
         self.content += content
+
+    def get_extra_info(self, name):
+        if name == 'sockname':
+            return ('127.0.0.1', 8000)
+        elif name == 'peername':
+            return ('123.456.789.0', 1234)
+        return None
 
 
 def mock_consumer(message, channels):
@@ -32,10 +30,8 @@ def mock_consumer(message, channels):
 
 def get_protocol():
     loop = MockLoop()
-    socket = MockSocket()
-    config = MockConfig()
     transport = MockTransport()
-    protocol = HttpProtocol(mock_consumer, loop, socket, config)
+    protocol = HttpProtocol(mock_consumer, loop)
     protocol.connection_made(transport)
     return protocol
 

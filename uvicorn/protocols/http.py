@@ -183,15 +183,13 @@ class HttpProtocol(asyncio.Protocol):
         'active_request', 'max_pipelined_requests', 'pipeline_queue'
     ]
 
-    def __init__(self, consumer, loop, sock, cfg):
+    def __init__(self, consumer, loop=None):
         self.consumer = consumer
-        self.loop = loop
+        self.loop = loop or asyncio.get_event_loop()
         self.request_parser = httptools.HttpRequestParser(self)
 
         self.base_message = {
-            'channel': 'http.request',
-            'scheme': 'https' if cfg.is_ssl else 'http',
-            'server': sock.getsockname()
+            'channel': 'http.request'
         }
         self.base_channels = {
             'reply': ReplyChannel(self)
@@ -217,6 +215,11 @@ class HttpProtocol(asyncio.Protocol):
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
         self.transport = transport
+        self.base_message.update({
+            'server': transport.get_extra_info('sockname'),
+            'client': transport.get_extra_info('peername'),
+            'scheme': 'https' if transport.get_extra_info('sslcontext') else 'http'
+        })
 
     def connection_lost(self, exc):
         self.transport = None
