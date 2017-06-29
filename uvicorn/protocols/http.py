@@ -164,6 +164,7 @@ class ReplyChannel(object):
 
             if not self._should_keep_alive or not protocol.request_parser.should_keep_alive():
                 transport.close()
+                protocol.transport = None
             elif protocol.pipeline_queue:
                 message, channels = protocol.pipeline_queue.popleft()
                 protocol.active_request = (message, channels)
