@@ -1,4 +1,3 @@
 site_name: Uvicorn
-theme_dir: theme
 pages:
     - Home: index.md
