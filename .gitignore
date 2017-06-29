@@ -1,3 +1,4 @@
+.cache
 .coverage
 __pycache__/
 uvicorn.egg-info/
