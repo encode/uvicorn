@@ -8,6 +8,10 @@
 
 ---
 
+[![Build Status](https://travis-ci.org/encode/uvicorn.svg?branch=master)](https://travis-ci.org/encode/uvicorn)
+[![Package version](https://badge.fury.io/py/uvicorn.svg)](https://pypi.python.org/pypi/uvicorn)
+[![Python versions](https://img.shields.io/pypi/pyversions/uvicorn.svg)](https://www.python.org/doc/versions/)
+
 **Documentation**: [http://www.uvicorn.org](http://www.uvicorn.org)
 
 **Requirements**: Python 3.5.3+
