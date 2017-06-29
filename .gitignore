@@ -1,3 +1,5 @@
+.coverage
 __pycache__/
 uvicorn.egg-info/
 venv/
+htmlcov/
