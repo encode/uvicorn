@@ -27,11 +27,12 @@ class PubSubChannel(object):
 
 
 async def listener(sub, subscribers, clients):
+    loop = asyncio.get_event_loop()
     while True:
         reply = await sub.next_published()
         message = json.loads(reply.value)
         for channel_name in subscribers[reply.channel]:
-            await clients[channel_name].send(message)
+            loop.create_task(clients[channel_name].send(message))
 
 
 class BroadcastMiddleware(object):
