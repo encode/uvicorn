@@ -46,31 +46,61 @@ set_time_and_date()
 
 
 class BodyChannel(object):
-    __slots__ = ['_queue', '_protocol', 'name']
+    __slots__ = ['_queue', '_protocol', '_released', 'name']
 
     def __init__(self, protocol):
         self._queue = asyncio.Queue()
         self._protocol = protocol
+        self._released = False
         self.name = 'body:%d' % id(self)
 
-    def _put(self, message):
-        self._queue.put_nowait(message)
-        self._protocol.buffer_size += len(message['content'])
-        self._protocol.check_pause_reading()
-
     async def receive(self):
+        """
+        The public API for `channels['body']`.
+        Returns a single HTTP body message.
+        """
         message = await self._queue.get()
         self._protocol.buffer_size -= len(message['content'])
         self._protocol.check_resume_reading()
         return message
 
+    def _put(self, message):
+        """
+        Body data messages are added syncronously.
+
+        We keep track of the total amount of buffered body data,
+        and pause reading if the total goes over the high water mark.
+        """
+        if self._released:
+            return
+        self._queue.put_nowait(message)
+        self._protocol.buffer_size += len(message['content'])
+        self._protocol.check_pause_reading()
+
+    def _release(self):
+        """
+        Called once a response has been sent.
+
+        Remove any remaining data from the buffer, and mark the stream as
+        released so that it no longer buffers any input.
+        """
+        buffer_size = 0
+        while not self._queue.empty():
+            message = self._queue.get_nowait()
+            buffer_size += len(message['content'])
+        if buffer_size:
+            self._protocol.buffer_size -= buffer_size
+            self._protocol.check_resume_reading()
+        self._released = True
+
 
 class ReplyChannel(object):
-    __slots__ = ['_protocol', '_use_chunked_encoding', 'name']
+    __slots__ = ['_protocol', '_use_chunked_encoding', '_should_keep_alive', 'name']
 
     def __init__(self, protocol):
         self._protocol = protocol
         self._use_chunked_encoding = False
+        self._should_keep_alive = True
         self.name = 'reply:%d' % id(self)
 
     async def send(self, message):
@@ -97,15 +127,19 @@ class ReplyChannel(object):
 
             seen_content_length = False
             for header_name, header_value in headers:
-                if header_name.lower() == b'content-length':
+                header = header_name.lower()
+                if header == b'content-length':
                     seen_content_length = True
+                elif header == b'connection':
+                    if header_value.lower() == b'close':
+                        self._should_keep_alive = False
                 response.extend([header_name, b': ', header_value, b'\r\n'])
 
             if not seen_content_length:
                 if more_content:
                     self._use_chunked_encoding = True
                     response.append(b'transfer-encoding: chunked\r\n')
-                elif status != 204:
+                else:
                     response.extend([b'content-length: ', str(len(content)).encode(), b'\r\n'])
 
             response.append(b'\r\n')
@@ -124,14 +158,19 @@ class ReplyChannel(object):
                 transport.write(b'0\r\n\r\n')
                 self._use_chunked_encoding = False
 
-            if not self._protocol.request_parser.should_keep_alive():
+            message, channels = protocol.active_request
+            if 'body' in channels:
+                channels['body']._release()
+
+            if not self._should_keep_alive or not protocol.request_parser.should_keep_alive():
                 transport.close()
             elif protocol.pipeline_queue:
                 message, channels = protocol.pipeline_queue.popleft()
+                protocol.active_request = (message, channels)
                 protocol.loop.create_task(protocol.consumer(message, channels))
                 protocol.check_resume_reading()
             else:
-                protocol.has_active_request = False
+                protocol.active_request = None
 
 
 class HttpProtocol(asyncio.Protocol):
@@ -141,7 +180,7 @@ class HttpProtocol(asyncio.Protocol):
         'transport', 'message', 'channels', 'headers', 'upgrade',
         'read_paused', 'write_paused',
         'buffer_size', 'high_water_limit', 'low_water_limit',
-        'has_active_request', 'max_pipelined_requests', 'pipeline_queue'
+        'active_request', 'max_pipelined_requests', 'pipeline_queue'
     ]
 
     def __init__(self, consumer, loop, sock, cfg):
@@ -152,7 +191,6 @@ class HttpProtocol(asyncio.Protocol):
         self.base_message = {
             'channel': 'http.request',
             'scheme': 'https' if cfg.is_ssl else 'http',
-            'root_path': os.environ.get('SCRIPT_NAME', ''),
             'server': sock.getsockname()
         }
         self.base_channels = {
@@ -172,7 +210,7 @@ class HttpProtocol(asyncio.Protocol):
         self.high_water_limit = HIGH_WATER_LIMIT
         self.low_water_limit = LOW_WATER_LIMIT
 
-        self.has_active_request = False
+        self.active_request = None
         self.max_pipelined_requests = MAX_PIPELINED_REQUESTS
         self.pipeline_queue = collections.deque()
 
@@ -244,9 +282,9 @@ class HttpProtocol(asyncio.Protocol):
     def on_body(self, body: bytes):
         if 'body' not in self.channels:
             self.channels['body'] = BodyChannel(self)
-            if not self.has_active_request:
+            if self.active_request is None:
                 self.loop.create_task(self.consumer(self.message, self.channels))
-                self.has_active_request = True
+                self.active_request = (self.message, self.channels)
             else:
                 self.pipeline_queue.append((self.message, self.channels))
                 self.check_pause_reading()
@@ -261,9 +299,9 @@ class HttpProtocol(asyncio.Protocol):
             return
 
         if 'body' not in self.channels:
-            if not self.has_active_request:
+            if self.active_request is None:
                 self.loop.create_task(self.consumer(self.message, self.channels))
-                self.has_active_request = True
+                self.active_request = (self.message, self.channels)
             else:
                 self.pipeline_queue.append((self.message, self.channels))
                 self.check_pause_reading()
