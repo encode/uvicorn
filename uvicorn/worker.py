@@ -4,7 +4,7 @@ import signal
 import ssl
 import sys
 
-import uvloop
+#import uvloop
 
 from gunicorn.workers.base import Worker
 from uvicorn.protocols import http
@@ -32,10 +32,13 @@ class UvicornWorker(Worker):
         # new policy.
         asyncio.get_event_loop().close()
 
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
         # Setup uvloop policy, so that every
         # asyncio.get_event_loop() will create an instance
         # of uvloop event loop.
-        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+        #asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
         super().init_process()
 
@@ -89,7 +92,7 @@ class UvicornWorker(Worker):
         ssl_ctx = self.create_ssl_context(self.cfg) if self.cfg.is_ssl else None
 
         for sock in self.sockets:
-            protocol = functools.partial(http.HttpProtocol, consumer=consumer, loop=loop)
+            protocol = functools.partial(http.H11HttpProtocol, consumer=consumer, loop=loop)
             server = await loop.create_server(protocol, sock=sock, ssl=ssl_ctx)
             self.servers.append(server)
 

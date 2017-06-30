@@ -2,9 +2,10 @@ import asyncio
 import collections
 import email
 import http
-import httptools
+#import httptools
 import os
 import time
+import h11
 
 from uvicorn.protocols.websocket import websocket_upgrade
 
@@ -187,13 +188,13 @@ class HttpProtocol(asyncio.Protocol):
     def __init__(self, consumer, loop=None):
         self.consumer = consumer
         self.loop = loop or asyncio.get_event_loop()
-        self.request_parser = httptools.HttpRequestParser(self)
+        self.request_parser = self.create_parser()
 
         self.base_message = {
             'channel': 'http.request'
         }
         self.base_channels = {
-            'reply': ReplyChannel(self)
+            'reply': self.create_reply_channel()
         }
 
         self.transport = None
@@ -212,6 +213,12 @@ class HttpProtocol(asyncio.Protocol):
         self.active_request = None
         self.max_pipelined_requests = MAX_PIPELINED_REQUESTS
         self.pipeline_queue = collections.deque()
+
+    def create_parser(self):
+        return httptools.HttpRequestParser(self)
+
+    def create_reply_channel(self):
+        return ReplyChannel(self)
 
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
@@ -315,3 +322,94 @@ class HttpProtocol(asyncio.Protocol):
                 'more_content': False
             }
             self.channels['body']._put(message)
+
+
+class H11ReplyChannel(object):
+    __slots__ = ['_protocol', '_use_chunked_encoding', '_should_keep_alive', 'name']
+
+    def __init__(self, protocol):
+        self._protocol = protocol
+        self._use_chunked_encoding = False
+        self._should_keep_alive = True
+        self.name = 'reply:%d' % id(self)
+
+    async def send(self, message):
+        protocol = self._protocol
+        conn = protocol.request_parser
+        transport = protocol.transport
+
+        if transport is None:
+            return
+
+        if protocol.write_paused:
+            await transport.drain()
+
+        status = message.get('status')
+        headers = message.get('headers', [])
+        content = message.get('content', b'')
+        more_content = message.get('more_content', False)
+
+        if status is not None:
+            event = h11.Response(status_code=status, headers=headers)
+            output = conn.send(event)
+            transport.write(output)
+
+        if content:
+            event = h11.Data(data=content)
+            output = conn.send(event)
+            transport.write(output)
+
+        if not more_content:
+            event = h11.EndOfMessage()
+            output = conn.send(event)
+            transport.write(output)
+            conn.start_next_cycle()
+
+            message, channels = protocol.active_request
+            if 'body' in channels:
+                channels['body']._release()
+
+            #if not self._should_keep_alive or not protocol.request_parser.should_keep_alive():
+            #    transport.close()
+            #    protocol.transport = None
+            #elif protocol.pipeline_queue:
+            #    message, channels = protocol.pipeline_queue.popleft()
+            #    protocol.active_request = (message, channels)
+            #    protocol.loop.create_task(protocol.consumer(message, channels))
+            #    protocol.check_resume_reading()
+            #else:
+            protocol.active_request = None
+
+
+class H11HttpProtocol(HttpProtocol):
+    def create_parser(self):
+        return h11.Connection(h11.SERVER)
+
+    def create_reply_channel(self):
+        return H11ReplyChannel(self)
+
+    def data_received(self, data):
+        self.request_parser.receive_data(data)
+
+        while True:
+            event = self.request_parser.next_event()
+            if event is h11.NEED_DATA or event is h11.PAUSED:
+                break
+
+            event_type = type(event)
+
+            if event_type is h11.Request:
+                self.message = self.base_message.copy()
+                self.channels = self.base_channels.copy()
+                self.headers = event.headers
+                self.message.update({
+                    'http_version': event.http_version.decode('ascii'),
+                    'method': event.method.decode('ascii'),
+                    'path': event.target.decode('ascii'),
+                    'query_string': b'',
+                    'headers': self.headers
+                })
+            elif event_type is h11.Data:
+                self.on_body(event.data)
+            elif event_type is h11.EndOfMessage:
+                self.on_message_complete()
