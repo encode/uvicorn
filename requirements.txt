@@ -2,6 +2,7 @@ gunicorn
 httptools
 uvloop
 websockets
+h11
 
 pytest
 pytest-cov
