@@ -41,8 +41,9 @@ setup(
     packages=get_packages('uvicorn'),
     install_requires=[
         'gunicorn',
-        'httptools',
-        'uvloop',
+        #'httptools',
+        #'uvloop',
+        'h11',
         'websockets'
     ],
     classifiers=[
