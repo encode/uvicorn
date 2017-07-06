@@ -173,10 +173,12 @@ class ReplyChannel(object):
             else:
                 protocol.active_request = None
 
+            protocol.state['total_requests'] += 1
+
 
 class HttpProtocol(asyncio.Protocol):
     __slots__ = [
-        'consumer', 'loop', 'request_parser',
+        'consumer', 'loop', 'request_parser', 'state',
         'base_message', 'base_channels',
         'transport', 'message', 'channels', 'headers', 'upgrade',
         'read_paused', 'write_paused',
@@ -184,10 +186,13 @@ class HttpProtocol(asyncio.Protocol):
         'active_request', 'max_pipelined_requests', 'pipeline_queue'
     ]
 
-    def __init__(self, consumer, loop=None):
+    def __init__(self, consumer, loop=None, state=None):
         self.consumer = consumer
         self.loop = loop or asyncio.get_event_loop()
         self.request_parser = httptools.HttpRequestParser(self)
+        if state is None:
+            state = {'total_requests': 0}
+        self.state = state
 
         self.base_message = {
             'channel': 'http.request'
