@@ -4,7 +4,7 @@ Unicorn provides a set of basic tooling for building services with. You don’t 
 
 ## Installation
 
-The uvicorn tools are provided as a seperate package…
+The uvicorn tools are provided as a separate package…
 
 ```shell
 $ pip install uvitools
@@ -18,7 +18,7 @@ You’ll almost always want to break you application into several different endp
 
 The `Router` class allows you to route messages based on the path component of their URL.
 
-This example demonstrates routing to two seperate handlers:
+This example demonstrates routing to two separate handlers:
 
 ```python
 from uvitools.routing import Route, Router
