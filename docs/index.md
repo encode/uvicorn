@@ -320,10 +320,10 @@ which may be connected to a different server instance...
 
 Uvicorn includes broadcast functionality, using Redis Pub/Sub.
 
-First, make sure to install the `asyncio_redis` package:
+First, make sure to install the `uvitools` package:
 
 ```shell
-$ pip install asyncio_redis
+$ pip install uvitools
 ```
 
 Broadcast functionality is not integrated directly into the server, but is
@@ -331,7 +331,7 @@ included as application-level middleware. You can install the broadcast module
 by wrapping it around your existing application, like so:
 
 ```python
-from uvicorn.broadcast import BroadCastMiddleware
+from uvitools.broadcast import BroadCastMiddleware
 
 async def my_app(messages, channels):
     ...
@@ -382,7 +382,7 @@ Send a message to all channels in the given group.
 Let's add broadcast functionality to our previous chat server example...
 
 ```python
-from uvicorn.broadcast import BroadcastMiddleware
+from uvitools.broadcast import BroadcastMiddleware
 
 
 with open('index.html', 'rb') as file:
@@ -442,37 +442,6 @@ $ uvicorn app:chat_server --bind 127.0.0.1:8002
 
 You can now open multiple browser windows, each connected to a different
 server instance, and send chat messages between them.
-
-# Adapters
-
-## ASGIAdapter
-
-Provides an ASGI-style interface for an existing WSGI application.
-
-```python
-from uvicorn.utils import ASGIAdapter
-
-def app(environ, start_response):
-    ...
-
-asgi = ASGIAdapter(app)
-```
-
-## WSGIAdapter
-
-Provides a WSGI interface for an existing ASGI-style application.
-
-Useful if you're writing an asyncio application, but want to provide
-a backwards-compatibility interface for WSGI.
-
-```python
-from uvicorn.utils import WSGIAdapter
-
-async def app(message, channels):
-    ...
-
-wsgi = WSGIAdapter(app)
-```
 
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
