@@ -36,7 +36,7 @@ async def app(message, channels):
 
 def test_invalid_upgrade():
     with run_server(app) as url:
-        url = 'http://%s' % url[5:]
+        url = url.replace('ws://', 'http://')
         response = requests.get(url, headers={'upgrade': 'websocket', 'connection': 'upgrade'})
         assert response.status_code == 400
 

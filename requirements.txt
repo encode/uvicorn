@@ -5,3 +5,4 @@ websockets
 
 pytest
 pytest-cov
+requests
