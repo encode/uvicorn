@@ -2,6 +2,7 @@ import asyncio
 import functools
 import threading
 import requests
+import pytest
 import websockets
 from contextlib import contextmanager
 from uvicorn.protocols import http
@@ -30,24 +31,97 @@ def run_server(app):
         loop.call_soon_threadsafe(loop.stop)
 
 
-async def app(message, channels):
-    pass
-
-
 def test_invalid_upgrade():
+    async def app(message, channels):
+        pass
+
     with run_server(app) as url:
         url = url.replace('ws://', 'http://')
         response = requests.get(url, headers={'upgrade': 'websocket', 'connection': 'upgrade'})
         assert response.status_code == 400
 
 
-def test_open_connection():
+def test_accept_connection():
+    async def app(message, channels):
+        await channels['reply'].send({'accept': True})
+
+    async def open_connection(url):
+        async with websockets.connect(url) as websocket:
+            return websocket.open
+
+    with run_server(app) as url:
+        loop = asyncio.new_event_loop()
+        is_open = loop.run_until_complete(open_connection(url))
+        assert is_open
+        loop.close()
+
+
+def test_reject_connection():
+    async def app(message, channels):
+        await channels['reply'].send({'accept': False})
+
     async def open_connection(url):
         async with websockets.connect(url) as websocket:
             return websocket.state_name
 
     with run_server(app) as url:
         loop = asyncio.new_event_loop()
-        state = loop.run_until_complete(open_connection(url))
-        assert state == 'OPEN'
+        with pytest.raises(websockets.exceptions.InvalidHandshake):
+            state = loop.run_until_complete(open_connection(url))
+        loop.close()
+
+
+def test_send_text_data_to_client():
+    async def app(message, channels):
+        if message['channel'] == 'websocket.connect':
+            await channels['reply'].send({'text': '123'})
+
+    async def get_data(url):
+        async with websockets.connect(url) as websocket:
+            return await websocket.recv()
+
+    with run_server(app) as url:
+        loop = asyncio.new_event_loop()
+        data = loop.run_until_complete(get_data(url))
+        assert data == '123'
+        loop.close()
+
+
+def test_send_binary_data_to_client():
+    async def app(message, channels):
+        if message['channel'] == 'websocket.connect':
+            await channels['reply'].send({'bytes': b'123'})
+
+    async def get_data(url):
+        async with websockets.connect(url) as websocket:
+            return await websocket.recv()
+
+    with run_server(app) as url:
+        loop = asyncio.new_event_loop()
+        data = loop.run_until_complete(get_data(url))
+        assert data == b'123'
+        loop.close()
+
+
+def test_send_and_close_connection():
+    async def app(message, channels):
+        print(message)
+        if message['channel'] == 'websocket.connect':
+            await channels['reply'].send({'text': '123', 'close': True})
+
+    async def get_data(url):
+        async with websockets.connect(url) as websocket:
+            data = await websocket.recv()
+            try:
+                await websocket.send('123')
+                is_open = True
+            except:
+                is_open = False
+            return (data, is_open)
+
+    with run_server(app) as url:
+        loop = asyncio.new_event_loop()
+        (data, is_open) = loop.run_until_complete(get_data(url))
+        assert data == '123'
+        assert not is_open
         loop.close()
