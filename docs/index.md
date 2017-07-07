@@ -198,14 +198,38 @@ async def stream_response(message, channels):
 Uvicorn supports websockets, using the same messaging interface described
 above, with [ASGI WebSocket messages][websocket-message].
 
+## Accepting or rejecting incoming connections
+
+The first thing you need to handle with an incoming websocket connection
+is determining if you want the server to accept or reject the connection.
+
+The initial connect message will include all the regular HTTP header and URL
+information, which will allow you to route and authenticate any incoming
+connections.
+
+```python
+async def echo(message, channels):
+    if message['channel'] == 'websocket.connect':
+        await channels['reply'].send({'accept': True})
+```
+
+A connection can be terminated either by sending `'accept': False` as the
+initial reply message, or by sending `'close': True` to an already established
+connection.
+
 ## Incoming & outgoing data
+
+Now that we're able to establish an incoming connection, we'll want to actually
+do something with it.
 
 We'll start with an example that simply echos any incoming websocket messages
 back to the client.
 
 ```python
 async def echo(message, channels):
-    if message['channel'] == 'websocket.receive':
+    if message['channel'] == 'websocket.connect':
+        await channels['reply'].send({'accept': True})
+    elif message['channel'] == 'websocket.receive':
         text = message['text']
         await channels['reply'].send({
             'text': text
@@ -220,17 +244,13 @@ import datetime
 import asyncio
 
 
-async def send_times(channel):
-    while True:
-        text = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        await channel.send({'text': text})
-        await asyncio.sleep(1)
-
-
 async def tick(message, channels):
     if message['channel'] == 'websocket.connect':
-        loop = asyncio.get_event_loop()
-        loop.create_task(send_times(channels['reply']))
+        await channels['reply'].send({'accept': True})
+        while True:
+            text = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            await channels['reply'].send({'text': text})
+            await asyncio.sleep(1)
 ```
 
 ## Connects & disconnects
@@ -289,6 +309,7 @@ async def chat_server(message, channels):
     ASGI-style 'Hello, world' application.
     """
     if message['channel'] == 'websocket.connect':
+        await channels['reply'].send({'accept': True})
         clients.add(channels['reply'])
 
     elif message['channel'] == 'websocket.receive':
