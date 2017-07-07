@@ -208,7 +208,7 @@ information, which will allow you to route and authenticate any incoming
 connections.
 
 ```python
-async def echo(message, channels):
+async def accept_connection(message, channels):
     if message['channel'] == 'websocket.connect':
         await channels['reply'].send({'accept': True})
 ```
