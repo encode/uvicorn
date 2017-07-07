@@ -105,7 +105,6 @@ def test_send_binary_data_to_client():
 
 def test_send_and_close_connection():
     async def app(message, channels):
-        print(message)
         if message['channel'] == 'websocket.connect':
             await channels['reply'].send({'text': '123', 'close': True})
 
@@ -113,7 +112,7 @@ def test_send_and_close_connection():
         async with websockets.connect(url) as websocket:
             data = await websocket.recv()
             try:
-                await websocket.send('123')
+                await websocket.recv()
                 is_open = True
             except:
                 is_open = False

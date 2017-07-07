@@ -42,6 +42,8 @@ class ReplyChannel():
         if not self._websocket.accepted:
             if (accept is True) or (accept is None and (text_data or bytes_data)):
                 self._websocket.accept()
+                if not close:
+                    self._websocket.listen()
             elif accept is False:
                 text_data = None
                 bytes_data = None
@@ -123,6 +125,8 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
            rv += k + b': ' + v + b'\r\n'
         rv += b'\r\n'
         self.transport.write(rv)
+
+    def listen(self):
         self.loop.create_task(reader(self))
 
     def reject(self):
