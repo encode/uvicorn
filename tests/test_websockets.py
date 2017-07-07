@@ -125,3 +125,43 @@ def test_send_and_close_connection():
         assert data == '123'
         assert not is_open
         loop.close()
+
+
+def test_send_text_data_to_server():
+    async def app(message, channels):
+        if message['channel'] == 'websocket.connect':
+            await channels['reply'].send({'accept': True})
+        elif message['channel'] == 'websocket.receive':
+            data = message.get('text')
+            await channels['reply'].send({'text': data})
+
+    async def send_text(url):
+        async with websockets.connect(url) as websocket:
+            await websocket.send('abc')
+            return await websocket.recv()
+
+    with run_server(app) as url:
+        loop = asyncio.new_event_loop()
+        data = loop.run_until_complete(send_text(url))
+        assert data == 'abc'
+        loop.close()
+
+
+def test_send_binary_data_to_server():
+    async def app(message, channels):
+        if message['channel'] == 'websocket.connect':
+            await channels['reply'].send({'accept': True})
+        elif message['channel'] == 'websocket.receive':
+            data = message.get('bytes')
+            await channels['reply'].send({'bytes': data})
+
+    async def send_text(url):
+        async with websockets.connect(url) as websocket:
+            await websocket.send(b'abc')
+            return await websocket.recv()
+
+    with run_server(app) as url:
+        loop = asyncio.new_event_loop()
+        data = loop.run_until_complete(send_text(url))
+        assert data == b'abc'
+        loop.close()

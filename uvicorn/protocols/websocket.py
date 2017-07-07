@@ -31,7 +31,6 @@ def websocket_upgrade(http):
 class ReplyChannel():
     def __init__(self, websocket):
         self._websocket = websocket
-        self._accepted = False
         self.name = 'reply:%d' % id(self)
 
     async def send(self, message):
@@ -40,10 +39,9 @@ class ReplyChannel():
         bytes_data = message.get('bytes')
         close = message.get('close')
 
-        if not self._accepted:
+        if not self._websocket.accepted:
             if (accept is True) or (accept is None and (text_data or bytes_data)):
                 self._websocket.accept()
-                self._accepted = True
             elif accept is False:
                 text_data = None
                 bytes_data = None
@@ -55,10 +53,8 @@ class ReplyChannel():
             await self._websocket.send(bytes_data)
 
         if close:
-            if not self._accepted:
-                rv = b'HTTP/1.1 403 Forbidden\r\n\r\n'
-                self._websocket.transport.write(rv)
-                self._websocket.transport.close()
+            if not self._websocket.accepted:
+                self._websocket.reject()
             else:
                 code = 1000 if (close is True) else close
                 await self._websocket.close(code=code)
@@ -100,9 +96,10 @@ async def reader(protocol):
 
 
 class WebSocketProtocol(websockets.WebSocketCommonProtocol):
-    def __init__(self, http, accept_headers):
+    def __init__(self, http, handshake_headers):
         super().__init__(max_size=10000000, max_queue=10000000)
-        self.accept_headers = accept_headers
+        self.handshake_headers = handshake_headers
+        self.accepted = False
         self.loop = http.loop
         self.consumer = http.consumer
         self.channels = {
@@ -120,9 +117,15 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
         self.loop.create_task(self.consumer(message, self.channels))
 
     def accept(self):
+        self.accepted = True
         rv = b'HTTP/1.1 101 Switching Protocols\r\n'
-        for k, v in self.accept_headers:
+        for k, v in self.handshake_headers:
            rv += k + b': ' + v + b'\r\n'
         rv += b'\r\n'
         self.transport.write(rv)
         self.loop.create_task(reader(self))
+
+    def reject(self):
+        rv = b'HTTP/1.1 403 Forbidden\r\n\r\n'
+        self.transport.write(rv)
+        self.transport.close()
