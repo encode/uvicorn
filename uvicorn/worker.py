@@ -124,7 +124,7 @@ class UvicornWorker(Worker):
                 self.log.info(
                     "Max requests exceeded, shutting down: %s", self
                 )
-            elif pid == os.getpid() and self.ppid != os.getppid():
+            elif self.ppid != os.getppid():
                 self.alive = False
                 self.log.info("Parent changed, shutting down: %s", self)
             else:
