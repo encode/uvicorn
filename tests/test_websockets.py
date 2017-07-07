@@ -60,14 +60,10 @@ def test_reject_connection():
     async def app(message, channels):
         await channels['reply'].send({'accept': False})
 
-    async def open_connection(url):
-        async with websockets.connect(url) as websocket:
-            return websocket.state_name
-
     with run_server(app) as url:
         loop = asyncio.new_event_loop()
         with pytest.raises(websockets.exceptions.InvalidHandshake):
-            state = loop.run_until_complete(open_connection(url))
+            state = loop.run_until_complete(websockets.connect(url))
         loop.close()
 
 
@@ -111,9 +107,9 @@ def test_send_and_close_connection():
     async def get_data(url):
         async with websockets.connect(url) as websocket:
             data = await websocket.recv()
+            is_open = True
             try:
                 await websocket.recv()
-                is_open = True
             except:
                 is_open = False
             return (data, is_open)
