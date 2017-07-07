@@ -213,6 +213,10 @@ async def echo(message, channels):
         await client.send({'accept': True})
 ```
 
+A connection can be terminated either by sending `'accept': False` as the
+initial reply message, or by sending `'close': True` to an already established
+connection.
+
 ## Incoming & outgoing data
 
 Now that we're able to establish an incoming connection, we'll want to actually
