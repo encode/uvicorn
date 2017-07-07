@@ -210,7 +210,7 @@ connections.
 ```python
 async def echo(message, channels):
     if message['channel'] == 'websocket.connect':
-        await client.send({'accept': True})
+        await channels['reply'].send({'accept': True})
 ```
 
 A connection can be terminated either by sending `'accept': False` as the
@@ -228,7 +228,7 @@ back to the client.
 ```python
 async def echo(message, channels):
     if message['channel'] == 'websocket.connect':
-        await client.send({'accept': True})
+        await channels['reply'].send({'accept': True})
     elif message['channel'] == 'websocket.receive':
         text = message['text']
         await channels['reply'].send({
@@ -246,10 +246,10 @@ import asyncio
 
 async def tick(message, channels):
     if message['channel'] == 'websocket.connect':
-        await client.send({'accept': True})
+        await channels['reply'].send({'accept': True})
         while True:
             text = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            await channel.send({'text': text})
+            await channels['reply'].send({'text': text})
             await asyncio.sleep(1)
 ```
 
@@ -309,7 +309,7 @@ async def chat_server(message, channels):
     ASGI-style 'Hello, world' application.
     """
     if message['channel'] == 'websocket.connect':
-        await client.send({'accept': True})
+        await channels['reply'].send({'accept': True})
         clients.add(channels['reply'])
 
     elif message['channel'] == 'websocket.receive':
