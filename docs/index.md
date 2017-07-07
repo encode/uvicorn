@@ -198,7 +198,7 @@ async def stream_response(message, channels):
 Uvicorn supports websockets, using the same messaging interface described
 above, with [ASGI WebSocket messages][websocket-message].
 
-## Accepting connections
+## Establishing the connection
 
 The first thing you need to handle with an incoming websocket connection
 is determining if you want the server to accept or reject the connection.
