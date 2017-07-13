@@ -3,5 +3,7 @@ httptools
 uvloop
 websockets
 
+# Testing
 pytest
 pytest-cov
+requests

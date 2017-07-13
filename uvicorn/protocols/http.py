@@ -158,7 +158,7 @@ class ReplyChannel(object):
                 transport.write(b'0\r\n\r\n')
                 self._use_chunked_encoding = False
 
-            message, channels = protocol.active_request
+            message, channels = protocol.active_request or ({}, {})
             if 'body' in channels:
                 channels['body']._release()
 
