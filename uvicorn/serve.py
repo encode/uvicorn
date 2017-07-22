@@ -59,8 +59,11 @@ class UvicornServe():
         logger.warning("Received signal {}. Shutting down.".format(sig.name))
 
 
-def run():
+def serve(app, host="127.0.0.1", port=8000):
+    UvicornServe().run(app, host=host, port=port)
 
+
+def run():
     parser = argparse.ArgumentParser()
     parser.add_argument("app")
     parser.add_argument("--port", type=int, default=8000)
@@ -68,7 +71,8 @@ def run():
     args = parser.parse_args()
 
     app = import_app(args.app)
-    UvicornServe().run(app, host=args.host, port=args.port)
+
+    serve(app, host=args.host, port=args.port)
 
 
 if __name__ == '__main__':
