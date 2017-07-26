@@ -23,11 +23,7 @@ def websocket_upgrade(http):
         }))
         return
 
-    http.loop.create_task(http.channels['reply'].send({
-        'status': 101,
-        'headers': response_headers
-    }))
-    protocol = WebSocketProtocol(http)
+    protocol = WebSocketProtocol(http, response_headers)
     protocol.connection_made(http.transport, http.message)
     http.transport.set_protocol(protocol)
 
@@ -38,13 +34,37 @@ class ReplyChannel():
         self.name = 'reply:%d' % id(self)
 
     async def send(self, message):
-        if message.get('text'):
-            await self._websocket.send(message['text'])
-        elif message.get('bytes'):
-            await self._websocket.send(message['bytes'])
+        accept = message.get('accept')
+        text_data = message.get('text')
+        bytes_data = message.get('bytes')
+        close = message.get('close')
+
+        if not self._websocket.accepted:
+            if (accept is True) or (accept is None and (text_data or bytes_data)):
+                self._websocket.accept()
+                if not close:
+                    self._websocket.listen()
+            elif accept is False:
+                text_data = None
+                bytes_data = None
+                close = True
+
+        if text_data:
+            await self._websocket.send(text_data)
+        elif bytes_data:
+            await self._websocket.send(bytes_data)
+
+        if close:
+            if not self._websocket.accepted:
+                self._websocket.reject()
+            else:
+                code = 1000 if (close is True) else close
+                await self._websocket.close(code=code)
 
 
-async def reader(protocol, path):
+async def reader(protocol):
+    path = protocol.message['path']
+
     close_code = None
     order = 1
     while True:
@@ -78,8 +98,10 @@ async def reader(protocol, path):
 
 
 class WebSocketProtocol(websockets.WebSocketCommonProtocol):
-    def __init__(self, http):
+    def __init__(self, http, handshake_headers):
         super().__init__(max_size=10000000, max_queue=10000000)
+        self.handshake_headers = handshake_headers
+        self.accepted = False
         self.loop = http.loop
         self.consumer = http.consumer
         self.channels = {
@@ -88,9 +110,26 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
 
     def connection_made(self, transport, message):
         super().connection_made(transport)
+        self.transport = transport
+        self.message = message
         message.update({
             'channel': 'websocket.connect',
             'order': 0
         })
         self.loop.create_task(self.consumer(message, self.channels))
-        self.loop.create_task(reader(self, message['path']))
+
+    def accept(self):
+        self.accepted = True
+        rv = b'HTTP/1.1 101 Switching Protocols\r\n'
+        for k, v in self.handshake_headers:
+           rv += k + b': ' + v + b'\r\n'
+        rv += b'\r\n'
+        self.transport.write(rv)
+
+    def listen(self):
+        self.loop.create_task(reader(self))
+
+    def reject(self):
+        rv = b'HTTP/1.1 403 Forbidden\r\n\r\n'
+        self.transport.write(rv)
+        self.transport.close()
