@@ -59,6 +59,5 @@ setup(
     entry_points="""
     [console_scripts]
     uvicorn=uvicorn.main:run
-    uvicorn_non_gunicorn=uvicorn.serve:run
     """
 )

@@ -32,7 +32,8 @@ class UvicornServe():
         loop.create_task(self.create_server(loop, app, host, port))
         loop.create_task(self.tick(loop))
 
-        logger.warning('Starting worker [{}]'.format(os.getpid()))
+        logger.warning('Starting worker [{}] serving at: {}:{}'.format(os.getpid(), host, port))
+
         loop.run_forever()
 
     async def create_server(self, loop, app, host, port):
@@ -61,19 +62,3 @@ class UvicornServe():
 
 def serve(app, host="127.0.0.1", port=8000):
     UvicornServe().run(app, host=host, port=port)
-
-
-def run():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("app")
-    parser.add_argument("--port", type=int, default=8000)
-    parser.add_argument("--host", default="127.0.0.1")
-    args = parser.parse_args()
-
-    app = import_app(args.app)
-
-    serve(app, host=args.host, port=args.port)
-
-
-if __name__ == '__main__':
-    run()
