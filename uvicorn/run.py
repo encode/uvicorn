@@ -12,8 +12,7 @@ import uvloop
 logger = logging.getLogger()
 
 
-class UvicornServe():
-
+class UvicornServer():
     def __init__(self):
         self.servers = []
         self.alive = True
@@ -60,5 +59,5 @@ class UvicornServe():
         logger.warning("Received signal {}. Shutting down.".format(sig.name))
 
 
-def serve(app, host="127.0.0.1", port=8000):
-    UvicornServe().run(app, host=host, port=port)
+def run(app, host="127.0.0.1", port=8000):
+    UvicornServer().run(app, host=host, port=port)

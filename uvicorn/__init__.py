@@ -1,4 +1,4 @@
-from uvicorn.serve import serve
+from uvicorn.run import run
 
-__version__ = '0.0.14'
-__all__ = ['serve']
+__version__ = '0.0.15'
+__all__ = ['run']
