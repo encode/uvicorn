@@ -9,7 +9,7 @@ $ uvicorn app:chat_server --bind 127.0.0.1:8000
 $ uvicorn app:chat_server --bind 127.0.0.1:8001
 $ uvicorn app:chat_server --bind 127.0.0.1:8002
 """
-from uvicorn.broadcast import BroadcastMiddleware
+from uvitools.broadcast import BroadcastMiddleware
 
 
 with open('index.html', 'rb') as file:
