@@ -272,13 +272,16 @@ class HttpProtocol(asyncio.Protocol):
         parsed = httptools.parse_url(url)
         method = self.request_parser.get_method()
         http_version = self.request_parser.get_http_version()
-        self.message.update({
+        message_attributes = {
             'http_version': http_version,
             'method': method.decode('ascii'),
-            'path': parsed.path.decode('ascii'),
             'query_string': parsed.query if parsed.query else b'',
             'headers': self.headers
-        })
+        }
+        if parsed.path:
+            message_attributes['path'] = parsed.path.decode('ascii')
+
+        self.message.update(message_attributes)
 
     def on_header(self, name: bytes, value: bytes):
         name = name.lower()
