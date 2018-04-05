@@ -4,7 +4,6 @@ import os
 import signal
 import ssl
 import sys
-
 import uvloop
 
 from gunicorn.workers.base import Worker
@@ -12,6 +11,7 @@ from uvicorn.protocols import http
 
 
 class UvicornWorker(Worker):
+
     """
     A worker class for Gunicorn that interfaces with an ASGI consumer callable,
     rather than a WSGI callable.
@@ -26,6 +26,7 @@ class UvicornWorker(Worker):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.servers = []
+        self.connections = []
         self.exit_code = 0
 
     def init_process(self):
@@ -68,7 +69,6 @@ class UvicornWorker(Worker):
 
         loop.add_signal_handler(signal.SIGABRT, self.handle_abort,
                                 signal.SIGABRT, None)
-
         # Don't let SIGTERM and SIGUSR1 disturb active requests
         # by interrupting system calls
         signal.siginterrupt(signal.SIGTERM, False)
@@ -84,14 +84,10 @@ class UvicornWorker(Worker):
         self.cfg.worker_abort(self)
 
     async def create_servers(self, loop):
-        cfg = self.cfg
-        consumer = self.wsgi
-
         ssl_ctx = self.create_ssl_context(self.cfg) if self.cfg.is_ssl else None
-
         for sock in self.sockets:
             state = {'total_requests': 0}
-            protocol = functools.partial(http.HttpProtocol, consumer=consumer, loop=loop, state=state)
+            protocol = functools.partial(http.HttpProtocol, self.wsgi, loop=loop, state=state)
             server = await loop.create_server(protocol, sock=sock, ssl=ssl_ctx)
             self.servers.append((server, state))
 
@@ -108,14 +104,10 @@ class UvicornWorker(Worker):
     async def tick(self, loop):
         pid = os.getpid()
         cycle = 0
-
         while self.alive:
-            http.set_time_and_date()
-
             cycle = (cycle + 1) % 10
             if cycle == 0:
                 self.notify()
-
             req_count = sum([
                 state['total_requests'] for server, state in self.servers
             ])
@@ -127,7 +119,6 @@ class UvicornWorker(Worker):
                 self.log.info("Parent changed, shutting down: %s", self)
             else:
                 await asyncio.sleep(1)
-
         for server, state in self.servers:
             server.close()
             await server.wait_closed()
