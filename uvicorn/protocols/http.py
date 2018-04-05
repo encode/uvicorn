@@ -61,7 +61,7 @@ class HttpProtocol(asyncio.Protocol):
         self.base_message.update({
             'server': transport.get_extra_info('sockname'),
             'client': transport.get_extra_info('peername'),
-            'scheme': 'https' if transport.get_extra_info('sslcontext') else 'http',
+            'scheme': 'https' if transport.get_extra_info('sslcontext') else 'http'
         })
 
     def connection_lost(self, exc):
@@ -73,19 +73,21 @@ class HttpProtocol(asyncio.Protocol):
         except httptools.HttpParserUpgrade:
             websocket_upgrade(self)
 
-    def on_url(self, url):
-        parsed_url = httptools.parse_url(url)
-        self.message.update({
-            'http_version': self.request_parser.get_http_version(),
-            'method': self.request_parser.get_method().decode('ascii'),
-            'path': parsed_url.path.decode('ascii'),
-            'query_string': parsed_url.query if parsed_url.query else b'',
-            'headers': self.headers
-        })
-
     def on_message_begin(self):
         self.message = self.base_message.copy()
         self.headers = []
+
+    def on_url(self, url):
+        parsed = httptools.parse_url(url)
+        method = self.request_parser.get_method()
+        http_version = self.request_parser.get_http_version()
+        self.message.update({
+            'http_version': http_version,
+            'method': method.decode('ascii'),
+            'path': parsed.path.decode('ascii'),
+            'query_string': parsed.query if parsed.query else b'',
+            'headers': self.headers
+        })
 
     def on_header(self, name: bytes, value: bytes):
         name = name.lower()
