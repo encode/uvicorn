@@ -17,11 +17,14 @@ def websocket_upgrade(http):
         key = websockets.handshake.check_request(get_header)
         websockets.handshake.build_response(set_header, key)
     except websockets.InvalidHandshake:
-        http.loop.create_task(http.active_request.send({
-            'status': 400,
-            'headers': [[b'content-type', b'text/plain']],
-            'content': b'Invalid WebSocket handshake'
-        }))
+        
+        # TODO
+
+        # http.loop.create_task(http.active_request.send({
+        #     'status': 400,
+        #     'headers': [[b'content-type', b'text/plain']],
+        #     'content': b'Invalid WebSocket handshake'
+        # }))
         return
 
     protocol = WebSocketProtocol(http, response_headers)
