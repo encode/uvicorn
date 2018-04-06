@@ -119,7 +119,7 @@ class Request():
                 else:
                     content = [
                         b'content-length: ',
-                        str(self.content_length).encode(),
+                        str(len(body)).encode(),
                         b'\r\n\r\n',
                         body
                     ]
