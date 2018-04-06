@@ -39,7 +39,7 @@ class App():
     def __init__(self, scope):
         self.scope = scope
 
-    async def __call__(receive, send):
+    async def __call__(self, receive, send):
         await send({
             'type': 'http.response.start',
             'status': 200,
