@@ -16,17 +16,13 @@
 
 **Requirements**: Python 3.5.3+
 
-Python currently lacks a minimal low-level server/application interface for
-asyncio frameworks. Filling this gap means we'd be able to start building
+Until recently Python has lacked a minimal low-level server/application interface for
+asyncio frameworks. The ASGI specification fills this gap, and means we're now able to start building
 a common set of tooling usable across all asyncio frameworks.
 
-Uvicorn is an attempt to resolve this, by providing:
+Uvicorn is a lightning-fast ASGI server implementation, using [uvloop][uvloop] and [httptools][httptools].
 
-* A lightning-fast asyncio server implementation, using [uvloop][uvloop] and [httptools][httptools].
-* A minimal application interface, based on [ASGI][asgi].
-
-It currently supports HTTP, WebSockets, Pub/Sub broadcast, and is open
-to extension to other protocols & messaging styles.
+It currently only supports HTTP/1.1, but WebSocket support and HTTP/2 are planned.
 
 ## Quickstart
 
@@ -39,23 +35,52 @@ $ pip install uvicorn
 Create an application, in `app.py`:
 
 ```python
-async def hello_world(message, channels):
-    content = b'Hello, world'
-    response = {
-        'status': 200,
-        'headers': [
-            [b'content-type', b'text/plain'],
-        ],
-        'content': content
-    }
-    await channels['reply'].send(response)
+class App():
+    def __init__(self, scope):
+        self.scope = scope
+
+    async def __call__(receive, send):
+        await send({
+            'type': 'http.response.start',
+            'status': 200,
+            'headers': [
+                [b'content-type', b'text/plain'],
+            ],
+        })
+        await send({
+            'type': 'http.response.body',
+            'body': 'Hello, world!',
+        })
 ```
 
 Run the server:
 
 ```shell
-$ uvicorn app:hello_world
+$ uvicorn app:App
 ```
+
+## Alternative ASGI servers
+
+[The `daphne` webserver][daphne] was the first ASGI webserver implementation.
+It is run widely in production, and supports HTTP1.1, HTTP2, and WebSockets.
+
+We can equally well run our example application using `daphne` instead.
+
+```shell
+$ pip install daphne
+$ daphne app:App
+```
+
+## Motivation
+
+ASGI enables an ecosystem of Python web frameworks that are competitive against Node and Go in terms
+of achieving high throughput in IO-bound contexts.
+
+It provides support for HTTP/2 and WebSockets, which cannot be handled by WSGI. Together with message
+queues such as Django Channels, it can also be used to bring support for these protocols to
+existing multi-threaded web frameworks.
+
+ASGI is also an extensible, general-purpose messaging interface for building event-driven systems.
 
 ---
 
@@ -64,3 +89,4 @@ $ uvicorn app:hello_world
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
 [asgi]: http://channels.readthedocs.io/en/stable/asgi.html
+[daphne]: https://github.com/django/daphne
