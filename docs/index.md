@@ -6,6 +6,10 @@ Until recently Python has lacked a minimal low-level server/application interfac
 asyncio frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to start building
 a common set of tooling usable across all asyncio frameworks.
 
+ASGI should help enable an ecosystem of Python web frameworks that are highly competitive against Node
+and Go in terms of achieving high throughput in IO-bound contexts. It also provides support for HTTP/2 and
+WebSockets, which cannot be handled by WSGI.
+
 Uvicorn currently only supports HTTP/1.1, but WebSocket support and HTTP/2 are planned.
 
 ## Quickstart
@@ -178,7 +182,8 @@ class EchoBody():
 
 ## Streaming responses
 
-You can stream responses by sending
+You can stream responses by sending multiple `http.response.body` messages to
+the `send` coroutine.
 
 ```python
 class StreamResponse():
@@ -206,7 +211,24 @@ class StreamResponse():
         })
 ```
 
+---
+
+# Alternative ASGI servers
+
+The first ASGI server implementation, originally developed to power Django Channels,
+is [the Daphne webserver][daphne].
+
+It is run widely in production, and supports HTTP/1.1, HTTP/2, and WebSockets.
+
+Any of the example applications given here can equally well be run using `daphne` instead.
+
+```shell
+$ pip install daphne
+$ daphne app:App
+```
+
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
 [asgi]: https://github.com/django/asgiref/blob/master/specs/asgi.rst
 [asgi-http]: https://github.com/django/asgiref/blob/master/specs/www.rst
+[daphne]: https://github.com/django/daphne
