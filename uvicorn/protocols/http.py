@@ -120,7 +120,7 @@ class Request():
                 else:
                     content = [
                         b'content-length: ',
-                        str(self.content_length).encode(),
+                        str(len(body)).encode(),
                         b'\r\n\r\n',
                         body
                     ]
@@ -197,7 +197,6 @@ class HttpProtocol(asyncio.Protocol):
             self.request_parser.feed_data(data)
         except httptools.HttpParserUpgrade:
             websocket_upgrade(self)
-            # self.close()
 
     # Event hooks called back into by HttpRequestParser...
     def on_message_begin(self):
@@ -241,7 +240,6 @@ class HttpProtocol(asyncio.Protocol):
         self.body_queue = request.put_message
 
     def on_body(self, body: bytes):
-        print(body)
         if self.body:
             self.body_queue({
                 'type': 'http.request',
