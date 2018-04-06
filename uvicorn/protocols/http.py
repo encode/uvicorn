@@ -163,6 +163,7 @@ class HttpProtocol(asyncio.Protocol):
         self.scope = None
         self.headers = []
         self.body = b''
+        self.body_queue = None
 
         # self.read_paused = False
         # self.write_paused = False
@@ -240,6 +241,7 @@ class HttpProtocol(asyncio.Protocol):
         self.body_queue = request.put_message
 
     def on_body(self, body: bytes):
+        print(body)
         if self.body:
             self.body_queue({
                 'type': 'http.request',
@@ -249,10 +251,11 @@ class HttpProtocol(asyncio.Protocol):
         self.body = body
 
     def on_message_complete(self):
-        self.body_queue({
-            'type': 'http.request',
-            'body': self.body
-        })
+        if self.active_request:
+            self.body_queue({
+                'type': 'http.request',
+                'body': self.body
+            })
 
     # Called back into by RequestHandler
     def on_response_complete(self, keep_alive=True):
