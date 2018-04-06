@@ -6,6 +6,7 @@ import http
 import httptools
 import os
 import time
+from uvicorn.protocols.websocket import websocket_upgrade
 
 
 def set_time_and_date():
@@ -194,7 +195,8 @@ class HttpProtocol(asyncio.Protocol):
         try:
             self.request_parser.feed_data(data)
         except httptools.HttpParserUpgrade:
-            self.close()
+            websocket_upgrade(self)
+            # self.close()
 
     # Event hooks called back into by HttpRequestParser...
     def on_message_begin(self):

@@ -9,43 +9,34 @@ $ uvicorn app:chat_server --bind 127.0.0.1:8000
 $ uvicorn app:chat_server --bind 127.0.0.1:8001
 $ uvicorn app:chat_server --bind 127.0.0.1:8002
 """
-from uvicorn.broadcast import BroadcastMiddleware
-
-
 with open('index.html', 'rb') as file:
     homepage = file.read()
 
 
-async def chat_server(message, channels):
-    """
-    A WebSocket based chat server.
-    """
-    if message['channel'] == 'websocket.connect':
-        await channels['groups'].send({
-            'group': 'chat',
-            'add': channels['reply'].name
-        })
+class WebsocketApp:
 
-    elif message['channel'] == 'websocket.receive':
-        await channels['groups'].send({
-            'group': 'chat',
-            'send': {'text': message['text']}
-        })
+    def __init__(self, scope):
+        self.scope = scope
+        print(self.scope)
 
-    elif message['channel'] == 'websocket.disconnect':
-        await channels['groups'].send({
-            'group': 'chat',
-            'discard': channels['reply'].name
-        })
+    async def __call__(self, receive, send): 
+        self.send = send
+        message = await receive()
+        if message['type'] == 'websocket.connect':
+            await self.send({'type': 'websocket.accept'})
+        elif message['type'] == 'websocket.receive':
+            await self.send({'type': 'websocket.receive', 'text': 'test'})
+        elif message['type'] == 'websocket.disconnect':
+            print('Disconnect')
+        elif message['type'] == 'http.request':
+            await self.send({
+                'type': 'http.response.start',
+                'status': 200,
+                'headers': [(b'content-type', b'text/html')],
+            })
+            await self.send({
+                'type': 'http.response.body',
+                'body': homepage,
+            })
 
-    elif message['channel'] == 'http.request':
-        await channels['reply'].send({
-            'status': 200,
-            'headers': [
-                [b'content-type', b'text/html'],
-            ],
-            'content': homepage
-        })
-
-
-chat_server = BroadcastMiddleware(chat_server, 'localhost', 6379)
+wsapp = WebsocketApp
