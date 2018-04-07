@@ -198,6 +198,26 @@ class HttpProtocol(asyncio.Protocol):
         except httptools.HttpParserUpgrade:
             websocket_upgrade(self)
 
+    def handshake_failed(self):
+        request = Request(
+            self.transport,
+            self.scope,
+            keep_alive=self.request_parser.should_keep_alive(),
+            on_complete=self.on_response_complete
+        ) 
+        asgi_instance = self.consumer(request.scope)
+        self.loop.create_task(asgi_instance(request.receive, request.send))
+        request.put_message({
+            'type': 'http.response.body',
+            'status': 400,
+            'headers': [[b'content-type', b'text/plain']],
+            'body': b'Invalid WebSocket handshake'
+        })
+        print('ok')
+        #request.put_message()
+        #self.close()
+
+
     # Event hooks called back into by HttpRequestParser...
     def on_message_begin(self):
         self.scope = None
@@ -249,11 +269,12 @@ class HttpProtocol(asyncio.Protocol):
         self.body = body
 
     def on_message_complete(self):
-        if self.active_request:
-            self.body_queue({
-                'type': 'http.request',
-                'body': self.body
-            })
+        if self.request_parser.should_upgrade():
+            return
+        self.body_queue({
+            'type': 'http.request',
+            'body': self.body
+        })
 
     # Called back into by RequestHandler
     def on_response_complete(self, keep_alive=True):
