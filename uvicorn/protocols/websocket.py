@@ -1,4 +1,6 @@
 import asyncio
+import time
+# import async_timeout
 import websockets
 
 
@@ -17,20 +19,55 @@ def websocket_upgrade(http):
         key = websockets.handshake.check_request(get_header)
         websockets.handshake.build_response(set_header, key)
     except websockets.InvalidHandshake:
-        
-        # TODO
 
-        # http.loop.create_task(http.active_request.send({
-        #     'status': 400,
-        #     'headers': [[b'content-type', b'text/plain']],
-        #     'content': b'Invalid WebSocket handshake'
-        # }))
+        # TODO: Handle invalid handshake
+
         return
 
     protocol = WebSocketProtocol(http, response_headers)
     protocol.connection_open()
     protocol.connection_made(http.transport, http.scope)
     http.transport.set_protocol(protocol)
+
+
+async def reader(protocol):
+    close_code = None
+    order = 1
+    path = protocol.scope['path']
+    loop = protocol.loop
+    try:
+        async for data in protocol:
+            close_code = None
+            path = protocol.scope['path']
+            message = {
+                'type': 'websocket.receive',
+                'path': path,
+                'order': order
+            }
+            message['text'] = data if isinstance(data, str) else None
+            message['bytes'] = data if isinstance(data, bytes) else None
+            asgi_instance = protocol.consumer(protocol.scope)
+            request = Request(
+                protocol,
+                protocol.scope
+            )
+            loop.create_task(asgi_instance(request.receive, request.send))
+            request.put_message(message)
+            order += 1
+    except websockets.exceptions.ConnectionClosed as exc:
+        close_code = exc.code
+    message = {
+        'type': 'websocket.disconnect',
+        'path': path,
+        'code': close_code
+    }
+    asgi_instance = protocol.consumer(protocol.scope)
+    request = Request(
+        protocol,
+        protocol.scope
+    )
+    loop.create_task(asgi_instance(request.receive, request.send))
+    request.put_message(message)
 
 
 class Request():
@@ -42,37 +79,8 @@ class Request():
         self.receive_queue = asyncio.Queue()
 
     def put_message(self, message):
+        # if self.protocol.state == websockets.protocol.State.CLOSED:
         self.receive_queue.put_nowait(message)
-
-    async def reader(self):
-        close_code = None
-        order = 1
-        path = self.protocol.scope['path']
-        try:
-            async for data in self.protocol:
-                close_code = None
-                path = self.protocol.scope['path']
-                message = {
-                    'type': 'websocket.receive',
-                    'path': path,
-                    'order': order
-                }
-                message['text'] = data if isinstance(data, str) else None
-                message['bytes'] = data if isinstance(data, bytes) else None
-                asgi_instance = self.protocol.consumer(self.protocol.scope)
-                self.loop.create_task(asgi_instance(self.receive, self.send))
-                self.put_message(message)
-                order += 1
-        except websockets.exceptions.ConnectionClosed as exc:
-            close_code = exc.code
-            message = {
-                'type': 'websocket.disconnect',
-                'code': close_code,
-                'path': path
-            }
-        asgi_instance = self.protocol.consumer(self.protocol.scope)
-        self.loop.create_task(asgi_instance(self.receive, self.send))
-        self.put_message(message)
 
     async def receive(self):
         return await self.receive_queue.get()
@@ -86,8 +94,8 @@ class Request():
             if not self.protocol.accepted:
                 self.protocol.accept()
                 if not close:
-                    self.loop.create_task(self.reader())
-        elif message_type == 'websocket.receive':
+                    self.protocol.listen()
+        elif message_type == 'websocket.send':
             if text_data:
                 await self.protocol.send(text_data)
             elif bytes_data:
@@ -131,6 +139,9 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
             rv += k + b': ' + v + b'\r\n'
         rv += b'\r\n'
         self.transport.write(rv)
+
+    def listen(self):
+        self.loop.create_task(reader(self))
 
     def reject(self):
         rv = b'HTTP/1.1 403 Forbidden\r\n\r\n'
