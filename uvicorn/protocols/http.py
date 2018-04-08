@@ -180,7 +180,7 @@ class HttpProtocol(asyncio.Protocol):
     def connection_made(self, transport):
         self.transport = transport
         self.base_message = {
-            'type': 'http.request',
+            'type': 'http',
             'server': transport.get_extra_info('sockname'),
             'client': transport.get_extra_info('peername'),
             'scheme': 'https' if transport.get_extra_info('sslcontext') else 'http'
@@ -210,7 +210,7 @@ class HttpProtocol(asyncio.Protocol):
         method = self.request_parser.get_method()
         http_version = self.request_parser.get_http_version()
         self.scope = {
-            'type': 'http.request',
+            'type': 'http',
             'http_version': http_version,
             'method': method.decode('ascii'),
             'path': parsed.path.decode('ascii'),

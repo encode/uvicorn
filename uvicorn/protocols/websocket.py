@@ -114,7 +114,7 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
         self.transport = transport
         self.scope = scope
         self.scope.update({
-            'type': 'websocket.connect',
+            'type': 'websocket'
         })
         asgi_instance = self.consumer(self.scope)
         request = Request(
@@ -122,7 +122,7 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
             self.scope
         )
         self.loop.create_task(asgi_instance(request.receive, request.send))
-        request.put_message(self.scope)
+        request.put_message({'type': 'websocket.connect'})
 
     def accept(self):
         self.accepted = True
