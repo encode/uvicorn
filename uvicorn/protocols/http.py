@@ -163,6 +163,10 @@ class HttpProtocol(asyncio.Protocol):
         self.headers = []
         self.body = b''
 
+        self.server = None
+        self.client = None
+        self.scheme = None
+
         # self.read_paused = False
         # self.write_paused = False
 
@@ -177,12 +181,9 @@ class HttpProtocol(asyncio.Protocol):
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
         self.transport = transport
-        self.base_message = {
-            'type': 'http.request',
-            'server': transport.get_extra_info('sockname'),
-            'client': transport.get_extra_info('peername'),
-            'scheme': 'https' if transport.get_extra_info('sslcontext') else 'http'
-        }
+        self.server = transport.get_extra_info('sockname'),
+        self.client = transport.get_extra_info('peername'),
+        self.scheme = 'https' if transport.get_extra_info('sslcontext') else 'http'
 
     def connection_lost(self, exc):
         self.transport = None
@@ -208,8 +209,11 @@ class HttpProtocol(asyncio.Protocol):
         method = self.request_parser.get_method()
         http_version = self.request_parser.get_http_version()
         self.scope = {
-            'type': 'http.request',
+            'type': 'http',
             'http_version': http_version,
+            'server': self.server,
+            'client': self.client,
+            'scheme': self.scheme,
             'method': method.decode('ascii'),
             'path': parsed.path.decode('ascii'),
             'query_string': parsed.query if parsed.query else b'',
