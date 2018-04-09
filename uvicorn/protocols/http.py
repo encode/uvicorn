@@ -195,8 +195,8 @@ class HttpProtocol(asyncio.Protocol):
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
         self.transport = transport
-        self.server = transport.get_extra_info('sockname'),
-        self.client = transport.get_extra_info('peername'),
+        self.server = transport.get_extra_info('sockname')
+        self.client = transport.get_extra_info('peername')
         self.scheme = 'https' if transport.get_extra_info('sslcontext') else 'http'
 
     def connection_lost(self, exc):
