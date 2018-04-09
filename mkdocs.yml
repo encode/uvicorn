@@ -1,4 +1,3 @@
 site_name: Uvicorn
 pages:
     - Home: index.md
-    - Tool Kit: toolkit.md

@@ -1,16 +1,16 @@
 # Introduction
 
-Python currently lacks a minimal low-level server/application interface for
-asyncio frameworks. Filling this gap means we'd be able to start building
+Uvicorn is a lightning-fast ASGI server, built on [uvloop][uvloop] and [httptools][httptools].
+
+Until recently Python has lacked a minimal low-level server/application interface for
+asyncio frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to start building
 a common set of tooling usable across all asyncio frameworks.
 
-Uvicorn is an attempt to resolve this, by providing:
+ASGI should help enable an ecosystem of Python web frameworks that are highly competitive against Node
+and Go in terms of achieving high throughput in IO-bound contexts. It also provides support for HTTP/2 and
+WebSockets, which cannot be handled by WSGI.
 
-* A lightning-fast asyncio server implementation, using [uvloop][uvloop] and [httptools][httptools].
-* A minimal application interface, based on [ASGI][asgi].
-
-It currently supports HTTP, WebSockets, Pub/Sub broadcast, and is open
-to extension to other protocols & messaging styles.
+Uvicorn currently only supports HTTP/1.1, but WebSocket support and HTTP/2 are planned.
 
 ## Quickstart
 
@@ -25,55 +25,65 @@ $ pip install uvicorn
 Create an application, in `app.py`:
 
 ```python
-async def hello_world(message, channels):
-    content = b'Hello, world'
-    response = {
-        'status': 200,
-        'headers': [
-            [b'content-type', b'text/plain'],
-        ],
-        'content': content
-    }
-    await channels['reply'].send(response)
+class App():
+    def __init__(self, scope):
+        self.scope = scope
+
+    async def __call__(self, receive, send):
+        await send({
+            'http.response.start',
+            'status': 200,
+            'headers': [
+                [b'content-type', b'text/plain'],
+            ]
+        })
+        await send({
+            'type': 'http.response.body',
+            'body': b'Hello, world!',
+        })
 ```
 
 Run the server:
 
 ```shell
-$ uvicorn app:hello_world
+$ uvicorn app:App
 ```
 
-# Messaging interface
+# The ASGI interface
 
-Uvicorn introduces a messaging interface broadly based on [ASGI][asgi]...
+Uvicorn uses the [ASGI specification][asgi] for interacting with an application.
 
-The application should expose a coroutine callable which takes two arguments:
+The application should expose a callable which takes one argument, `scope`.
+This callable is used to create a new instance of the application for each incoming connection.
+It must return a coroutine which the server can then call into.
 
-* `message` is an [ASGI message][asgi-message].  (But see below for ammendments.)
-* `channels` is a dictionary of `<unicode string>:<channel interface>`.
+The application instance coroutine takes two arguments, `(recieve, send)`,
+which are the channels by which messages are sent between the web server and client application.
 
-The channel interface is an object with the following attributes:
+One style of implementation is to use a class with an `__init__()` method to handle
+application instantiation, and a `__call__()` coroutine to provide the application implementation.
 
-* `.send(message)` - A coroutine for sending outbound messages. Optional.
-* `.receive()` - A coroutine for receiving incoming messages. Optional.
-* `.name` - A unicode string, uniquely identifying the channel. Optional.
+```python
+class App():
+    def __init__(self, scope):
+        self.scope = scope
 
-Messages diverge from ASGI in the following ways:
+    async def __call__(self, receive, send):
+        ...
+```
 
-* Messages additionally include a `channel` key, to allow for routing eg. `'channel': 'http.request'`
-* Messages do not include channel names, such as `reply_channel` or `body_channel`,
-  instead the `channels` dictionary presents the available channels.
+The content of the `scope` argument, and the messages expected by `recieve` and `send` depend on
+the protocol being used.
 
-## Example
+The format for HTTP messages is described in the [ASGI HTTP Message format][asgi-http].
 
-An incoming HTTP request might be represented with the following `message`
-and `channels` information:
+## HTTP Scope
 
-**message**:
+An incoming HTTP request might instantiate an application with the following `scope`:
 
 ```python
 {
-    'channel': 'http.request',
+    'type': 'http.request',
     'scheme': 'http',
     'root_path': '',
     'server': ('127.0.0.1', 8000),
@@ -88,387 +98,137 @@ and `channels` information:
 }
 ```
 
-**channels**:
+## HTTP Messages
+
+The instance coroutine communicates back to the server by sending messages to the `send` coroutine.
 
 ```python
-{
-    'reply': <ReplyChannel>
-}
-```
-
-In order to respond, the application would `send()` an HTTP response to
-the reply channel, for instance:
-
-```python
-await channels['reply'].send({
+await send({
+    'type': 'http.request.start',
     'status': 200,
     'headers': [
         [b'content-type', b'text/plain'],
-    ],
-    'content': b'Hello, world'
+    ]
+})
+await send({
+    'type': 'http.request.body',
+    'body': b'Hello, world!',
 })
 ```
 
-# HTTP
-
-The format for HTTP request and response messages is described in [the ASGI documentation][http-message].
-
-## Requests & responses
+# Requests & responses
 
 Here's an example that displays the method and path used in the incoming request:
 
 ```python
-async def echo_method_and_path(message, channels):
-    body = 'Received %s request to %s' % (message['method'], message['path'])
-    response = {
-        'status': 200,
-        'headers': [
-            [b'content-type', b'text/plain'],
-        ],
-        'content': body.encode('utf-8')
-    }
-    await channels['reply'].send(response)
+class EchoMethodAndPath():
+    def __init__(self, scope):
+        self.scope = scope
+
+    async def __call__(self, recieve, send):
+        body = 'Received %s request to %s' % (self.scope['method'], self.scope['path'])
+        await send({
+            'http.response.start',
+            'status': 200,
+            'headers': [
+                [b'content-type', b'text/plain'],
+            ]
+        })
+        await send({
+            'type': 'http.response.body',
+            'body': body.encode('utf-8'),
+        })
 ```
 
 ## Reading the request body
 
 You can stream the request body without blocking the asyncio task pool,
-by receiving [request body chunks][request-body-chunk] from the `body` channel.
+by fetching messages from the `receive` coroutine.
 
 ```python
-async def read_body(message, channels):
-    """
-    Read and return the entire body from an incoming ASGI message.
-    """
-    body = message.get('body', b'')
-    if 'body' in channels:
-        while True:
-            message_chunk = await channels['body'].receive()
-            body += message_chunk['content']
-            if not message_chunk.get('more_content', False):
-                break
-    return body
+class EchoBody():
+    def __init__(self, scope):
+        self.scope = scope
+
+    async def read_body(self, receive):
+        """
+        Read and return the entire body from an incoming ASGI message.
+        """
+        body = b''
+        more_body = True
+
+        while more_body:
+            message = await receive()
+            body += message.get('body', b'')
+            more_body = message.get('more_body', False)
+
+        return body
 
 
-async def echo_body(message, channels):
-    body = await read_body(message, channels)
-    response = {
-        'status': 200,
-        'headers': [
-            [b'content-type', b'text/plain'],
-        ],
-        'content': body
-    }
-    await channels['reply'].send(response)
+    async def __call__(self, receive, send):
+        body = await self.read_body(receive)
+        await send({
+            'http.response.start',
+            'status': 200,
+            'headers': [
+                [b'content-type', b'text/plain'],
+            ]
+        })
+        await send({
+            'type': 'http.response.body',
+            'body': body,
+        })
 ```
 
 ## Streaming responses
 
-You can stream responses by sending [response chunks][response-chunk] to the
-`reply` channel:
+You can stream responses by sending multiple `http.response.body` messages to
+the `send` coroutine.
 
 ```python
-async def stream_response(message, channels):
-    # Send the start of the response.
-    await channels['reply'].send({
-        'status': 200,
-        'headers': [
-            [b'content-type', b'text/plain'],
-        ],
-        'content': b'',
-        'more_content': True
-    })
+class StreamResponse():
+    def __init__(self, scope):
+        self.scope = scope
 
-    # Stream response content.
-    for chunk in [b'Hello', b', ', b'world']:
-        await channels['reply'].send({
-            'content': chunk,
-            'more_content': True
-        })
-
-    # End the response.
-    await channels['reply'].send({
-        'content': b'',
-        'more_content': False
-    })
-```
-
-# WebSockets
-
-Uvicorn supports websockets, using the same messaging interface described
-above, with [ASGI WebSocket messages][websocket-message].
-
-## Establishing the connection
-
-The first thing you need to handle with an incoming websocket connection
-is determining if you want the server to accept or reject the connection.
-
-The initial connect message will include all the regular HTTP header and URL
-information, which will allow you to route and authenticate any incoming
-connections.
-
-```python
-async def accept_connection(message, channels):
-    if message['channel'] == 'websocket.connect':
-        await channels['reply'].send({'accept': True})
-```
-
-A connection can be terminated either by sending `'accept': False` as the
-initial reply message, or by sending `'close': True` to an already established
-connection.
-
-## Incoming & outgoing data
-
-Now that we're able to establish an incoming connection, we'll want to actually
-do something with it.
-
-We'll start with an example that simply echos any incoming websocket messages
-back to the client.
-
-```python
-async def echo(message, channels):
-    if message['channel'] == 'websocket.connect':
-        await channels['reply'].send({'accept': True})
-    elif message['channel'] == 'websocket.receive':
-        text = message['text']
-        await channels['reply'].send({
-            'text': text
-        })
-```
-
-Another example, this time demonstrating a websocket connection that sends
-back the current time to each connected client, roughly once per second.
-
-```python
-import datetime
-import asyncio
-
-
-async def tick(message, channels):
-    if message['channel'] == 'websocket.connect':
-        await channels['reply'].send({'accept': True})
-        while True:
-            text = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            await channels['reply'].send({'text': text})
-            await asyncio.sleep(1)
-```
-
-## Connects & disconnects
-
-Connect and disconnect messages allow you to keep track of connected clients.
-
-Here's a more complete example that demonstrates a basic WebSocket chat server:
-
-**index.html**:
-
-```html
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>WebSocket demo</title>
-    </head>
-    <body>
-        <h1>WebSocket Chat</h1>
-        <form action="" onsubmit="sendMessage(event)">
-            <input type="text" id="messageText" autocomplete="off"/>
-            <button>Send</button>
-        </form>
-        <ul id='messages'>
-        </ul>
-        <script>
-            var ws = new WebSocket("ws://127.0.0.1:8000/");
-
-            ws.onmessage = function(event) {
-                var messages = document.getElementById('messages')
-                var message = document.createElement('li')
-                var content = document.createTextNode(event.data)
-                message.appendChild(content)
-                messages.appendChild(message)
-            };
-
-            function sendMessage(event) {
-                var input = document.getElementById("messageText")
-                ws.send(input.value)
-                input.value = ''
-                event.preventDefault()
-            }
-        </script>
-    </body>
-</html>
-```
-
-**app.py**:
-
-```python
-clients = set()
-with open('index.html', 'rb') as file:
-    homepage = file.read()
-
-async def chat_server(message, channels):
-    """
-    ASGI-style 'Hello, world' application.
-    """
-    if message['channel'] == 'websocket.connect':
-        await channels['reply'].send({'accept': True})
-        clients.add(channels['reply'])
-
-    elif message['channel'] == 'websocket.receive':
-        for client in clients:
-            await client.send({'text': message['text']})
-
-    elif message['channel'] == 'websocket.disconnect':
-        clients.remove(channels['reply'])
-
-    elif message['channel'] == 'http.request':
-        await channels['reply'].send({
+    async def __call__(self, receive, send):
+        body = await self.read_body(receive)
+        await send({
+            'http.response.start',
             'status': 200,
             'headers': [
-                [b'content-type', b'text/html'],
-            ],
-            'content': homepage
+                [b'content-type', b'text/plain'],
+            ]
+        })
+        for chunk in [b'Hello', b', ', b'world!']
+            await send({
+                'type': 'http.response.body',
+                'body': chunk,
+                'more_body': True
+            })
+        await send({
+            'type': 'http.response.body',
+            'body': b'',
         })
 ```
 
-Note that the example above will only work properly when running as a single
-process on a single machine, since the set of connected clients is stored in
-memory.
+---
 
-In order to build properly scalable WebSocket services you'll typically want
-some way of sending messages across a group of client connections, each of
-which may be connected to a different server instance...
+# Alternative ASGI servers
 
-# Broadcast
+The first ASGI server implementation, originally developed to power Django Channels,
+is [the Daphne webserver][daphne].
 
-Uvicorn includes broadcast functionality, using Redis Pub/Sub.
+It is run widely in production, and supports HTTP/1.1, HTTP/2, and WebSockets.
 
-First, make sure to install the `uvitools` package:
+Any of the example applications given here can equally well be run using `daphne` instead.
 
 ```shell
-$ pip install uvitools
+$ pip install daphne
+$ daphne app:App
 ```
-
-Broadcast functionality is not integrated directly into the server, but is
-included as application-level middleware. You can install the broadcast module
-by wrapping it around your existing application, like so:
-
-```python
-from uvitools.broadcast import BroadCastMiddleware
-
-async def my_app(messages, channels):
-    ...
-
-app = BroadCastMiddleware(my_app, 'localhost', 6379)
-```
-
-## Commands
-
-Including the broadcast middleware will make a `groups` channel available,
-which accepts the following command messages:
-
-### Add
-
-```python
-await channels['groups'].send({
-    'group': <name>,
-    'add': <channel_name>
-})
-```
-
-Add a channel to the given group.
-
-### Discard
-
-```python
-await channels['groups'].send({
-    'group': <name>,
-    'discard': <channel_name>
-})
-```
-
-Remove a channel from the given group.
-
-### Send
-
-```python
-await channels['groups'].send({
-    'group': <name>,
-    'send': <message>
-})
-```
-
-Send a message to all channels in the given group.
-
-## Example
-
-Let's add broadcast functionality to our previous chat server example...
-
-```python
-from uvitools.broadcast import BroadcastMiddleware
-
-
-with open('index.html', 'rb') as file:
-    homepage = file.read()
-
-
-async def chat_server(message, channels):
-    """
-    A WebSocket based chat server.
-    """
-    if message['channel'] == 'websocket.connect':
-        await channels['groups'].send({
-            'group': 'chat',
-            'add': channels['reply'].name
-        })
-
-    elif message['channel'] == 'websocket.receive':
-        await channels['groups'].send({
-            'group': 'chat',
-            'send': {'text': message['text']}
-        })
-
-    elif message['channel'] == 'websocket.disconnect':
-        await channels['groups'].send({
-            'group': 'chat',
-            'discard': channels['reply'].name
-        })
-
-    elif message['channel'] == 'http.request':
-        await channels['reply'].send({
-            'status': 200,
-            'headers': [
-                [b'content-type', b'text/html'],
-            ],
-            'content': homepage
-        })
-
-
-chat_server = BroadcastMiddleware(chat_server)
-```
-
-We can now start up a connected group of chat server instances:
-
-First, start a Redis server:
-
-```shell
-$ redis-server
-```
-
-Then start one or more Uvicorn instances:
-
-```shell
-$ uvicorn app:chat_server --bind 127.0.0.1:8000
-$ uvicorn app:chat_server --bind 127.0.0.1:8001
-$ uvicorn app:chat_server --bind 127.0.0.1:8002
-```
-
-You can now open multiple browser windows, each connected to a different
-server instance, and send chat messages between them.
 
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
-[asgi]: http://channels.readthedocs.io/en/stable/asgi.html
-[asgi-message]: http://channels.readthedocs.io/en/stable/asgi/www.html#http-websocket-asgi-message-format-draft-spec
-[request-body-chunk]: http://channels.readthedocs.io/en/stable/asgi/www.html#request-body-chunk
-[response-chunk]: http://channels.readthedocs.io/en/stable/asgi/www.html#response-chunk
-[http-message]: http://channels.readthedocs.io/en/stable/asgi/www.html#http
-[websocket-message]: http://channels.readthedocs.io/en/latest/asgi/www.html#websocket
+[asgi]: https://github.com/django/asgiref/blob/master/specs/asgi.rst
+[asgi-http]: https://github.com/django/asgiref/blob/master/specs/www.rst
+[daphne]: https://github.com/django/daphne

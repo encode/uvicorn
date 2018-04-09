@@ -1,7 +1,6 @@
 gunicorn
 httptools
 uvloop
-websockets
 
 # Testing
 pytest
