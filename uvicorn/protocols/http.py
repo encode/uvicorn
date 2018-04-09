@@ -52,7 +52,6 @@ class RequestResponseState(enum.Enum):
 
 
 class HTTPSession:
-
     def __init__(self, transport, scope, on_complete=None, keep_alive=True):
         self.state = RequestResponseState.STARTED
         self.transport = transport
@@ -153,7 +152,6 @@ class HTTPSession:
 
 
 class HttpProtocol(asyncio.Protocol):
-
     def __init__(self, consumer, loop=None, state=None):
         self.consumer = consumer
         self.loop = loop or asyncio.get_event_loop()
