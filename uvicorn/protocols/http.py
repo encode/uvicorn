@@ -7,6 +7,8 @@ import httptools
 import os
 import time
 
+from uvicorn.protocols.websocket import websocket_upgrade
+
 
 def set_time_and_date():
     global CURRENT_TIME
@@ -183,8 +185,8 @@ class HttpProtocol(asyncio.Protocol):
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
         self.transport = transport
-        self.server = transport.get_extra_info('sockname'),
-        self.client = transport.get_extra_info('peername'),
+        self.server = transport.get_extra_info('sockname')
+        self.client = transport.get_extra_info('peername')
         self.scheme = 'https' if transport.get_extra_info('sslcontext') else 'http'
 
     def connection_lost(self, exc):
@@ -197,7 +199,8 @@ class HttpProtocol(asyncio.Protocol):
         try:
             self.request_parser.feed_data(data)
         except httptools.HttpParserUpgrade:
-            self.transport.close()
+            websocket_upgrade(self)
+            # self.transport.close()
 
     # Event hooks called back into by HttpRequestParser...
     def on_message_begin(self):
@@ -228,7 +231,6 @@ class HttpProtocol(asyncio.Protocol):
     def on_headers_complete(self):
         if self.request_parser.should_upgrade():
             return
-
         request = HTTPSession(
             self.transport,
             self.scope,
@@ -253,6 +255,8 @@ class HttpProtocol(asyncio.Protocol):
         self.body = body
 
     def on_message_complete(self):
+        if self.request_parser.should_upgrade():
+            return
         self.parsing_request.put_message({
             'type': 'http.request',
             'body': self.body
