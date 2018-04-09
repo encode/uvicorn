@@ -109,7 +109,7 @@ def test_pipelined_request():
     )
 
     assert protocol.active_request is not None
-    assert len(protocol.pending_requests) == 2
+    assert len(protocol.pipelined_requests) == 2
     request = protocol.active_request
     assert request.scope['method'] == 'GET'
     assert request.scope['path'] == '/1'
@@ -124,7 +124,7 @@ def test_pipelined_request():
     }))
 
     assert protocol.active_request is not None
-    assert len(protocol.pending_requests) == 1
+    assert len(protocol.pipelined_requests) == 1
     request = protocol.active_request
     assert request.scope['method'] == 'GET'
     assert request.scope['path'] == '/2'
@@ -139,7 +139,7 @@ def test_pipelined_request():
     }))
 
     assert protocol.active_request is not None
-    assert len(protocol.pending_requests) == 0
+    assert len(protocol.pipelined_requests) == 0
     request = protocol.active_request
     assert request.scope['method'] == 'GET'
     assert request.scope['path'] == '/3'
@@ -154,7 +154,7 @@ def test_pipelined_request():
     }))
 
     assert protocol.active_request is None
-    assert len(protocol.pending_requests) == 0
+    assert len(protocol.pipelined_requests) == 0
 
 
 # def test_release_request_body():

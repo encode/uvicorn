@@ -52,7 +52,7 @@ class RequestResponseState(enum.Enum):
     CLOSED = 3
 
 
-class Request():
+class HTTPSession:
     def __init__(self, transport, scope, on_complete=None, keep_alive=True):
         self.state = RequestResponseState.STARTED
         self.transport = transport
@@ -165,6 +165,10 @@ class HttpProtocol(asyncio.Protocol):
         self.body = b''
         self.body_queue = None
 
+        self.server = None
+        self.client = None
+        self.scheme = None
+
         # self.read_paused = False
         # self.write_paused = False
 
@@ -173,18 +177,17 @@ class HttpProtocol(asyncio.Protocol):
         # self.low_water_limit = LOW_WATER_LIMIT
 
         # self.max_pipelined_requests = MAX_PIPELINED_REQUESTS
-        self.pending_requests = collections.deque()
+
+        self.pipelined_requests = collections.deque()
         self.active_request = None
+        self.parsing_request = None
 
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
         self.transport = transport
-        self.base_message = {
-            'type': 'http',
-            'server': transport.get_extra_info('sockname'),
-            'client': transport.get_extra_info('peername'),
-            'scheme': 'https' if transport.get_extra_info('sslcontext') else 'http'
-        }
+        self.server = transport.get_extra_info('sockname'),
+        self.client = transport.get_extra_info('peername'),
+        self.scheme = 'https' if transport.get_extra_info('sslcontext') else 'http'
 
     def connection_lost(self, exc):
         self.transport = None
@@ -197,13 +200,14 @@ class HttpProtocol(asyncio.Protocol):
             self.request_parser.feed_data(data)
         except httptools.HttpParserUpgrade:
             websocket_upgrade(self)
+            #self.transport.close()
 
     # Event hooks called back into by HttpRequestParser...
     def on_message_begin(self):
         self.scope = None
         self.headers = []
         self.body = b''
-        self.queue = None
+        self.parsing_request = None
 
     def on_url(self, url):
         parsed = httptools.parse_url(url)
@@ -212,6 +216,9 @@ class HttpProtocol(asyncio.Protocol):
         self.scope = {
             'type': 'http',
             'http_version': http_version,
+            'server': self.server,
+            'client': self.client,
+            'scheme': self.scheme,
             'method': method.decode('ascii'),
             'path': parsed.path.decode('ascii'),
             'query_string': parsed.query if parsed.query else b'',
@@ -225,7 +232,7 @@ class HttpProtocol(asyncio.Protocol):
         if self.request_parser.should_upgrade():
             return
 
-        request = Request(
+        request = HTTPSession(
             self.transport,
             self.scope,
             keep_alive=self.request_parser.should_keep_alive(),
@@ -236,12 +243,12 @@ class HttpProtocol(asyncio.Protocol):
             asgi_instance = self.consumer(request.scope)
             self.loop.create_task(asgi_instance(request.receive, request.send))
         else:
-            self.pending_requests.append(request)
-        self.body_queue = request.put_message
+            self.pipelined_requests.append(request)
+        self.parsing_request = request
 
     def on_body(self, body: bytes):
         if self.body:
-            self.body_queue({
+            self.parsing_request.put_message({
                 'type': 'http.request',
                 'body': self.body,
                 'more_body': True
@@ -251,7 +258,7 @@ class HttpProtocol(asyncio.Protocol):
     def on_message_complete(self):
         if self.request_parser.should_upgrade():
             return
-        self.body_queue({
+        self.parsing_request.put_message({
             'type': 'http.request',
             'body': self.body
         })
@@ -261,19 +268,14 @@ class HttpProtocol(asyncio.Protocol):
         self.state['total_requests'] += 1
 
         if not keep_alive:
-            self.close()
+            self.transport.close()
             return
 
-        if not self.pending_requests:
+        if not self.pipelined_requests:
             self.active_request = None
             return
 
-        request = self.pending_requests.popleft()
+        request = self.pipelined_requests.popleft()
         self.active_request = request
         asgi_instance = self.consumer(request.scope)
         self.loop.create_task(asgi_instance(request.receive, request.send))
-
-    def close(self):
-        self.transport.close()
-        self.active_request = None
-        self.pending_requests.clear()
