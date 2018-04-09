@@ -35,27 +35,28 @@ async def reader(protocol):
     order = 1
     path = protocol.scope['path']
     loop = protocol.loop
-    try:
-        async for data in protocol:
-            close_code = None
-            path = protocol.scope['path']
-            message = {
-                'type': 'websocket.receive',
-                'path': path,
-                'order': order
-            }
-            message['text'] = data if isinstance(data, str) else None
-            message['bytes'] = data if isinstance(data, bytes) else None
-            asgi_instance = protocol.consumer(protocol.scope)
-            request = WebSocketSession(
-                protocol,
-                protocol.scope
-            )
-            loop.create_task(asgi_instance(request.receive, request.send))
-            request.put_message(message)
-            order += 1
-    except websockets.exceptions.ConnectionClosed as exc:
-        close_code = exc.code
+    while True:
+        try:
+            data = await protocol.recv()
+        except websockets.exceptions.ConnectionClosed as exc:
+            close_code = exc.code
+            break
+        path = protocol.scope['path']
+        message = {
+            'type': 'websocket.receive',
+            'path': path,
+            'order': order
+        }
+        message['text'] = data if isinstance(data, str) else None
+        message['bytes'] = data if isinstance(data, bytes) else None
+        asgi_instance = protocol.consumer(protocol.scope)
+        request = WebSocketSession(
+            protocol,
+            protocol.scope
+        )
+        loop.create_task(asgi_instance(request.receive, request.send))
+        request.put_message(message)
+        order += 1
     message = {
         'type': 'websocket.disconnect',
         'path': path,
