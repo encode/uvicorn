@@ -51,7 +51,7 @@ class RequestResponseState(enum.Enum):
     CLOSED = 3
 
 
-class Request():
+class HTTPSession:
     def __init__(self, transport, scope, on_complete=None, keep_alive=True):
         self.state = RequestResponseState.STARTED
         self.transport = transport
@@ -197,7 +197,7 @@ class HttpProtocol(asyncio.Protocol):
         try:
             self.request_parser.feed_data(data)
         except httptools.HttpParserUpgrade:
-            self.close()
+            self.transport.close()
 
     # Event hooks called back into by HttpRequestParser...
     def on_message_begin(self):
@@ -229,7 +229,7 @@ class HttpProtocol(asyncio.Protocol):
         if self.request_parser.should_upgrade():
             return
 
-        request = Request(
+        request = HTTPSession(
             self.transport,
             self.scope,
             keep_alive=self.request_parser.should_keep_alive(),
@@ -263,7 +263,7 @@ class HttpProtocol(asyncio.Protocol):
         self.state['total_requests'] += 1
 
         if not keep_alive:
-            self.close()
+            self.transport.close()
             return
 
         if not self.pipelined_requests:
@@ -274,9 +274,3 @@ class HttpProtocol(asyncio.Protocol):
         self.active_request = request
         asgi_instance = self.consumer(request.scope)
         self.loop.create_task(asgi_instance(request.receive, request.send))
-
-    def close(self):
-        self.transport.close()
-        self.active_request = None
-        self.parsing_request = None
-        self.pipelined_requests.clear()
