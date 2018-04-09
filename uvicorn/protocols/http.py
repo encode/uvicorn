@@ -175,8 +175,10 @@ class HttpProtocol(asyncio.Protocol):
         # self.low_water_limit = LOW_WATER_LIMIT
 
         # self.max_pipelined_requests = MAX_PIPELINED_REQUESTS
-        self.pending_requests = collections.deque()
+
+        self.pipelined_requests = collections.deque()
         self.active_request = None
+        self.parsing_request = None
 
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
@@ -202,7 +204,7 @@ class HttpProtocol(asyncio.Protocol):
         self.scope = None
         self.headers = []
         self.body = b''
-        self.queue = None
+        self.parsing_request = None
 
     def on_url(self, url):
         parsed = httptools.parse_url(url)
@@ -238,12 +240,12 @@ class HttpProtocol(asyncio.Protocol):
             asgi_instance = self.consumer(request.scope)
             self.loop.create_task(asgi_instance(request.receive, request.send))
         else:
-            self.pending_requests.append(request)
-        self.body_queue = request.put_message
+            self.pipelined_requests.append(request)
+        self.parsing_request = request
 
     def on_body(self, body: bytes):
         if self.body:
-            self.body_queue({
+            self.parsing_request.put_message({
                 'type': 'http.request',
                 'body': self.body,
                 'more_body': True
@@ -251,7 +253,7 @@ class HttpProtocol(asyncio.Protocol):
         self.body = body
 
     def on_message_complete(self):
-        self.body_queue({
+        self.parsing_request.put_message({
             'type': 'http.request',
             'body': self.body
         })
@@ -264,11 +266,11 @@ class HttpProtocol(asyncio.Protocol):
             self.close()
             return
 
-        if not self.pending_requests:
+        if not self.pipelined_requests:
             self.active_request = None
             return
 
-        request = self.pending_requests.popleft()
+        request = self.pipelined_requests.popleft()
         self.active_request = request
         asgi_instance = self.consumer(request.scope)
         self.loop.create_task(asgi_instance(request.receive, request.send))
@@ -276,4 +278,5 @@ class HttpProtocol(asyncio.Protocol):
     def close(self):
         self.transport.close()
         self.active_request = None
-        self.pending_requests.clear()
+        self.parsing_request = None
+        self.pipelined_requests.clear()
