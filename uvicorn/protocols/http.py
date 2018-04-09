@@ -51,12 +51,12 @@ class RequestResponseState(enum.Enum):
     CLOSED = 3
 
 
-class HTTPSession:
-    def __init__(self, transport, scope, on_complete=None, keep_alive=True):
+class RequestResponseCycle:
+    def __init__(self, transport, scope, protocol, keep_alive=True):
         self.state = RequestResponseState.STARTED
         self.transport = transport
         self.scope = scope
-        self.on_complete = on_complete
+        self.protocol = protocol
         self.keep_alive = keep_alive
         self.chunked_encoding = False
         self.content_length = None
@@ -65,10 +65,13 @@ class HTTPSession:
     def put_message(self, message):
         if self.state == RequestResponseState.CLOSED:
             return
+        self.protocol.buffer_size += len(message.get('body', b''))
         self.receive_queue.put_nowait(message)
 
     async def receive(self):
-        return await self.receive_queue.get()
+        message = await self.receive_queue.get()
+        self.protocol.buffer_size -= len(message.get('body', b''))
+        return message
 
     async def send(self, message):
         message_type = message['type']
@@ -143,12 +146,17 @@ class HTTPSession:
 
             if more_body:
                 self.state = RequestResponseState.SENDING_BODY
-                return
+            else:
+                self.state = RequestResponseState.CLOSED
 
-            self.state = RequestResponseState.CLOSED
+        else:
+            raise Exception('Unexpected message type "%s"' % message_type)
 
-            if self.on_complete is not None:
-                self.on_complete(keep_alive=self.keep_alive)
+        if self.protocol.write_paused:
+            await self.transport.drain()
+
+        if self.state == RequestResponseState.CLOSED:
+            self.protocol.on_response_complete(keep_alive=self.keep_alive)
 
 
 class HttpProtocol(asyncio.Protocol):
@@ -158,27 +166,31 @@ class HttpProtocol(asyncio.Protocol):
         self.request_parser = httptools.HttpRequestParser(self)
         self.state = state or {'total_requests': 0}
 
+        # Per-connection state...
         self.transport = None
-        self.scope = None
-        self.headers = []
-        self.body = b''
-
         self.server = None
         self.client = None
         self.scheme = None
 
-        # self.read_paused = False
-        # self.write_paused = False
+        # Per-request state....
+        self.scope = None
+        self.headers = []
+        self.body = b''
 
-        # self.buffer_size = 0
-        # self.high_water_limit = HIGH_WATER_LIMIT
-        # self.low_water_limit = LOW_WATER_LIMIT
-
-        # self.max_pipelined_requests = MAX_PIPELINED_REQUESTS
-
+        # We run client request/response cycles strictly in turn, but allow
+        # the server to continue pipelining and parsing incoming requests...
         self.pipelined_requests = collections.deque()
         self.active_request = None
         self.parsing_request = None
+
+        # Flow control
+        self.buffer_size = 0
+        self.read_paused = False
+        self.write_paused = False
+        self.high_water_limit = HIGH_WATER_LIMIT
+        self.low_water_limit = LOW_WATER_LIMIT
+        self.max_pipelined_requests = MAX_PIPELINED_REQUESTS
+
 
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
@@ -198,6 +210,30 @@ class HttpProtocol(asyncio.Protocol):
             self.request_parser.feed_data(data)
         except httptools.HttpParserUpgrade:
             self.transport.close()
+
+    # Flow control
+    def pause_writing(self):
+        self.write_paused = True
+
+    def resume_writing(self):
+        self.write_paused = False
+
+    def check_pause_reading(self):
+        if self.read_paused:
+            return
+
+        if (self.buffer_size > self.high_water_limit or
+            len(self.pipelined_requests) > self.max_pipelined_requests):
+            self.transport.pause_reading()
+            self.read_paused = True
+
+    def check_resume_reading(self):
+        if not self.read_paused:
+            return
+        if (self.buffer_size <= self.low_water_limit or
+            len(self.pipelined_requests) <= self.max_pipelined_requests):
+            self.transport.resume_reading()
+            self.read_paused = False
 
     # Event hooks called back into by HttpRequestParser...
     def on_message_begin(self):
@@ -229,11 +265,11 @@ class HttpProtocol(asyncio.Protocol):
         if self.request_parser.should_upgrade():
             return
 
-        request = HTTPSession(
+        request = RequestResponseCycle(
             self.transport,
             self.scope,
+            protocol=self,
             keep_alive=self.request_parser.should_keep_alive(),
-            on_complete=self.on_response_complete
         )
         if self.active_request is None:
             self.active_request = request
@@ -241,6 +277,7 @@ class HttpProtocol(asyncio.Protocol):
             self.loop.create_task(asgi_instance(request.receive, request.send))
         else:
             self.pipelined_requests.append(request)
+            self.check_pause_reading()
         self.parsing_request = request
 
     def on_body(self, body: bytes):
@@ -250,6 +287,7 @@ class HttpProtocol(asyncio.Protocol):
                 'body': self.body,
                 'more_body': True
             })
+            self.check_pause_reading()
         self.body = body
 
     def on_message_complete(self):
@@ -257,6 +295,7 @@ class HttpProtocol(asyncio.Protocol):
             'type': 'http.request',
             'body': self.body
         })
+        self.check_pause_reading()
 
     # Called back into by RequestHandler
     def on_response_complete(self, keep_alive=True):
@@ -274,3 +313,4 @@ class HttpProtocol(asyncio.Protocol):
         self.active_request = request
         asgi_instance = self.consumer(request.scope)
         self.loop.create_task(asgi_instance(request.receive, request.send))
+        self.check_resume_reading()

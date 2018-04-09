@@ -228,7 +228,6 @@ def test_client_connection_close():
     }))
 
     assert transport.closed
-    #assert protocol.transport is None
 
 
 def test_server_connection_close():
@@ -248,4 +247,3 @@ def test_server_connection_close():
     }))
 
     assert transport.closed
-    #assert protocol.transport is None
