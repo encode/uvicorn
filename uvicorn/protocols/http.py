@@ -7,6 +7,8 @@ import httptools
 import os
 import time
 
+from uvicorn.protocols.websocket import websocket_upgrade
+
 
 def set_time_and_date():
     global CURRENT_TIME
@@ -209,7 +211,7 @@ class HttpProtocol(asyncio.Protocol):
         try:
             self.request_parser.feed_data(data)
         except httptools.HttpParserUpgrade:
-            self.transport.close()
+            websocket_upgrade(self)
 
     # Flow control
     def pause_writing(self):
@@ -291,6 +293,8 @@ class HttpProtocol(asyncio.Protocol):
         self.body = body
 
     def on_message_complete(self):
+        if self.request_parser.should_upgrade():
+            return
         self.parsing_request.put_message({
             'type': 'http.request',
             'body': self.body
