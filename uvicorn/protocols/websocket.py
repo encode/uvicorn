@@ -47,7 +47,7 @@ async def reader(protocol):
             message['text'] = data if isinstance(data, str) else None
             message['bytes'] = data if isinstance(data, bytes) else None
             asgi_instance = protocol.consumer(protocol.scope)
-            request = Request(
+            request = WebSocketSession(
                 protocol,
                 protocol.scope
             )
@@ -62,7 +62,7 @@ async def reader(protocol):
         'code': close_code
     }
     asgi_instance = protocol.consumer(protocol.scope)
-    request = Request(
+    request = WebSocketSession(
         protocol,
         protocol.scope
     )
@@ -70,7 +70,7 @@ async def reader(protocol):
     request.put_message(message)
 
 
-class Request():
+class WebSocketSession:
 
     def __init__(self, protocol, scope):
         self.protocol = protocol
@@ -125,7 +125,7 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
             'type': 'websocket'
         })
         asgi_instance = self.consumer(self.scope)
-        request = Request(
+        request = WebSocketSession(
             self,
             self.scope
         )
