@@ -6,7 +6,6 @@ import http
 import httptools
 import os
 import time
-from uvicorn.protocols.websocket import websocket_upgrade
 
 
 def set_time_and_date():
@@ -53,6 +52,7 @@ class RequestResponseState(enum.Enum):
 
 
 class HTTPSession:
+
     def __init__(self, transport, scope, on_complete=None, keep_alive=True):
         self.state = RequestResponseState.STARTED
         self.transport = transport
@@ -153,6 +153,7 @@ class HTTPSession:
 
 
 class HttpProtocol(asyncio.Protocol):
+
     def __init__(self, consumer, loop=None, state=None):
         self.consumer = consumer
         self.loop = loop or asyncio.get_event_loop()
@@ -163,7 +164,6 @@ class HttpProtocol(asyncio.Protocol):
         self.scope = None
         self.headers = []
         self.body = b''
-        self.body_queue = None
 
         self.server = None
         self.client = None
@@ -199,8 +199,7 @@ class HttpProtocol(asyncio.Protocol):
         try:
             self.request_parser.feed_data(data)
         except httptools.HttpParserUpgrade:
-            websocket_upgrade(self)
-            #self.transport.close()
+            self.transport.close()
 
     # Event hooks called back into by HttpRequestParser...
     def on_message_begin(self):
@@ -256,8 +255,6 @@ class HttpProtocol(asyncio.Protocol):
         self.body = body
 
     def on_message_complete(self):
-        if self.request_parser.should_upgrade():
-            return
         self.parsing_request.put_message({
             'type': 'http.request',
             'body': self.body
