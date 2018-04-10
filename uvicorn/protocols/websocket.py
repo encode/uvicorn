@@ -140,5 +140,5 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
         self.transport.close()
 
     def on_close(self):
-        self.transport = None
         self.active_request = None
+        self.transport.close()
