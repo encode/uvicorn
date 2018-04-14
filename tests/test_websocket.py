@@ -39,17 +39,16 @@ def test_invalid_upgrade():
         async def __call__(self, receive, send):
             message = await receive()
             status = message['status']
-            if status == 400:
-                await send({
-                    'type': 'http.response.start',
-                    'status': status,
-                    'headers': [(b'content-Type', b'text/html')],
-                })
-                await send({
-                    'type': 'http.response.body',
-                    'body': b'',
-                    'more_body': False,
-                })
+            await send({
+                'type': 'http.response.start',
+                'status': status,
+                'headers': [(b'content-Type', b'text/html')],
+            })
+            await send({
+                'type': 'http.response.body',
+                'body': b'',
+                'more_body': False,
+            })
     with run_server(App) as url:
         url = url.replace('ws://', 'http://')
         response = requests.get(url, headers={'upgrade': 'websocket', 'connection': 'upgrade'}, timeout=5)
