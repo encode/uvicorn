@@ -17,8 +17,7 @@ def websocket_upgrade(http):
         key = websockets.handshake.check_request(get_header)
         websockets.handshake.build_response(set_header, key)
     except websockets.InvalidHandshake:
-        # TODO: Handle invalid handshake
-        return
+        raise websockets.InvalidHandshake()
 
     protocol = WebSocketProtocol(http, response_headers)
     protocol.connection_open()
@@ -74,24 +73,23 @@ class WebSocketRequest:
         message_type = message['type']
         text_data = message.get('text')
         bytes_data = message.get('bytes')
-        close_code = message.get('code')
+        close = message.get('close')
         if self.protocol.state == websockets.protocol.State.CLOSED:
             self.protocol.on_close()
+        elif message_type == 'websocket.accept':
+            if not self.protocol.accepted:
+                self.protocol.accept()
+                self.protocol.listen()
         else:
-            if message_type == 'websocket.accept':
-                if not self.protocol.accepted:
-                    self.protocol.accept()
-                    self.protocol.listen()
-            elif message_type == 'websocket.send':
-                if text_data:
-                    await self.protocol.send(text_data)
-                elif bytes_data:
-                    await self.protocol.send(bytes_data)
-            elif message_type == 'websocket.close' or message_type == 'websocket.disconnect':
+            if text_data:
+                await self.protocol.send(text_data)
+            elif bytes_data:
+                await self.protocol.send(bytes_data)
+            if message_type in ('websocket.close', 'websocket.disconnect') or close:
                 if not self.protocol.accepted:
                     self.protocol.reject()
                 else:
-                    code = 1000 if not close_code else close_code
+                    code = 1000 if (close is True) else close
                     await self.protocol.close(code=code)
 
 

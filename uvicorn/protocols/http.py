@@ -6,7 +6,7 @@ import http
 import httptools
 import os
 import time
-
+import websockets
 from uvicorn.protocols.websocket import websocket_upgrade
 
 
@@ -211,7 +211,28 @@ class HttpProtocol(asyncio.Protocol):
         try:
             self.request_parser.feed_data(data)
         except httptools.HttpParserUpgrade:
-            websocket_upgrade(self)
+            try:
+                websocket_upgrade(self)
+            except websockets.InvalidHandshake:
+                request = RequestResponseCycle(
+                    self.transport,
+                    self.scope,
+                    protocol=self,
+                    keep_alive=self.request_parser.should_keep_alive(),
+                )
+                request.put_message({
+                    'type': 'http.request',
+                    'status': 400,
+                    'body': 'Invalid handshake',
+                    'more_body': False
+                })
+                if self.active_request is None:
+                    self.active_request = request
+                    asgi_instance = self.consumer(request.scope)
+                    self.loop.create_task(asgi_instance(request.receive, request.send))
+                else:
+                    self.pipelined_requests.append(request)
+                    self.check_pause_reading()
 
     # Flow control
     def pause_writing(self):
