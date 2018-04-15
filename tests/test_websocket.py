@@ -162,7 +162,7 @@ def test_send_text_data_to_server():
                 if message['type'] == 'websocket.receive':
                     data = message.get('text')
                     await send({'type': 'websocket.send', 'text': data})
-                    break
+                    return
 
     async def send_text(url):
         async with websockets.connect(url) as websocket:
@@ -189,7 +189,7 @@ def test_send_binary_data_to_server():
                 if message['type'] == 'websocket.receive':
                     data = message.get('bytes')
                     await send({'type': 'websocket.send', 'bytes': data})
-                    break
+                    return
 
     async def send_text(url):
         async with websockets.connect(url) as websocket:

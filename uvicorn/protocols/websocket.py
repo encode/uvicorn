@@ -51,10 +51,10 @@ async def websocket_session(protocol):
 
     message = {
         'type': 'websocket.disconnect',
-        'path': path,
         'code': close_code
     }
     request.put_message(message)
+    protocol.active_request = None
 
 
 class WebSocketRequest:
@@ -75,11 +75,7 @@ class WebSocketRequest:
         message_type = message['type']
         text_data = message.get('text')
         bytes_data = message.get('bytes')
-
-        # A previous disconnect attempt was unhandled by the consumer
-        if self.protocol.state == websockets.protocol.State.CLOSED:
-            self.protocol.active_request = None
-        else:
+        if self.protocol.state == websockets.protocol.State.OPEN:
             if not self.protocol.accepted:
                 if message_type == 'websocket.accept':
                     self.protocol.accept()
