@@ -31,13 +31,14 @@ async def websocket_session(protocol):
     path = protocol.scope['path']
     loop = protocol.loop
     request = protocol.active_request
+
     while True:
         try:
             data = await protocol.recv()
         except websockets.exceptions.ConnectionClosed as exc:
             close_code = exc.code
             break
-        path = protocol.scope['path']
+
         message = {
             'type': 'websocket.receive',
             'path': path,
@@ -47,6 +48,7 @@ async def websocket_session(protocol):
         message['bytes'] = data if isinstance(data, bytes) else None
         request.put_message(message)
         order += 1
+
     message = {
         'type': 'websocket.disconnect',
         'path': path,
@@ -73,25 +75,28 @@ class WebSocketRequest:
         message_type = message['type']
         text_data = message.get('text')
         bytes_data = message.get('bytes')
-        close = message.get('close')
+
+        # A previous disconnect attempt was unhandled by the consumer
         if self.protocol.state == websockets.protocol.State.CLOSED:
-            self.protocol.on_close()
-        elif message_type == 'websocket.accept':
-            if not self.protocol.accepted:
-                self.protocol.accept()
-                self.protocol.listen()
+            self.protocol.active_request = None
         else:
+            if not self.protocol.accepted:
+                if message_type == 'websocket.accept':
+                    self.protocol.accept()
+                    self.protocol.listen()
+                else:
+                    self.protocol.reject()
+
             if text_data:
                 await self.protocol.send(text_data)
             elif bytes_data:
                 await self.protocol.send(bytes_data)
-            if message_type in ('websocket.close', 'websocket.disconnect') or close:
-                if not self.protocol.accepted:
-                    self.protocol.reject()
-                else:
-                    code = 1000 if (close is True) else close
-                    await self.protocol.close(code=code)
 
+            # Handle the close response from the consumer
+            if message_type in set(['websocket.close', 'websocket.disconnect']):
+                code = message.get('code') or 1000
+                await self.protocol.close(code=code)
+                self.protocol.active_request = None
 
 
 class WebSocketProtocol(websockets.WebSocketCommonProtocol):
@@ -104,6 +109,7 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
         self.consumer = http.consumer
         self.active_request = None
 
+    # Create the request that handles the websocket session
     def connection_made(self, transport, scope):
         super().connection_made(transport)
         self.transport = transport
@@ -120,7 +126,6 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
         request.put_message({'type': 'websocket.connect'})
         self.active_request = request
 
-
     def accept(self):
         self.accepted = True
         rv = b'HTTP/1.1 101 Switching Protocols\r\n'
@@ -134,9 +139,6 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
 
     def reject(self):
         rv = b'HTTP/1.1 403 Forbidden\r\n\r\n'
-        self.transport.write(rv)
-        self.transport.close()
-
-    def on_close(self):
         self.active_request = None
+        self.transport.write(rv)
         self.transport.close()
