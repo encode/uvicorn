@@ -211,28 +211,7 @@ class HttpProtocol(asyncio.Protocol):
         try:
             self.request_parser.feed_data(data)
         except httptools.HttpParserUpgrade:
-            try:
-                websocket_upgrade(self)
-            except websockets.InvalidHandshake:
-                request = RequestResponseCycle(
-                    self.transport,
-                    self.scope,
-                    protocol=self,
-                    keep_alive=self.request_parser.should_keep_alive(),
-                )
-                request.put_message({
-                    'type': 'http.request',
-                    'status': 403,
-                    'body': 'Invalid handshake',
-                    'more_body': False
-                })
-                if self.active_request is None:
-                    self.active_request = request
-                    asgi_instance = self.consumer(request.scope)
-                    self.loop.create_task(asgi_instance(request.receive, request.send))
-                else:
-                    self.pipelined_requests.append(request)
-                    self.check_pause_reading()
+            websocket_upgrade(self)
 
     # Flow control
     def pause_writing(self):

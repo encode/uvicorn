@@ -17,7 +17,10 @@ def websocket_upgrade(http):
         key = websockets.handshake.check_request(get_header)
         websockets.handshake.build_response(set_header, key)
     except websockets.InvalidHandshake:
-        raise websockets.InvalidHandshake()
+        rv = b'HTTP/1.1 403 Forbidden\r\n\r\n'
+        http.transport.write(rv)
+        http.transport.close()
+        return
 
     protocol = WebSocketProtocol(http, response_headers)
     protocol.connection_open()
@@ -79,7 +82,6 @@ class WebSocketRequest:
         message_type = message['type']
         text_data = message.get('text')
         bytes_data = message.get('bytes')
-
         if self.protocol.state == websockets.protocol.State.OPEN:
             if not self.protocol.accepted:
                 accept = (message_type == 'websocket.accept')
@@ -96,10 +98,11 @@ class WebSocketRequest:
             elif bytes_data:
                 await self.protocol.send(bytes_data)
 
-            if close or message_type == 'websocket.disconnect':
+            if message_type == 'websocket.close' or message_type == 'websocket.disconnect':
                 code = message.get('code', 1000)
                 await self.protocol.close(code=code)
-                self.protocol.active_request = None
+        else:
+            raise Exception('Unexpected message, WebSocket request is disconnected.')
 
 
 class WebSocketProtocol(websockets.WebSocketCommonProtocol):
