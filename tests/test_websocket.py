@@ -52,7 +52,7 @@ def test_invalid_upgrade():
     with run_server(App) as url:
         url = url.replace('ws://', 'http://')
         response = requests.get(url, headers={'upgrade': 'websocket', 'connection': 'upgrade'}, timeout=5)
-        assert response.status_code == 400
+        assert response.status_code == 403
 
 
 def test_accept_connection():
@@ -128,7 +128,6 @@ def test_send_and_close_connection():
         async def __call__(self, receive, send):
             message = await receive()
             if message['type'] == 'websocket.connect':
-                await send({'type': 'websocket.accept'})
                 await send({'type': 'websocket.close', 'text': '123'})
 
     async def get_data(url):

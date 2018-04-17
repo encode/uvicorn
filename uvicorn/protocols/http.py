@@ -222,7 +222,7 @@ class HttpProtocol(asyncio.Protocol):
                 )
                 request.put_message({
                     'type': 'http.request',
-                    'status': 400,
+                    'status': 403,
                     'body': 'Invalid handshake',
                     'more_body': False
                 })

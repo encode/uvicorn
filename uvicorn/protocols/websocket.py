@@ -44,14 +44,18 @@ async def websocket_session(protocol):
             'path': path,
             'order': order
         }
-        message['text'] = data if isinstance(data, str) else None
-        message['bytes'] = data if isinstance(data, bytes) else None
+        if isinstance(data, str):
+            message['text'] = data
+        elif isinstance(data, bytes):
+            message['bytes'] = data
         request.put_message(message)
         order += 1
 
     message = {
         'type': 'websocket.disconnect',
-        'code': close_code
+        'code': close_code,
+        'path': path,
+        'order': order
     }
     request.put_message(message)
     protocol.active_request = None
@@ -75,11 +79,15 @@ class WebSocketRequest:
         message_type = message['type']
         text_data = message.get('text')
         bytes_data = message.get('bytes')
+
         if self.protocol.state == websockets.protocol.State.OPEN:
             if not self.protocol.accepted:
-                if message_type == 'websocket.accept':
+                accept = bool(message_type == 'websocket.accept')
+                close = bool(message_type == 'websocket.close')
+                if accept or close:
                     self.protocol.accept()
-                    self.protocol.listen()
+                    if not close:
+                        self.protocol.listen()
                 else:
                     self.protocol.reject()
 
@@ -88,9 +96,8 @@ class WebSocketRequest:
             elif bytes_data:
                 await self.protocol.send(bytes_data)
 
-            # Handle the close response from the consumer
-            if message_type in set(['websocket.close', 'websocket.disconnect']):
-                code = message.get('code') or 1000
+            if close or message_type == 'websocket.disconnect':
+                code = message.get('code', 1000)
                 await self.protocol.close(code=code)
                 self.protocol.active_request = None
 
@@ -105,7 +112,6 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
         self.consumer = http.consumer
         self.active_request = None
 
-    # Create the request that handles the websocket session
     def connection_made(self, transport, scope):
         super().connection_made(transport)
         self.transport = transport
@@ -119,7 +125,10 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
             self.scope
         )
         self.loop.create_task(asgi_instance(request.receive, request.send))
-        request.put_message({'type': 'websocket.connect'})
+        request.put_message({
+            'type': 'websocket.connect', 
+            'order': 0
+        })
         self.active_request = request
 
     def accept(self):
