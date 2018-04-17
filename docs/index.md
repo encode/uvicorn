@@ -31,7 +31,7 @@ class App():
 
     async def __call__(self, receive, send):
         await send({
-            'http.response.start',
+            'type': 'http.response.start',
             'status': 200,
             'headers': [
                 [b'content-type', b'text/plain'],
