@@ -82,8 +82,8 @@ class WebSocketRequest:
 
         if self.protocol.state == websockets.protocol.State.OPEN:
             if not self.protocol.accepted:
-                accept = bool(message_type == 'websocket.accept')
-                close = bool(message_type == 'websocket.close')
+                accept = not not message_type == 'websocket.accept'
+                close = not not message_type == 'websocket.close'
                 if accept or close:
                     self.protocol.accept()
                     if not close:
