@@ -21,7 +21,7 @@ Until recently Python has lacked a minimal low-level server/application interfac
 asyncio frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
 start building a common set of tooling usable across all asyncio frameworks.
 
-Uvicorn currently only supports HTTP/1.1, but WebSocket support and HTTP/2 are planned.
+Uvicorn currently supports HTTP/1.1 and WebSockets. Support for HTTP/2 is planned.
 
 ## Quickstart
 
