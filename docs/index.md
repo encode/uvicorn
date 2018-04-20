@@ -10,7 +10,7 @@ ASGI should help enable an ecosystem of Python web frameworks that are highly co
 and Go in terms of achieving high throughput in IO-bound contexts. It also provides support for HTTP/2 and
 WebSockets, which cannot be handled by WSGI.
 
-Uvicorn currently only supports HTTP/1.1, but WebSocket support and HTTP/2 are planned.
+Uvicorn currently supports HTTP/1.1 and WebSockets. Support for HTTP/2 is planned.
 
 ## Quickstart
 
