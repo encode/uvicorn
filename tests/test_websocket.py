@@ -230,3 +230,24 @@ def test_send_after_protocol_close():
         assert data == '123'
         assert not is_open
         loop.close()
+
+
+def test_subprotocols():
+    class App:
+        def __init__(self, scope):
+            self.scope = scope
+
+        async def __call__(self, receive, send):
+            message = await receive()
+            if message['type'] == 'websocket.connect':
+                await send({'type': 'websocket.accept', 'subprotocol': 'proto1'})
+
+    async def get_subprotocol(url):
+        async with websockets.connect(url, subprotocols=['proto1', 'proto2']) as websocket:
+            return websocket.subprotocol
+
+    with run_server(App) as url:
+        loop = asyncio.new_event_loop()
+        subprotocol = loop.run_until_complete(get_subprotocol(url))
+        assert subprotocol == 'proto1'
+        loop.close()
