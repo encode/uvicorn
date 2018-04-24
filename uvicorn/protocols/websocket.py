@@ -1,5 +1,6 @@
 import asyncio
 import websockets
+import enum
 
 
 def websocket_upgrade(http):
@@ -22,18 +23,31 @@ def websocket_upgrade(http):
         http.transport.close()
         return
 
-    protocol = WebSocketProtocol(http, response_headers)
-    protocol.connection_open()
-    protocol.connection_made(http.transport, http.scope)
-    http.transport.set_protocol(protocol)
+    # Retrieve any subprotocols to be negotiated with the consumer later
+    subprotocols = request_headers.get(b'sec-websocket-protocol', None)
+    if subprotocols:
+        subprotocols = subprotocols.split(b',')
+    http.scope.update({
+        'type': 'websocket',
+        'subprotocols': subprotocols
+    })
+    asgi_instance = http.consumer(http.scope)
+    request = WebSocketRequest(
+        http,
+        response_headers
+    )
+    http.loop.create_task(asgi_instance(request.receive, request.send))
+    request.put_message({
+        'type': 'websocket.connect', 
+        'order': 0
+    })
 
 
 async def websocket_session(protocol):
     close_code = None
     order = 1
-    path = protocol.scope['path']
-    loop = protocol.loop
     request = protocol.active_request
+    path = request.scope['path']
 
     while True:
         try:
@@ -64,13 +78,22 @@ async def websocket_session(protocol):
     protocol.active_request = None
 
 
+class WebSocketRequestState(enum.Enum):
+    CONNECTING = 0
+    CONNECTED = 1
+    CLOSED = 2
+
+
 class WebSocketRequest:
 
-    def __init__(self, protocol, scope):
-        self.protocol = protocol
-        self.scope = scope
-        self.loop = protocol.loop
+    def __init__(self, http, response_headers):
+        self.state = WebSocketRequestState.CONNECTING
+        self.http = http
+        self.scope = http.scope
+        self.response_headers = response_headers
+        self.loop = asyncio.get_event_loop()
         self.receive_queue = asyncio.Queue()
+        self.protocol = None
         
     def put_message(self, message):
         self.receive_queue.put_nowait(message)
@@ -82,27 +105,47 @@ class WebSocketRequest:
         message_type = message['type']
         text_data = message.get('text')
         bytes_data = message.get('bytes')
-        if self.protocol.state == websockets.protocol.State.OPEN:
+
+        if self.state == WebSocketRequestState.CLOSED:
+            raise Exception('Unexpected message, WebSocketRequest is CLOSED.')
+
+        if self.state == WebSocketRequestState.CONNECTING:
+            # Complete the handshake after negotiating a subprotocol with the consumer
+            subprotocol = message.get('subprotocol', None)
+            if subprotocol:
+                self.response_headers.append((b'Sec-WebSocket-Protocol', subprotocol.encode('utf-8')))
+            protocol = WebSocketProtocol(self.http, self.response_headers)
+            protocol.connection_open()
+            protocol.connection_made(self.http.transport, subprotocol)
+            self.http.transport.set_protocol(protocol)
+            self.protocol = protocol
+            self.protocol.active_request = self
+
             if not self.protocol.accepted:
                 accept = (message_type == 'websocket.accept')
                 close = (message_type == 'websocket.close')
+
                 if accept or close:
                     self.protocol.accept()
-                    if not close:
+                    self.state = WebSocketRequestState.CONNECTED
+                    if accept:
                         self.protocol.listen()
                 else:
                     self.protocol.reject()
+                    self.state = WebSocketRequestState.CLOSED
 
+        if self.state == WebSocketRequestState.CONNECTED:
             if text_data:
                 await self.protocol.send(text_data)
             elif bytes_data:
                 await self.protocol.send(bytes_data)
 
-            if message_type == 'websocket.close' or message_type == 'websocket.disconnect':
+            if message_type == 'websocket.close':
                 code = message.get('code', 1000)
                 await self.protocol.close(code=code)
+                self.state = WebSocketRequestState.CLOSED
         else:
-            raise Exception('Unexpected message, WebSocket request is disconnected.')
+            raise Exception('Unexpected message, WebSocketRequest is %s' % self.state)
 
 
 class WebSocketProtocol(websockets.WebSocketCommonProtocol):
@@ -115,24 +158,10 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
         self.consumer = http.consumer
         self.active_request = None
 
-    def connection_made(self, transport, scope):
+    def connection_made(self, transport, subprotocol):
         super().connection_made(transport)
+        self.subprotocol = subprotocol
         self.transport = transport
-        self.scope = scope
-        self.scope.update({
-            'type': 'websocket'
-        })
-        asgi_instance = self.consumer(self.scope)
-        request = WebSocketRequest(
-            self,
-            self.scope
-        )
-        self.loop.create_task(asgi_instance(request.receive, request.send))
-        request.put_message({
-            'type': 'websocket.connect', 
-            'order': 0
-        })
-        self.active_request = request
 
     def accept(self):
         self.accepted = True

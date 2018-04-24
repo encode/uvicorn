@@ -4,9 +4,7 @@ import collections
 import email
 import http
 import httptools
-import os
 import time
-import websockets
 from uvicorn.protocols.websocket import websocket_upgrade
 
 
@@ -192,7 +190,6 @@ class HttpProtocol(asyncio.Protocol):
         self.high_water_limit = HIGH_WATER_LIMIT
         self.low_water_limit = LOW_WATER_LIMIT
         self.max_pipelined_requests = MAX_PIPELINED_REQUESTS
-
 
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
