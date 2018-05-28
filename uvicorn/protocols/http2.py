@@ -147,6 +147,7 @@ class H2Protocol(asyncio.Protocol):
                 self.transport.write(self.conn.data_to_send())
 
             data_to_send = data[chunk_size:]
+            # Note: handling the buffer data isn't complete
             if not data_to_send and not more_body:
                 break
 
