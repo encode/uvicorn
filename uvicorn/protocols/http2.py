@@ -136,10 +136,11 @@ class H2Protocol(asyncio.Protocol):
             stream_id, data, more_body = await self.stream_data.get()
             data = self.handle_send(stream_id, data, more_body)
 
-            while True:
-                data = self.handle_send(stream_id, data, more_body)
-                if not data:
-                    break
+            if data is not None:
+                while True:
+                    data = self.handle_send(stream_id, data, more_body)
+                    if data is None:
+                        break
 
             if not more_body:
                 break
