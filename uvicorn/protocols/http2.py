@@ -12,6 +12,7 @@ class RequestStream:
         self.stream_id = stream_id
         self.protocol = protocol
         self.receive_queue = asyncio.Queue()
+        self.headers_sent = False
         self.response_headers = []
 
     def put_message(self, message):
@@ -38,16 +39,18 @@ class RequestStream:
                     self.content_length = int(header_value.decode())
                 response_headers.append((header_name.decode(), header_value.decode()))
 
-            await self.send_headers(response_headers)
+            await self.set_headers(response_headers)
 
         elif message_type == 'http.response.body':
             body = message.get('body', b'')
             more_body = message.get('more_body', False)
-            self.protocol.put_stream_data(self.stream_id, body, more_body)
+            if not self.headers_sent:
+                self.protocol.conn.send_headers(self.stream_id, self.response_headers)
+                self.headers_sent = True
+            self.protocol.stream_data.put_nowait((self.stream_id, body, more_body))
 
-    async def send_headers(self, response_headers):
+    async def set_headers(self, response_headers):
         self.response_headers = response_headers
-        self.protocol.conn.send_headers(self.stream_id, self.response_headers)
 
 
 class H2Protocol(asyncio.Protocol):
@@ -73,8 +76,10 @@ class H2Protocol(asyncio.Protocol):
         self.transport = transport
         self.server = transport.get_extra_info('sockname')
         self.client = transport.get_extra_info('peername')
+
         self.conn.initiate_connection()
         self.transport.write(self.conn.data_to_send())
+
         self.stream_task = self.loop.create_task(self.stream_response())
 
     def data_received(self, data):
@@ -87,8 +92,8 @@ class H2Protocol(asyncio.Protocol):
             for event in events:
                 if isinstance(event, RequestReceived):
                     self.request_received(event)
-                elif isinstance(event, StreamEnded):
-                    self.stream_complete(event)
+                # elif isinstance(event, StreamEnded):
+                #     self.stream_ended(event)
         self.transport.write(self.conn.data_to_send())
 
     def request_received(self, event):
@@ -119,37 +124,35 @@ class H2Protocol(asyncio.Protocol):
 
         request = RequestStream(self.scope, stream_id, self)
         self.streams[stream_id] = request
-
-    def put_stream_data(self, stream_id, body, more_body):
-        self.stream_data.put_nowait((stream_id, body, more_body))
-
-    def stream_complete(self, event):
-        request = self.streams[event.stream_id]
         asgi_instance = self.consumer(request.scope)
         self.loop.create_task(asgi_instance(request.receive, request.send))
 
-    @asyncio.coroutine
-    def stream_response(self):
+    # def stream_ended(self, event):
+    #     print(event)
+
+    async def stream_response(self):
         while True:
-            stream_id, data, more_body = yield from self.stream_data.get()
 
-            window_size = self.conn.local_flow_control_window(stream_id)
-            chunk_size = min(window_size, len(data))
-            data_to_send = data[:chunk_size]
-            max_size = self.conn.max_outbound_frame_size
+            stream_id, data, more_body = await self.stream_data.get()
+            data = self.handle_send(stream_id, data, more_body)
 
-            chunks = (
-                data_to_send[x: x + max_size]
-                for x in range(0, len(data_to_send), max_size)
-            )
-            for chunk in chunks:
-                self.conn.send_data(stream_id, chunk)
-                self.transport.write(self.conn.data_to_send())
+            while True:
+                data = self.handle_send(stream_id, data, more_body)
+                if not data:
+                    break
 
-            data_to_send = data[chunk_size:]
-            # Note: handling the buffer data isn't complete
-            if not data_to_send and not more_body:
+            if not more_body:
                 break
 
-        self.conn.end_stream(stream_id)
+    def handle_send(self, stream_id, data, more_body):
+        window_size = self.conn.local_flow_control_window(stream_id)
+        max_size = self.conn.max_outbound_frame_size
+        chunk_size = min(min(window_size, len(data)), max_size)
+        data_to_send = data[:chunk_size]
+        data_to_buffer = data[chunk_size:]
+
+        self.conn.send_data(stream_id, data_to_send)
         self.transport.write(self.conn.data_to_send())
+        if len(data) == 0:
+            return None
+        return data_to_buffer
