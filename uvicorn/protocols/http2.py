@@ -94,9 +94,11 @@ class H2Protocol(asyncio.Protocol):
         headers = dict(event.headers)
         stream_id = event.stream_id
 
-        _headers = []
+        scope_headers = []
         for name, value in headers.items():
-            _headers.append([name.lower().encode(), value.encode()])
+            # Ignore the HTTP2 pseudo-headers
+            if ':' not in name:
+                scope_headers.append([name.lower().encode(), value.encode()])
 
         path = headers[':path']
         try:
@@ -113,7 +115,7 @@ class H2Protocol(asyncio.Protocol):
             'method': headers[':method'],
             'path': path,
             'query_string': query_string,
-            'headers': _headers,
+            'headers': scope_headers,
         }
 
         request = RequestStream(self.scope, stream_id, self)
@@ -127,18 +129,29 @@ class H2Protocol(asyncio.Protocol):
         self.stream_requests[event.stream_id] = None
         self.state['total_requests'] += 1
 
+    # TODO: Handle priority / related events?
     async def stream_response(self):
+
         while True:
 
-            # Retrieve incoming stream data from the application and send a response
-            stream_id, data, more_body = await self.stream_data.get()
-            data = self.send_response(stream_id, data, more_body)
+            # Retrieve incoming stream data from the application and apply flow control
+            stream_id, body, more_body = await self.stream_data.get()
+            _body_buffer = self.send_response(
+                stream_id,
+                body,
+                more_body
+            )
 
-            if data is not None:
+            if _body_buffer is not None:
+
                 # Ensure buffered data is sent before sending any new data for a stream
                 while True:
-                    data = self.send_response(stream_id, data, more_body)
-                    if data is None:
+                    _body_buffer = self.send_response(
+                        stream_id,
+                        _body_buffer,
+                        more_body
+                    )
+                    if _body_buffer is None:
                         break
 
             # The application is no longer sending, we can end the stream
@@ -152,18 +165,19 @@ class H2Protocol(asyncio.Protocol):
         self.conn.send_headers(stream_id, response_headers)
 
     def send_response(self, stream_id, data, more_body):
+
         # Maximum amount of data that can be sent on stream
         window_size = self.conn.local_flow_control_window(stream_id)
-        # Chunk the data using the window size and maxmium outbound frame size
+
+        # Chunk the data using the window size and maximium outbound frame size
         chunk_size = min(min(window_size, len(data)), self.conn.max_outbound_frame_size)
 
         data_to_send = data[:chunk_size]
-        data_to_buffer = data[chunk_size:]
-
         self.conn.send_data(stream_id, data_to_send)
         self.transport.write(self.conn.data_to_send())
 
-        # If there is buffer data, we return it to be processed in an additonal loop
-        if len(data_to_buffer) == 0:
+        # Return any remaining buffer data and loop until empty
+        data_to_buffer = data[chunk_size:]
+        if data_to_buffer == b'':
             return None
         return data_to_buffer
