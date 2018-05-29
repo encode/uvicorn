@@ -1,5 +1,4 @@
 import asyncio
-import enum
 import email
 import time
 from h2.config import H2Configuration
@@ -8,6 +7,7 @@ from h2.events import (
     ConnectionTerminated, RequestReceived, StreamEnded
 )
 from h2.exceptions import ProtocolError
+from uvicorn.protocols.http import RequestResponseState
 
 
 def set_time_and_date():
@@ -23,15 +23,9 @@ DATE_HEADER = ''
 set_time_and_date()
 
 
-class RequestStreamState(enum.Enum):
-    STARTED = 0
-    SENDING_BODY = 1
-    CLOSED = 2
-
-
-class RequestStream:
+class RequestResponseCycle:
     def __init__(self, transport, scope, stream, h2_connection, protocol):
-        self.state = RequestStreamState.STARTED
+        self.state = RequestResponseState.STARTED
         self.transport = transport
         self.scope = scope
         self.stream = stream
@@ -41,7 +35,7 @@ class RequestStream:
         self.receive_queue = asyncio.Queue()
 
     def put_message(self, message):
-        if self.state == RequestStreamState.CLOSED:
+        if self.state == RequestResponseState.CLOSED:
             return
         self.receive_queue.put_nowait(message)
 
@@ -52,7 +46,7 @@ class RequestStream:
     async def send(self, message):
         message_type = message['type']
         if message_type == 'http.response.start':
-            if self.state != RequestStreamState.STARTED:
+            if self.state != RequestResponseState.STARTED:
                 raise Exception("Unexpected 'http.response.start' message.")
 
             status = message['status']
@@ -71,29 +65,30 @@ class RequestStream:
 
             await self.protocol.send_headers(self.stream.stream_id, content)
 
-            self.state = RequestStreamState.SENDING_BODY
+            self.state = RequestResponseState.SENDING_BODY
 
         elif message_type == 'http.response.body':
             body = message.get('body', b'')
             more_body = message.get('more_body', False)
 
-            if self.state == RequestStreamState.SENDING_BODY:
+            if self.state == RequestResponseState.SENDING_BODY:
+                # Receive the body from the application to be handled by the stream
                 await self.stream.send_data(body)
             else:
                 raise Exception("Unexpected 'http.response.body' message.")
 
             if not more_body:
-                self.state = RequestStreamState.CLOSED
+                self.state = RequestResponseState.CLOSED
 
         else:
             raise Exception('Unexpected message type "%s"' % message_type)
 
-        if self.state == RequestStreamState.CLOSED:
+        if self.state == RequestResponseState.CLOSED:
             self.h2_connection.end_stream(self.stream.stream_id)
             self.transport.write(self.h2_connection.data_to_send())
 
 
-class H2Stream:
+class Http2Stream:
     def __init__(self, transport, h2_connection, stream_id, protocol):
         self.transport = transport
         self.h2_connection = h2_connection
@@ -112,8 +107,12 @@ class H2Stream:
     def get_chunk_size(self, data):
         return min(min(self.window_size, len(data)), self.max_frame_size)
 
+    # TODO: Handle priority / related events / additional http2 features
     async def send_data(self, data):
+        # Chunk the incoming request body if it exceeds the maximum frame size
         if len(data) > self.max_frame_size:
+            # Block and send until there is no longer buffer data
+            # At this point we only know that at least one additional send is required
             data = self.chunked_write(data)
             while True:
                 data = self.chunked_write(data)
@@ -130,20 +129,23 @@ class H2Stream:
         if not data:
             return None
 
+        # Chunk the buffer data using the window size and maximum frame size
         chunk_size = self.get_chunk_size(data)
         data_to_send = data[:chunk_size]
         self.write(data_to_send)
 
         data_to_buffer = data[chunk_size:]
 
+        # There is no need to buffer the data further, send the response immediately
         if not len(data_to_buffer) > self.max_frame_size:
             self.write(data_to_buffer)
             return None
 
+        # Continue the loop until the entire request body has been sent
         return data_to_buffer
 
 
-class H2Protocol(asyncio.Protocol):
+class Http2Protocol(asyncio.Protocol):
     def __init__(self, consumer, loop=None, state=None):
         self.consumer = consumer
         self.loop = loop or asyncio.get_event_loop()
@@ -187,7 +189,8 @@ class H2Protocol(asyncio.Protocol):
                 self.transport.write(self.h2_connection.data_to_send())
 
     def request_received(self, headers, stream_id):
-        stream = H2Stream(self.transport, self.h2_connection, stream_id, self)
+        # Create the stream object that will handle the response
+        stream = Http2Stream(self.transport, self.h2_connection, stream_id, self)
         self.stream_data[stream_id] = stream
 
         headers = dict(headers)
@@ -215,7 +218,7 @@ class H2Protocol(asyncio.Protocol):
             'headers': scope_headers,
         }
 
-        request = RequestStream(
+        request = RequestResponseCycle(
             self.transport,
             self.scope,
             stream,
