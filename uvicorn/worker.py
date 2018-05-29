@@ -6,24 +6,11 @@ import ssl
 import sys
 
 import uvloop
-import logging
 from gunicorn.workers.base import Worker
-from uvicorn.protocols import http, http2
+from uvicorn.protocols import http
 
+# import logging
 # logging.basicConfig(level=logging.DEBUG)  # debugging h2
-
-
-def get_http2_ssl_context(cfg):
-    # Note: This will need to be changed
-
-    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    ctx.options |= (
-        ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1 | ssl.OP_NO_COMPRESSION
-    )
-    ctx.set_ciphers("ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20")
-    ctx.load_cert_chain(cfg.certfile, cfg.keyfile)
-    ctx.set_alpn_protocols(["h2"])
-    return ctx
 
 
 class UvicornWorker(Worker):
@@ -103,23 +90,25 @@ class UvicornWorker(Worker):
         cfg = self.cfg
         consumer = self.wsgi
 
-        # ssl_ctx = self.create_ssl_context(self.cfg) if self.cfg.is_ssl else None
-        ssl_ctx = get_http2_ssl_context(self.cfg)
+        ssl_ctx = self.create_ssl_context(self.cfg) if self.cfg.is_ssl else None
 
         for sock in self.sockets:
             state = {'total_requests': 0}
-            protocol = functools.partial(http2.Http2Protocol, consumer=consumer, loop=loop, state=state)
+            protocol = functools.partial(http.HttpProtocolFactory, consumer=consumer, loop=loop, state=state)
             server = await loop.create_server(protocol, sock=sock, ssl=ssl_ctx)
             self.servers.append((server, state))
 
     def create_ssl_context(self, cfg):
-        ctx = ssl.SSLContext(cfg.ssl_version)
+        ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        ctx.options |= (
+            ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1 | ssl.OP_NO_COMPRESSION
+        )
+        ctx.set_ciphers('ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20')
+        ctx.set_alpn_protocols(['h2'])
         ctx.load_cert_chain(cfg.certfile, cfg.keyfile)
         ctx.verify_mode = cfg.cert_reqs
         if cfg.ca_certs:
             ctx.load_verify_locations(cfg.ca_certs)
-        if cfg.ciphers:
-            ctx.set_ciphers(cfg.ciphers)
         return ctx
 
     async def tick(self, loop):
