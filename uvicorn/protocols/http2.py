@@ -129,8 +129,11 @@ class H2Protocol(asyncio.Protocol):
         self.stream_requests[event.stream_id] = None
         self.state['total_requests'] += 1
 
-    # TODO: Handle priority / related events?
+    # TODO: Handle priority / related events
     async def stream_response(self):
+
+        # TODO: Properly handle resuming/pausing writing otherwise disconnecting
+        #       before all of the data is streamed will cause issues
 
         while True:
 
