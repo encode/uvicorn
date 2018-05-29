@@ -56,7 +56,7 @@ class RequestResponseState(enum.Enum):
 
 
 class RequestResponseCycle:
-    def __init__(self, transport, scope, protocol, **kwargs):
+    def __init__(self, transport, scope, protocol):
         self.state = RequestResponseState.STARTED
         self.transport = transport
         self.scope = scope

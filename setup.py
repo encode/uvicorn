@@ -43,7 +43,8 @@ setup(
         'gunicorn',
         'httptools',
         'uvloop',
-        'websockets'
+        'websockets',
+        'h2',
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
