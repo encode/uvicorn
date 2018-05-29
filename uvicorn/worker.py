@@ -10,7 +10,7 @@ import logging
 from gunicorn.workers.base import Worker
 from uvicorn.protocols import http, http2
 
-logging.basicConfig(level=logging.DEBUG)  # debugging h2
+# logging.basicConfig(level=logging.DEBUG)  # debugging h2
 
 
 def get_http2_ssl_context(cfg):
@@ -57,7 +57,7 @@ class UvicornWorker(Worker):
 
     def run(self):
         loop = asyncio.get_event_loop()
-        loop.set_debug(1)  # debugging h2
+        loop.set_debug(0)  # debugging h2
         loop.create_task(self.create_servers(loop))
         loop.create_task(self.tick(loop))
         loop.run_forever()
@@ -108,7 +108,7 @@ class UvicornWorker(Worker):
 
         for sock in self.sockets:
             state = {'total_requests': 0}
-            protocol = functools.partial(http2.H2Protocol, consumer=consumer, loop=loop, state=state)
+            protocol = functools.partial(http2.Http2Protocol, consumer=consumer, loop=loop, state=state)
             server = await loop.create_server(protocol, sock=sock, ssl=ssl_ctx)
             self.servers.append((server, state))
 
