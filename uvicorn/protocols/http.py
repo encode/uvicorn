@@ -152,8 +152,7 @@ class RequestResponseCycle:
         else:
             raise Exception('Unexpected message type "%s"' % message_type)
 
-        if self.protocol.is_writing:
-            await self.protocol.drain()
+        await self.protocol.drain()
 
         if self.state == RequestResponseState.CLOSED:
             self.protocol.on_response_complete(keep_alive=self.keep_alive)
@@ -186,11 +185,12 @@ class HttpProtocol(asyncio.Protocol):
         # Flow control
         self.buffer_size = 0
         self.read_paused = False
+        self.write_paused = False
         self.high_water_limit = HIGH_WATER_LIMIT
         self.low_water_limit = LOW_WATER_LIMIT
         self.max_pipelined_requests = MAX_PIPELINED_REQUESTS
-        self.is_writing = asyncio.Event(loop=loop)
-        self.is_writing.set()
+        self.drain_waiter = asyncio.Event()
+        self.drain_waiter.set()
 
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
@@ -212,21 +212,26 @@ class HttpProtocol(asyncio.Protocol):
             websocket_upgrade(self)
 
     # Flow control
+
     def pause_writing(self):
-        self.is_writing.clear()
+        self.write_paused = True
+        self.drain_waiter.clear()
 
     def resume_writing(self):
-        self.is_writing.set()
+        self.write_paused = False
+        self.drain_waiter.set()
 
     async def drain(self):
-        await self.is_writing.wait()
+        if not self.write_paused:
+            return
+        await self.drain_waiter.wait()
 
     def check_pause_reading(self):
         if self.read_paused:
             return
 
         if (self.buffer_size > self.high_water_limit or
-            len(self.pipelined_requests) > self.max_pipelined_requests):
+                len(self.pipelined_requests) > self.max_pipelined_requests):
             self.transport.pause_reading()
             self.read_paused = True
 
@@ -234,7 +239,7 @@ class HttpProtocol(asyncio.Protocol):
         if not self.read_paused:
             return
         if (self.buffer_size <= self.low_water_limit or
-            len(self.pipelined_requests) <= self.max_pipelined_requests):
+                len(self.pipelined_requests) <= self.max_pipelined_requests):
             self.transport.resume_reading()
             self.read_paused = False
 
