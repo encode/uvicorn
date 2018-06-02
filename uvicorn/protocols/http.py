@@ -199,6 +199,8 @@ class HttpProtocol(asyncio.Protocol):
         self.scheme = 'https' if transport.get_extra_info('sslcontext') else 'http'
 
     def connection_lost(self, exc):
+        if self.active_request is not None:
+            self.active_request.put_message({'type': 'http.disconnect'})
         self.transport = None
 
     def eof_received(self):
