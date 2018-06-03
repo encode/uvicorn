@@ -59,6 +59,8 @@ async def websocket_session(protocol):
         message = {
             'type': 'websocket.receive',
             'path': path,
+            'text': None,
+            'bytes': None,
             'order': order
         }
         if isinstance(data, str):
