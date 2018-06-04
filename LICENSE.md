@@ -1,4 +1,4 @@
-Copyright © 2017, [Encode OSS Ltd](http://www.encode.io/).
+Copyright © 2017-present, [Encode OSS Ltd](http://www.encode.io/).
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
