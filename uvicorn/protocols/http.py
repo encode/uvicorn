@@ -71,6 +71,8 @@ class RequestResponseCycle:
     async def receive(self):
         message = await self.receive_queue.get()
         self.protocol.buffer_size -= len(message.get('body', b''))
+        if self.protocol.buffer_size <= 0 and message.get("more_body"):
+            self.protocol.check_resume_reading()
         return message
 
     async def send(self, message):
