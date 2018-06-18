@@ -18,8 +18,8 @@ def websocket_upgrade(http):
         websockets.handshake.build_response(set_header, key)
     except websockets.InvalidHandshake:
         rv = b'HTTP/1.1 403 Forbidden\r\n\r\n'
-        http.transport.write(rv)
-        http.transport.close()
+        http.writer.write(rv)
+        http.writer.close()
         return
 
     protocol = WebSocketProtocol(http, response_headers)
@@ -71,7 +71,7 @@ class WebSocketRequest:
         self.scope = scope
         self.loop = protocol.loop
         self.receive_queue = asyncio.Queue()
-        
+
     def put_message(self, message):
         self.receive_queue.put_nowait(message)
 
@@ -129,7 +129,7 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
         )
         self.loop.create_task(asgi_instance(request.receive, request.send))
         request.put_message({
-            'type': 'websocket.connect', 
+            'type': 'websocket.connect',
             'order': 0
         })
         self.active_request = request

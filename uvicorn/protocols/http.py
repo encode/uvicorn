@@ -54,9 +54,9 @@ class RequestResponseState(enum.Enum):
 
 
 class RequestResponseCycle:
-    def __init__(self, transport, scope, protocol, keep_alive=True):
+    def __init__(self, writer, scope, protocol, keep_alive=True):
         self.state = RequestResponseState.STARTED
-        self.transport = transport
+        self.writer = writer
         self.scope = scope
         self.protocol = protocol
         self.keep_alive = keep_alive
@@ -105,7 +105,7 @@ class RequestResponseCycle:
                 content.append(b'\r\n')
                 self.state = RequestResponseState.SENDING_BODY
 
-            self.transport.write(b''.join(content))
+            self.writer.write(b''.join(content))
 
         elif message_type == 'http.response.body':
             body = message.get('body', b'')
@@ -120,7 +120,7 @@ class RequestResponseCycle:
                         b'\r\n'
                     ]
                     self.chunked_encoding = True
-                    self.transport.write(b''.join(content))
+                    self.writer.write(b''.join(content))
                 else:
                     content = [
                         b'content-length: ',
@@ -128,7 +128,7 @@ class RequestResponseCycle:
                         b'\r\n\r\n',
                         body
                     ]
-                    self.transport.write(b''.join(content))
+                    self.writer.write(b''.join(content))
 
             elif self.state == RequestResponseState.SENDING_BODY:
                 if self.chunked_encoding:
@@ -139,9 +139,9 @@ class RequestResponseCycle:
                     ]
                     if not more_body:
                         content.append(b'0\r\n\r\n')
-                    self.transport.write(b''.join(content))
+                    self.writer.write(b''.join(content))
                 else:
-                    self.transport.write(body)
+                    self.writer.write(body)
 
             else:
                 raise Exception("Unexpected 'http.response.body' message.")
@@ -155,7 +155,7 @@ class RequestResponseCycle:
             raise Exception('Unexpected message type "%s"' % message_type)
 
         if self.protocol.write_paused:
-            await self.transport.drain()
+            await self.writer.drain()
 
         if self.state == RequestResponseState.CLOSED:
             self.protocol.on_response_complete(keep_alive=self.keep_alive)
@@ -170,6 +170,7 @@ class HttpProtocol(asyncio.Protocol):
 
         # Per-connection state...
         self.transport = None
+        self.writer = None
         self.server = None
         self.client = None
         self.scheme = None
@@ -197,12 +198,14 @@ class HttpProtocol(asyncio.Protocol):
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
         self.transport = transport
+        self.writer = asyncio.StreamWriter(transport, self, None, self.loop)
         self.server = transport.get_extra_info('sockname')
         self.client = transport.get_extra_info('peername')
         self.scheme = 'https' if transport.get_extra_info('sslcontext') else 'http'
 
     def connection_lost(self, exc):
         self.transport = None
+        self.writer = None
 
     def eof_received(self):
         pass
@@ -268,7 +271,7 @@ class HttpProtocol(asyncio.Protocol):
             return
 
         request = RequestResponseCycle(
-            self.transport,
+            self.writer,
             self.scope,
             protocol=self,
             keep_alive=self.request_parser.should_keep_alive(),
