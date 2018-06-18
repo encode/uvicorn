@@ -19,8 +19,8 @@ def websocket_upgrade(http):
         websockets.handshake.build_response(set_header, key)
     except websockets.InvalidHandshake:
         rv = b'HTTP/1.1 403 Forbidden\r\n\r\n'
-        http.transport.write(rv)
-        http.transport.close()
+        http.writer.write(rv)
+        http.writer.close()
         return
 
     # Retrieve any subprotocols to be negotiated with the consumer later
