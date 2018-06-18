@@ -4,9 +4,7 @@ import collections
 import email
 import http
 import httptools
-import os
 import time
-import websockets
 from uvicorn.protocols.websocket import websocket_upgrade
 
 
@@ -194,7 +192,6 @@ class HttpProtocol(asyncio.Protocol):
         self.low_water_limit = LOW_WATER_LIMIT
         self.max_pipelined_requests = MAX_PIPELINED_REQUESTS
 
-
     # The asyncio.Protocol hooks...
     def connection_made(self, transport):
         self.transport = transport
@@ -204,6 +201,8 @@ class HttpProtocol(asyncio.Protocol):
         self.scheme = 'https' if transport.get_extra_info('sslcontext') else 'http'
 
     def connection_lost(self, exc):
+        if self.active_request is not None:
+            self.active_request.put_message({'type': 'http.disconnect'})
         self.transport = None
         self.writer = None
 

@@ -57,7 +57,7 @@ The application should expose a callable which takes one argument, `scope`.
 This callable is used to create a new instance of the application for each incoming connection.
 It must return a coroutine which the server can then call into.
 
-The application instance coroutine takes two arguments, `(recieve, send)`,
+The application instance coroutine takes two arguments, `(receive, send)`,
 which are the channels by which messages are sent between the web server and client application.
 
 One style of implementation is to use a class with an `__init__()` method to handle
@@ -72,7 +72,7 @@ class App():
         ...
 ```
 
-The content of the `scope` argument, and the messages expected by `recieve` and `send` depend on
+The content of the `scope` argument, and the messages expected by `receive` and `send` depend on
 the protocol being used.
 
 The format for HTTP messages is described in the [ASGI HTTP Message format][asgi-http].
