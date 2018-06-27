@@ -98,11 +98,15 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.loop.create_task(self.cycle.run_asgi(asgi))
 
     def on_body(self, body: bytes):
+        if self.cycle.response_complete:
+            return
         self.cycle.body += body
         self.pause_reading()
         self.client_event.set()
 
     def on_message_complete(self):
+        if self.cycle.response_complete:
+            return
         self.cycle.more_body = False
         self.pause_reading()
         self.client_event.set()
@@ -133,15 +137,22 @@ class RequestResponseCycle:
     def __init__(self, scope, protocol):
         self.scope = scope
         self.protocol = protocol
+
+        # Request state
         self.body = b''
         self.more_body = True
         self.disconnected = False
+        self.receive_finished = False
+
+        # Response state
+        self.response_started = False
+        self.response_complete = False
         self.keep_alive = True
         self.chunked_encoding = None
 
     # ASGI exception wrapper
     async def run_asgi(self, asgi):
-        protcol = self.protocol
+        protocol = self.protocol
 
         try:
             result = await asgi(self.receive, self.send)
@@ -149,28 +160,26 @@ class RequestResponseCycle:
             msg = "Exception in ASGI application\n%s"
             traceback_text = "".join(traceback.format_exc())
             protocol.logger.error(msg, traceback_text)
-            # if protcol.conn.our_state == h11.SEND_RESPONSE:
-            #     await self.send({
-            #         "type": "http.response.start",
-            #         "status": 500,
-            #         "headers": [
-            #             (b"content-type", b"text/plain; charset=utf-8")
-            #             (b"connection", b"close")
-            #         ]
-            #     })
-            #     await self.send({
-            #         "type": "http.response.body",
-            #         "body": b"Internal Server Error"
-            #     })
-            # elif self.conn.our_state == h11.SEND_BODY:
-            #     event = h11.ConnectionClosed()
-            #     self.conn.send(event)
-            #     self.transport.close()
-            return
-
-        if result is not None:
-            msg = "ASGI callable should return None, but returned '%s'."
-            protocol.logger.error(msg, result)
+            if not self.response_started:
+                await self.send({
+                    "type": "http.response.start",
+                    "status": 500,
+                    "headers": [
+                        (b"content-type", b"text/plain; charset=utf-8"),
+                        (b"connection", b"close")
+                    ]
+                })
+                await self.send({
+                    "type": "http.response.body",
+                    "body": b"Internal Server Error"
+                })
+            else:
+                protocol.transport.close()
+        else:
+            if result is not None:
+                msg = "ASGI callable should return None, but returned '%s'."
+                protocol.logger.error(msg, result)
+                protocol.transport.close()
 
     # ASGI interface
     async def send(self, message):
@@ -180,9 +189,17 @@ class RequestResponseCycle:
         if not protocol.writable:
             await protocol.writable_event.wait()
 
-        if message_type == "http.response.start":
+        if not self.response_started:
+            # Sending response status line and headers
+            if message_type != "http.response.start":
+                msg = "Expected ASGI message 'http.response.start', but got '%s'."
+                raise RuntimeError(msg % message_type)
+
+            self.response_started = True
+
             status_code = message["status"]
             headers = message.get("headers", [])
+
             if protocol.access_logs:
                 protocol.logger.info(
                     '%s - "%s %s HTTP/%s" %d',
@@ -192,9 +209,12 @@ class RequestResponseCycle:
                     self.scope["http_version"],
                     status_code,
                 )
+
+            # Write response status line and headers
             content = [
                 STATUS_LINE[status_code],
             ]
+
             for header_name, header_value in headers:
                 header_name = header_name.lower()
                 if header_name == b'content-length' and self.chunked_encoding is None:
@@ -206,16 +226,23 @@ class RequestResponseCycle:
                 content.extend([header_name, b': ', header_value, b'\r\n'])
 
             if self.chunked_encoding is None:
+                # Neither content-length nor transfer-encoding specified
                 self.chunked_encoding = True
                 content.append(b'transfer-encoding: chunked\r\n')
 
             content.append(b'\r\n')
             protocol.transport.write(b''.join(content))
 
-        elif message_type == "http.response.body":
+        elif not self.response_complete:
+            # Sending response body
+            if message_type != "http.response.body":
+                msg = "Expected ASGI message 'http.response.body', but got '%s'."
+                raise RuntimeError(msg % message_type)
+
             body = message.get("body", b"")
             more_body = message.get("more_body", False)
 
+            # Write response body
             if self.chunked_encoding:
                 content = [
                     b'%x\r\n' % len(body),
@@ -228,26 +255,24 @@ class RequestResponseCycle:
             else:
                 protocol.transport.write(body)
 
+            # Handle response completion
             if not more_body:
+                self.response_complete = True
                 if not self.keep_alive:
                     protocol.transport.close()
                 else:
                     protocol.resume_reading()
-
-        # if self.conn.our_state is h11.MUST_CLOSE:
-        #     event = h11.ConnectionClosed()
-        #     self.conn.send(event)
-        #     self.transport.close()
-        # elif self.conn.our_state is h11.DONE:
-        #     self.scope = None
-        #     while not self.queue.empty():
-        #         self.queue.get_nowait()
-        #     self.transport.resume_reading()
-        #     if self.conn.their_state is h11.DONE:
-        #         self.conn.start_next_cycle()
+        else:
+            # Response already sent
+            msg = "Unexpected ASGI message '%s' sent, after response already completed."
+            raise RuntimeError(msg % message_type)
 
     async def receive(self):
         protocol = self.protocol
+
+        if self.receive_finished:
+            msg = 'Receive channel fully consumed.'
+            raise RuntimeError(msg)
 
         if self.more_body and not self.body and not self.disconnected:
             protocol.resume_reading()
@@ -256,12 +281,14 @@ class RequestResponseCycle:
 
         if self.disconnected:
             message = {"type": "http.disconnect"}
+            self.receive_finished = True
         else:
             message = {
                 "type": "http.request",
                 "body": self.body,
                 "more_body": self.more_body,
             }
+            self.receive_finished = not(self.more_body)
             self.body = b''
             protocol.resume_reading()
 

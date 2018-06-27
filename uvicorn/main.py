@@ -34,8 +34,8 @@ class Server:
         self.set_signal_handlers()
         self.loop.run_until_complete(self.create_server())
         if self.server is not None:
-            message = "Uvicorn running on http://%s:%d 🦄 (Press CTRL+C to quit)"
-            self.logger.info(message, self.host, self.port)
+            message = "* Uvicorn running on http://%s:%d 🦄 (Press CTRL+C to quit)"
+            click.echo(message % (self.host, self.port))
             self.logger.info("Started worker [{}]".format(self.pid))
             self.loop.create_task(self.tick())
             self.loop.run_forever()

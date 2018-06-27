@@ -70,11 +70,14 @@ class H11Protocol(asyncio.Protocol):
         while True:
             event = self.conn.next_event()
             event_type = type(event)
+
             if event_type is h11.NEED_DATA:
                 break
+
             elif event_type is h11.PAUSED:
                 self.pause_reading()
                 break
+
             elif event_type is h11.Request:
                 path, _, query_string = event.target.partition(b"?")
                 scope = {
@@ -91,10 +94,14 @@ class H11Protocol(asyncio.Protocol):
                 self.cycle = RequestResponseCycle(scope, self)
                 asgi = self.app(scope)
                 self.loop.create_task(self.cycle.run_asgi(asgi))
+
             elif event_type is h11.Data:
+                if self.conn.our_state is h11.DONE:
+                    continue
                 self.cycle.body += event.data
                 self.pause_reading()
                 self.client_event.set()
+
             elif event_type is h11.EndOfMessage:
                 if self.conn.our_state is h11.DONE:
                     self.resume_reading()
@@ -130,9 +137,16 @@ class RequestResponseCycle:
     def __init__(self, scope, protocol):
         self.scope = scope
         self.protocol = protocol
+
+        # Request state
         self.body = b''
         self.more_body = True
         self.disconnected = False
+        self.receive_finished = False
+
+        # Response state
+        self.response_started = False
+        self.response_complete = False
 
     # ASGI exception wrapper
     async def run_asgi(self, asgi):
@@ -144,7 +158,7 @@ class RequestResponseCycle:
             msg = "Exception in ASGI application\n%s"
             traceback_text = "".join(traceback.format_exc())
             protocol.logger.error(msg, traceback_text)
-            if protocol.conn.our_state == h11.SEND_RESPONSE:
+            if not self.response_started:
                 await self.send({
                     "type": "http.response.start",
                     "status": 500,
@@ -157,15 +171,17 @@ class RequestResponseCycle:
                     "type": "http.response.body",
                     "body": b"Internal Server Error"
                 })
-            elif protocol.conn.our_state == h11.SEND_BODY:
+            else:
                 event = h11.ConnectionClosed()
                 protocol.conn.send(event)
                 protocol.transport.close()
-            return
-
-        if result is not None:
-            msg = "ASGI callable should return None, but returned '%s'."
-            protocol.logger.error(msg, result)
+        else:
+            if result is not None:
+                msg = "ASGI callable should return None, but returned '%s'."
+                protocol.logger.error(msg, result)
+                event = h11.ConnectionClosed()
+                protocol.conn.send(event)
+                protocol.transport.close()
 
     # ASGI interface
     async def send(self, message):
@@ -175,12 +191,17 @@ class RequestResponseCycle:
         if not protocol.writable:
             await protocol.writable_event.wait()
 
-        if message_type == "http.response.start":
-            if protocol.conn.our_state != h11.SEND_RESPONSE:
-                msg = "Unexpected ASGI message '%s' sent while in '%s' state."
-                raise RuntimeError(msg % (message_type, self.conn.our_state))
+        if not self.response_started:
+            # Sending response status line and headers
+            if message_type != "http.response.start":
+                msg = "Expected ASGI message 'http.response.start', but got '%s'."
+                raise RuntimeError(msg % message_type)
+
+            self.response_started = True
+
             status_code = message["status"]
             headers = message.get("headers", [])
+
             if protocol.access_logs:
                 protocol.logger.info(
                     '%s - "%s %s HTTP/%s" %d',
@@ -190,25 +211,38 @@ class RequestResponseCycle:
                     self.scope["http_version"],
                     status_code,
                 )
+
+            # Write response status line and headers
             reason = STATUS_PHRASES[status_code]
             event = h11.Response(status_code=status_code, headers=headers, reason=reason)
             output = protocol.conn.send(event)
             protocol.transport.write(output)
-        elif message_type == "http.response.body":
-            if protocol.conn.our_state != h11.SEND_BODY:
-                msg = "Unexpected ASGI message '%s' sent while in '%s' state."
+
+        elif not self.response_complete:
+            # Sending response body
+            if message_type != "http.response.body":
+                msg = "Expected ASGI message 'http.response.body', but got '%s'."
                 raise RuntimeError(msg % message_type)
+
             body = message.get("body", b"")
             more_body = message.get("more_body", False)
+
+            # Write response body
             event = h11.Data(data=body)
             output = protocol.conn.send(event)
-            if not more_body:
-                event = h11.EndOfMessage()
-                output += protocol.conn.send(event)
             protocol.transport.write(output)
+
+            # Handle response completion
+            if not more_body:
+                self.response_complete = True
+                event = h11.EndOfMessage()
+                output = protocol.conn.send(event)
+                protocol.transport.write(output)
+
         else:
-            msg = "Unexpected ASGI message '%s' sent while in '%s' state."
-            raise RuntimeError(msg % (message_type, self.conn.our_state))
+            # Response already sent
+            msg = "Unexpected ASGI message '%s' sent, after response already completed."
+            raise RuntimeError(msg % message_type)
 
         if protocol.conn.our_state is h11.MUST_CLOSE:
             event = h11.ConnectionClosed()
@@ -221,6 +255,19 @@ class RequestResponseCycle:
     async def receive(self):
         protocol = self.protocol
 
+        # If a client calls recieve once they've already sent the response
+        # then raise an error. Allows us to stop buffering any more request
+        # body to memory once the response has been sent.
+        if self.response_complete:
+            msg = 'Response already sent. Receive channel no longer available.'
+            raise RuntimeError(msg)
+
+        # If a client calls recieve again once we've already sent either
+        # 'http.disconnect' or 'more_body=False' then raise an error.
+        if self.receive_finished:
+            msg = 'Receive channel fully consumed.'
+            raise RuntimeError(msg)
+
         if self.more_body and not self.body and not self.disconnected:
             protocol.resume_reading()
             await protocol.client_event.wait()
@@ -228,12 +275,14 @@ class RequestResponseCycle:
 
         if self.disconnected:
             message = {"type": "http.disconnect"}
+            self.receive_finished = True
         else:
             message = {
                 "type": "http.request",
                 "body": self.body,
                 "more_body": self.more_body,
             }
+            self.receive_finished = not(self.more_body)
             self.body = b''
             protocol.resume_reading()
 
