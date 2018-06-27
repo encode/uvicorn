@@ -7,9 +7,6 @@ from urllib.parse import unquote
 import httptools
 
 
-logger = logging.getLogger()
-
-
 def _get_status_line(status_code):
     try:
         phrase = http.HTTPStatus(status_code).phrase.encode()
@@ -26,9 +23,11 @@ STATUS_LINE = {
 
 
 class HttpToolsProtocol(asyncio.Protocol):
-    def __init__(self, app, loop):
+    def __init__(self, app, loop=None, logger=None):
         self.app = app
-        self.loop = loop
+        self.loop = loop or asyncio.get_event_loop()
+        self.logger = logger or logging.getLogger()
+        self.access_logs = self.logger.level >= logging.INFO
         self.parser = httptools.HttpRequestParser(self)
 
         # Per-connection state
@@ -40,7 +39,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Per-request state
         self.scope = None
         self.headers = None
-        self.queue = asyncio.Queue()
+        self.cycle = None
+        self.client_event = asyncio.Event()
 
         # Flow control
         self.readable = True
@@ -55,12 +55,16 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.server = transport.get_extra_info("sockname")
         self.client = transport.get_extra_info("peername")
         self.scheme = "https" if transport.get_extra_info("sslcontext") else "http"
-        logger.debug("%s - Connected", self.server[0])
+        if self.access_logs:
+            self.logger.debug("%s - Connected", self.server[0])
 
     def connection_lost(self, exc):
-        logger.debug("%s - Disconnected", self.server[0])
-        message = {"type": "http.disconnect"}
-        self.queue.put_nowait(message)
+        if self.access_logs:
+            self.logger.debug("%s - Disconnected", self.server[0])
+
+        if self.cycle and self.cycle.more_body:
+            self.cycle.disconnected = True
+        self.client_event.set()
 
     def eof_received(self):
         pass
@@ -89,21 +93,19 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.headers.append((name.lower(), value))
 
     def on_headers_complete(self):
+        self.cycle = RequestResponseCycle(self.scope, self)
         asgi = self.app(self.scope)
-        self.loop.create_task(self.run_asgi(asgi))
+        self.loop.create_task(self.cycle.run_asgi(asgi))
 
     def on_body(self, body: bytes):
+        self.cycle.body += body
         self.pause_reading()
-        message = {
-            "type": "http.request",
-            "body": body,
-            "more_body": True,
-        }
-        self.queue.put_nowait(message)
+        self.client_event.set()
 
     def on_message_complete(self):
-        message = {"type": "http.request", "body": b"", "more_body": False}
-        self.queue.put_nowait(message)
+        self.cycle.more_body = False
+        self.pause_reading()
+        self.client_event.set()
 
     # Flow control
     def pause_reading(self):
@@ -126,27 +128,40 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.writable = True
             self.writable_event.set()
 
+
+class RequestResponseCycle:
+    def __init__(self, scope, protocol):
+        self.scope = scope
+        self.protocol = protocol
+        self.body = b''
+        self.more_body = True
+        self.disconnected = False
+        self.keep_alive = True
+        self.chunked_encoding = None
+
     # ASGI exception wrapper
     async def run_asgi(self, asgi):
+        protcol = self.protocol
+
         try:
             result = await asgi(self.receive, self.send)
         except:
             msg = "Exception in ASGI application\n%s"
             traceback_text = "".join(traceback.format_exc())
-            logger.error(msg, traceback_text)
-            if self.conn.our_state == h11.SEND_RESPONSE:
-                await self.send({
-                    "type": "http.response.start",
-                    "status": 500,
-                    "headers": [
-                        (b"content-type", b"text/plain; charset=utf-8")
-                        (b"connection", b"close")
-                    ]
-                })
-                await self.send({
-                    "type": "http.response.body",
-                    "body": b"Internal Server Error"
-                })
+            protocol.logger.error(msg, traceback_text)
+            # if protcol.conn.our_state == h11.SEND_RESPONSE:
+            #     await self.send({
+            #         "type": "http.response.start",
+            #         "status": 500,
+            #         "headers": [
+            #             (b"content-type", b"text/plain; charset=utf-8")
+            #             (b"connection", b"close")
+            #         ]
+            #     })
+            #     await self.send({
+            #         "type": "http.response.body",
+            #         "body": b"Internal Server Error"
+            #     })
             # elif self.conn.our_state == h11.SEND_BODY:
             #     event = h11.ConnectionClosed()
             #     self.conn.send(event)
@@ -155,47 +170,69 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         if result is not None:
             msg = "ASGI callable should return None, but returned '%s'."
-            logger.error(msg, result)
+            protocol.logger.error(msg, result)
 
     # ASGI interface
     async def send(self, message):
-        if not self.writable:
-            await self.writable_event.wait()
-
+        protocol = self.protocol
         message_type = message["type"]
+
+        if not protocol.writable:
+            await protocol.writable_event.wait()
 
         if message_type == "http.response.start":
             status_code = message["status"]
             headers = message.get("headers", [])
-            logger.info(
-                '%s - "%s %s HTTP/%s" %d',
-                self.server[0],
-                self.scope["method"],
-                self.scope["path"],
-                self.scope["http_version"],
-                status_code,
-            )
+            if protocol.access_logs:
+                protocol.logger.info(
+                    '%s - "%s %s HTTP/%s" %d',
+                    protocol.server[0],
+                    self.scope["method"],
+                    self.scope["path"],
+                    self.scope["http_version"],
+                    status_code,
+                )
             content = [
                 STATUS_LINE[status_code],
             ]
             for header_name, header_value in headers:
                 header_name = header_name.lower()
-                # if header_name == b'content-length':
-                #     self.content_length = int(header_value.decode())
-                if header_name == b'connection' and header_value.lower() == b'close':
+                if header_name == b'content-length' and self.chunked_encoding is None:
+                    self.chunked_encoding = False
+                elif header_name == b'transfer-encoding' and header_value.lower() == b'chunked':
+                    self.chunked_encoding = True
+                elif header_name == b'connection' and header_value.lower() == b'close':
                     self.keep_alive = False
                 content.extend([header_name, b': ', header_value, b'\r\n'])
+
+            if self.chunked_encoding is None:
+                self.chunked_encoding = True
+                content.append(b'transfer-encoding: chunked\r\n')
+
             content.append(b'\r\n')
-            self.transport.write(b''.join(content))
+            protocol.transport.write(b''.join(content))
 
         elif message_type == "http.response.body":
             body = message.get("body", b"")
             more_body = message.get("more_body", False)
-            self.transport.write(body)
+
+            if self.chunked_encoding:
+                content = [
+                    b'%x\r\n' % len(body),
+                    body,
+                    b'\r\n'
+                ]
+                if not more_body:
+                    content.append(b'0\r\n\r\n')
+                protocol.transport.write(b''.join(content))
+            else:
+                protocol.transport.write(body)
 
             if not more_body:
                 if not self.keep_alive:
-                    self.transport.close()
+                    protocol.transport.close()
+                else:
+                    protocol.resume_reading()
 
         # if self.conn.our_state is h11.MUST_CLOSE:
         #     event = h11.ConnectionClosed()
@@ -210,7 +247,22 @@ class HttpToolsProtocol(asyncio.Protocol):
         #         self.conn.start_next_cycle()
 
     async def receive(self):
-        # if self.conn.our_state == h11.CLOSED and self.queue.empty():
-        #     raise RuntimeError("Connection is closed")
-        self.resume_reading()
-        return await self.queue.get()
+        protocol = self.protocol
+
+        if self.more_body and not self.body and not self.disconnected:
+            protocol.resume_reading()
+            await protocol.client_event.wait()
+            protocol.client_event.clear()
+
+        if self.disconnected:
+            message = {"type": "http.disconnect"}
+        else:
+            message = {
+                "type": "http.request",
+                "body": self.body,
+                "more_body": self.more_body,
+            }
+            self.body = b''
+            protocol.resume_reading()
+
+        return message

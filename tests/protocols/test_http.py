@@ -166,7 +166,7 @@ def test_read_flow_control():
         b'',
         b'{"h'
     ]))
-    assert protocol.scope == {
+    assert protocol.cycle.scope == {
         'type': 'http',
         'http_version': '1.1',
         'server': ('127.0.0.1', 8000),
@@ -182,7 +182,7 @@ def test_read_flow_control():
         ]
     }
     assert protocol.transport.read_paused
-    assert run(protocol.receive()) == {
+    assert run(protocol.cycle.receive()) == {
         'type': 'http.request',
         'body': b'{"h',
         'more_body': True
@@ -191,7 +191,7 @@ def test_read_flow_control():
 
     protocol.data_received(b'ello": ')
     assert protocol.transport.read_paused
-    assert run(protocol.receive()) == {
+    assert run(protocol.cycle.receive()) == {
         'type': 'http.request',
         'body': b'ello": ',
         'more_body': True
@@ -200,18 +200,12 @@ def test_read_flow_control():
 
     protocol.data_received(b'"world"}')
     assert protocol.transport.read_paused
-    assert run(protocol.receive()) == {
+    assert run(protocol.cycle.receive()) == {
         'type': 'http.request',
         'body': b'"world"}',
-        'more_body': True
-    }
-    assert not protocol.transport.read_paused
-
-    assert run(protocol.receive()) == {
-        'type': 'http.request',
-        'body': b'',
         'more_body': False
     }
+    assert not protocol.transport.read_paused
 
 
 def test_keepalive():
@@ -282,7 +276,7 @@ def test_pipeline_split_first_request():
         b'',
         b'{"hello": "wo'
     ]))
-    assert protocol.scope == {
+    assert protocol.cycle.scope == {
         'type': 'http',
         'http_version': '1.1',
         'server': ('127.0.0.1', 8000),
@@ -300,11 +294,11 @@ def test_pipeline_split_first_request():
     # We send back the response immediately, midway through the request data.
     # This tests that the recieve buffer for the first request does not
     # end up being passed to the second instance ASGI app.
-    run(protocol.send({
+    run(protocol.cycle.send({
         'type': 'http.response.start',
         'status': 204
     }))
-    run(protocol.send({
+    run(protocol.cycle.send({
         'type': 'http.response.body',
         'body': b'',
     }))
@@ -318,14 +312,9 @@ def test_pipeline_split_first_request():
         b'{"next": "request"}'
     ]))
     protocol.data_received(b'est"}')
-    assert run(protocol.receive()) == {
+    assert run(protocol.cycle.receive()) == {
         'type': 'http.request',
         'body': b'{"next": "request"}',
-        'more_body': True
-    }
-    assert run(protocol.receive()) == {
-        'type': 'http.request',
-        'body': b'',
         'more_body': False
     }
 
@@ -346,7 +335,7 @@ def test_pipeline_split_second_request():
         b'',
         b'{"next": "requ'
     ]))
-    assert protocol.scope == {
+    assert protocol.cycle.scope == {
         'type': 'http',
         'http_version': '1.1',
         'server': ('127.0.0.1', 8000),
@@ -361,22 +350,17 @@ def test_pipeline_split_second_request():
             (b'content-length', b'18'),
         ]
     }
-    run(protocol.send({
+    run(protocol.cycle.send({
         'type': 'http.response.start',
         'status': 204
     }))
-    run(protocol.send({
+    run(protocol.cycle.send({
         'type': 'http.response.body',
         'body': b'',
     }))
     protocol.data_received(b'est"}')
-    assert run(protocol.receive()) == {
+    assert run(protocol.cycle.receive()) == {
         'type': 'http.request',
         'body': b'{"next": "request"}',
-        'more_body': True
-    }
-    assert run(protocol.receive()) == {
-        'type': 'http.request',
-        'body': b'',
         'more_body': False
     }

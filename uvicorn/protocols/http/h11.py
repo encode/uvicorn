@@ -7,9 +7,6 @@ from urllib.parse import unquote
 import h11
 
 
-logger = logging.getLogger()
-
-
 def _get_status_phrase(status_code):
     try:
         return http.HTTPStatus(status_code).phrase.encode()
@@ -23,9 +20,11 @@ STATUS_PHRASES = {
 
 
 class H11Protocol(asyncio.Protocol):
-    def __init__(self, app, loop):
+    def __init__(self, app, loop=None, logger=None):
         self.app = app
-        self.loop = loop
+        self.loop = loop or asyncio.get_event_loop()
+        self.logger = logger or logging.getLogger()
+        self.access_logs = self.logger.level >= logging.INFO
         self.conn = h11.Connection(h11.SERVER)
 
         # Per-connection state
@@ -35,8 +34,8 @@ class H11Protocol(asyncio.Protocol):
         self.scheme = None
 
         # Per-request state
-        self.scope = None
-        self.queue = asyncio.Queue()
+        self.cycle = None
+        self.client_event = asyncio.Event()
 
         # Flow control
         self.readable = True
@@ -50,14 +49,18 @@ class H11Protocol(asyncio.Protocol):
         self.server = transport.get_extra_info("sockname")
         self.client = transport.get_extra_info("peername")
         self.scheme = "https" if transport.get_extra_info("sslcontext") else "http"
-        logger.debug("%s - Connected", self.server[0])
+        if self.access_logs:
+            self.logger.debug("%s - Connected", self.server[0])
 
     def connection_lost(self, exc):
-        logger.debug("%s - Disconnected", self.server[0])
-        message = {"type": "http.disconnect"}
-        self.queue.put_nowait(message)
+        if self.access_logs:
+            self.logger.debug("%s - Disconnected", self.server[0])
+
+        if self.cycle and self.cycle.more_body:
+            self.cycle.disconnected = True
         event = h11.ConnectionClosed()
         self.conn.send(event)
+        self.client_event.set()
 
     def eof_received(self):
         pass
@@ -74,7 +77,7 @@ class H11Protocol(asyncio.Protocol):
                 break
             elif event_type is h11.Request:
                 path, _, query_string = event.target.partition(b"?")
-                self.scope = {
+                scope = {
                     "type": "http",
                     "http_version": event.http_version.decode("ascii"),
                     "server": self.server,
@@ -85,31 +88,21 @@ class H11Protocol(asyncio.Protocol):
                     "query_string": query_string,
                     "headers": event.headers,
                 }
-                asgi = self.app(self.scope)
-                self.loop.create_task(self.run_asgi(asgi))
-                if self.conn.client_is_waiting_for_100_continue:
-                    event = h11.InformationalResponse(status_code=100)
-                    output = self.conn.send(event)
-                    self.transport.write(output)
+                self.cycle = RequestResponseCycle(scope, self)
+                asgi = self.app(scope)
+                self.loop.create_task(self.cycle.run_asgi(asgi))
             elif event_type is h11.Data:
-                if self.conn.our_state is h11.DONE:
-                    continue
+                self.cycle.body += event.data
                 self.pause_reading()
-                message = {
-                    "type": "http.request",
-                    "body": event.data,
-                    "more_body": True,
-                }
-                self.queue.put_nowait(message)
+                self.client_event.set()
             elif event_type is h11.EndOfMessage:
                 if self.conn.our_state is h11.DONE:
-                    while not self.queue.empty():
-                        self.queue.get_nowait()
                     self.resume_reading()
                     self.conn.start_next_cycle()
                     continue
-                message = {"type": "http.request", "body": b"", "more_body": False}
-                self.queue.put_nowait(message)
+                self.cycle.more_body = False
+                self.pause_reading()
+                self.client_event.set()
 
     # Flow control
     def pause_reading(self):
@@ -132,15 +125,26 @@ class H11Protocol(asyncio.Protocol):
             self.writable = True
             self.writable_event.set()
 
+
+class RequestResponseCycle:
+    def __init__(self, scope, protocol):
+        self.scope = scope
+        self.protocol = protocol
+        self.body = b''
+        self.more_body = True
+        self.disconnected = False
+
     # ASGI exception wrapper
     async def run_asgi(self, asgi):
         try:
             result = await asgi(self.receive, self.send)
         except:
+            protocol = self.protocol
+
             msg = "Exception in ASGI application\n%s"
             traceback_text = "".join(traceback.format_exc())
-            logger.error(msg, traceback_text)
-            if self.conn.our_state == h11.SEND_RESPONSE:
+            protocol.logger.error(msg, traceback_text)
+            if protocol.conn.our_state == h11.SEND_RESPONSE:
                 await self.send({
                     "type": "http.response.start",
                     "status": 500,
@@ -153,70 +157,84 @@ class H11Protocol(asyncio.Protocol):
                     "type": "http.response.body",
                     "body": b"Internal Server Error"
                 })
-            elif self.conn.our_state == h11.SEND_BODY:
+            elif protocol.conn.our_state == h11.SEND_BODY:
                 event = h11.ConnectionClosed()
-                self.conn.send(event)
-                self.transport.close()
+                protocol.conn.send(event)
+                protocol.transport.close()
             return
 
         if result is not None:
             msg = "ASGI callable should return None, but returned '%s'."
-            logger.error(msg, result)
+            protocol.logger.error(msg, result)
 
     # ASGI interface
     async def send(self, message):
-        if not self.writable:
-            await self.writable_event.wait()
-
+        protocol = self.protocol
         message_type = message["type"]
 
+        if not protocol.writable:
+            await protocol.writable_event.wait()
+
         if message_type == "http.response.start":
-            if self.conn.our_state != h11.SEND_RESPONSE:
+            if protocol.conn.our_state != h11.SEND_RESPONSE:
                 msg = "Unexpected ASGI message '%s' sent while in '%s' state."
                 raise RuntimeError(msg % (message_type, self.conn.our_state))
             status_code = message["status"]
             headers = message.get("headers", [])
-            logger.info(
-                '%s - "%s %s HTTP/%s" %d',
-                self.server[0],
-                self.scope["method"],
-                self.scope["path"],
-                self.scope["http_version"],
-                status_code,
-            )
+            if protocol.access_logs:
+                protocol.logger.info(
+                    '%s - "%s %s HTTP/%s" %d',
+                    protocol.server[0],
+                    self.scope["method"],
+                    self.scope["path"],
+                    self.scope["http_version"],
+                    status_code,
+                )
             reason = STATUS_PHRASES[status_code]
             event = h11.Response(status_code=status_code, headers=headers, reason=reason)
-            output = self.conn.send(event)
-            self.transport.write(output)
+            output = protocol.conn.send(event)
+            protocol.transport.write(output)
         elif message_type == "http.response.body":
-            if self.conn.our_state != h11.SEND_BODY:
+            if protocol.conn.our_state != h11.SEND_BODY:
                 msg = "Unexpected ASGI message '%s' sent while in '%s' state."
                 raise RuntimeError(msg % message_type)
             body = message.get("body", b"")
             more_body = message.get("more_body", False)
             event = h11.Data(data=body)
-            output = self.conn.send(event)
+            output = protocol.conn.send(event)
             if not more_body:
                 event = h11.EndOfMessage()
-                output += self.conn.send(event)
-            self.transport.write(output)
+                output += protocol.conn.send(event)
+            protocol.transport.write(output)
         else:
             msg = "Unexpected ASGI message '%s' sent while in '%s' state."
             raise RuntimeError(msg % (message_type, self.conn.our_state))
 
-        if self.conn.our_state is h11.MUST_CLOSE:
+        if protocol.conn.our_state is h11.MUST_CLOSE:
             event = h11.ConnectionClosed()
-            self.conn.send(event)
-            self.transport.close()
-        elif self.conn.our_state is h11.DONE and self.conn.their_state is h11.DONE:
-            while not self.queue.empty():
-                self.queue.get_nowait()
-            self.resume_reading()
-            self.conn.start_next_cycle()
+            protocol.conn.send(event)
+            protocol.transport.close()
+        elif protocol.conn.our_state is h11.DONE and protocol.conn.their_state is h11.DONE:
+            protocol.resume_reading()
+            protocol.conn.start_next_cycle()
 
     async def receive(self):
-        if self.conn.our_state == h11.CLOSED and self.queue.empty():
-            raise RuntimeError("Connection is closed")
+        protocol = self.protocol
 
-        self.resume_reading()
-        return await self.queue.get()
+        if self.more_body and not self.body and not self.disconnected:
+            protocol.resume_reading()
+            await protocol.client_event.wait()
+            protocol.client_event.clear()
+
+        if self.disconnected:
+            message = {"type": "http.disconnect"}
+        else:
+            message = {
+                "type": "http.request",
+                "body": self.body,
+                "more_body": self.more_body,
+            }
+            self.body = b''
+            protocol.resume_reading()
+
+        return message

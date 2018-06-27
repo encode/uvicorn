@@ -9,19 +9,17 @@ import logging
 import sys
 
 
-logger = logging.getLogger()
-
-
 class ConfigurationError(Exception):
     pass
 
 
 class Server:
-    def __init__(self, app, host='127.0.0.1', port=5000, loop=None, protocol_class=None):
+    def __init__(self, app, host='127.0.0.1', port=5000, loop=None, logger=None, protocol_class=None):
         self.app = app
         self.host = host
         self.port = port
         self.loop = loop or asyncio.get_event_loop()
+        self.logger = logger or logging.getLogger()
         self.server = None
         self.should_exit = False
         self.pid = os.getpid()
@@ -37,20 +35,20 @@ class Server:
         self.loop.run_until_complete(self.create_server())
         if self.server is not None:
             message = "Uvicorn running on http://%s:%d 🦄 (Press CTRL+C to quit)"
-            logger.info(message, self.host, self.port)
-            logger.info("Started worker [{}]".format(self.pid))
+            self.logger.info(message, self.host, self.port)
+            self.logger.info("Started worker [{}]".format(self.pid))
             self.loop.create_task(self.tick())
             self.loop.run_forever()
 
     def handle_exit(self, sig, frame):
-        logger.warning("Received signal {}. Shutting down.".format(sig.name))
+        self.logger.warning("Received signal {}. Shutting down.".format(sig.name))
         self.should_exit = True
 
     def create_protocol(self):
         try:
-            return self.protocol_class(app=self.app, loop=self.loop)
+            return self.protocol_class(app=self.app, loop=self.loop, logger=self.logger)
         except Exception as exc:
-            logger.error(exc)
+            self.logger.error(exc)
             self.should_exit = True
 
     async def create_server(self):
@@ -58,15 +56,15 @@ class Server:
             self.server = await self.loop.create_server(
                 self.create_protocol, host=self.host, port=self.port
             )
-        except PermissionError as exc:
-            logger.error(exc)
+        except Exception as exc:
+            self.logger.error(exc)
 
     async def tick(self):
         while not self.should_exit:
             # http.set_time_and_date()
             await asyncio.sleep(1)
 
-        logger.info("Stopping worker [{}]".format(self.pid))
+        self.logger.info("Stopping worker [{}]".format(self.pid))
         self.server.close()
         await self.server.wait_closed()
         self.loop.stop()
@@ -110,7 +108,7 @@ def load_app(app):
 
 
 def get_event_loop(loop):
-    if loop != "uvloop":
+    if loop == "uvloop":
         import uvloop
         asyncio.get_event_loop().close()
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -121,7 +119,7 @@ def get_event_loop(loop):
 @click.argument("app")
 @click.option("--host", type=str, default="127.0.0.1", help="Host")
 @click.option("--port", type=int, default=5000, help="Port")
-@click.option("--loop", type=LOOP_CHOICES, default="asyncio", help="Event loop")
+@click.option("--loop", type=LOOP_CHOICES, default="uvloop", help="Event loop")
 @click.option("--http", type=HTTP_CHOICES, default="httptools", help="HTTP Handler")
 @click.option("--log-level", type=LEVEL_CHOICES, default="info", help="Log level")
 def main(app, host: str, port: int, loop: str, http: str, log_level: str):
@@ -130,8 +128,9 @@ def main(app, host: str, port: int, loop: str, http: str, log_level: str):
 
     app = load_app(app)
     loop = get_event_loop(loop)
+    logger = logging.getLogger()
     protocol_class = HTTP_PROTOCOLS[http]
-    server = Server(app, host, port, loop, protocol_class)
+    server = Server(app, host, port, loop, logger, protocol_class)
     server.run()
 
 
