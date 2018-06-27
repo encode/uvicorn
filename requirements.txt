@@ -8,3 +8,4 @@ websockets
 pytest
 pytest-cov
 requests
+starlette

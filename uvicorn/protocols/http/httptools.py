@@ -152,34 +152,43 @@ class RequestResponseCycle:
 
     # ASGI exception wrapper
     async def run_asgi(self, asgi):
-        protocol = self.protocol
-
         try:
             result = await asgi(self.receive, self.send)
         except:
             msg = "Exception in ASGI application\n%s"
             traceback_text = "".join(traceback.format_exc())
-            protocol.logger.error(msg, traceback_text)
+            self.protocol.logger.error(msg, traceback_text)
             if not self.response_started:
-                await self.send({
-                    "type": "http.response.start",
-                    "status": 500,
-                    "headers": [
-                        (b"content-type", b"text/plain; charset=utf-8"),
-                        (b"connection", b"close")
-                    ]
-                })
-                await self.send({
-                    "type": "http.response.body",
-                    "body": b"Internal Server Error"
-                })
+                await self.send_500_response()
             else:
-                protocol.transport.close()
+                self.protocol.transport.close()
         else:
-            if result is not None:
+            if not self.response_started:
+                msg = "ASGI callable returned without starting response."
+                self.protocol.logger.error(msg)
+                await self.send_500_response()
+            elif not self.response_complete:
+                msg = "ASGI callable returned without completing response."
+                self.protocol.logger.error(msg)
+                self.protocol.transport.close()
+            elif result is not None:
                 msg = "ASGI callable should return None, but returned '%s'."
-                protocol.logger.error(msg, result)
-                protocol.transport.close()
+                self.protocol.logger.error(msg, result)
+                self.protocol.transport.close()
+
+    async def send_500_response(self):
+        await self.send({
+            "type": "http.response.start",
+            "status": 500,
+            "headers": [
+                (b"content-type", b"text/plain; charset=utf-8"),
+                (b"connection", b"close")
+            ]
+        })
+        await self.send({
+            "type": "http.response.body",
+            "body": b"Internal Server Error"
+        })
 
     # ASGI interface
     async def send(self, message):

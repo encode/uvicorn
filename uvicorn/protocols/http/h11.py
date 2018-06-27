@@ -58,8 +58,9 @@ class H11Protocol(asyncio.Protocol):
 
         if self.cycle and self.cycle.more_body:
             self.cycle.disconnected = True
-        event = h11.ConnectionClosed()
-        self.conn.send(event)
+        if self.conn.state != h11.ERROR:
+            event = h11.ConnectionClosed()
+            self.conn.send(event)
         self.client_event.set()
 
     def eof_received(self):
@@ -153,35 +154,40 @@ class RequestResponseCycle:
         try:
             result = await asgi(self.receive, self.send)
         except:
-            protocol = self.protocol
-
             msg = "Exception in ASGI application\n%s"
             traceback_text = "".join(traceback.format_exc())
-            protocol.logger.error(msg, traceback_text)
+            self.protocol.logger.error(msg, traceback_text)
             if not self.response_started:
-                await self.send({
-                    "type": "http.response.start",
-                    "status": 500,
-                    "headers": [
-                        (b"content-type", b"text/plain; charset=utf-8"),
-                        (b"connection", b"close")
-                    ]
-                })
-                await self.send({
-                    "type": "http.response.body",
-                    "body": b"Internal Server Error"
-                })
+                await self.send_500_response()
             else:
-                event = h11.ConnectionClosed()
-                protocol.conn.send(event)
-                protocol.transport.close()
+                self.protocol.transport.close()
         else:
-            if result is not None:
+            if not self.response_started:
+                msg = "ASGI callable returned without starting response."
+                self.protocol.logger.error(msg)
+                await self.send_500_response()
+            elif not self.response_complete:
+                msg = "ASGI callable returned without completing response."
+                self.protocol.logger.error(msg)
+                self.protocol.transport.close()
+            elif result is not None:
                 msg = "ASGI callable should return None, but returned '%s'."
-                protocol.logger.error(msg, result)
-                event = h11.ConnectionClosed()
-                protocol.conn.send(event)
-                protocol.transport.close()
+                self.protocol.logger.error(msg, result)
+                self.protocol.transport.close()
+
+    async def send_500_response(self):
+        await self.send({
+            "type": "http.response.start",
+            "status": 500,
+            "headers": [
+                (b"content-type", b"text/plain; charset=utf-8"),
+                (b"connection", b"close")
+            ]
+        })
+        await self.send({
+            "type": "http.response.body",
+            "body": b"Internal Server Error"
+        })
 
     # ASGI interface
     async def send(self, message):

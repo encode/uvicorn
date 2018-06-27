@@ -1,10 +1,24 @@
 import asyncio
 from uvicorn.protocols.http import H11Protocol, HttpToolsProtocol
 import h11
+import starlette
 
 
-def run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+SIMPLE_GET_REQUEST = b'\r\n'.join([
+    b'GET / HTTP/1.1',
+    b'Host: example.org',
+    b'',
+    b''
+])
+
+SIMPLE_POST_REQUEST = b'\r\n'.join([
+    b'POST / HTTP/1.1',
+    b'Host: example.org',
+    b'Content-Type: application/json',
+    b'Content-Length: 18',
+    b'',
+    b'{"hello": "world"}'
+])
 
 
 class MockTransport:
@@ -52,10 +66,6 @@ class MockLoop:
         coroutine = self.tasks.pop()
         asyncio.get_event_loop().run_until_complete(coroutine)
 
-    @property
-    def has_pending_tasks(self):
-        return bool(self.tasks)
-
 
 def get_connected_protocol(app):
     loop = MockLoop()
@@ -65,302 +75,185 @@ def get_connected_protocol(app):
     return protocol
 
 
-class Echo:
-    def __init__(self, scope):
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        content = '%s %s' % (self.scope['method'], self.scope['path'])
-        content = content.encode()
-        if self.scope['method'] == 'POST':
-            content += b' '
-            while True:
-                message = await receive()
-                content += message.get('body', b'')
-                if not message.get('more_body', False):
-                    break
-
-        await send({
-            'type': 'http.response.start',
-            'status': 200,
-            'headers': [
-                [b'content-type', b'text/plain'],
-                [b'content-length', str(len(content)).encode()],
-            ]
-        })
-        await send({
-            'type': 'http.response.body',
-            'body': content,
-        })
-
-
-
-class CloseConnection:
-    def __init__(self, scope):
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        content = '%s %s' % (self.scope['method'], self.scope['path'])
-        content = content.encode()
-
-        await send({
-            'type': 'http.response.start',
-            'status': 200,
-            'headers': [
-                [b'content-type', b'text/plain'],
-                [b'connection', b'close'],
-                [b'content-length', str(len(content)).encode()],
-            ]
-        })
-        await send({
-            'type': 'http.response.body',
-            'body': content,
-        })
-
-
 def test_get_request():
-    protocol = get_connected_protocol(Echo)
-    protocol.data_received(b'\r\n'.join([
-        b'GET / HTTP/1.1',
-        b'Host: example.org',
-        b'',
-        b''
-    ]))
+    def app(scope):
+        return starlette.Response('Hello, world', media_type='text/plain')
+
+    protocol = get_connected_protocol(app)
+    protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
-    assert protocol.transport.buffer == b'\r\n'.join([
-        b'HTTP/1.1 200 OK',
-        b'content-type: text/plain',
-        b'content-length: 5',
-        b'',
-        b'GET /'
-    ])
+    assert b'HTTP/1.1 200 OK' in protocol.transport.buffer
+    assert b'Hello, world' in protocol.transport.buffer
 
 
 def test_post_request():
-    protocol = get_connected_protocol(Echo)
-    protocol.data_received(b'\r\n'.join([
-        b'POST / HTTP/1.1',
-        b'Host: example.org',
-        b'Content-Type: application/json',
-        b'Content-Length: 18',
-        b'',
-        b'{"hello": "world"}'
-    ]))
+    @starlette.asgi_application
+    async def app(request):
+        body = await request.body()
+        return starlette.Response(b'Body: ' + body, media_type='text/plain')
+
+    protocol = get_connected_protocol(app)
+    protocol.data_received(SIMPLE_POST_REQUEST)
     protocol.loop.run_one()
-    assert protocol.transport.buffer == b'\r\n'.join([
-        b'HTTP/1.1 200 OK',
-        b'content-type: text/plain',
-        b'content-length: 25',
-        b'',
-        b'POST / {"hello": "world"}'
-    ])
-
-
-def test_read_flow_control():
-    protocol = get_connected_protocol(Echo)
-    protocol.data_received(b'\r\n'.join([
-        b'POST / HTTP/1.1',
-        b'Host: example.org',
-        b'Content-Type: application/json',
-        b'Content-Length: 18',
-        b'',
-        b'{"h'
-    ]))
-    assert protocol.cycle.scope == {
-        'type': 'http',
-        'http_version': '1.1',
-        'server': ('127.0.0.1', 8000),
-        'client': ('127.0.0.1', 8001),
-        'scheme': 'http',
-        'method': 'POST',
-        'path': '/',
-        'query_string': b'',
-        'headers': [
-            (b'host', b'example.org'),
-            (b'content-type', b'application/json'),
-            (b'content-length', b'18'),
-        ]
-    }
-    assert protocol.transport.read_paused
-    assert run(protocol.cycle.receive()) == {
-        'type': 'http.request',
-        'body': b'{"h',
-        'more_body': True
-    }
-    assert not protocol.transport.read_paused
-
-    protocol.data_received(b'ello": ')
-    assert protocol.transport.read_paused
-    assert run(protocol.cycle.receive()) == {
-        'type': 'http.request',
-        'body': b'ello": ',
-        'more_body': True
-    }
-    assert not protocol.transport.read_paused
-
-    protocol.data_received(b'"world"}')
-    assert protocol.transport.read_paused
-    assert run(protocol.cycle.receive()) == {
-        'type': 'http.request',
-        'body': b'"world"}',
-        'more_body': False
-    }
-    assert not protocol.transport.read_paused
+    assert b'HTTP/1.1 200 OK' in protocol.transport.buffer
+    assert b'Body: {"hello": "world"}' in protocol.transport.buffer
 
 
 def test_keepalive():
-    # An initial request
-    protocol = get_connected_protocol(Echo)
-    protocol.data_received(b'\r\n'.join([
-        b'GET / HTTP/1.1',
-        b'Host: example.org',
-        b'',
-        b''
-    ]))
-    protocol.loop.run_one()
-    assert protocol.transport.buffer == b'\r\n'.join([
-        b'HTTP/1.1 200 OK',
-        b'content-type: text/plain',
-        b'content-length: 5',
-        b'',
-        b'GET /'
-    ])
-    assert not protocol.transport.is_closing()
+    def app(scope):
+        return starlette.Response(b'', status_code=204)
 
-    # A second request on the same connection
-    protocol.transport.buffer = b''
-    protocol.data_received(b'\r\n'.join([
-        b'GET / HTTP/1.1',
-        b'Host: example.org',
-        b'',
-        b''
-    ]))
+    protocol = get_connected_protocol(app)
+    protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    assert b'HTTP/1.1 204 No Content' in protocol.transport.buffer
     assert not protocol.transport.is_closing()
-    assert protocol.transport.buffer == b'\r\n'.join([
-        b'HTTP/1.1 200 OK',
-        b'content-type: text/plain',
-        b'content-length: 5',
-        b'',
-        b'GET /'
-    ])
 
 
 def test_close():
-    protocol = get_connected_protocol(CloseConnection)
-    protocol.data_received(b'\r\n'.join([
-        b'GET / HTTP/1.1',
-        b'Host: example.org',
-        b'',
-        b''
-    ]))
+    def app(scope):
+        return starlette.Response(b'', status_code=204, headers={'connection': 'close'})
+
+    protocol = get_connected_protocol(app)
+    protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
-    assert protocol.transport.buffer == b'\r\n'.join([
-        b'HTTP/1.1 200 OK',
-        b'content-type: text/plain',
-        b'connection: close',
-        b'content-length: 5',
-        b'',
-        b'GET /'
-    ])
+    assert b'HTTP/1.1 204 No Content' in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
 
-def test_pipeline_split_first_request():
-    protocol = get_connected_protocol(Echo)
-    protocol.data_received(b'\r\n'.join([
-        b'POST /1 HTTP/1.1',
-        b'Host: example.org',
-        b'Content-Type: application/json',
-        b'Content-Length: 18',
-        b'',
-        b'{"hello": "wo'
-    ]))
-    assert protocol.cycle.scope == {
-        'type': 'http',
-        'http_version': '1.1',
-        'server': ('127.0.0.1', 8000),
-        'client': ('127.0.0.1', 8001),
-        'scheme': 'http',
-        'method': 'POST',
-        'path': '/1',
-        'query_string': b'',
-        'headers': [
-            (b'host', b'example.org'),
-            (b'content-type', b'application/json'),
-            (b'content-length', b'18'),
-        ]
-    }
-    # We send back the response immediately, midway through the request data.
-    # This tests that the recieve buffer for the first request does not
-    # end up being passed to the second instance ASGI app.
-    run(protocol.cycle.send({
-        'type': 'http.response.start',
-        'status': 204
-    }))
-    run(protocol.cycle.send({
-        'type': 'http.response.body',
-        'body': b'',
-    }))
-    protocol.data_received(b'\r\n'.join([
-        b'rld"}'
-        b'POST /2 HTTP/1.1',
-        b'Host: example.org',
-        b'Content-Type: application/json',
-        b'Content-Length: 19',
-        b'',
-        b'{"next": "request"}'
-    ]))
-    protocol.data_received(b'est"}')
-    assert run(protocol.cycle.receive()) == {
-        'type': 'http.request',
-        'body': b'{"next": "request"}',
-        'more_body': False
-    }
+def test_undersized_request():
+    def app(scope):
+        return starlette.Response(b'xxx', headers={'content-length': 10})
+
+    protocol = get_connected_protocol(app)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert protocol.transport.is_closing()
 
 
-def test_pipeline_split_second_request():
-    protocol = get_connected_protocol(Echo)
-    protocol.data_received(b'\r\n'.join([
-        b'POST /1 HTTP/1.1',
-        b'Host: example.org',
-        b'Content-Type: application/json',
-        b'Content-Length: 18',
-        b'',
-        b'{"hello": "world"}'
-        b'POST /2 HTTP/1.1',
-        b'Host: example.org',
-        b'Content-Type: application/json',
-        b'Content-Length: 19',
-        b'',
-        b'{"next": "requ'
-    ]))
-    assert protocol.cycle.scope == {
-        'type': 'http',
-        'http_version': '1.1',
-        'server': ('127.0.0.1', 8000),
-        'client': ('127.0.0.1', 8001),
-        'scheme': 'http',
-        'method': 'POST',
-        'path': '/1',
-        'query_string': b'',
-        'headers': [
-            (b'host', b'example.org'),
-            (b'content-type', b'application/json'),
-            (b'content-length', b'18'),
-        ]
-    }
-    run(protocol.cycle.send({
-        'type': 'http.response.start',
-        'status': 204
-    }))
-    run(protocol.cycle.send({
-        'type': 'http.response.body',
-        'body': b'',
-    }))
-    protocol.data_received(b'est"}')
-    assert run(protocol.cycle.receive()) == {
-        'type': 'http.request',
-        'body': b'{"next": "request"}',
-        'more_body': False
-    }
+def test_oversized_request():
+    def app(scope):
+        return starlette.Response(b'xxx' * 20, headers={'content-length': 10})
+
+    protocol = get_connected_protocol(app)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert protocol.transport.is_closing()
+
+
+def test_app_exception():
+    @starlette.asgi_application
+    async def app(request):
+        raise Exception()
+
+    protocol = get_connected_protocol(app)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b'HTTP/1.1 500 Internal Server Error' in protocol.transport.buffer
+    assert protocol.transport.is_closing()
+
+
+def test_exception_during_response():
+    async def streamer():
+        for chunk in [b'1', b'2', b'3']:
+            yield chunk
+        raise Exception()
+
+    @starlette.asgi_application
+    def app(request):
+        return starlette.StreamingResponse(streamer())
+
+    protocol = get_connected_protocol(app)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b'HTTP/1.1 500 Internal Server Error' not in protocol.transport.buffer
+    assert protocol.transport.is_closing()
+
+
+def test_no_response_returned():
+    class App:
+        def __init__(self, scope):
+            pass
+        async def __call__(self, receive, send):
+            pass
+
+    protocol = get_connected_protocol(App)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b'HTTP/1.1 500 Internal Server Error' in protocol.transport.buffer
+    assert protocol.transport.is_closing()
+
+
+def test_partial_response_returned():
+    class App:
+        def __init__(self, scope):
+            pass
+        async def __call__(self, receive, send):
+            await send({"type": "http.response.start", "status": 200})
+
+    protocol = get_connected_protocol(App)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b'HTTP/1.1 500 Internal Server Error' not in protocol.transport.buffer
+    assert protocol.transport.is_closing()
+
+
+def test_duplicate_start_message():
+    class App:
+        def __init__(self, scope):
+            pass
+        async def __call__(self, receive, send):
+            await send({"type": "http.response.start", "status": 200})
+            await send({"type": "http.response.start", "status": 200})
+
+    protocol = get_connected_protocol(App)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b'HTTP/1.1 500 Internal Server Error' not in protocol.transport.buffer
+    assert protocol.transport.is_closing()
+
+
+def test_missing_start_message():
+    class App:
+        def __init__(self, scope):
+            pass
+        async def __call__(self, receive, send):
+            await send({"type": "http.response.body", "body": b""})
+
+    protocol = get_connected_protocol(App)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b'HTTP/1.1 500 Internal Server Error' in protocol.transport.buffer
+    assert protocol.transport.is_closing()
+
+
+def test_message_after_body_complete():
+    class App:
+        def __init__(self, scope):
+            pass
+        async def __call__(self, receive, send):
+            await send({"type": "http.response.start", "status": 200})
+            await send({"type": "http.response.body", "body": b""})
+            await send({"type": "http.response.body", "body": b""})
+
+    protocol = get_connected_protocol(App)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b'HTTP/1.1 200 OK' in protocol.transport.buffer
+    assert protocol.transport.is_closing()
+
+
+def test_value_returned():
+    class App:
+        def __init__(self, scope):
+            pass
+        async def __call__(self, receive, send):
+            await send({"type": "http.response.start", "status": 200})
+            await send({"type": "http.response.body", "body": b""})
+            return 123
+
+    protocol = get_connected_protocol(App)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b'HTTP/1.1 200 OK' in protocol.transport.buffer
+    assert protocol.transport.is_closing()
