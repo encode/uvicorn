@@ -23,12 +23,14 @@ def run_server(app):
     url = "ws://127.0.0.1:%d/" % server.sockets[0].getsockname()[1]
     try:
         # Run the event loop in a new thread.
-        threading.Thread(target=run_loop, args=[loop]).start()
+        thread = threading.Thread(target=run_loop, args=[loop])
+        thread.start()
         # Return the contextmanager state.
         yield url
     finally:
         # Close the loop from our main thread.
         loop.call_soon_threadsafe(loop.stop)
+        thread.join()
 
 
 def test_invalid_upgrade():
