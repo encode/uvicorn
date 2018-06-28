@@ -9,8 +9,69 @@ import logging
 import sys
 
 
-class ConfigurationError(Exception):
-    pass
+LOOP_CHOICES = click.Choice(["uvloop", "asyncio"])
+LEVEL_CHOICES = click.Choice(["debug", "info", "warning", "error", "critical"])
+HTTP_CHOICES = click.Choice(["httptools", "h11"])
+LOG_LEVELS = {
+    "critical": logging.CRITICAL,
+    "error": logging.ERROR,
+    "warning": logging.WARNING,
+    "info": logging.INFO,
+    "debug": logging.DEBUG,
+}
+HTTP_PROTOCOLS = {"h11": H11Protocol, "httptools": HttpToolsProtocol}
+
+
+@click.command()
+@click.argument("app")
+@click.option("--host", type=str, default="127.0.0.1", help="Host")
+@click.option("--port", type=int, default=5000, help="Port")
+@click.option("--loop", type=LOOP_CHOICES, default="uvloop", help="Event loop")
+@click.option("--http", type=HTTP_CHOICES, default="httptools", help="HTTP Handler")
+@click.option("--workers", type=int, default=1, help="Number of worker processes")
+@click.option("--log-level", type=LEVEL_CHOICES, default="info", help="Log level")
+def main(app, host: str, port: int, loop: str, http: str, workers: int, log_level: str):
+    log_level = LOG_LEVELS[log_level]
+    logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
+
+    app = load_app(app)
+    loop = get_event_loop(loop)
+    logger = logging.getLogger()
+    protocol_class = HTTP_PROTOCOLS[http]
+
+    server = Server(app, host, port, loop, logger, protocol_class)
+    server.run()
+
+
+def load_app(app):
+    if not isinstance(app, str):
+        return app
+
+    if ":" not in app:
+        message = 'Invalid app string "{app}". Must be in format "<module>:<app>".'
+        raise click.UsageError(message.format(app=app))
+
+    module_str, _, attr = app.partition(":")
+    try:
+        module = importlib.import_module(module_str)
+    except ModuleNotFoundError:
+        message = 'Error loading ASGI app. Could not import module "{module_str}".'
+        raise click.UsageError(message.format(module_str=module_str))
+
+    try:
+        return getattr(module, attr)
+    except AttributeError:
+        message = 'Error loading ASGI app. No attribute "{attr}" found in module "{module_str}".'
+        raise click.UsageError(message.format(attr=attr, module_str=module_str))
+
+
+def get_event_loop(loop):
+    if loop == "uvloop":
+        import uvloop
+
+        asyncio.get_event_loop().close()
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    return asyncio.get_event_loop()
 
 
 class Server:
@@ -76,68 +137,6 @@ class Server:
         self.server.close()
         await self.server.wait_closed()
         self.loop.stop()
-
-
-LOOP_CHOICES = click.Choice(["uvloop", "asyncio"])
-LEVEL_CHOICES = click.Choice(["debug", "info", "warn", "error"])
-HTTP_CHOICES = click.Choice(["h11", "httptools"])
-LOG_LEVELS = {
-    "error": logging.ERROR,
-    "warn": logging.WARNING,
-    "info": logging.INFO,
-    "debug": logging.DEBUG,
-}
-HTTP_PROTOCOLS = {"h11": H11Protocol, "httptools": HttpToolsProtocol}
-
-
-def load_app(app):
-    if not isinstance(app, str):
-        return app
-
-    if ":" not in app:
-        message = 'Invalid app string "{app}". Must be in format "<module>:<app>".'
-        raise click.UsageError(message.format(app=app))
-
-    module_str, _, attr = app.partition(":")
-    try:
-        module = importlib.import_module(module_str)
-    except ModuleNotFoundError:
-        message = 'Error loading ASGI app. Could not import module "{module_str}".'
-        raise click.UsageError(message.format(module_str=module_str))
-
-    try:
-        return getattr(module, attr)
-    except AttributeError:
-        message = 'Error loading ASGI app. No attribute "{attr}" found in module "{module_str}".'
-        raise click.UsageError(message.format(attr=attr, module_str=module_str))
-
-
-def get_event_loop(loop):
-    if loop == "uvloop":
-        import uvloop
-
-        asyncio.get_event_loop().close()
-        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    return asyncio.get_event_loop()
-
-
-@click.command()
-@click.argument("app")
-@click.option("--host", type=str, default="127.0.0.1", help="Host")
-@click.option("--port", type=int, default=5000, help="Port")
-@click.option("--loop", type=LOOP_CHOICES, default="uvloop", help="Event loop")
-@click.option("--http", type=HTTP_CHOICES, default="httptools", help="HTTP Handler")
-@click.option("--log-level", type=LEVEL_CHOICES, default="info", help="Log level")
-def main(app, host: str, port: int, loop: str, http: str, log_level: str):
-    log_level = LOG_LEVELS[log_level]
-    logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
-
-    app = load_app(app)
-    loop = get_event_loop(loop)
-    logger = logging.getLogger()
-    protocol_class = HTTP_PROTOCOLS[http]
-    server = Server(app, host, port, loop, logger, protocol_class)
-    server.run()
 
 
 if __name__ == "__main__":

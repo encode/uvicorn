@@ -29,6 +29,7 @@ class UvicornWorker(Worker):
         super().__init__(*args, **kwargs)
         self.servers = []
         self.exit_code = 0
+        self.log.level = self.log.loglevel
 
     def init_process(self):
         # Close any existing event loop before setting a
@@ -90,7 +91,7 @@ class UvicornWorker(Worker):
         for sock in self.sockets:
             state = {"total_requests": 0}
             protocol = functools.partial(
-                self.protocol_class, app=app, loop=loop, state=state
+                self.protocol_class, app=app, loop=loop, state=state, logger=self.log
             )
             server = await loop.create_server(protocol, sock=sock, ssl=ssl_ctx)
             self.servers.append((server, state))
