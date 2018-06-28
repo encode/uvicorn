@@ -42,7 +42,7 @@ class HttpToolsProtocol(asyncio.Protocol):
     def __init__(self, app, loop=None, state=None, logger=None):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
-        self.state = {} if state is None else state
+        self.state = {"total_requests": 0} if state is None else state
         self.logger = logger or logging.getLogger()
         self.access_logs = self.logger.level >= logging.INFO
         self.parser = httptools.HttpRequestParser(self)
@@ -211,6 +211,8 @@ class RequestResponseCycle:
                 msg = "ASGI callable should return None, but returned '%s'."
                 self.protocol.logger.error(msg, result)
                 self.protocol.transport.close()
+        finally:
+            self.protocol.state["total_requests"] += 1
 
     async def send_500_response(self):
         await self.send(

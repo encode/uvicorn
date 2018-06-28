@@ -33,7 +33,7 @@ class H11Protocol(asyncio.Protocol):
     def __init__(self, app, loop=None, state=None, logger=None):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
-        self.state = {} if state is None else state
+        self.state = {"total_requests": 0} if state is None else state
         self.logger = logger or logging.getLogger()
         self.access_logs = self.logger.level >= logging.INFO
         self.conn = h11.Connection(h11.SERVER)
@@ -190,6 +190,8 @@ class RequestResponseCycle:
                 msg = "ASGI callable should return None, but returned '%s'."
                 self.protocol.logger.error(msg, result)
                 self.protocol.transport.close()
+        finally:
+            self.protocol.state["total_requests"] += 1
 
     async def send_500_response(self):
         await self.send(
@@ -230,7 +232,7 @@ class RequestResponseCycle:
             if protocol.access_logs:
                 protocol.logger.info(
                     '%s - "%s %s HTTP/%s" %d',
-                    self.scope["server"][0]
+                    self.scope["server"][0],
                     self.scope["method"],
                     self.scope["path"],
                     self.scope["http_version"],
