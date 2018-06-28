@@ -49,6 +49,66 @@ Run the server:
 $ uvicorn app:App
 ```
 
+# Usage
+
+The uvicorn command line tool is the easiest way to run your application...
+
+## Command line options
+
+```shell
+Usage: uvicorn [OPTIONS] APP
+
+Options:
+  --host TEXT                     Host
+  --port INTEGER                  Port
+  --loop [uvloop|asyncio]         Event loop
+  --http [httptools|h11]          HTTP Handler
+  --workers INTEGER               Number of worker processes
+  --log-level [debug|info|warning|error|critical]
+                                  Log level
+  --help                          Show this message and exit.
+```
+
+Uvicorn currently includes two HTTP implementations, "httptools" and "h11".
+
+It also supports two different event loop implementations, "uvloop" and
+Python's standard "asyncio".
+
+The default configuration is to use httptools and uvloop. If you need to
+run under [PyPy][pypy], then you should switch to h11 and asyncio.
+
+## Running programmatically
+
+To run uvicorn directly from your application...
+
+```python
+import uvicorn
+
+...
+
+if __name__ == "__main__":
+    uvicorn.run("127.0.0.1", 5000, log_level="info")
+```
+
+## Running with Gunicorn
+
+[Gunicorn][gunicorn] is a mature, fully featured server and process manager.
+
+Uvicorn includes a Gunicorn worker class allowing you to run ASGI applications,
+with all of Uvicorn's performance benefits, while also giving you Gunicorn's
+fully-featured process management.
+
+This allows you to increase or decrease the number of worker processes on the
+fly, restart worker processes gracefully, or perform server upgrades without downtime.
+
+For production deployments we recommend using gunicorn with the uvicorn worker class.
+
+```
+gunicorn app:App -w 4 -k uvicorn.workers.UvicornWorker
+```
+
+For a [PyPy][pypy] compatible configuration use `uvicorn.workers.UvicornH11Worker`.
+
 # The ASGI interface
 
 Uvicorn uses the [ASGI specification][asgi] for interacting with an application.
@@ -215,6 +275,8 @@ class StreamResponse():
 
 # Alternative ASGI servers
 
+## Daphne
+
 The first ASGI server implementation, originally developed to power Django Channels,
 is [the Daphne webserver][daphne].
 
@@ -227,8 +289,21 @@ $ pip install daphne
 $ daphne app:App
 ```
 
+## Hypercorn
+
+[Hypercorn][hypercorn] was initially part of the Quart web framework, before
+being separated out into a standalone ASGI server.
+
+```shell
+$ pip install hypercorn
+$ hypercorn app:App
+```
+
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
-[asgi]: https://github.com/django/asgiref/blob/master/specs/asgi.rst
-[asgi-http]: https://github.com/django/asgiref/blob/master/specs/www.rst
+[gunicorn]: http://gunicorn.org/
+[pypy]: https://pypy.org/
+[asgi]: https://asgi.readthedocs.io/en/latest/
+[asgi-http]: https://asgi.readthedocs.io/en/latest/specs/www.html
 [daphne]: https://github.com/django/daphne
+[hypercorn]: https://gitlab.com/pgjones/hypercorn
