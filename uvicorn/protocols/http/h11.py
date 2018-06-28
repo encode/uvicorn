@@ -230,7 +230,7 @@ class RequestResponseCycle:
             if protocol.access_logs:
                 protocol.logger.info(
                     '%s - "%s %s HTTP/%s" %d',
-                    protocol.server[0],
+                    self.scope["server"][0]
                     self.scope["method"],
                     self.scope["path"],
                     self.scope["http_version"],
