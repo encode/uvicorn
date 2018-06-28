@@ -39,6 +39,24 @@ def main(app, host: str, port: int, loop: str, http: str, workers: int, log_leve
     logger = logging.getLogger()
     protocol_class = HTTP_PROTOCOLS[http]
 
+    if workers != 1:
+        raise click.UsageError(
+            'Not yet available. For multiple worker processes, use gunicorn. '
+            'eg. "gunicorn -w 4 -k uvicorn.workers.UvicornWorker".'
+        )
+
+    server = Server(app, host, port, loop, logger, protocol_class)
+    server.run()
+
+
+def run(app, host="127.0.0.1", port=5000, log_level="info"):
+    log_level = LOG_LEVELS[log_level]
+    logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
+
+    loop = get_event_loop("uvloop")
+    logger = logging.getLogger()
+    protocol_class = HttpToolsProtocol
+
     server = Server(app, host, port, loop, logger, protocol_class)
     server.run()
 

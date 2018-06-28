@@ -8,7 +8,7 @@ import sys
 import uvloop
 
 from gunicorn.workers.base import Worker
-from uvicorn.protocols.http import HttpToolsProtocol
+from uvicorn.protocols.http import H11Protocol, HttpToolsProtocol
 
 
 class UvicornWorker(Worker):
@@ -24,6 +24,7 @@ class UvicornWorker(Worker):
     """
 
     protocol_class = HttpToolsProtocol
+    loop = "uvloop"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -32,14 +33,15 @@ class UvicornWorker(Worker):
         self.log.level = self.log.loglevel
 
     def init_process(self):
-        # Close any existing event loop before setting a
-        # new policy.
-        asyncio.get_event_loop().close()
+        if self.loop == "uvloop":
+            # Close any existing event loop before setting a
+            # new policy.
+            asyncio.get_event_loop().close()
 
-        # Setup uvloop policy, so that every
-        # asyncio.get_event_loop() will create an instance
-        # of uvloop event loop.
-        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+            # Setup uvloop policy, so that every
+            # asyncio.get_event_loop() will create an instance
+            # of uvloop event loop.
+            asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
         super().init_process()
 
@@ -131,3 +133,8 @@ class UvicornWorker(Worker):
             server.close()
             await server.wait_closed()
         loop.stop()
+
+
+class UvicornH11Worker(UvicornWorker):
+    protocol_class = H11Protocol
+    loop = "asyncio"
