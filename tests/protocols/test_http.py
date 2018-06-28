@@ -1,6 +1,7 @@
 import asyncio
 from uvicorn.protocols.http import H11Protocol, HttpToolsProtocol
 import h11
+import pytest
 import starlette
 
 
@@ -67,93 +68,113 @@ class MockLoop:
         asyncio.get_event_loop().run_until_complete(coroutine)
 
 
-def get_connected_protocol(app):
+def get_connected_protocol(app, protocol_cls):
     loop = MockLoop()
     transport = MockTransport()
-    protocol = H11Protocol(app, loop)
+    protocol = protocol_cls(app, loop)
     protocol.connection_made(transport)
     return protocol
 
 
-def test_get_request():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_get_request(protocol_cls):
     def app(scope):
         return starlette.Response('Hello, world', media_type='text/plain')
 
-    protocol = get_connected_protocol(app)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b'HTTP/1.1 200 OK' in protocol.transport.buffer
     assert b'Hello, world' in protocol.transport.buffer
 
 
-def test_post_request():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_post_request(protocol_cls):
     @starlette.asgi_application
     async def app(request):
         body = await request.body()
         return starlette.Response(b'Body: ' + body, media_type='text/plain')
 
-    protocol = get_connected_protocol(app)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_POST_REQUEST)
     protocol.loop.run_one()
     assert b'HTTP/1.1 200 OK' in protocol.transport.buffer
     assert b'Body: {"hello": "world"}' in protocol.transport.buffer
 
 
-def test_keepalive():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_keepalive(protocol_cls):
     def app(scope):
         return starlette.Response(b'', status_code=204)
 
-    protocol = get_connected_protocol(app)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b'HTTP/1.1 204 No Content' in protocol.transport.buffer
     assert not protocol.transport.is_closing()
 
 
-def test_close():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_close(protocol_cls):
     def app(scope):
         return starlette.Response(b'', status_code=204, headers={'connection': 'close'})
 
-    protocol = get_connected_protocol(app)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b'HTTP/1.1 204 No Content' in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
 
-def test_undersized_request():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_undersized_request(protocol_cls):
     def app(scope):
         return starlette.Response(b'xxx', headers={'content-length': 10})
 
-    protocol = get_connected_protocol(app)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert protocol.transport.is_closing()
 
 
-def test_oversized_request():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_oversized_request(protocol_cls):
     def app(scope):
         return starlette.Response(b'xxx' * 20, headers={'content-length': 10})
 
-    protocol = get_connected_protocol(app)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert protocol.transport.is_closing()
 
 
-def test_app_exception():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_app_exception(protocol_cls):
     @starlette.asgi_application
     async def app(request):
         raise Exception()
 
-    protocol = get_connected_protocol(app)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b'HTTP/1.1 500 Internal Server Error' in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
 
-def test_exception_during_response():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_app_init_exception(protocol_cls):
+    def app(scope):
+        raise Exception()
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b'HTTP/1.1 500 Internal Server Error' in protocol.transport.buffer
+    assert protocol.transport.is_closing()
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_exception_during_response(protocol_cls):
     async def streamer():
         for chunk in [b'1', b'2', b'3']:
             yield chunk
@@ -163,42 +184,45 @@ def test_exception_during_response():
     def app(request):
         return starlette.StreamingResponse(streamer())
 
-    protocol = get_connected_protocol(app)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b'HTTP/1.1 500 Internal Server Error' not in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
 
-def test_no_response_returned():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_no_response_returned(protocol_cls):
     class App:
         def __init__(self, scope):
             pass
         async def __call__(self, receive, send):
             pass
 
-    protocol = get_connected_protocol(App)
+    protocol = get_connected_protocol(App, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b'HTTP/1.1 500 Internal Server Error' in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
 
-def test_partial_response_returned():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_partial_response_returned(protocol_cls):
     class App:
         def __init__(self, scope):
             pass
         async def __call__(self, receive, send):
             await send({"type": "http.response.start", "status": 200})
 
-    protocol = get_connected_protocol(App)
+    protocol = get_connected_protocol(App, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b'HTTP/1.1 500 Internal Server Error' not in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
 
-def test_duplicate_start_message():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_duplicate_start_message(protocol_cls):
     class App:
         def __init__(self, scope):
             pass
@@ -206,28 +230,30 @@ def test_duplicate_start_message():
             await send({"type": "http.response.start", "status": 200})
             await send({"type": "http.response.start", "status": 200})
 
-    protocol = get_connected_protocol(App)
+    protocol = get_connected_protocol(App, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b'HTTP/1.1 500 Internal Server Error' not in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
 
-def test_missing_start_message():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_missing_start_message(protocol_cls):
     class App:
         def __init__(self, scope):
             pass
         async def __call__(self, receive, send):
             await send({"type": "http.response.body", "body": b""})
 
-    protocol = get_connected_protocol(App)
+    protocol = get_connected_protocol(App, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b'HTTP/1.1 500 Internal Server Error' in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
 
-def test_message_after_body_complete():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_message_after_body_complete(protocol_cls):
     class App:
         def __init__(self, scope):
             pass
@@ -236,14 +262,15 @@ def test_message_after_body_complete():
             await send({"type": "http.response.body", "body": b""})
             await send({"type": "http.response.body", "body": b""})
 
-    protocol = get_connected_protocol(App)
+    protocol = get_connected_protocol(App, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b'HTTP/1.1 200 OK' in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
 
-def test_value_returned():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_value_returned(protocol_cls):
     class App:
         def __init__(self, scope):
             pass
@@ -252,7 +279,7 @@ def test_value_returned():
             await send({"type": "http.response.body", "body": b""})
             return 123
 
-    protocol = get_connected_protocol(App)
+    protocol = get_connected_protocol(App, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b'HTTP/1.1 200 OK' in protocol.transport.buffer

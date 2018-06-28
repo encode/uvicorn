@@ -94,8 +94,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 
     def on_headers_complete(self):
         self.cycle = RequestResponseCycle(self.scope, self)
-        asgi = self.app(self.scope)
-        self.loop.create_task(self.cycle.run_asgi(asgi))
+        self.loop.create_task(self.cycle.run_asgi(self.app))
 
     def on_body(self, body: bytes):
         if self.cycle.response_complete:
@@ -149,10 +148,12 @@ class RequestResponseCycle:
         self.response_complete = False
         self.keep_alive = True
         self.chunked_encoding = None
+        self.expected_content_length = 0
 
     # ASGI exception wrapper
-    async def run_asgi(self, asgi):
+    async def run_asgi(self, app):
         try:
+            asgi = app(self.scope)
             result = await asgi(self.receive, self.send)
         except:
             msg = "Exception in ASGI application\n%s"
@@ -227,6 +228,7 @@ class RequestResponseCycle:
             for header_name, header_value in headers:
                 header_name = header_name.lower()
                 if header_name == b'content-length' and self.chunked_encoding is None:
+                    self.expected_content_length = int(header_value.decode())
                     self.chunked_encoding = False
                 elif header_name == b'transfer-encoding' and header_value.lower() == b'chunked':
                     self.chunked_encoding = True
@@ -262,10 +264,17 @@ class RequestResponseCycle:
                     content.append(b'0\r\n\r\n')
                 protocol.transport.write(b''.join(content))
             else:
+                num_bytes = len(body)
+                if num_bytes > self.expected_content_length:
+                    raise RuntimeError('Response content longer than Content-Length')
+                else:
+                    self.expected_content_length -= num_bytes
                 protocol.transport.write(body)
 
             # Handle response completion
             if not more_body:
+                if self.expected_content_length != 0:
+                    raise RuntimeError('Response content shorter than Content-Length')
                 self.response_complete = True
                 if not self.keep_alive:
                     protocol.transport.close()

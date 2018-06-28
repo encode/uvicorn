@@ -93,8 +93,7 @@ class H11Protocol(asyncio.Protocol):
                     "headers": event.headers,
                 }
                 self.cycle = RequestResponseCycle(scope, self)
-                asgi = self.app(scope)
-                self.loop.create_task(self.cycle.run_asgi(asgi))
+                self.loop.create_task(self.cycle.run_asgi(self.app))
 
             elif event_type is h11.Data:
                 if self.conn.our_state is h11.DONE:
@@ -150,8 +149,9 @@ class RequestResponseCycle:
         self.response_complete = False
 
     # ASGI exception wrapper
-    async def run_asgi(self, asgi):
+    async def run_asgi(self, app):
         try:
+            asgi = app(self.scope)
             result = await asgi(self.receive, self.send)
         except:
             msg = "Exception in ASGI application\n%s"
