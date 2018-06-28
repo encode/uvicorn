@@ -8,7 +8,7 @@ import sys
 import uvloop
 
 from gunicorn.workers.base import Worker
-from uvicorn.protocols import http
+from uvicorn.protocols.http import HttpToolsProtocol
 
 
 class UvicornWorker(Worker):
@@ -22,6 +22,7 @@ class UvicornWorker(Worker):
     * `uvloop` as the event loop policy.
     * `httptools` as the HTTP request parser.
     """
+    protocol_class = HttpToolsProtocol
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -85,13 +86,13 @@ class UvicornWorker(Worker):
 
     async def create_servers(self, loop):
         cfg = self.cfg
-        consumer = self.wsgi
+        app = self.wsgi
 
         ssl_ctx = self.create_ssl_context(self.cfg) if self.cfg.is_ssl else None
 
         for sock in self.sockets:
             state = {'total_requests': 0}
-            protocol = functools.partial(http.HttpProtocol, consumer=consumer, loop=loop, state=state)
+            protocol = functools.partial(self.protocol_class, app=app, loop=loop, state=state)
             server = await loop.create_server(protocol, sock=sock, ssl=ssl_ctx)
             self.servers.append((server, state))
 
@@ -110,7 +111,7 @@ class UvicornWorker(Worker):
         cycle = 0
 
         while self.alive:
-            http.set_time_and_date()
+            self.protocol_class.tick()
 
             cycle = (cycle + 1) % 10
             if cycle == 0:

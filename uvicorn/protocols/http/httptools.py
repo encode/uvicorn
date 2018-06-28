@@ -1,11 +1,21 @@
 import asyncio
+from email.utils import formatdate
 import http
 import logging
+import time
 import traceback
 from urllib.parse import unquote
 from uvicorn.protocols.websockets.websockets import websocket_upgrade
 
 import httptools
+
+
+def _get_default_headers():
+    current_time = time.time()
+    current_date = formatdate(current_time, usegmt=True).encode()
+    return b''.join([
+        b'server: uvicorn\r\ndate: ', current_date, b'\r\n'
+    ])
 
 
 def _get_status_line(status_code):
@@ -22,11 +32,14 @@ STATUS_LINE = {
     status_code: _get_status_line(status_code) for status_code in range(100, 600)
 }
 
+DEFAULT_HEADERS = _get_default_headers()
+
 
 class HttpToolsProtocol(asyncio.Protocol):
-    def __init__(self, app, loop=None, logger=None):
+    def __init__(self, app, loop=None, state=None, logger=None):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
+        self.state = {} if state is None else state
         self.logger = logger or logging.getLogger()
         self.access_logs = self.logger.level >= logging.INFO
         self.parser = httptools.HttpRequestParser(self)
@@ -48,7 +61,11 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.writable = True
         self.writable_event = asyncio.Event()
         self.writable_event.set()
-        self.keep_alive = True
+
+    @classmethod
+    def tick(cls):
+        global DEFAULT_HEADERS
+        DEFAULT_HEADERS = _get_default_headers()
 
     # Protocol interface
     def connection_made(self, transport):
@@ -232,6 +249,7 @@ class RequestResponseCycle:
             # Write response status line and headers
             content = [
                 STATUS_LINE[status_code],
+                DEFAULT_HEADERS
             ]
 
             for header_name, header_value in headers:

@@ -1,10 +1,21 @@
 import asyncio
+from email.utils import formatdate
 import http
 import logging
+import time
 import traceback
 from urllib.parse import unquote
 
 import h11
+
+
+def _get_default_headers():
+    current_time = time.time()
+    current_date = formatdate(current_time, usegmt=True).encode()
+    return [
+        ['server', 'uvicorn'],
+        ['date', current_date]
+    ]
 
 
 def _get_status_phrase(status_code):
@@ -18,11 +29,14 @@ STATUS_PHRASES = {
     status_code: _get_status_phrase(status_code) for status_code in range(100, 600)
 }
 
+DEFAULT_HEADERS = _get_default_headers()
+
 
 class H11Protocol(asyncio.Protocol):
-    def __init__(self, app, loop=None, logger=None):
+    def __init__(self, app, loop=None, state=None, logger=None):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
+        self.state = {} if state is None else state
         self.logger = logger or logging.getLogger()
         self.access_logs = self.logger.level >= logging.INFO
         self.conn = h11.Connection(h11.SERVER)
@@ -43,6 +57,11 @@ class H11Protocol(asyncio.Protocol):
         self.writable_event = asyncio.Event()
         self.writable_event.set()
 
+    @classmethod
+    def tick(cls):
+        global DEFAULT_HEADERS
+        DEFAULT_HEADERS = _get_default_headers()
+
     # Protocol interface
     def connection_made(self, transport):
         self.transport = transport
@@ -58,7 +77,7 @@ class H11Protocol(asyncio.Protocol):
 
         if self.cycle and self.cycle.more_body:
             self.cycle.disconnected = True
-        if self.conn.state != h11.ERROR:
+        if self.conn.our_state != h11.ERROR:
             event = h11.ConnectionClosed()
             self.conn.send(event)
         self.client_event.set()
@@ -191,6 +210,8 @@ class RequestResponseCycle:
 
     # ASGI interface
     async def send(self, message):
+        global DEFAULT_HEADERS
+
         protocol = self.protocol
         message_type = message["type"]
 
@@ -206,7 +227,7 @@ class RequestResponseCycle:
             self.response_started = True
 
             status_code = message["status"]
-            headers = message.get("headers", [])
+            headers = DEFAULT_HEADERS + message.get("headers", [])
 
             if protocol.access_logs:
                 protocol.logger.info(

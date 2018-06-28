@@ -61,7 +61,7 @@ class Server:
 
     async def tick(self):
         while not self.should_exit:
-            # http.set_time_and_date()
+            self.protocol_class.tick()
             await asyncio.sleep(1)
 
         self.logger.info("Stopping worker [{}]".format(self.pid))
