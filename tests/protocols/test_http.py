@@ -2,7 +2,46 @@ import asyncio
 from uvicorn.protocols.http import H11Protocol, HttpToolsProtocol
 import h11
 import pytest
-import starlette
+
+
+class Response:
+    charset = "utf-8"
+
+    def __init__(self, content, status_code=200, headers=None, media_type=None):
+        self.body = self.render(content)
+        self.status_code = status_code
+        self.headers = headers or {}
+        self.media_type = media_type
+        self.set_content_type()
+        self.set_content_length()
+
+    async def __call__(self, receive, send) -> None:
+        await send(
+            {
+                "type": "http.response.start",
+                "status": self.status_code,
+                "headers": [
+                    [key.encode(), value.encode()] for key, value in self.headers.items()
+                ],
+            }
+        )
+        await send({"type": "http.response.body", "body": self.body})
+
+    def render(self, content) -> bytes:
+        if isinstance(content, bytes):
+            return content
+        return content.encode(self.charset)
+
+    def set_content_length(self):
+        if "content-length" not in self.headers:
+            self.headers["content-length"] = str(len(self.body))
+
+    def set_content_type(self):
+        if self.media_type is not None and "content-type" not in self.headers:
+            content_type = self.media_type
+            if content_type.startswith("text/") and self.charset is not None:
+                content_type += "; charset=%s" % self.charset
+            self.headers["content-type"] = content_type
 
 
 SIMPLE_GET_REQUEST = b"\r\n".join([b"GET / HTTP/1.1", b"Host: example.org", b"", b""])
@@ -78,7 +117,7 @@ def get_connected_protocol(app, protocol_cls):
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_get_request(protocol_cls):
     def app(scope):
-        return starlette.Response("Hello, world", media_type="text/plain")
+        return Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -89,12 +128,20 @@ def test_get_request(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_post_request(protocol_cls):
-    @starlette.asgi_application
-    async def app(request):
-        body = await request.body()
-        return starlette.Response(b"Body: " + body, media_type="text/plain")
+    class App:
+        def __init__(self, scope):
+            self.scope = scope
+        async def __call__(self, receive, send):
+            body = b''
+            more_body = True
+            while more_body:
+                message = await receive()
+                body += message.get('body', b'')
+                more_body = message.get('more_body', False)
+            response = Response(b"Body: " + body, media_type="text/plain")
+            await response(receive, send)
 
-    protocol = get_connected_protocol(app, protocol_cls)
+    protocol = get_connected_protocol(App, protocol_cls)
     protocol.data_received(SIMPLE_POST_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
@@ -104,7 +151,7 @@ def test_post_request(protocol_cls):
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_keepalive(protocol_cls):
     def app(scope):
-        return starlette.Response(b"", status_code=204)
+        return Response(b"", status_code=204)
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -116,7 +163,7 @@ def test_keepalive(protocol_cls):
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_close(protocol_cls):
     def app(scope):
-        return starlette.Response(b"", status_code=204, headers={"connection": "close"})
+        return Response(b"", status_code=204, headers={"connection": "close"})
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -128,7 +175,7 @@ def test_close(protocol_cls):
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_undersized_request(protocol_cls):
     def app(scope):
-        return starlette.Response(b"xxx", headers={"content-length": 10})
+        return Response(b"xxx", headers={"content-length": 10})
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -139,7 +186,7 @@ def test_undersized_request(protocol_cls):
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_oversized_request(protocol_cls):
     def app(scope):
-        return starlette.Response(b"xxx" * 20, headers={"content-length": 10})
+        return Response(b"xxx" * 20, headers={"content-length": 10})
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -149,11 +196,13 @@ def test_oversized_request(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_app_exception(protocol_cls):
-    @starlette.asgi_application
-    async def app(request):
-        raise Exception()
+    class App:
+        def __init__(self, scope):
+            self.scope = scope
+        async def __call__(self, receive, send):
+            raise Exception()
 
-    protocol = get_connected_protocol(app, protocol_cls)
+    protocol = get_connected_protocol(App, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 500 Internal Server Error" in protocol.transport.buffer
@@ -174,16 +223,16 @@ def test_app_init_exception(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_exception_during_response(protocol_cls):
-    async def streamer():
-        for chunk in [b"1", b"2", b"3"]:
-            yield chunk
-        raise Exception()
+    class App:
+        def __init__(self, scope):
+            pass
 
-    @starlette.asgi_application
-    def app(request):
-        return starlette.StreamingResponse(streamer())
+        async def __call__(self, receive, send):
+            await send({"type": "http.response.start", "status": 200})
+            await send({"type": "http.response.body", "body": b"1", "more_body": True})
+            raise Exception()
 
-    protocol = get_connected_protocol(app, protocol_cls)
+    protocol = get_connected_protocol(App, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 500 Internal Server Error" not in protocol.transport.buffer
@@ -295,7 +344,7 @@ def test_value_returned(protocol_cls):
 def test_http10_request(protocol_cls):
     def app(scope):
         content = "Version: %s" % scope["http_version"]
-        return starlette.Response(content, media_type="text/plain")
+        return Response(content, media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(HTTP10_GET_REQUEST)
