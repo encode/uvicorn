@@ -25,7 +25,7 @@ HTTP_PROTOCOLS = {"h11": H11Protocol, "httptools": HttpToolsProtocol}
 @click.command()
 @click.argument("app")
 @click.option("--host", type=str, default="127.0.0.1", help="Host")
-@click.option("--port", type=int, default=5000, help="Port")
+@click.option("--port", type=int, default=8000, help="Port")
 @click.option("--loop", type=LOOP_CHOICES, default="uvloop", help="Event loop")
 @click.option("--http", type=HTTP_CHOICES, default="httptools", help="HTTP Handler")
 @click.option("--workers", type=int, default=1, help="Number of worker processes")
@@ -49,7 +49,7 @@ def main(app, host: str, port: int, loop: str, http: str, workers: int, log_leve
     server.run()
 
 
-def run(app, host="127.0.0.1", port=5000, log_level="info"):
+def run(app, host="127.0.0.1", port=8000, log_level="info"):
     log_level = LOG_LEVELS[log_level]
     logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
 
@@ -97,7 +97,7 @@ class Server:
         self,
         app,
         host="127.0.0.1",
-        port=5000,
+        port=8000,
         loop=None,
         logger=None,
         protocol_class=None,
