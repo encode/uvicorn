@@ -32,6 +32,13 @@ DEFAULT_HEADERS = _get_default_headers()
 
 
 class HttpToolsProtocol(asyncio.Protocol):
+    __slots__ = (
+        'app', 'loop', 'state', 'logger', 'access_logs', 'parser',
+        'transport', 'server', 'client', 'scheme',
+        'scope', 'headers', 'cycle', 'client_event',
+        'readable', 'writable', 'writable_event'
+    )
+
     def __init__(self, app, loop=None, state=None, logger=None):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
@@ -155,6 +162,12 @@ class HttpToolsProtocol(asyncio.Protocol):
 
 
 class RequestResponseCycle:
+    __slots__ = (
+        'scope', 'protocol',
+        'body', 'more_body', 'disconnected', 'receive_finished',
+        'response_started', 'response_complete', 'keep_alive', 'chunked_encoding', 'expected_content_length'
+    )
+
     def __init__(self, scope, protocol):
         self.scope = scope
         self.protocol = protocol
@@ -236,7 +249,7 @@ class RequestResponseCycle:
             if protocol.access_logs:
                 protocol.logger.info(
                     '%s - "%s %s HTTP/%s" %d',
-                    protocol.server[0],
+                    self.scope["server"][0],
                     self.scope["method"],
                     self.scope["path"],
                     self.scope["http_version"],
