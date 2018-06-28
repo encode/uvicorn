@@ -93,6 +93,9 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.headers.append((name.lower(), value))
 
     def on_headers_complete(self):
+        http_version = self.parser.get_http_version()
+        if http_version != "1.1":
+            self.scope["http_version"] = http_version
         self.cycle = RequestResponseCycle(self.scope, self)
         self.loop.create_task(self.cycle.run_asgi(self.app))
 

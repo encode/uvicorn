@@ -21,6 +21,13 @@ SIMPLE_POST_REQUEST = b'\r\n'.join([
     b'{"hello": "world"}'
 ])
 
+HTTP10_GET_REQUEST = b'\r\n'.join([
+    b'GET / HTTP/1.0',
+    b'Host: example.org',
+    b'',
+    b''
+])
+
 
 class MockTransport:
     def __init__(self, sockname=None, peername=None, sslcontext=False):
@@ -284,3 +291,17 @@ def test_value_returned(protocol_cls):
     protocol.loop.run_one()
     assert b'HTTP/1.1 200 OK' in protocol.transport.buffer
     assert protocol.transport.is_closing()
+
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_http10_request(protocol_cls):
+    def app(scope):
+        content = 'Version: %s' % scope['http_version']
+        return starlette.Response(content, media_type='text/plain')
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(HTTP10_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b'HTTP/1.1 200 OK' in protocol.transport.buffer
+    assert b'Version: 1.0' in protocol.transport.buffer
