@@ -18,9 +18,9 @@ def run_server(app):
     asyncio.set_event_loop(None)
     loop = asyncio.new_event_loop()
     protocol = functools.partial(HttpToolsProtocol, app=app, loop=loop)
-    create_server_task = loop.create_server(protocol, host='127.0.0.1')
+    create_server_task = loop.create_server(protocol, host="127.0.0.1")
     server = loop.run_until_complete(create_server_task)
-    url = 'ws://127.0.0.1:%d/' % server.sockets[0].getsockname()[1]
+    url = "ws://127.0.0.1:%d/" % server.sockets[0].getsockname()[1]
     try:
         # Run the event loop in a new thread.
         threading.Thread(target=run_loop, args=[loop]).start()
@@ -36,8 +36,10 @@ def test_invalid_upgrade():
         pass
 
     with run_server(app) as url:
-        url = url.replace('ws://', 'http://')
-        response = requests.get(url, headers={'upgrade': 'websocket', 'connection': 'upgrade'}, timeout=5)
+        url = url.replace("ws://", "http://")
+        response = requests.get(
+            url, headers={"upgrade": "websocket", "connection": "upgrade"}, timeout=5
+        )
         assert response.status_code == 403
 
 
@@ -48,8 +50,8 @@ def test_accept_connection():
 
         async def __call__(self, receive, send):
             message = await receive()
-            if message['type'] == 'websocket.connect':
-                await send({'type': 'websocket.accept'})
+            if message["type"] == "websocket.connect":
+                await send({"type": "websocket.accept"})
 
     async def open_connection(url):
         async with websockets.connect(url) as websocket:
@@ -69,9 +71,9 @@ def test_send_text_data_to_client():
 
         async def __call__(self, receive, send):
             message = await receive()
-            if message['type'] == 'websocket.connect':
-                await send({'type': 'websocket.accept'})
-                await send({'type': 'websocket.send', 'text': '123'})
+            if message["type"] == "websocket.connect":
+                await send({"type": "websocket.accept"})
+                await send({"type": "websocket.send", "text": "123"})
 
     async def get_data(url):
         async with websockets.connect(url) as websocket:
@@ -80,7 +82,7 @@ def test_send_text_data_to_client():
     with run_server(App) as url:
         loop = asyncio.new_event_loop()
         data = loop.run_until_complete(get_data(url))
-        assert data == '123'
+        assert data == "123"
         loop.close()
 
 
@@ -91,9 +93,9 @@ def test_send_binary_data_to_client():
 
         async def __call__(self, receive, send):
             message = await receive()
-            if message['type'] == 'websocket.connect':
-                await send({'type': 'websocket.accept'})
-                await send({'type': 'websocket.send', 'bytes': b'123'})
+            if message["type"] == "websocket.connect":
+                await send({"type": "websocket.accept"})
+                await send({"type": "websocket.send", "bytes": b"123"})
 
     async def get_data(url):
         async with websockets.connect(url) as websocket:
@@ -102,7 +104,7 @@ def test_send_binary_data_to_client():
     with run_server(App) as url:
         loop = asyncio.new_event_loop()
         data = loop.run_until_complete(get_data(url))
-        assert data == b'123'
+        assert data == b"123"
         loop.close()
 
 
@@ -113,8 +115,8 @@ def test_send_and_close_connection():
 
         async def __call__(self, receive, send):
             message = await receive()
-            if message['type'] == 'websocket.connect':
-                await send({'type': 'websocket.close', 'text': '123'})
+            if message["type"] == "websocket.connect":
+                await send({"type": "websocket.close", "text": "123"})
 
     async def get_data(url):
         async with websockets.connect(url) as websocket:
@@ -129,7 +131,7 @@ def test_send_and_close_connection():
     with run_server(App) as url:
         loop = asyncio.new_event_loop()
         (data, is_open) = loop.run_until_complete(get_data(url))
-        assert data == '123'
+        assert data == "123"
         assert not is_open
         loop.close()
 
@@ -142,22 +144,22 @@ def test_send_text_data_to_server():
         async def __call__(self, receive, send):
             while True:
                 message = await receive()
-                if message['type'] == 'websocket.connect':
-                    await send({'type': 'websocket.accept'})
-                if message['type'] == 'websocket.receive':
-                    data = message.get('text')
-                    await send({'type': 'websocket.send', 'text': data})
+                if message["type"] == "websocket.connect":
+                    await send({"type": "websocket.accept"})
+                if message["type"] == "websocket.receive":
+                    data = message.get("text")
+                    await send({"type": "websocket.send", "text": data})
                     return
 
     async def send_text(url):
         async with websockets.connect(url) as websocket:
-            await websocket.send('abc')
+            await websocket.send("abc")
             return await websocket.recv()
 
     with run_server(App) as url:
         loop = asyncio.new_event_loop()
         data = loop.run_until_complete(send_text(url))
-        assert data == 'abc'
+        assert data == "abc"
         loop.close()
 
 
@@ -169,22 +171,22 @@ def test_send_binary_data_to_server():
         async def __call__(self, receive, send):
             while True:
                 message = await receive()
-                if message['type'] == 'websocket.connect':
-                    await send({'type': 'websocket.accept'})
-                if message['type'] == 'websocket.receive':
-                    data = message.get('bytes')
-                    await send({'type': 'websocket.send', 'bytes': data})
+                if message["type"] == "websocket.connect":
+                    await send({"type": "websocket.accept"})
+                if message["type"] == "websocket.receive":
+                    data = message.get("bytes")
+                    await send({"type": "websocket.send", "bytes": data})
                     return
 
     async def send_text(url):
         async with websockets.connect(url) as websocket:
-            await websocket.send(b'abc')
+            await websocket.send(b"abc")
             return await websocket.recv()
 
     with run_server(App) as url:
         loop = asyncio.new_event_loop()
         data = loop.run_until_complete(send_text(url))
-        assert data == b'abc'
+        assert data == b"abc"
         loop.close()
 
 
@@ -195,10 +197,10 @@ def test_send_after_protocol_close():
 
         async def __call__(self, receive, send):
             message = await receive()
-            if message['type'] == 'websocket.connect':
-                await send({'type': 'websocket.close', 'text': '123'})
+            if message["type"] == "websocket.connect":
+                await send({"type": "websocket.close", "text": "123"})
                 with pytest.raises(Exception):
-                    await send({'type': 'websocket.send', 'text': '1234'})
+                    await send({"type": "websocket.send", "text": "1234"})
 
     async def get_data(url):
         async with websockets.connect(url) as websocket:
@@ -213,7 +215,7 @@ def test_send_after_protocol_close():
     with run_server(App) as url:
         loop = asyncio.new_event_loop()
         (data, is_open) = loop.run_until_complete(get_data(url))
-        assert data == '123'
+        assert data == "123"
         assert not is_open
         loop.close()
 
@@ -225,15 +227,17 @@ def test_subprotocols():
 
         async def __call__(self, receive, send):
             message = await receive()
-            if message['type'] == 'websocket.connect':
-                await send({'type': 'websocket.accept', 'subprotocol': 'proto1'})
+            if message["type"] == "websocket.connect":
+                await send({"type": "websocket.accept", "subprotocol": "proto1"})
 
     async def get_subprotocol(url):
-        async with websockets.connect(url, subprotocols=['proto1', 'proto2']) as websocket:
+        async with websockets.connect(
+            url, subprotocols=["proto1", "proto2"]
+        ) as websocket:
             return websocket.subprotocol
 
     with run_server(App) as url:
         loop = asyncio.new_event_loop()
         subprotocol = loop.run_until_complete(get_subprotocol(url))
-        assert subprotocol == 'proto1'
+        assert subprotocol == "proto1"
         loop.close()

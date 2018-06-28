@@ -14,7 +14,15 @@ class ConfigurationError(Exception):
 
 
 class Server:
-    def __init__(self, app, host='127.0.0.1', port=5000, loop=None, logger=None, protocol_class=None):
+    def __init__(
+        self,
+        app,
+        host="127.0.0.1",
+        port=5000,
+        loop=None,
+        logger=None,
+        protocol_class=None,
+    ):
         self.app = app
         self.host = host
         self.port = port
@@ -79,17 +87,14 @@ LOG_LEVELS = {
     "info": logging.INFO,
     "debug": logging.DEBUG,
 }
-HTTP_PROTOCOLS = {
-    "h11": H11Protocol,
-    "httptools": HttpToolsProtocol,
-}
+HTTP_PROTOCOLS = {"h11": H11Protocol, "httptools": HttpToolsProtocol}
 
 
 def load_app(app):
     if not isinstance(app, str):
         return app
 
-    if ':' not in app:
+    if ":" not in app:
         message = 'Invalid app string "{app}". Must be in format "<module>:<app>".'
         raise click.UsageError(message.format(app=app))
 
@@ -110,6 +115,7 @@ def load_app(app):
 def get_event_loop(loop):
     if loop == "uvloop":
         import uvloop
+
         asyncio.get_event_loop().close()
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     return asyncio.get_event_loop()

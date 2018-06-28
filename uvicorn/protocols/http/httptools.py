@@ -13,19 +13,15 @@ import httptools
 def _get_default_headers():
     current_time = time.time()
     current_date = formatdate(current_time, usegmt=True).encode()
-    return b''.join([
-        b'server: uvicorn\r\ndate: ', current_date, b'\r\n'
-    ])
+    return b"".join([b"server: uvicorn\r\ndate: ", current_date, b"\r\n"])
 
 
 def _get_status_line(status_code):
     try:
         phrase = http.HTTPStatus(status_code).phrase.encode()
     except ValueError:
-        phrase = b''
-    return b''.join([
-        b'HTTP/1.1 ', str(status_code).encode(), b' ', phrase, b'\r\n'
-    ])
+        phrase = b""
+    return b"".join([b"HTTP/1.1 ", str(status_code).encode(), b" ", phrase, b"\r\n"])
 
 
 STATUS_LINE = {
@@ -104,9 +100,9 @@ class HttpToolsProtocol(asyncio.Protocol):
             "server": self.server,
             "client": self.client,
             "scheme": self.scheme,
-            "method": method.decode('ascii'),
-            "path": parsed_url.path.decode('ascii'),
-            "query_string": parsed_url.query if parsed_url.query else b'',
+            "method": method.decode("ascii"),
+            "path": parsed_url.path.decode("ascii"),
+            "query_string": parsed_url.query if parsed_url.query else b"",
             "headers": self.headers,
         }
 
@@ -164,7 +160,7 @@ class RequestResponseCycle:
         self.protocol = protocol
 
         # Request state
-        self.body = b''
+        self.body = b""
         self.more_body = True
         self.disconnected = False
         self.receive_finished = False
@@ -204,18 +200,19 @@ class RequestResponseCycle:
                 self.protocol.transport.close()
 
     async def send_500_response(self):
-        await self.send({
-            "type": "http.response.start",
-            "status": 500,
-            "headers": [
-                (b"content-type", b"text/plain; charset=utf-8"),
-                (b"connection", b"close")
-            ]
-        })
-        await self.send({
-            "type": "http.response.body",
-            "body": b"Internal Server Error"
-        })
+        await self.send(
+            {
+                "type": "http.response.start",
+                "status": 500,
+                "headers": [
+                    (b"content-type", b"text/plain; charset=utf-8"),
+                    (b"connection", b"close"),
+                ],
+            }
+        )
+        await self.send(
+            {"type": "http.response.body", "body": b"Internal Server Error"}
+        )
 
     # ASGI interface
     async def send(self, message):
@@ -247,29 +244,26 @@ class RequestResponseCycle:
                 )
 
             # Write response status line and headers
-            content = [
-                STATUS_LINE[status_code],
-                DEFAULT_HEADERS
-            ]
+            content = [STATUS_LINE[status_code], DEFAULT_HEADERS]
 
-            for header_name, header_value in headers:
-                header_name = header_name.lower()
-                if header_name == b'content-length' and self.chunked_encoding is None:
-                    self.expected_content_length = int(header_value.decode())
+            for name, value in headers:
+                name = name.lower()
+                if name == b"content-length" and self.chunked_encoding is None:
+                    self.expected_content_length = int(value.decode())
                     self.chunked_encoding = False
-                elif header_name == b'transfer-encoding' and header_value.lower() == b'chunked':
+                elif name == b"transfer-encoding" and value.lower() == b"chunked":
                     self.chunked_encoding = True
-                elif header_name == b'connection' and header_value.lower() == b'close':
+                elif name == b"connection" and value.lower() == b"close":
                     self.keep_alive = False
-                content.extend([header_name, b': ', header_value, b'\r\n'])
+                content.extend([name, b": ", value, b"\r\n"])
 
             if self.chunked_encoding is None:
                 # Neither content-length nor transfer-encoding specified
                 self.chunked_encoding = True
-                content.append(b'transfer-encoding: chunked\r\n')
+                content.append(b"transfer-encoding: chunked\r\n")
 
-            content.append(b'\r\n')
-            protocol.transport.write(b''.join(content))
+            content.append(b"\r\n")
+            protocol.transport.write(b"".join(content))
 
         elif not self.response_complete:
             # Sending response body
@@ -282,18 +276,14 @@ class RequestResponseCycle:
 
             # Write response body
             if self.chunked_encoding:
-                content = [
-                    b'%x\r\n' % len(body),
-                    body,
-                    b'\r\n'
-                ]
+                content = [b"%x\r\n" % len(body), body, b"\r\n"]
                 if not more_body:
-                    content.append(b'0\r\n\r\n')
-                protocol.transport.write(b''.join(content))
+                    content.append(b"0\r\n\r\n")
+                protocol.transport.write(b"".join(content))
             else:
                 num_bytes = len(body)
                 if num_bytes > self.expected_content_length:
-                    raise RuntimeError('Response content longer than Content-Length')
+                    raise RuntimeError("Response content longer than Content-Length")
                 else:
                     self.expected_content_length -= num_bytes
                 protocol.transport.write(body)
@@ -301,7 +291,7 @@ class RequestResponseCycle:
             # Handle response completion
             if not more_body:
                 if self.expected_content_length != 0:
-                    raise RuntimeError('Response content shorter than Content-Length')
+                    raise RuntimeError("Response content shorter than Content-Length")
                 self.response_complete = True
                 if not self.keep_alive:
                     protocol.transport.close()
@@ -316,7 +306,7 @@ class RequestResponseCycle:
         protocol = self.protocol
 
         if self.receive_finished:
-            msg = 'Receive channel fully consumed.'
+            msg = "Receive channel fully consumed."
             raise RuntimeError(msg)
 
         if self.more_body and not self.body and not self.disconnected:
@@ -333,8 +323,8 @@ class RequestResponseCycle:
                 "body": self.body,
                 "more_body": self.more_body,
             }
-            self.receive_finished = not(self.more_body)
-            self.body = b''
+            self.receive_finished = not (self.more_body)
+            self.body = b""
             protocol.resume_reading()
 
         return message

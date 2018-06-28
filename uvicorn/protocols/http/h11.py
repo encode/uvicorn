@@ -12,17 +12,14 @@ import h11
 def _get_default_headers():
     current_time = time.time()
     current_date = formatdate(current_time, usegmt=True).encode()
-    return [
-        ['server', 'uvicorn'],
-        ['date', current_date]
-    ]
+    return [["server", "uvicorn"], ["date", current_date]]
 
 
 def _get_status_phrase(status_code):
     try:
         return http.HTTPStatus(status_code).phrase.encode()
     except ValueError:
-        return b''
+        return b""
 
 
 STATUS_PHRASES = {
@@ -158,7 +155,7 @@ class RequestResponseCycle:
         self.protocol = protocol
 
         # Request state
-        self.body = b''
+        self.body = b""
         self.more_body = True
         self.disconnected = False
         self.receive_finished = False
@@ -195,18 +192,19 @@ class RequestResponseCycle:
                 self.protocol.transport.close()
 
     async def send_500_response(self):
-        await self.send({
-            "type": "http.response.start",
-            "status": 500,
-            "headers": [
-                (b"content-type", b"text/plain; charset=utf-8"),
-                (b"connection", b"close")
-            ]
-        })
-        await self.send({
-            "type": "http.response.body",
-            "body": b"Internal Server Error"
-        })
+        await self.send(
+            {
+                "type": "http.response.start",
+                "status": 500,
+                "headers": [
+                    (b"content-type", b"text/plain; charset=utf-8"),
+                    (b"connection", b"close"),
+                ],
+            }
+        )
+        await self.send(
+            {"type": "http.response.body", "body": b"Internal Server Error"}
+        )
 
     # ASGI interface
     async def send(self, message):
@@ -241,7 +239,9 @@ class RequestResponseCycle:
 
             # Write response status line and headers
             reason = STATUS_PHRASES[status_code]
-            event = h11.Response(status_code=status_code, headers=headers, reason=reason)
+            event = h11.Response(
+                status_code=status_code, headers=headers, reason=reason
+            )
             output = protocol.conn.send(event)
             protocol.transport.write(output)
 
@@ -275,7 +275,10 @@ class RequestResponseCycle:
             event = h11.ConnectionClosed()
             protocol.conn.send(event)
             protocol.transport.close()
-        elif protocol.conn.our_state is h11.DONE and protocol.conn.their_state is h11.DONE:
+        elif (
+            protocol.conn.our_state is h11.DONE
+            and protocol.conn.their_state is h11.DONE
+        ):
             protocol.resume_reading()
             protocol.conn.start_next_cycle()
 
@@ -286,13 +289,13 @@ class RequestResponseCycle:
         # then raise an error. Allows us to stop buffering any more request
         # body to memory once the response has been sent.
         if self.response_complete:
-            msg = 'Response already sent. Receive channel no longer available.'
+            msg = "Response already sent. Receive channel no longer available."
             raise RuntimeError(msg)
 
         # If a client calls recieve again once we've already sent either
         # 'http.disconnect' or 'more_body=False' then raise an error.
         if self.receive_finished:
-            msg = 'Receive channel fully consumed.'
+            msg = "Receive channel fully consumed."
             raise RuntimeError(msg)
 
         if self.more_body and not self.body and not self.disconnected:
@@ -309,8 +312,8 @@ class RequestResponseCycle:
                 "body": self.body,
                 "more_body": self.more_body,
             }
-            self.receive_finished = not(self.more_body)
-            self.body = b''
+            self.receive_finished = not (self.more_body)
+            self.body = b""
             protocol.resume_reading()
 
         return message
