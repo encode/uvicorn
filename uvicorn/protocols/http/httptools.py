@@ -3,6 +3,7 @@ import http
 import logging
 import traceback
 from urllib.parse import unquote
+from uvicorn.protocols.websockets.websockets import websocket_upgrade
 
 import httptools
 
@@ -70,7 +71,10 @@ class HttpToolsProtocol(asyncio.Protocol):
         pass
 
     def data_received(self, data):
-        self.parser.feed_data(data)
+        try:
+            self.parser.feed_data(data)
+        except httptools.HttpParserUpgrade:
+            websocket_upgrade(self)
 
     # Parser callbacks
     def on_url(self, url):
@@ -96,18 +100,20 @@ class HttpToolsProtocol(asyncio.Protocol):
         http_version = self.parser.get_http_version()
         if http_version != "1.1":
             self.scope["http_version"] = http_version
+        if self.parser.should_upgrade():
+            return
         self.cycle = RequestResponseCycle(self.scope, self)
         self.loop.create_task(self.cycle.run_asgi(self.app))
 
     def on_body(self, body: bytes):
-        if self.cycle.response_complete:
+        if self.parser.should_upgrade() or self.cycle.response_complete:
             return
         self.cycle.body += body
         self.pause_reading()
         self.client_event.set()
 
     def on_message_complete(self):
-        if self.cycle.response_complete:
+        if self.parser.should_upgrade() or self.cycle.response_complete:
             return
         self.cycle.more_body = False
         self.pause_reading()

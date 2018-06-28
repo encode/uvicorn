@@ -31,14 +31,14 @@ def websocket_upgrade(http):
         'type': 'websocket',
         'subprotocols': subprotocols
     })
-    asgi_instance = http.consumer(http.scope)
+    asgi_instance = http.app(http.scope)
     request = WebSocketRequest(
         http,
         response_headers
     )
     http.loop.create_task(asgi_instance(request.receive, request.send))
     request.put_message({
-        'type': 'websocket.connect', 
+        'type': 'websocket.connect',
         'order': 0
     })
 
@@ -96,7 +96,7 @@ class WebSocketRequest:
         self.loop = asyncio.get_event_loop()
         self.receive_queue = asyncio.Queue()
         self.protocol = None
-        
+
     def put_message(self, message):
         self.receive_queue.put_nowait(message)
 
@@ -117,7 +117,6 @@ class WebSocketRequest:
             if subprotocol:
                 self.response_headers.append((b'Sec-WebSocket-Protocol', subprotocol.encode('utf-8')))
             protocol = WebSocketProtocol(self.http, self.response_headers)
-            protocol.connection_open()
             protocol.connection_made(self.http.transport, subprotocol)
             self.http.transport.set_protocol(protocol)
             self.protocol = protocol
@@ -157,7 +156,7 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
         self.handshake_headers = handshake_headers
         self.accepted = False
         self.loop = http.loop
-        self.consumer = http.consumer
+        self.app = http.app
         self.active_request = None
 
     def connection_made(self, transport, subprotocol):
