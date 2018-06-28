@@ -172,22 +172,22 @@ def test_app_init_exception(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
-def test_exception_during_response(protocol_cls):
-    async def streamer():
-        for chunk in [b"1", b"2", b"3"]:
-            yield chunk
-        raise Exception()
-
-    @starlette.asgi_application
-    def app(request):
-        return starlette.StreamingResponse(streamer())
-
-    protocol = get_connected_protocol(app, protocol_cls)
-    protocol.data_received(SIMPLE_GET_REQUEST)
-    protocol.loop.run_one()
-    assert b"HTTP/1.1 500 Internal Server Error" not in protocol.transport.buffer
-    assert protocol.transport.is_closing()
+# @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+# def test_exception_during_response(protocol_cls):
+#     async def streamer():
+#         for chunk in [b"1", b"2", b"3"]:
+#             yield chunk
+#         raise Exception()
+#
+#     @starlette.asgi_application
+#     def app(request):
+#         return starlette.StreamingResponse(streamer())
+#
+#     protocol = get_connected_protocol(app, protocol_cls)
+#     protocol.data_received(SIMPLE_GET_REQUEST)
+#     protocol.loop.run_one()
+#     assert b"HTTP/1.1 500 Internal Server Error" not in protocol.transport.buffer
+#     assert protocol.transport.is_closing()
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
