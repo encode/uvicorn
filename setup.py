@@ -32,15 +32,12 @@ def get_packages(package):
             if os.path.exists(os.path.join(dirpath, '__init__.py'))]
 
 
-version = get_version('uvicorn')
-
-
 setup(
     name='uvicorn',
-    version=version,
-    url='https://github.com/tomchristie/uvicorn',
+    version=get_version('uvicorn'),
+    url='https://github.com/encode/uvicorn',
     license='BSD',
-    description='The lightning-fast asyncio server.',
+    description='The lightning-fast ASGI server.',
     long_description=get_long_description(),
     long_description_content_type='text/markdown',
     author='Tom Christie',
