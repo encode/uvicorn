@@ -1,7 +1,8 @@
-gunicorn
+click
+h11
 httptools
 uvloop
-websockets
+websockets==3.3
 
 # Testing
 pytest

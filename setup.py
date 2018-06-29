@@ -7,8 +7,6 @@ import sys
 
 from setuptools import setup
 
-sys.dont_write_bytecode = True
-
 
 def get_version(package):
     """
@@ -16,6 +14,13 @@ def get_version(package):
     """
     init_py = open(os.path.join(package, '__init__.py')).read()
     return re.search("__version__ = ['\"]([^'\"]+)['\"]", init_py).group(1)
+
+
+def get_long_description():
+    """
+    Return the README.
+    """
+    return open('README.md', 'r').read()
 
 
 def get_packages(package):
@@ -35,15 +40,18 @@ setup(
     version=version,
     url='https://github.com/tomchristie/uvicorn',
     license='BSD',
-    description='An ASGI server, using Gunicorn and uvloop.',
+    description='The lightning-fast asyncio server.',
+    long_description=get_long_description(),
+    long_description_content_type='text/markdown',
     author='Tom Christie',
     author_email='tom@tomchristie.com',
     packages=get_packages('uvicorn'),
     install_requires=[
-        'gunicorn',
+        'click',
+        'h11',
         'httptools',
         'uvloop',
-        'websockets'
+        'websockets==3.3'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -55,9 +63,10 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
     entry_points="""
     [console_scripts]
-    uvicorn=uvicorn.main:run
+    uvicorn=uvicorn.main:main
     """
 )

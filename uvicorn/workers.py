@@ -8,7 +8,7 @@ import sys
 import uvloop
 
 from gunicorn.workers.base import Worker
-from uvicorn.protocols import http
+from uvicorn.protocols.http import H11Protocol, HttpToolsProtocol
 
 
 class UvicornWorker(Worker):
@@ -23,20 +23,25 @@ class UvicornWorker(Worker):
     * `httptools` as the HTTP request parser.
     """
 
+    protocol_class = HttpToolsProtocol
+    loop = "uvloop"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.servers = []
         self.exit_code = 0
+        self.log.level = self.log.loglevel
 
     def init_process(self):
-        # Close any existing event loop before setting a
-        # new policy.
-        asyncio.get_event_loop().close()
+        if self.loop == "uvloop":
+            # Close any existing event loop before setting a
+            # new policy.
+            asyncio.get_event_loop().close()
 
-        # Setup uvloop policy, so that every
-        # asyncio.get_event_loop() will create an instance
-        # of uvloop event loop.
-        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+            # Setup uvloop policy, so that every
+            # asyncio.get_event_loop() will create an instance
+            # of uvloop event loop.
+            asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
         super().init_process()
 
@@ -51,23 +56,19 @@ class UvicornWorker(Worker):
         # Set up signals through the event loop API.
         loop = asyncio.get_event_loop()
 
-        loop.add_signal_handler(signal.SIGQUIT, self.handle_quit,
-                                signal.SIGQUIT, None)
+        loop.add_signal_handler(signal.SIGQUIT, self.handle_quit, signal.SIGQUIT, None)
 
-        loop.add_signal_handler(signal.SIGTERM, self.handle_exit,
-                                signal.SIGTERM, None)
+        loop.add_signal_handler(signal.SIGTERM, self.handle_exit, signal.SIGTERM, None)
 
-        loop.add_signal_handler(signal.SIGINT, self.handle_quit,
-                                signal.SIGINT, None)
+        loop.add_signal_handler(signal.SIGINT, self.handle_quit, signal.SIGINT, None)
 
-        loop.add_signal_handler(signal.SIGWINCH, self.handle_winch,
-                                signal.SIGWINCH, None)
+        loop.add_signal_handler(
+            signal.SIGWINCH, self.handle_winch, signal.SIGWINCH, None
+        )
 
-        loop.add_signal_handler(signal.SIGUSR1, self.handle_usr1,
-                                signal.SIGUSR1, None)
+        loop.add_signal_handler(signal.SIGUSR1, self.handle_usr1, signal.SIGUSR1, None)
 
-        loop.add_signal_handler(signal.SIGABRT, self.handle_abort,
-                                signal.SIGABRT, None)
+        loop.add_signal_handler(signal.SIGABRT, self.handle_abort, signal.SIGABRT, None)
 
         # Don't let SIGTERM and SIGUSR1 disturb active requests
         # by interrupting system calls
@@ -85,13 +86,15 @@ class UvicornWorker(Worker):
 
     async def create_servers(self, loop):
         cfg = self.cfg
-        consumer = self.wsgi
+        app = self.wsgi
 
         ssl_ctx = self.create_ssl_context(self.cfg) if self.cfg.is_ssl else None
 
         for sock in self.sockets:
-            state = {'total_requests': 0}
-            protocol = functools.partial(http.HttpProtocol, consumer=consumer, loop=loop, state=state)
+            state = {"total_requests": 0}
+            protocol = functools.partial(
+                self.protocol_class, app=app, loop=loop, state=state, logger=self.log
+            )
             server = await loop.create_server(protocol, sock=sock, ssl=ssl_ctx)
             self.servers.append((server, state))
 
@@ -110,15 +113,13 @@ class UvicornWorker(Worker):
         cycle = 0
 
         while self.alive:
-            http.set_time_and_date()
+            self.protocol_class.tick()
 
             cycle = (cycle + 1) % 10
             if cycle == 0:
                 self.notify()
 
-            req_count = sum([
-                state['total_requests'] for server, state in self.servers
-            ])
+            req_count = sum([state["total_requests"] for server, state in self.servers])
             if self.max_requests and req_count > self.max_requests:
                 self.alive = False
                 self.log.info("Max requests exceeded, shutting down: %s", self)
@@ -132,3 +133,8 @@ class UvicornWorker(Worker):
             server.close()
             await server.wait_closed()
         loop.stop()
+
+
+class UvicornH11Worker(UvicornWorker):
+    protocol_class = H11Protocol
+    loop = "asyncio"
