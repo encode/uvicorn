@@ -3,9 +3,10 @@ from uvicorn.protocols.http import H11Protocol, HttpToolsProtocol
 import asyncio
 import click
 import importlib
-import signal
-import os
 import logging
+import os
+import pathlib
+import signal
 import sys
 
 
@@ -69,11 +70,14 @@ def load_app(app):
         message = 'Invalid app string "{app}". Must be in format "<module>:<app>".'
         raise click.UsageError(message.format(app=app))
 
-    module_str, _, attr = app.partition(":")
+    module_str, attr = app.split(":", 1)
+    module_path = pathlib.Path(module_str).resolve()
+    sys.path.insert(0, str(module_path.parent))
+
     try:
-        module = importlib.import_module(module_str)
+        module = importlib.import_module(module_path.name)
     except ModuleNotFoundError:
-        message = 'Error loading ASGI app. Could not import module "{module_str}".'
+        message = 'Error loading ASGI app. Could not find module "{module_str}".'
         raise click.UsageError(message.format(module_str=module_str))
 
     try:
