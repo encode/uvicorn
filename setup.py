@@ -51,7 +51,7 @@ setup(
         'h11',
         'httptools',
         'uvloop',
-        'websockets'
+        'websockets==3.3'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
