@@ -17,19 +17,19 @@ class WebSocketResponse:
 
     async def __call__(self, receive, send):
         self.send = send
+
         if self.persist:
             while True:
                 message = await receive()
-                handler = self.get_message_handler(message)
-                await handler(message)
+                await self.handle(message)
         else:
             message = await receive()
-            handler = self.get_message_handler(message)
-            await handler(message)
+            await self.handle(message)
 
-    def get_message_handler(self, message):
+    async def handle(self, message):
         message_type = message["type"].replace(".", "_")
-        return getattr(self, message_type)
+        handler = getattr(self, message_type)
+        await handler(message)
 
 
 def run_loop(loop):
