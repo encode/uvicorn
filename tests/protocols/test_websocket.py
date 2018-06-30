@@ -8,6 +8,30 @@ from contextlib import contextmanager
 from uvicorn.protocols.http import HttpToolsProtocol
 
 
+class WebSocketResponse:
+
+    persist = False
+
+    def __init__(self, scope):
+        self.scope = scope
+
+    async def __call__(self, receive, send):
+        self.send = send
+        if self.persist:
+            while True:
+                message = await receive()
+                handler = self.get_message_handler(message)
+                await handler(message)
+        else:
+            message = await receive()
+            handler = self.get_message_handler(message)
+            await handler(message)
+
+    def get_message_handler(self, message):
+        message_type = message["type"].replace(".", "_")
+        return getattr(self, message_type)
+
+
 def run_loop(loop):
     loop.run_forever()
     loop.close()
@@ -48,15 +72,10 @@ def test_invalid_upgrade():
 
 def test_accept_connection():
 
-    class App:
+    class App(WebSocketResponse):
 
-        def __init__(self, scope):
-            self.scope = scope
-
-        async def __call__(self, receive, send):
-            message = await receive()
-            if message["type"] == "websocket.connect":
-                await send({"type": "websocket.accept"})
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
         async with websockets.connect(url) as websocket:
@@ -71,16 +90,11 @@ def test_accept_connection():
 
 def test_send_text_data_to_client():
 
-    class App:
+    class App(WebSocketResponse):
 
-        def __init__(self, scope):
-            self.scope = scope
-
-        async def __call__(self, receive, send):
-            message = await receive()
-            if message["type"] == "websocket.connect":
-                await send({"type": "websocket.accept"})
-                await send({"type": "websocket.send", "text": "123"})
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+            await self.send({"type": "websocket.send", "text": "123"})
 
     async def get_data(url):
         async with websockets.connect(url) as websocket:
@@ -95,16 +109,11 @@ def test_send_text_data_to_client():
 
 def test_send_binary_data_to_client():
 
-    class App:
+    class App(WebSocketResponse):
 
-        def __init__(self, scope):
-            self.scope = scope
-
-        async def __call__(self, receive, send):
-            message = await receive()
-            if message["type"] == "websocket.connect":
-                await send({"type": "websocket.accept"})
-                await send({"type": "websocket.send", "bytes": b"123"})
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+            await self.send({"type": "websocket.send", "bytes": b"123"})
 
     async def get_data(url):
         async with websockets.connect(url) as websocket:
@@ -119,15 +128,10 @@ def test_send_binary_data_to_client():
 
 def test_send_and_close_connection():
 
-    class App:
+    class App(WebSocketResponse):
 
-        def __init__(self, scope):
-            self.scope = scope
-
-        async def __call__(self, receive, send):
-            message = await receive()
-            if message["type"] == "websocket.connect":
-                await send({"type": "websocket.close", "text": "123"})
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.close", "text": "123"})
 
     async def get_data(url):
         async with websockets.connect(url) as websocket:
@@ -149,20 +153,16 @@ def test_send_and_close_connection():
 
 def test_send_text_data_to_server():
 
-    class App:
+    class App(WebSocketResponse):
 
-        def __init__(self, scope):
-            self.scope = scope
+        persist = True
 
-        async def __call__(self, receive, send):
-            while True:
-                message = await receive()
-                if message["type"] == "websocket.connect":
-                    await send({"type": "websocket.accept"})
-                if message["type"] == "websocket.receive":
-                    data = message.get("text")
-                    await send({"type": "websocket.send", "text": data})
-                    return
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+        async def websocket_receive(self, message):
+            _text = message.get("text")
+            await self.send({"type": "websocket.send", "text": _text})
 
     async def send_text(url):
         async with websockets.connect(url) as websocket:
@@ -177,19 +177,17 @@ def test_send_text_data_to_server():
 
 
 def test_send_binary_data_to_server():
-    class App:
-        def __init__(self, scope):
-            self.scope = scope
 
-        async def __call__(self, receive, send):
-            while True:
-                message = await receive()
-                if message["type"] == "websocket.connect":
-                    await send({"type": "websocket.accept"})
-                if message["type"] == "websocket.receive":
-                    data = message.get("bytes")
-                    await send({"type": "websocket.send", "bytes": data})
-                    return
+    class App(WebSocketResponse):
+
+        persist = True
+
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+        async def websocket_receive(self, message):
+            _bytes = message.get("bytes")
+            await self.send({"type": "websocket.send", "bytes": _bytes})
 
     async def send_text(url):
         async with websockets.connect(url) as websocket:
@@ -204,16 +202,13 @@ def test_send_binary_data_to_server():
 
 
 def test_send_after_protocol_close():
-    class App:
-        def __init__(self, scope):
-            self.scope = scope
 
-        async def __call__(self, receive, send):
-            message = await receive()
-            if message["type"] == "websocket.connect":
-                await send({"type": "websocket.close", "text": "123"})
-                with pytest.raises(Exception):
-                    await send({"type": "websocket.send", "text": "1234"})
+    class App(WebSocketResponse):
+
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.close", "text": "123"})
+            with pytest.raises(Exception):
+                await self.send({"type": "websocket.send", "text": "1234"})
 
     async def get_data(url):
         async with websockets.connect(url) as websocket:
@@ -234,14 +229,11 @@ def test_send_after_protocol_close():
 
 
 def test_subprotocols():
-    class App:
-        def __init__(self, scope):
-            self.scope = scope
 
-        async def __call__(self, receive, send):
-            message = await receive()
-            if message["type"] == "websocket.connect":
-                await send({"type": "websocket.accept", "subprotocol": "proto1"})
+    class App(WebSocketResponse):
+
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept", "subprotocol": "proto1"})
 
     async def get_subprotocol(url):
         async with websockets.connect(
