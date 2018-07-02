@@ -110,6 +110,7 @@ class WebSocketRequest:
                 )
             protocol = WebSocketProtocol(self.http, self.response_headers)
             protocol.connection_made(self.http.transport, subprotocol)
+            protocol.connection_open()
             self.http.transport.set_protocol(protocol)
             self.protocol = protocol
             self.protocol.active_request = self
