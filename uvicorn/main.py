@@ -34,6 +34,7 @@ def main(app, host: str, port: int, loop: str, http: str, workers: int, log_leve
     log_level = LOG_LEVELS[log_level]
     logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
 
+    sys.path.insert(0, ".")
     app = load_app(app)
     loop = get_event_loop(loop)
     logger = logging.getLogger()
@@ -69,7 +70,7 @@ def load_app(app):
         message = 'Invalid app string "{app}". Must be in format "<module>:<app>".'
         raise click.UsageError(message.format(app=app))
 
-    module_str, _, attr = app.partition(":")
+    module_str, attrs = app.split(":", 1)
     try:
         module = importlib.import_module(module_str)
     except ModuleNotFoundError:
@@ -77,10 +78,13 @@ def load_app(app):
         raise click.UsageError(message.format(module_str=module_str))
 
     try:
-        return getattr(module, attr)
+        for attr in attrs.split('.'):
+            asgi_app = getattr(module, attr)
     except AttributeError:
-        message = 'Error loading ASGI app. No attribute "{attr}" found in module "{module_str}".'
-        raise click.UsageError(message.format(attr=attr, module_str=module_str))
+        message = 'Error loading ASGI app. No app "{attrs}" found in module "{module_str}".'
+        raise click.UsageError(message.format(attrs=attrs, module_str=module_str))
+
+    return asgi_app
 
 
 def get_event_loop(loop):
