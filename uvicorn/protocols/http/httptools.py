@@ -83,7 +83,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.access_logs:
             self.logger.debug("%s - Disconnected", self.server[0])
 
-        if self.cycle and self.cycle.more_body:
+        if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
         self.client_event.set()
 
@@ -237,6 +237,9 @@ class RequestResponseCycle:
     async def send(self, message):
         protocol = self.protocol
         message_type = message["type"]
+
+        if self.disconnected:
+            return
 
         if not protocol.writable:
             await protocol.writable_event.wait()
