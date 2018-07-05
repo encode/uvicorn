@@ -72,11 +72,15 @@ class H11Protocol(asyncio.Protocol):
         if self.access_logs:
             self.logger.debug("%s - Disconnected", self.server[0])
 
-        if self.cycle and self.cycle.more_body:
+        if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
         if self.conn.our_state != h11.ERROR:
             event = h11.ConnectionClosed()
-            self.conn.send(event)
+            try:
+                self.conn.send(event)
+            except h11.LocalProtocolError:
+                # Premature client disconnect
+                pass
         self.client_event.set()
 
     def eof_received(self):
@@ -214,6 +218,9 @@ class RequestResponseCycle:
 
         protocol = self.protocol
         message_type = message["type"]
+
+        if self.disconnected:
+            return
 
         if not protocol.writable:
             await protocol.writable_event.wait()

@@ -341,6 +341,17 @@ def test_value_returned(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_early_disconnect(protocol_cls):
+    def app(scope):
+        return Response(b"xxx", headers={"content-length": 10})
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.connection_lost(None)
+    protocol.loop.run_one()
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_http10_request(protocol_cls):
     def app(scope):
         content = "Version: %s" % scope["http_version"]
