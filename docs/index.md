@@ -84,10 +84,11 @@ To run uvicorn directly from your application...
 ```python
 import uvicorn
 
-...
+class App:
+    ...
 
 if __name__ == "__main__":
-    uvicorn.run("127.0.0.1", 5000, log_level="info")
+    uvicorn.run(App, "127.0.0.1", 5000, log_level="info")
 ```
 
 ## Running with Gunicorn
