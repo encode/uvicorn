@@ -299,6 +299,7 @@ class RequestResponseCycle:
                     self.expected_content_length = int(value.decode())
                     self.chunked_encoding = False
                 elif name == b"transfer-encoding" and value.lower() == b"chunked":
+                    self.expected_content_length = 0
                     self.chunked_encoding = True
                 elif name == b"connection" and value.lower() == b"close":
                     self.keep_alive = False
