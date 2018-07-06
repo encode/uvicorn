@@ -48,7 +48,7 @@ class App():
         })
         await send({
             'type': 'http.response.body',
-            'body': 'Hello, world!',
+            'body': b'Hello, world!',
         })
 ```
 
