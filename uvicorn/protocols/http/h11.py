@@ -104,7 +104,7 @@ class H11Protocol(asyncio.Protocol):
                 # of the active request/response cycle we handle any
                 # events that have been buffered up.
                 self.pause_reading()
-                self.cycle.done_callback = self.handle_events
+                self.cycle.done_callback = self.on_response_complete
                 break
 
             elif event_type is h11.Request:
@@ -136,8 +136,11 @@ class H11Protocol(asyncio.Protocol):
                     self.conn.start_next_cycle()
                     continue
                 self.cycle.more_body = False
-                self.pause_reading()
                 self.client_event.set()
+
+    def on_response_complete(self):
+        self.resume_reading()
+        self.handle_events()
 
     # Flow control
     def pause_reading(self):
