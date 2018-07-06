@@ -30,13 +30,16 @@ STATUS_LINE = {
 
 DEFAULT_HEADERS = _get_default_headers()
 
+HIGH_WATER_LIMIT = 65536
+
 
 class HttpToolsProtocol(asyncio.Protocol):
     __slots__ = (
         'app', 'loop', 'state', 'logger', 'access_logs', 'parser',
         'transport', 'server', 'client', 'scheme',
         'scope', 'headers', 'cycle', 'client_event',
-        'readable', 'writable', 'writable_event'
+        'readable', 'writable', 'writable_event',
+        'pipeline'
     )
 
     def __init__(self, app, loop=None, state=None, logger=None):
@@ -64,6 +67,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.writable = True
         self.writable_event = asyncio.Event()
         self.writable_event.set()
+
+        self.pipeline = []
 
     @classmethod
     def tick(cls):
@@ -126,22 +131,39 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.scope["http_version"] = http_version
         if self.parser.should_upgrade():
             return
+
+        existing_cycle = self.cycle
         self.cycle = RequestResponseCycle(self.scope, self)
-        self.loop.create_task(self.cycle.run_asgi(self.app))
+        if existing_cycle is None or existing_cycle.response_complete:
+            # Standard case - start processing the request.
+            self.loop.create_task(self.cycle.run_asgi(self.app))
+        else:
+            # Pipelined HTTP requests need to be queued up.
+            self.pause_reading()
+            existing_cycle.done_callback = self.on_response_complete
+            self.pipeline.insert(0, self.cycle)
 
     def on_body(self, body: bytes):
         if self.parser.should_upgrade() or self.cycle.response_complete:
             return
         self.cycle.body += body
-        self.pause_reading()
+        if len(self.cycle.body) > HIGH_WATER_LIMIT:
+            self.pause_reading()
         self.client_event.set()
 
     def on_message_complete(self):
         if self.parser.should_upgrade() or self.cycle.response_complete:
             return
         self.cycle.more_body = False
-        self.pause_reading()
         self.client_event.set()
+
+    def on_response_complete(self):
+        # Callback for pipelined HTTP requests to be started.
+        if self.pipeline and not self.transport.is_closing():
+            cycle = self.pipeline.pop()
+            self.loop.create_task(cycle.run_asgi(self.app))
+            if not self.pipeline:
+                self.resume_reading()
 
     # Flow control
     def pause_reading(self):
@@ -167,19 +189,20 @@ class HttpToolsProtocol(asyncio.Protocol):
 
 class RequestResponseCycle:
     __slots__ = (
-        'scope', 'protocol',
-        'body', 'more_body', 'disconnected', 'receive_finished',
+        'scope', 'protocol', 'disconnected', 'done_callback',
+        'body', 'more_body', 'receive_finished',
         'response_started', 'response_complete', 'keep_alive', 'chunked_encoding', 'expected_content_length'
     )
 
     def __init__(self, scope, protocol):
         self.scope = scope
         self.protocol = protocol
+        self.disconnected = False
+        self.done_callback = None
 
         # Request state
         self.body = b""
         self.more_body = True
-        self.disconnected = False
         self.receive_finished = False
 
         # Response state
@@ -217,6 +240,8 @@ class RequestResponseCycle:
                 self.protocol.transport.close()
         finally:
             self.protocol.state["total_requests"] += 1
+            if self.done_callback is not None:
+                self.done_callback()
 
     async def send_500_response(self):
         await self.send(
@@ -325,14 +350,14 @@ class RequestResponseCycle:
             raise RuntimeError(msg % message_type)
 
     async def receive(self):
-        protocol = self.protocol
-
         if self.receive_finished:
             msg = "Receive channel fully consumed."
             raise RuntimeError(msg)
 
+        protocol = self.protocol
+        protocol.resume_reading()
+
         if self.more_body and not self.body and not self.disconnected:
-            protocol.resume_reading()
             await protocol.client_event.wait()
             protocol.client_event.clear()
 
@@ -347,6 +372,5 @@ class RequestResponseCycle:
             }
             self.receive_finished = not (self.more_body)
             self.body = b""
-            protocol.resume_reading()
 
         return message

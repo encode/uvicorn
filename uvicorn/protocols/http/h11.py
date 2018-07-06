@@ -28,6 +28,8 @@ STATUS_PHRASES = {
 
 DEFAULT_HEADERS = _get_default_headers()
 
+HIGH_WATER_LIMIT = 65536
+
 
 class H11Protocol(asyncio.Protocol):
     def __init__(self, app, loop=None, state=None, logger=None):
@@ -88,15 +90,29 @@ class H11Protocol(asyncio.Protocol):
 
     def data_received(self, data):
         self.conn.receive_data(data)
+        self.handle_events()
+
+    def handle_events(self):
         while True:
-            event = self.conn.next_event()
+            try:
+                event = self.conn.next_event()
+            except h11.RemoteProtocolError:
+                msg = "Invalid HTTP request received."
+                self.logger.warn(msg)
+                self.transport.close()
+                return
             event_type = type(event)
 
             if event_type is h11.NEED_DATA:
                 break
 
             elif event_type is h11.PAUSED:
+                # This case can occur in HTTP pipelining, so we need to
+                # stop reading any more data, and ensure that at the end
+                # of the active request/response cycle we handle any
+                # events that have been buffered up.
                 self.pause_reading()
+                self.cycle.done_callback = self.on_response_complete
                 break
 
             elif event_type is h11.Request:
@@ -119,7 +135,8 @@ class H11Protocol(asyncio.Protocol):
                 if self.conn.our_state is h11.DONE:
                     continue
                 self.cycle.body += event.data
-                self.pause_reading()
+                if len(self.cycle.body) > HIGH_WATER_LIMIT:
+                    self.pause_reading()
                 self.client_event.set()
 
             elif event_type is h11.EndOfMessage:
@@ -128,8 +145,11 @@ class H11Protocol(asyncio.Protocol):
                     self.conn.start_next_cycle()
                     continue
                 self.cycle.more_body = False
-                self.pause_reading()
                 self.client_event.set()
+
+    def on_response_complete(self):
+        self.resume_reading()
+        self.handle_events()
 
     # Flow control
     def pause_reading(self):
@@ -157,11 +177,12 @@ class RequestResponseCycle:
     def __init__(self, scope, protocol):
         self.scope = scope
         self.protocol = protocol
+        self.disconnected = False
+        self.done_callback = None
 
         # Request state
         self.body = b""
         self.more_body = True
-        self.disconnected = False
         self.receive_finished = False
 
         # Response state
@@ -195,6 +216,8 @@ class RequestResponseCycle:
                 self.protocol.logger.error(msg, result)
                 self.protocol.transport.close()
         finally:
+            if self.done_callback is not None:
+                self.done_callback()
             self.protocol.state["total_requests"] += 1
 
     async def send_500_response(self):
