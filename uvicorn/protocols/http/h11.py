@@ -94,7 +94,13 @@ class H11Protocol(asyncio.Protocol):
 
     def handle_events(self):
         while True:
-            event = self.conn.next_event()
+            try:
+                event = self.conn.next_event()
+            except h11.RemoteProtocolError:
+                msg = "Invalid HTTP request received."
+                self.logger.warn(msg)
+                self.transport.close()
+                return
             event_type = type(event)
 
             if event_type is h11.NEED_DATA:

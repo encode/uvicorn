@@ -221,6 +221,16 @@ def test_oversized_request(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_invalid_http(protocol_cls):
+    def app(scope):
+        return Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(b'x' * 100000)
+    assert protocol.transport.is_closing()
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_app_exception(protocol_cls):
     class App:
         def __init__(self, scope):
