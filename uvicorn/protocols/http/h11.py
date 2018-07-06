@@ -88,6 +88,9 @@ class H11Protocol(asyncio.Protocol):
 
     def data_received(self, data):
         self.conn.receive_data(data)
+        self.handle_events()
+
+    def handle_events(self):
         while True:
             event = self.conn.next_event()
             event_type = type(event)
@@ -96,7 +99,12 @@ class H11Protocol(asyncio.Protocol):
                 break
 
             elif event_type is h11.PAUSED:
+                # This case can occur in HTTP pipelining, so we need to
+                # stop reading any more data, and ensure that at the end
+                # of the active request/response cycle we handle any
+                # events that have been buffered up.
                 self.pause_reading()
+                self.cycle.done_callback = self.handle_events
                 break
 
             elif event_type is h11.Request:
@@ -157,11 +165,12 @@ class RequestResponseCycle:
     def __init__(self, scope, protocol):
         self.scope = scope
         self.protocol = protocol
+        self.disconnected = False
+        self.done_callback = None
 
         # Request state
         self.body = b""
         self.more_body = True
-        self.disconnected = False
         self.receive_finished = False
 
         # Response state
@@ -195,6 +204,8 @@ class RequestResponseCycle:
                 self.protocol.logger.error(msg, result)
                 self.protocol.transport.close()
         finally:
+            if self.done_callback is not None:
+                self.done_callback()
             self.protocol.state["total_requests"] += 1
 
     async def send_500_response(self):

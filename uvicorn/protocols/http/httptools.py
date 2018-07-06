@@ -36,7 +36,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         'app', 'loop', 'state', 'logger', 'access_logs', 'parser',
         'transport', 'server', 'client', 'scheme',
         'scope', 'headers', 'cycle', 'client_event',
-        'readable', 'writable', 'writable_event'
+        'readable', 'writable', 'writable_event',
+        'pipeline'
     )
 
     def __init__(self, app, loop=None, state=None, logger=None):
@@ -64,6 +65,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.writable = True
         self.writable_event = asyncio.Event()
         self.writable_event.set()
+
+        self.pipeline = []
 
     @classmethod
     def tick(cls):
@@ -126,8 +129,16 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.scope["http_version"] = http_version
         if self.parser.should_upgrade():
             return
+
+        existing_cycle = self.cycle
         self.cycle = RequestResponseCycle(self.scope, self)
-        self.loop.create_task(self.cycle.run_asgi(self.app))
+        if existing_cycle is None or existing_cycle.response_complete:
+            # Standard case - start processing the request.
+            self.loop.create_task(self.cycle.run_asgi(self.app))
+        else:
+            # Pipelined HTTP requests need to be queued up.
+            existing_cycle.done_callback = self.on_response_complete
+            self.pipeline.insert(0, self.cycle)
 
     def on_body(self, body: bytes):
         if self.parser.should_upgrade() or self.cycle.response_complete:
@@ -142,6 +153,12 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.cycle.more_body = False
         self.pause_reading()
         self.client_event.set()
+
+    def on_response_complete(self):
+        # Callback for pipelined HTTP requests to be started.
+        if self.pipeline and not self.transport.is_closing():
+            cycle = self.pipeline.pop()
+            self.loop.create_task(cycle.run_asgi(self.app))
 
     # Flow control
     def pause_reading(self):
@@ -167,19 +184,20 @@ class HttpToolsProtocol(asyncio.Protocol):
 
 class RequestResponseCycle:
     __slots__ = (
-        'scope', 'protocol',
-        'body', 'more_body', 'disconnected', 'receive_finished',
+        'scope', 'protocol', 'disconnected', 'done_callback',
+        'body', 'more_body', 'receive_finished',
         'response_started', 'response_complete', 'keep_alive', 'chunked_encoding', 'expected_content_length'
     )
 
     def __init__(self, scope, protocol):
         self.scope = scope
         self.protocol = protocol
+        self.disconnected = False
+        self.done_callback = None
 
         # Request state
         self.body = b""
         self.more_body = True
-        self.disconnected = False
         self.receive_finished = False
 
         # Response state
@@ -217,6 +235,8 @@ class RequestResponseCycle:
                 self.protocol.transport.close()
         finally:
             self.protocol.state["total_requests"] += 1
+            if self.done_callback is not None:
+                self.done_callback()
 
     async def send_500_response(self):
         await self.send(
