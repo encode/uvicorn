@@ -162,6 +162,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.pipeline and not self.transport.is_closing():
             cycle = self.pipeline.pop()
             self.loop.create_task(cycle.run_asgi(self.app))
+            if not self.pipeline:
+                self.resume_reading()
 
     # Flow control
     def pause_reading(self):
@@ -348,14 +350,14 @@ class RequestResponseCycle:
             raise RuntimeError(msg % message_type)
 
     async def receive(self):
-        protocol = self.protocol
-
         if self.receive_finished:
             msg = "Receive channel fully consumed."
             raise RuntimeError(msg)
 
+        protocol = self.protocol
+        protocol.resume_reading()
+
         if self.more_body and not self.body and not self.disconnected:
-            protocol.resume_reading()
             await protocol.client_event.wait()
             protocol.client_event.clear()
 
@@ -370,6 +372,5 @@ class RequestResponseCycle:
             }
             self.receive_finished = not (self.more_body)
             self.body = b""
-            protocol.resume_reading()
 
         return message
