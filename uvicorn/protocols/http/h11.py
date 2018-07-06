@@ -315,8 +315,6 @@ class RequestResponseCycle:
             protocol.conn.start_next_cycle()
 
     async def receive(self):
-        protocol = self.protocol
-
         # If a client calls recieve once they've already sent the response
         # then raise an error. Allows us to stop buffering any more request
         # body to memory once the response has been sent.
@@ -330,8 +328,10 @@ class RequestResponseCycle:
             msg = "Receive channel fully consumed."
             raise RuntimeError(msg)
 
+        protocol = self.protocol
+        protocol.resume_reading()
+
         if self.more_body and not self.body and not self.disconnected:
-            protocol.resume_reading()
             await protocol.client_event.wait()
             protocol.client_event.clear()
 
@@ -346,6 +346,5 @@ class RequestResponseCycle:
             }
             self.receive_finished = not (self.more_body)
             self.body = b""
-            protocol.resume_reading()
 
         return message

@@ -299,6 +299,7 @@ class RequestResponseCycle:
                     self.expected_content_length = int(value.decode())
                     self.chunked_encoding = False
                 elif name == b"transfer-encoding" and value.lower() == b"chunked":
+                    self.expected_content_length = 0
                     self.chunked_encoding = True
                 elif name == b"connection" and value.lower() == b"close":
                     self.keep_alive = False
@@ -350,6 +351,15 @@ class RequestResponseCycle:
             raise RuntimeError(msg % message_type)
 
     async def receive(self):
+        # If a client calls recieve once they've already sent the response
+        # then raise an error. Allows us to stop buffering any more request
+        # body to memory once the response has been sent.
+        if self.response_complete:
+            msg = "Response already sent. Receive channel no longer available."
+            raise RuntimeError(msg)
+
+        # If a client calls recieve again once we've already sent either
+        # 'http.disconnect' or 'more_body=False' then raise an error.
         if self.receive_finished:
             msg = "Receive channel fully consumed."
             raise RuntimeError(msg)

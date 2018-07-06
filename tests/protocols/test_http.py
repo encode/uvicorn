@@ -57,6 +57,31 @@ SIMPLE_POST_REQUEST = b"\r\n".join(
     ]
 )
 
+LARGE_POST_REQUEST = b"\r\n".join(
+    [
+        b"POST / HTTP/1.1",
+        b"Host: example.org",
+        b"Content-Type: text/plain",
+        b"Content-Length: 100000",
+        b"",
+        b'x' * 100000,
+    ]
+)
+
+START_POST_REQUEST = b"\r\n".join(
+    [
+        b"POST / HTTP/1.1",
+        b"Host: example.org",
+        b"Content-Type: application/json",
+        b"Content-Length: 18",
+        b"",
+        b"",
+    ]
+)
+
+FINISH_POST_REQUEST = b'{"hello": "world"}'
+
+
 HTTP10_GET_REQUEST = b"\r\n".join([b"GET / HTTP/1.0", b"Host: example.org", b"", b""])
 
 
@@ -173,6 +198,19 @@ def test_close(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_chunked_encoding(protocol_cls):
+    def app(scope):
+        return Response(b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"})
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"0\r\n\r\n" in protocol.transport.buffer
+    assert not protocol.transport.is_closing()
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_pipelined_requests(protocol_cls):
     def app(scope):
         return Response("Hello, world", media_type="text/plain")
@@ -201,7 +239,7 @@ def test_pipelined_requests(protocol_cls):
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_undersized_request(protocol_cls):
     def app(scope):
-        return Response(b"xxx", headers={"content-length": 10})
+        return Response(b"xxx", headers={"content-length": "10"})
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -212,7 +250,7 @@ def test_undersized_request(protocol_cls):
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_oversized_request(protocol_cls):
     def app(scope):
-        return Response(b"xxx" * 20, headers={"content-length": 10})
+        return Response(b"xxx" * 20, headers={"content-length": "10"})
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -221,10 +259,20 @@ def test_oversized_request(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
-def test_invalid_http(protocol_cls):
+def test_large_post_request(protocol_cls):
     def app(scope):
         return Response("Hello, world", media_type="text/plain")
 
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(LARGE_POST_REQUEST)
+    assert protocol.transport.read_paused
+    protocol.loop.run_one()
+    assert not protocol.transport.read_paused
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_invalid_http(protocol_cls):
+    app = lambda scope: None
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(b'x' * 100000)
     assert protocol.transport.is_closing()
@@ -378,13 +426,87 @@ def test_value_returned(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_early_disconnect(protocol_cls):
-    def app(scope):
-        return Response(b"xxx", headers={"content-length": 10})
+    got_disconnect_event = False
 
-    protocol = get_connected_protocol(app, protocol_cls)
-    protocol.data_received(SIMPLE_GET_REQUEST)
+    class App:
+        def __init__(self, scope):
+            pass
+
+        async def __call__(self, receive, send):
+            nonlocal got_disconnect_event
+
+            message = await receive()
+            while message['type'] != 'http.disconnect':
+                continue
+            got_disconnect_event = True
+
+    protocol = get_connected_protocol(App, protocol_cls)
+    protocol.data_received(SIMPLE_POST_REQUEST)
+    protocol.eof_received()
     protocol.connection_lost(None)
     protocol.loop.run_one()
+    assert got_disconnect_event
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_early_response(protocol_cls):
+    def app(scope):
+        return Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(START_POST_REQUEST)
+    protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    protocol.data_received(FINISH_POST_REQUEST)
+    assert not protocol.transport.is_closing()
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_read_past_end_of_stream(protocol_cls):
+    read_past_end_of_stream_error = False
+
+    class App:
+        def __init__(self, scope):
+            pass
+
+        async def __call__(self, receive, send):
+            nonlocal read_past_end_of_stream_error
+
+            message = await receive()
+            try:
+                message = await receive()
+            except:
+                read_past_end_of_stream_error = True
+
+    protocol = get_connected_protocol(App, protocol_cls)
+    protocol.data_received(SIMPLE_POST_REQUEST)
+    protocol.loop.run_one()
+    assert read_past_end_of_stream_error
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_read_after_response(protocol_cls):
+    read_after_response_error = False
+
+    class App:
+        def __init__(self, scope):
+            pass
+
+        async def __call__(self, receive, send):
+            nonlocal read_after_response_error
+
+            response = Response("Hello, world", media_type="text/plain")
+            await response(receive, send)
+            try:
+                message = await receive()
+            except:
+                read_after_response_error = True
+
+    protocol = get_connected_protocol(App, protocol_cls)
+    protocol.data_received(SIMPLE_POST_REQUEST)
+    protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert read_after_response_error
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
