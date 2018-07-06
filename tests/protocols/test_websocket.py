@@ -59,8 +59,7 @@ def run_server(app):
 
 def test_invalid_upgrade():
 
-    def app(scope):
-        pass
+    app = lambda scope: None
 
     with run_server(app) as url:
         url = url.replace("ws://", "http://")
