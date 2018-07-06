@@ -28,6 +28,8 @@ STATUS_PHRASES = {
 
 DEFAULT_HEADERS = _get_default_headers()
 
+HIGH_WATER_LIMIT = 65536
+
 
 class H11Protocol(asyncio.Protocol):
     def __init__(self, app, loop=None, state=None, logger=None):
@@ -127,7 +129,8 @@ class H11Protocol(asyncio.Protocol):
                 if self.conn.our_state is h11.DONE:
                     continue
                 self.cycle.body += event.data
-                self.pause_reading()
+                if len(self.cycle.body) > HIGH_WATER_LIMIT:
+                    self.pause_reading()
                 self.client_event.set()
 
             elif event_type is h11.EndOfMessage:

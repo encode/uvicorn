@@ -30,6 +30,8 @@ STATUS_LINE = {
 
 DEFAULT_HEADERS = _get_default_headers()
 
+HIGH_WATER_LIMIT = 65536
+
 
 class HttpToolsProtocol(asyncio.Protocol):
     __slots__ = (
@@ -145,7 +147,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.parser.should_upgrade() or self.cycle.response_complete:
             return
         self.cycle.body += body
-        self.pause_reading()
+        if len(self.cycle.body) > HIGH_WATER_LIMIT:
+            self.pause_reading()
         self.client_event.set()
 
     def on_message_complete(self):
