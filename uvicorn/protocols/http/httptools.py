@@ -137,6 +137,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.loop.create_task(self.cycle.run_asgi(self.app))
         else:
             # Pipelined HTTP requests need to be queued up.
+            self.pause_reading()
             existing_cycle.done_callback = self.on_response_complete
             self.pipeline.insert(0, self.cycle)
 
@@ -151,7 +152,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.parser.should_upgrade() or self.cycle.response_complete:
             return
         self.cycle.more_body = False
-        self.pause_reading()
         self.client_event.set()
 
     def on_response_complete(self):
