@@ -350,6 +350,15 @@ class RequestResponseCycle:
             raise RuntimeError(msg % message_type)
 
     async def receive(self):
+        # If a client calls recieve once they've already sent the response
+        # then raise an error. Allows us to stop buffering any more request
+        # body to memory once the response has been sent.
+        if self.response_complete:
+            msg = "Response already sent. Receive channel no longer available."
+            raise RuntimeError(msg)
+
+        # If a client calls recieve again once we've already sent either
+        # 'http.disconnect' or 'more_body=False' then raise an error.
         if self.receive_finished:
             msg = "Receive channel fully consumed."
             raise RuntimeError(msg)
