@@ -462,29 +462,6 @@ def test_early_response(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
-def test_read_past_end_of_stream(protocol_cls):
-    read_past_end_of_stream_error = False
-
-    class App:
-        def __init__(self, scope):
-            pass
-
-        async def __call__(self, receive, send):
-            nonlocal read_past_end_of_stream_error
-
-            message = await receive()
-            try:
-                message = await receive()
-            except:
-                read_past_end_of_stream_error = True
-
-    protocol = get_connected_protocol(App, protocol_cls)
-    protocol.data_received(SIMPLE_POST_REQUEST)
-    protocol.loop.run_one()
-    assert read_past_end_of_stream_error
-
-
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_read_after_response(protocol_cls):
     read_after_response_error = False
 
