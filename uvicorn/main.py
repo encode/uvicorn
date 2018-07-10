@@ -33,11 +33,11 @@ HTTP_PROTOCOLS = {"h11": H11Protocol, "httptools": HttpToolsProtocol}
 def main(app, host: str, port: int, loop: str, http: str, workers: int, log_level: str):
     log_level = LOG_LEVELS[log_level]
     logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
+    logger = logging.getLogger()
+    loop = get_event_loop(loop)
 
     sys.path.insert(0, ".")
     app = load_app(app)
-    loop = get_event_loop(loop)
-    logger = logging.getLogger()
     protocol_class = HTTP_PROTOCOLS[http]
 
     if workers != 1:
