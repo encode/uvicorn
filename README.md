@@ -11,7 +11,7 @@
 [![Build Status](https://travis-ci.org/encode/uvicorn.svg?branch=master)](https://travis-ci.org/encode/uvicorn)
 [![Package version](https://badge.fury.io/py/uvicorn.svg)](https://pypi.python.org/pypi/uvicorn)
 
-**Documentation**: [http://www.uvicorn.org](http://www.uvicorn.org)
+**Documentation**: [https://www.uvicorn.org](https://www.uvicorn.org)
 
 **Requirements**: Python 3.5.3+
 
