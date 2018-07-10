@@ -73,7 +73,9 @@ def load_app(app):
     module_str, attrs = app.split(":", 1)
     try:
         module = importlib.import_module(module_str)
-    except ModuleNotFoundError:
+    except ModuleNotFoundError as exc:
+        if exc.name != module_str:
+            raise
         message = 'Error loading ASGI app. Could not import module "{module_str}".'
         raise click.UsageError(message.format(module_str=module_str))
 
