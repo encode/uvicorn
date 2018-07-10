@@ -183,7 +183,6 @@ class RequestResponseCycle:
         # Request state
         self.body = b""
         self.more_body = True
-        self.receive_finished = False
 
         # Response state
         self.response_started = False
@@ -322,12 +321,6 @@ class RequestResponseCycle:
             msg = "Response already sent. Receive channel no longer available."
             raise RuntimeError(msg)
 
-        # If a client calls recieve again once we've already sent either
-        # 'http.disconnect' or 'more_body=False' then raise an error.
-        if self.receive_finished:
-            msg = "Receive channel fully consumed."
-            raise RuntimeError(msg)
-
         protocol = self.protocol
         protocol.resume_reading()
 
@@ -337,14 +330,12 @@ class RequestResponseCycle:
 
         if self.disconnected:
             message = {"type": "http.disconnect"}
-            self.receive_finished = True
         else:
             message = {
                 "type": "http.request",
                 "body": self.body,
                 "more_body": self.more_body,
             }
-            self.receive_finished = not (self.more_body)
             self.body = b""
 
         return message
