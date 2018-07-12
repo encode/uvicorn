@@ -119,9 +119,17 @@ class Server:
         self.protocol_class = protocol_class
 
     def set_signal_handlers(self):
-        handled = (signal.SIGQUIT, signal.SIGTERM, signal.SIGINT, signal.SIGABRT)
-        for sig in handled:
-            self.loop.add_signal_handler(sig, self.handle_exit, sig, None)
+        handled = (
+            signal.SIGINT,       # Unix signal 2. Sent by Ctrl+C.
+            signal.SIGTERM,      # Unix signal 15. Sent by `kill <pid>`.
+        )
+        try:
+            for sig in handled:
+                self.loop.add_signal_handler(sig, self.handle_exit, sig, None)
+        except NotImplementedError:
+            # Windows
+            for sig in handled:
+                signal.signal(sig, self.handle_exit)
 
     def run(self):
         self.set_signal_handlers()
