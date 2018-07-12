@@ -124,11 +124,12 @@ class Server:
             signal.SIGTERM,      # Unix signal 15. Sent by `kill <pid>`.
         )
         try:
-            for signal_name in handled:
+            for sig in handled:
                 self.loop.add_signal_handler(sig, self.handle_exit, sig, None)
         except NotImplementedError:
             # Windows
-            signal.signal(sig, self.handle_exit)
+            for sig in handled:
+                signal.signal(sig, self.handle_exit)
 
     def run(self):
         self.set_signal_handlers()
