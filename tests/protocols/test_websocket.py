@@ -5,7 +5,7 @@ import requests
 import pytest
 import websockets
 from contextlib import contextmanager
-from uvicorn.protocols.http import HttpToolsProtocol
+from uvicorn.protocols.http import HttpToolsProtocol, H11Protocol
 
 
 class WebSocketResponse:
@@ -38,10 +38,10 @@ def run_loop(loop):
 
 
 @contextmanager
-def run_server(app):
+def run_server(app, protocol_cls):
     asyncio.set_event_loop(None)
     loop = asyncio.new_event_loop()
-    protocol = functools.partial(HttpToolsProtocol, app=app, loop=loop)
+    protocol = functools.partial(protocol_cls, app=app, loop=loop)
     create_server_task = loop.create_server(protocol, host="127.0.0.1")
     server = loop.run_until_complete(create_server_task)
     url = "ws://127.0.0.1:%d/" % server.sockets[0].getsockname()[1]
@@ -57,11 +57,12 @@ def run_server(app):
         thread.join()
 
 
-def test_invalid_upgrade():
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_invalid_upgrade(protocol_cls):
 
     app = lambda scope: None
 
-    with run_server(app) as url:
+    with run_server(app, protocol_cls=protocol_cls) as url:
         url = url.replace("ws://", "http://")
         response = requests.get(
             url, headers={"upgrade": "websocket", "connection": "upgrade"}, timeout=5
@@ -69,10 +70,9 @@ def test_invalid_upgrade():
         assert response.status_code == 403
 
 
-def test_accept_connection():
-
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_accept_connection(protocol_cls):
     class App(WebSocketResponse):
-
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.accept"})
 
@@ -80,17 +80,16 @@ def test_accept_connection():
         async with websockets.connect(url) as websocket:
             return websocket.open
 
-    with run_server(App) as url:
+    with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         is_open = loop.run_until_complete(open_connection(url))
         assert is_open
         loop.close()
 
 
-def test_send_text_data_to_client():
-
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_send_text_data_to_client(protocol_cls):
     class App(WebSocketResponse):
-
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.accept"})
             await self.send({"type": "websocket.send", "text": "123"})
@@ -99,17 +98,16 @@ def test_send_text_data_to_client():
         async with websockets.connect(url) as websocket:
             return await websocket.recv()
 
-    with run_server(App) as url:
+    with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         data = loop.run_until_complete(get_data(url))
         assert data == "123"
         loop.close()
 
 
-def test_send_binary_data_to_client():
-
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_send_binary_data_to_client(protocol_cls):
     class App(WebSocketResponse):
-
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.accept"})
             await self.send({"type": "websocket.send", "bytes": b"123"})
@@ -118,17 +116,16 @@ def test_send_binary_data_to_client():
         async with websockets.connect(url) as websocket:
             return await websocket.recv()
 
-    with run_server(App) as url:
-        loop = asyncio.new_event_loop()
-        data = loop.run_until_complete(get_data(url))
-        assert data == b"123"
-        loop.close()
+        with run_server(App, protocol_cls=protocol_cls) as url:
+            loop = asyncio.new_event_loop()
+            data = loop.run_until_complete(get_data(url))
+            assert data == b"123"
+            loop.close()
 
 
-def test_send_and_close_connection():
-
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_send_and_close_connection(protocol_cls):
     class App(WebSocketResponse):
-
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.close", "text": "123"})
 
@@ -142,7 +139,7 @@ def test_send_and_close_connection():
                 is_open = False
             return (data, is_open)
 
-    with run_server(App) as url:
+    with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         (data, is_open) = loop.run_until_complete(get_data(url))
         assert data == "123"
@@ -150,8 +147,8 @@ def test_send_and_close_connection():
         loop.close()
 
 
-def test_send_text_data_to_server():
-
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_send_text_data_to_server(protocol_cls):
     class App(WebSocketResponse):
 
         persist = True
@@ -168,15 +165,15 @@ def test_send_text_data_to_server():
             await websocket.send("abc")
             return await websocket.recv()
 
-    with run_server(App) as url:
+    with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         data = loop.run_until_complete(send_text(url))
         assert data == "abc"
         loop.close()
 
 
-def test_send_binary_data_to_server():
-
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_send_binary_data_to_server(protocol_cls):
     class App(WebSocketResponse):
 
         persist = True
@@ -193,17 +190,16 @@ def test_send_binary_data_to_server():
             await websocket.send(b"abc")
             return await websocket.recv()
 
-    with run_server(App) as url:
+    with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         data = loop.run_until_complete(send_text(url))
         assert data == b"abc"
         loop.close()
 
 
-def test_send_after_protocol_close():
-
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_send_after_protocol_close(protocol_cls):
     class App(WebSocketResponse):
-
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.close", "text": "123"})
             with pytest.raises(Exception):
@@ -219,7 +215,7 @@ def test_send_after_protocol_close():
                 is_open = False
             return (data, is_open)
 
-    with run_server(App) as url:
+    with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         (data, is_open) = loop.run_until_complete(get_data(url))
         assert data == "123"
@@ -227,10 +223,9 @@ def test_send_after_protocol_close():
         loop.close()
 
 
-def test_subprotocols():
-
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_subprotocols(protocol_cls):
     class App(WebSocketResponse):
-
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.accept", "subprotocol": "proto1"})
 
@@ -240,7 +235,7 @@ def test_subprotocols():
         ) as websocket:
             return websocket.subprotocol
 
-    with run_server(App) as url:
+    with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         subprotocol = loop.run_until_complete(get_subprotocol(url))
         assert subprotocol == "proto1"

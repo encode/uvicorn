@@ -5,6 +5,7 @@ import logging
 import time
 import traceback
 from urllib.parse import unquote
+from uvicorn.protocols.websockets.websockets import websocket_upgrade
 
 import h11
 
@@ -31,6 +32,10 @@ DEFAULT_HEADERS = _get_default_headers()
 HIGH_WATER_LIMIT = 65536
 
 
+class WebSocketUpgrade(Exception):
+    """Raised during a WebSocket upgrade"""
+
+
 class H11Protocol(asyncio.Protocol):
     def __init__(self, app, loop=None, state=None, logger=None):
         self.app = app
@@ -47,6 +52,8 @@ class H11Protocol(asyncio.Protocol):
         self.scheme = None
 
         # Per-request state
+        self.scope = None
+        self.headers = None
         self.cycle = None
         self.client_event = asyncio.Event()
 
@@ -90,7 +97,10 @@ class H11Protocol(asyncio.Protocol):
 
     def data_received(self, data):
         self.conn.receive_data(data)
-        self.handle_events()
+        try:
+            self.handle_events()
+        except WebSocketUpgrade:
+            websocket_upgrade(self)
 
     def handle_events(self):
         while True:
@@ -116,8 +126,9 @@ class H11Protocol(asyncio.Protocol):
                 break
 
             elif event_type is h11.Request:
+                self.headers = event.headers
                 path, _, query_string = event.target.partition(b"?")
-                scope = {
+                self.scope = {
                     "type": "http",
                     "http_version": event.http_version.decode("ascii"),
                     "server": self.server,
@@ -126,9 +137,14 @@ class H11Protocol(asyncio.Protocol):
                     "method": event.method.decode("ascii"),
                     "path": unquote(path.decode("ascii")),
                     "query_string": query_string,
-                    "headers": event.headers,
+                    "headers": self.headers,
                 }
-                self.cycle = RequestResponseCycle(scope, self)
+                for header in self.headers:
+                    name, value = header[0].lower(), header[1].lower()
+                    if name == b"upgrade" and value == b"websocket":
+                        raise WebSocketUpgrade()
+
+                self.cycle = RequestResponseCycle(self.scope, self)
                 self.loop.create_task(self.cycle.run_asgi(self.app))
 
             elif event_type is h11.Data:
