@@ -32,10 +32,6 @@ DEFAULT_HEADERS = _get_default_headers()
 HIGH_WATER_LIMIT = 65536
 
 
-class WebSocketUpgrade(Exception):
-    """Raised during a WebSocket upgrade"""
-
-
 class H11Protocol(asyncio.Protocol):
     def __init__(self, app, loop=None, state=None, logger=None):
         self.app = app
@@ -97,10 +93,7 @@ class H11Protocol(asyncio.Protocol):
 
     def data_received(self, data):
         self.conn.receive_data(data)
-        try:
-            self.handle_events()
-        except WebSocketUpgrade:
-            websocket_upgrade(self)
+        self.handle_events()
 
     def handle_events(self):
         while True:
@@ -142,7 +135,8 @@ class H11Protocol(asyncio.Protocol):
                 for header in self.headers:
                     name, value = header[0].lower(), header[1].lower()
                     if name == b"upgrade" and value == b"websocket":
-                        raise WebSocketUpgrade()
+                        websocket_upgrade(self)
+                        return
 
                 self.cycle = RequestResponseCycle(self.scope, self)
                 self.loop.create_task(self.cycle.run_asgi(self.app))
