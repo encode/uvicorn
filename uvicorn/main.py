@@ -2,11 +2,13 @@ from uvicorn.protocols.http import H11Protocol, HttpToolsProtocol
 
 import asyncio
 import click
+import collections
 import importlib
 import signal
 import os
 import logging
 import sys
+import time
 
 
 LOOP_CHOICES = click.Choice(["uvloop", "asyncio"])
@@ -43,6 +45,7 @@ def main(app, host: str, port: int, loop: str, http: str, workers: int, metrics:
     logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
     logging.addLevelName(METRICS_LOG_LEVEL, "PERF")
     logging.Logger.metrics = log_metrics if metrics else log_none
+    logging.Logger.should_log_metrics = metrics
     logger = logging.getLogger()
     loop = get_event_loop(loop)
 
@@ -108,6 +111,14 @@ def get_event_loop(loop):
     return asyncio.get_event_loop()
 
 
+INITIAL_STATE = {
+    "total_requests": 0,
+    "concurrent_requests": 0,
+    "concurrent_connections": 0,
+    "latency": collections.deque()
+}
+
+
 class Server:
     def __init__(
         self,
@@ -129,7 +140,7 @@ class Server:
         self.should_exit = False
         self.pid = os.getpid()
         self.protocol_class = protocol_class
-        self.state = {"total_requests": 0, "concurrent_requests": 0}
+        self.state = INITIAL_STATE.copy()
 
     def set_signal_handlers(self):
         handled = (
@@ -175,7 +186,24 @@ class Server:
 
     async def tick(self):
         while not self.should_exit:
-            self.logger.metrics(str(self.state))
+            if self.metrics:
+                now = time.perf_counter()
+                expiry = now - 1
+                num_expired = 0
+                for finished, latency in self.state['latency']:
+                    if finished < expiry:
+                        num_expired += 1
+                    else:
+                        break
+                for idx in range(num_expired):
+                    self.state['latency'].popleft()
+
+                if self.state['latency']:
+                    latency = sum([l for f, l in self.state['latency']])
+                    latency /= len(self.state['latency'])
+                    concurrent_requests = self.state['concurrent_requests']
+                    concurrent_connections = self.state['concurrent_requests']
+                    self.logger.metrics("App latency: %0.6fs. App concurrency: %d. Connections: %d.", latency, concurrent_requests, concurrent_connections)
             self.protocol_class.tick()
             await asyncio.sleep(1)
 

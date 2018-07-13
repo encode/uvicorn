@@ -1,9 +1,10 @@
 import asyncio
-from email.utils import formatdate
+import collections
 import http
 import logging
 import time
 import traceback
+from email.utils import formatdate
 from urllib.parse import unquote
 from uvicorn.protocols.websockets.websockets import websocket_upgrade
 
@@ -31,14 +32,22 @@ DEFAULT_HEADERS = _get_default_headers()
 
 HIGH_WATER_LIMIT = 65536
 
+INITIAL_STATE = {
+    "total_requests": 0,
+    "concurrent_requests": 0,
+    "concurrent_connections": 0,
+    "latency": collections.deque()
+}
+
 
 class H11Protocol(asyncio.Protocol):
     def __init__(self, app, loop=None, state=None, logger=None):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
-        self.state = {"total_requests": 0} if state is None else state
+        self.state = INITIAL_STATE.copy() if state is None else state
         self.logger = logger or logging.getLogger()
         self.access_logs = self.logger.level >= logging.INFO
+        self.metrics_logs = getattr(self.logger, 'should_log_metrics', False)
         self.conn = h11.Connection(h11.SERVER)
 
         # Per-connection state
@@ -70,12 +79,17 @@ class H11Protocol(asyncio.Protocol):
         self.server = transport.get_extra_info("sockname")
         self.client = transport.get_extra_info("peername")
         self.scheme = "https" if transport.get_extra_info("sslcontext") else "http"
+
         if self.access_logs:
             self.logger.debug("%s - Connected", self.server[0])
+        if self.metrics_logs:
+            self.state["concurrent_connections"] += 1
 
     def connection_lost(self, exc):
         if self.access_logs:
             self.logger.debug("%s - Disconnected", self.server[0])
+        if self.metrics_logs:
+            self.state["concurrent_connections"] -= 1
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
@@ -200,7 +214,10 @@ class RequestResponseCycle:
 
     # ASGI exception wrapper
     async def run_asgi(self, app):
-        self.protocol.state["concurrent_requests"] += 1
+        if self.protocol.metrics_logs:
+            started = time.perf_counter()
+            self.protocol.state["concurrent_requests"] += 1
+
         try:
             asgi = app(self.scope)
             result = await asgi(self.receive, self.send)
@@ -228,7 +245,12 @@ class RequestResponseCycle:
                     self.protocol.transport.close()
         finally:
             self.protocol.state["total_requests"] += 1
-            self.protocol.state["concurrent_requests"] -= 1
+            if self.protocol.metrics_logs:
+                complete = time.perf_counter()
+                await asyncio.sleep(0)
+                self.protocol.state["latency"].append((complete, complete - started))
+                self.protocol.state["concurrent_requests"] -= 1
+
             if self.done_callback is not None:
                 self.done_callback()
 
