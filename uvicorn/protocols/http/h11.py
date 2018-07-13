@@ -200,6 +200,7 @@ class RequestResponseCycle:
 
     # ASGI exception wrapper
     async def run_asgi(self, app):
+        self.protocol.state["concurrent_requests"] += 1
         try:
             asgi = app(self.scope)
             result = await asgi(self.receive, self.send)
@@ -226,9 +227,10 @@ class RequestResponseCycle:
                     self.protocol.logger.error(msg)
                     self.protocol.transport.close()
         finally:
+            self.protocol.state["total_requests"] += 1
+            self.protocol.state["concurrent_requests"] -= 1
             if self.done_callback is not None:
                 self.done_callback()
-            self.protocol.state["total_requests"] += 1
 
     async def send_500_response(self):
         await self.send(

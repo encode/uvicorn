@@ -33,6 +33,9 @@ DEFAULT_HEADERS = _get_default_headers()
 HIGH_WATER_LIMIT = 65536
 
 
+default_state = {"total_requests": 0, "concurrent_requests": 0}
+
+
 class HttpToolsProtocol(asyncio.Protocol):
     __slots__ = (
         'app', 'loop', 'state', 'logger', 'access_logs', 'parser',
@@ -45,7 +48,7 @@ class HttpToolsProtocol(asyncio.Protocol):
     def __init__(self, app, loop=None, state=None, logger=None):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
-        self.state = {"total_requests": 0} if state is None else state
+        self.state = default_state if state is None else state
         self.logger = logger or logging.getLogger()
         self.access_logs = self.logger.level >= logging.INFO
         self.parser = httptools.HttpRequestParser(self)
@@ -213,6 +216,8 @@ class RequestResponseCycle:
 
     # ASGI exception wrapper
     async def run_asgi(self, app):
+        started = time.clock()
+        self.protocol.state["concurrent_requests"] += 1
         try:
             asgi = app(self.scope)
             result = await asgi(self.receive, self.send)
@@ -239,7 +244,11 @@ class RequestResponseCycle:
                     self.protocol.logger.error(msg)
                     self.protocol.transport.close()
         finally:
+            complete = time.clock()
+            await asyncio.sleep(0)
             self.protocol.state["total_requests"] += 1
+            self.protocol.state["concurrent_requests"] -= 1
+            self.protocol.state["latency"] = complete - started
             if self.done_callback is not None:
                 self.done_callback()
 

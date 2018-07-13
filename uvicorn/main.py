@@ -20,6 +20,13 @@ LOG_LEVELS = {
     "debug": logging.DEBUG,
 }
 HTTP_PROTOCOLS = {"h11": H11Protocol, "httptools": HttpToolsProtocol}
+METRICS_LOG_LEVEL = 5
+
+def log_metrics(self, message, *args, **kws):
+    self._log(METRICS_LOG_LEVEL, message, args, **kws)
+
+def log_none(self, message, *args, **kws):
+    pass
 
 
 @click.command()
@@ -29,10 +36,13 @@ HTTP_PROTOCOLS = {"h11": H11Protocol, "httptools": HttpToolsProtocol}
 @click.option("--loop", type=LOOP_CHOICES, default="uvloop", help="Event loop")
 @click.option("--http", type=HTTP_CHOICES, default="httptools", help="HTTP Handler")
 @click.option("--workers", type=int, default=1, help="Number of worker processes")
+@click.option("--metrics/--no-metrics", default=False, help="Display performance metrics")
 @click.option("--log-level", type=LEVEL_CHOICES, default="info", help="Log level")
-def main(app, host: str, port: int, loop: str, http: str, workers: int, log_level: str):
+def main(app, host: str, port: int, loop: str, http: str, workers: int, metrics: bool, log_level: str):
     log_level = LOG_LEVELS[log_level]
     logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
+    logging.addLevelName(METRICS_LOG_LEVEL, "PERF")
+    logging.Logger.metrics = log_metrics if metrics else log_none
     logger = logging.getLogger()
     loop = get_event_loop(loop)
 
@@ -46,7 +56,7 @@ def main(app, host: str, port: int, loop: str, http: str, workers: int, log_leve
             'eg. "gunicorn -w 4 -k uvicorn.workers.UvicornWorker".'
         )
 
-    server = Server(app, host, port, loop, logger, protocol_class)
+    server = Server(app, host, port, loop, logger, metrics, protocol_class)
     server.run()
 
 
@@ -106,6 +116,7 @@ class Server:
         port=8000,
         loop=None,
         logger=None,
+        metrics=False,
         protocol_class=None,
     ):
         self.app = app
@@ -113,10 +124,12 @@ class Server:
         self.port = port
         self.loop = loop or asyncio.get_event_loop()
         self.logger = logger or logging.getLogger()
+        self.metrics = metrics
         self.server = None
         self.should_exit = False
         self.pid = os.getpid()
         self.protocol_class = protocol_class
+        self.state = {"total_requests": 0, "concurrent_requests": 0}
 
     def set_signal_handlers(self):
         handled = (
@@ -147,7 +160,7 @@ class Server:
 
     def create_protocol(self):
         try:
-            return self.protocol_class(app=self.app, loop=self.loop, logger=self.logger)
+            return self.protocol_class(app=self.app, loop=self.loop, state=self.state, logger=self.logger)
         except Exception as exc:
             self.logger.error(exc)
             self.should_exit = True
@@ -162,6 +175,7 @@ class Server:
 
     async def tick(self):
         while not self.should_exit:
+            self.logger.metrics(str(self.state))
             self.protocol_class.tick()
             await asyncio.sleep(1)
 

@@ -91,7 +91,7 @@ class UvicornWorker(Worker):
         ssl_ctx = self.create_ssl_context(self.cfg) if self.cfg.is_ssl else None
 
         for sock in self.sockets:
-            state = {"total_requests": 0}
+            state = {"total_requests": 0, "concurrent_requests": 0}
             protocol = functools.partial(
                 self.protocol_class, app=app, loop=loop, state=state, logger=self.log
             )
