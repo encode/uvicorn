@@ -361,9 +361,8 @@ class RequestResponseCycle:
         protocol = self.protocol
         protocol.resume_reading()
 
-        if self.more_body and not self.body and not self.disconnected:
-            await protocol.client_event.wait()
-            protocol.client_event.clear()
+        await protocol.client_event.wait()
+        protocol.client_event.clear()
 
         if self.disconnected:
             message = {"type": "http.disconnect"}
