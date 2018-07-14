@@ -463,27 +463,24 @@ def test_early_response(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_read_after_response(protocol_cls):
-    read_after_response_error = False
+    after_response_message = None
 
     class App:
         def __init__(self, scope):
             pass
 
         async def __call__(self, receive, send):
-            nonlocal read_after_response_error
+            nonlocal after_response_message
 
             response = Response("Hello, world", media_type="text/plain")
             await response(receive, send)
-            try:
-                message = await receive()
-            except:
-                read_after_response_error = True
+            after_response_message = await receive()
 
     protocol = get_connected_protocol(App, protocol_cls)
     protocol.data_received(SIMPLE_POST_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-    assert read_after_response_error
+    assert after_response_message == {"type": "http.disconnect"}
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
