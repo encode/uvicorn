@@ -29,7 +29,7 @@ def websocket_upgrade(http):
         if header_key != b"sec-websocket-protocol":
             continue
         for subprotocol in header_value.split(b","):
-            subprotocols.append(subprotocol.decode("ascii").strip(" "))
+            subprotocols.append(subprotocol.decode("ascii").strip())
     http.scope.update({"type": "websocket", "subprotocols": subprotocols})
     asgi_instance = http.app(http.scope)
     request = WebSocketRequest(http, response_headers)
