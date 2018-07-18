@@ -4,19 +4,15 @@ import enum
 
 
 def websocket_upgrade(http):
-    request_headers = dict(http.headers)
-    response_headers = []
-
-    def get_header(key):
-        key = key.lower().encode("utf-8")
-        return request_headers.get(key, b"").decode("utf-8")
-
-    def set_header(key, val):
-        response_headers.append((key.encode("utf-8"), val.encode("utf-8")))
+    request_headers = dict([
+        (key.decode('latin-1'), value.decode('latin-1'))
+        for key, value in http.headers
+    ])
+    response_headers = {}
 
     try:
-        key = websockets.handshake.check_request(get_header)
-        websockets.handshake.build_response(set_header, key)
+        key = websockets.handshake.check_request(request_headers)
+        websockets.handshake.build_response(response_headers, key)
     except websockets.InvalidHandshake:
         rv = b"HTTP/1.1 403 Forbidden\r\n\r\n"
         http.transport.write(rv)
@@ -24,12 +20,10 @@ def websocket_upgrade(http):
         return
 
     # Retrieve any subprotocols to be negotiated with the consumer later
-    subprotocols = []
-    for header_key, header_value in http.headers:
-        if header_key != b"sec-websocket-protocol":
-            continue
-        for subprotocol in header_value.split(b","):
-            subprotocols.append(subprotocol.decode("ascii").strip())
+    subprotocols = [
+        subprotocol.strip() for subprotocol in
+        request_headers.get("sec-websocket-protocol", "").split(",")
+    ]
     http.scope.update({"type": "websocket", "subprotocols": subprotocols})
     asgi_instance = http.app(http.scope)
     request = WebSocketRequest(http, response_headers)
