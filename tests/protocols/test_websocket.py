@@ -224,14 +224,10 @@ def test_send_after_protocol_close(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
-@pytest.mark.parametrize("acceptable_subprotocol", ["proto1", "proto2"])
-def test_subprotocols(protocol_cls, acceptable_subprotocol):
+def test_subprotocols(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
-            if acceptable_subprotocol in self.scope["subprotocols"]:
-                await self.send({"type": "websocket.accept", "subprotocol": acceptable_subprotocol})
-            else:
-                await self.send({"type": "websocket.close"})
+            await self.send({"type": "websocket.accept", "subprotocol": "proto1"})
 
     async def get_subprotocol(url):
         async with websockets.connect(
@@ -242,5 +238,5 @@ def test_subprotocols(protocol_cls, acceptable_subprotocol):
     with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         subprotocol = loop.run_until_complete(get_subprotocol(url))
-        assert subprotocol == acceptable_subprotocol
+        assert subprotocol == "proto1"
         loop.close()
