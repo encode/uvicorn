@@ -1,3 +1,87 @@
+from uvicorn.protocols.http import HttpToolsProtocol, H11Protocol
+import asyncio
+import pytest
+
+
+INVALID_UPGRADE_REQUEST = b"\r\n".join([
+    b"GET / HTTP/1.1",
+    b"Host: example.org",
+    b"Connection: upgrade",
+    b"Upgrade: websocket",
+    b"",
+    b""
+])
+
+
+class MockTransport:
+    def __init__(self, sockname=None, peername=None, sslcontext=False):
+        self.sockname = ("127.0.0.1", 8000) if sockname is None else sockname
+        self.peername = ("127.0.0.1", 8001) if peername is None else peername
+        self.sslcontext = sslcontext
+        self.closed = False
+        self.buffer = b""
+        self.read_paused = False
+
+    def get_extra_info(self, key):
+        return {
+            "sockname": self.sockname,
+            "peername": self.peername,
+            "sslcontext": self.sslcontext,
+        }[key]
+
+    def write(self, data):
+        assert not self.closed
+        self.buffer += data
+
+    def close(self):
+        assert not self.closed
+        self.closed = True
+
+    def pause_reading(self):
+        self.read_paused = True
+
+    def resume_reading(self):
+        self.read_paused = False
+
+    def is_closing(self):
+        return self.closed
+
+
+class MockLoop:
+    def __init__(self):
+        self.tasks = []
+
+    def create_task(self, coroutine):
+        self.tasks.insert(0, coroutine)
+
+    def run_one(self):
+        coroutine = self.tasks.pop()
+        asyncio.get_event_loop().run_until_complete(coroutine)
+
+
+def get_connected_protocol(app, protocol_cls):
+    loop = MockLoop()
+    transport = MockTransport()
+    protocol = protocol_cls(app, loop)
+    protocol.connection_made(transport)
+    return protocol
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_invalid_upgrade(protocol_cls):
+    app = lambda scope: None
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(INVALID_UPGRADE_REQUEST)
+    assert b"HTTP/1.1 403 Forbidden" in protocol.transport.buffer
+
+#     with run_server(app, protocol_cls=protocol_cls) as url:
+#         url = url.replace("ws://", "http://")
+#         response = requests.get(
+#             url, headers={"upgrade": "websocket", "connection": "upgrade"}, timeout=5
+#         )
+#         assert response.status_code == 403
+
+
 # import asyncio
 # import functools
 # import threading
