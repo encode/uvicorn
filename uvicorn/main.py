@@ -66,9 +66,9 @@ def run(app, host="127.0.0.1", port=8000, log_level="info"):
     log_level = LOG_LEVELS[log_level]
     logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
 
-    loop = get_event_loop("uvloop")
+    loop = get_event_loop(DEFAULT_LOOP)
     logger = logging.getLogger()
-    protocol_class = HttpToolsProtocol
+    protocol_class = {'httptools': HttpToolsProtocol, 'h11': H11Protocol}[DEFAULT_PARSER]
 
     server = Server(app, host, port, loop, logger, protocol_class)
     server.run()
