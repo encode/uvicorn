@@ -4,6 +4,7 @@
 import os
 import re
 import sys
+import platform
 
 from setuptools import setup
 
@@ -32,6 +33,28 @@ def get_packages(package):
             if os.path.exists(os.path.join(dirpath, '__init__.py'))]
 
 
+if platform.python_implementation() == 'PyPy':
+    requirements = [
+        'click',
+        'h11',
+        'websockets'
+    ]
+elif platform.system() == 'Windows' or platform.system().startswith('CYGWIN'):
+    requirements = [
+        'click',
+        'h11',
+        'websockets'
+    ]
+else:
+    requirements = [
+        'click',
+        'h11',
+        'httptools',
+        'uvloop',
+        'websockets'
+    ]
+
+
 setup(
     name='uvicorn',
     version=get_version('uvicorn'),
@@ -43,13 +66,7 @@ setup(
     author='Tom Christie',
     author_email='tom@tomchristie.com',
     packages=get_packages('uvicorn'),
-    install_requires=[
-        'click',
-        'h11',
-        'httptools',
-        'uvloop',
-        'websockets'
-    ],
+    install_requires=requirements,
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',

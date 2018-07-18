@@ -6,6 +6,7 @@ import importlib
 import signal
 import os
 import logging
+import platform
 import sys
 
 
@@ -22,12 +23,23 @@ LOG_LEVELS = {
 HTTP_PROTOCOLS = {"h11": H11Protocol, "httptools": HttpToolsProtocol}
 
 
+if platform.python_implementation() == 'PyPy':
+    DEFAULT_LOOP = 'asyncio'
+    DEFAULT_PARSER = 'h11'
+elif platform.system() == 'Windows' or platform.system().startswith('CYGWIN'):
+    DEFAULT_LOOP = 'asyncio'
+    DEFAULT_PARSER = 'h11'
+else:
+    DEFAULT_LOOP = 'uvloop'
+    DEFAULT_PARSER = 'httptools'
+
+
 @click.command()
 @click.argument("app")
 @click.option("--host", type=str, default="127.0.0.1", help="Host")
 @click.option("--port", type=int, default=8000, help="Port")
-@click.option("--loop", type=LOOP_CHOICES, default="uvloop", help="Event loop")
-@click.option("--http", type=HTTP_CHOICES, default="httptools", help="HTTP Handler")
+@click.option("--loop", type=LOOP_CHOICES, default=DEFAULT_LOOP, help="Event loop")
+@click.option("--http", type=HTTP_CHOICES, default=DEFAULT_PARSER, help="HTTP Handler")
 @click.option("--workers", type=int, default=1, help="Number of worker processes")
 @click.option("--log-level", type=LEVEL_CHOICES, default="info", help="Log level")
 def main(app, host: str, port: int, loop: str, http: str, workers: int, log_level: str):
@@ -142,7 +154,11 @@ class Server:
             self.loop.run_forever()
 
     def handle_exit(self, sig, frame):
-        self.logger.warning("Received signal {}. Shutting down.".format(sig.name))
+        if hasattr(sig, 'name'):
+            msg = "Received signal %s. Shutting down." % sig.name
+        else:
+            msg = "Received signal. Shutting down."
+        self.logger.warning(msg)
         self.should_exit = True
 
     def create_protocol(self):
