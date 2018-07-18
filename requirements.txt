@@ -2,7 +2,7 @@ click
 h11
 httptools
 uvloop
-websockets
+websockets>=6.0
 
 # Testing
 pytest

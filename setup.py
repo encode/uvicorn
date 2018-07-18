@@ -38,13 +38,13 @@ if platform.python_implementation() == 'PyPy':
     requirements = [
         'click',
         'h11',
-        'websockets'
+        'websockets>=6.0'
     ]
 elif platform.system() == 'Windows' or platform.system().startswith('CYGWIN'):
     requirements = [
         'click',
         'h11',
-        'websockets'
+        'websockets>=6.0'
     ]
 else:
     requirements = [
@@ -52,7 +52,7 @@ else:
         'h11',
         'httptools',
         'uvloop',
-        'websockets'
+        'websockets>=6.0'
     ]
 
 

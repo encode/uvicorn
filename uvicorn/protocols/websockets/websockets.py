@@ -3,33 +3,45 @@ import websockets
 import enum
 
 
+class Headers:
+    def __init__(self, raw_headers):
+        self.raw_headers = raw_headers
+
+    def get(self, key, default=None):
+        get_key = key.lower().encode('latin-1')
+        for raw_key, raw_value in self.raw_headers:
+            if raw_key == get_key:
+                return raw_value.decode('latin-1')
+        return default
+
+    def __setitem__(self, key, value):
+        set_key = key.lower().encode('latin-1')
+        set_value = value.encode('latin-1')
+        for idx, (raw_key, raw_value) in enumerate(self.raw_headers):
+            if raw_key == set_key:
+                self.raw_headers[idx] = set_value
+                return
+        self.raw_headers.append((set_key, set_value))
+
+
 def websocket_upgrade(http):
-    request_headers = dict(http.headers)
-    response_headers = []
-
-    def get_header(key):
-        key = key.lower().encode("utf-8")
-        return request_headers.get(key, b"").decode("utf-8")
-
-    def set_header(key, val):
-        response_headers.append((key.encode("utf-8"), val.encode("utf-8")))
+    request_headers = Headers(http.headers)
+    response_headers = Headers([])
 
     try:
-        key = websockets.handshake.check_request(get_header)
-        websockets.handshake.build_response(set_header, key)
-    except websockets.InvalidHandshake:
+        key = websockets.handshake.check_request(request_headers)
+        websockets.handshake.build_response(response_headers, key)
+    except websockets.InvalidHandshake as exc:
         rv = b"HTTP/1.1 403 Forbidden\r\n\r\n"
         http.transport.write(rv)
         http.transport.close()
         return
 
     # Retrieve any subprotocols to be negotiated with the consumer later
-    subprotocols = []
-    for header_key, header_value in http.headers:
-        if header_key != b"sec-websocket-protocol":
-            continue
-        for subprotocol in header_value.split(b","):
-            subprotocols.append(subprotocol.decode("ascii").strip())
+    subprotocols = [
+        subprotocol.strip() for subprotocol in
+        request_headers.get("sec-websocket-protocol", "").split(",")
+    ]
     http.scope.update({"type": "websocket", "subprotocols": subprotocols})
     asgi_instance = http.app(http.scope)
     request = WebSocketRequest(http, response_headers)
@@ -108,9 +120,7 @@ class WebSocketRequest:
             # Complete the handshake after negotiating a subprotocol with the consumer
             subprotocol = message.get("subprotocol", None)
             if subprotocol:
-                self.response_headers.append(
-                    (b"Sec-WebSocket-Protocol", subprotocol.encode("utf-8"))
-                )
+                self.response_headers["Sec-WebSocket-Protocol"] = subprotocol
             protocol = WebSocketProtocol(self.http, self.response_headers)
             protocol.connection_made(self.http.transport, subprotocol)
             protocol.connection_open()
@@ -162,7 +172,7 @@ class WebSocketProtocol(websockets.WebSocketCommonProtocol):
     def accept(self):
         self.accepted = True
         rv = b"HTTP/1.1 101 Switching Protocols\r\n"
-        for k, v in self.handshake_headers:
+        for k, v in self.handshake_headers.raw_headers:
             rv += k + b": " + v + b"\r\n"
         rv += b"\r\n"
         self.transport.write(rv)
