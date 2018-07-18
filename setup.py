@@ -4,6 +4,7 @@
 import os
 import re
 import sys
+import platform
 
 from setuptools import setup
 
@@ -12,7 +13,8 @@ def get_version(package):
     """
     Return package version as listed in `__version__` in `init.py`.
     """
-    init_py = open(os.path.join(package, '__init__.py')).read()
+    path = os.path.join(package, '__init__.py')
+    init_py = open(path, 'r', encoding='utf8').read()
     return re.search("__version__ = ['\"]([^'\"]+)['\"]", init_py).group(1)
 
 
@@ -20,7 +22,7 @@ def get_long_description():
     """
     Return the README.
     """
-    return open('README.md', 'r').read()
+    return open('README.md', 'r', encoding='utf8').read()
 
 
 def get_packages(package):
@@ -30,6 +32,28 @@ def get_packages(package):
     return [dirpath
             for dirpath, dirnames, filenames in os.walk(package)
             if os.path.exists(os.path.join(dirpath, '__init__.py'))]
+
+
+if platform.python_implementation() == 'PyPy':
+    requirements = [
+        'click',
+        'h11',
+        'websockets>=6.0'
+    ]
+elif platform.system() == 'Windows' or platform.system().startswith('CYGWIN'):
+    requirements = [
+        'click',
+        'h11',
+        'websockets>=6.0'
+    ]
+else:
+    requirements = [
+        'click',
+        'h11',
+        'httptools',
+        'uvloop',
+        'websockets>=6.0'
+    ]
 
 
 setup(
@@ -43,13 +67,7 @@ setup(
     author='Tom Christie',
     author_email='tom@tomchristie.com',
     packages=get_packages('uvicorn'),
-    install_requires=[
-        'click',
-        'h11',
-        'httptools',
-        'uvloop',
-        'websockets>=6.0'
-    ],
+    install_requires=requirements,
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
