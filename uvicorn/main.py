@@ -41,10 +41,8 @@ def get_socket(host, port, reuse=False):
     sock = socket.socket()
     if reuse:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind((host, port))
         sock.set_inheritable(True)
-    else:
-        sock.bind((host, port))
+    sock.bind((host, port))
     return sock
 
 
