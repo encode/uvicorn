@@ -1,7 +1,7 @@
 import importlib
 
 
-class ImportFromStringError(ImportError):
+class ImportFromStringError(Exception):
     pass
 
 
@@ -18,7 +18,7 @@ def import_from_string(import_str):
 
     try:
         module = importlib.import_module(module_str)
-    except ModuleNotFoundError as exc:
+    except ImportError as exc:
         if exc.name != module_str:
             raise
         message = 'Could not import module "{module_str}".'
