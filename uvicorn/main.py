@@ -2,12 +2,14 @@ from uvicorn.protocols.http import H11Protocol, HttpToolsProtocol
 
 import asyncio
 import click
+import collections
 import importlib
 import signal
 import os
 import logging
 import platform
 import sys
+import time
 
 
 LOOP_CHOICES = click.Choice(["uvloop", "asyncio"])
@@ -21,6 +23,13 @@ LOG_LEVELS = {
     "debug": logging.DEBUG,
 }
 HTTP_PROTOCOLS = {"h11": H11Protocol, "httptools": HttpToolsProtocol}
+METRICS_LOG_LEVEL = 5
+
+def log_metrics(self, message, *args, **kws):
+    self._log(METRICS_LOG_LEVEL, message, args, **kws)
+
+def log_none(self, message, *args, **kws):
+    pass
 
 
 if platform.python_implementation() == 'PyPy':
@@ -41,10 +50,14 @@ else:
 @click.option("--loop", type=LOOP_CHOICES, default=DEFAULT_LOOP, help="Event loop")
 @click.option("--http", type=HTTP_CHOICES, default=DEFAULT_PARSER, help="HTTP Handler")
 @click.option("--workers", type=int, default=1, help="Number of worker processes")
+@click.option("--metrics/--no-metrics", default=False, help="Display performance metrics")
 @click.option("--log-level", type=LEVEL_CHOICES, default="info", help="Log level")
-def main(app, host: str, port: int, loop: str, http: str, workers: int, log_level: str):
+def main(app, host: str, port: int, loop: str, http: str, workers: int, metrics: bool, log_level: str):
     log_level = LOG_LEVELS[log_level]
     logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
+    logging.addLevelName(METRICS_LOG_LEVEL, "PERF")
+    logging.Logger.metrics = log_metrics if metrics else log_none
+    logging.Logger.should_log_metrics = metrics
     logger = logging.getLogger()
     loop = get_event_loop(loop)
 
@@ -58,7 +71,7 @@ def main(app, host: str, port: int, loop: str, http: str, workers: int, log_leve
             'eg. "gunicorn -w 4 -k uvicorn.workers.UvicornWorker".'
         )
 
-    server = Server(app, host, port, loop, logger, protocol_class)
+    server = Server(app, host, port, loop, logger, metrics, protocol_class)
     server.run()
 
 
@@ -110,6 +123,14 @@ def get_event_loop(loop):
     return asyncio.get_event_loop()
 
 
+INITIAL_STATE = {
+    "total_requests": 0,
+    "concurrent_requests": 0,
+    "concurrent_connections": 0,
+    "latency": collections.deque()
+}
+
+
 class Server:
     def __init__(
         self,
@@ -118,6 +139,7 @@ class Server:
         port=8000,
         loop=None,
         logger=None,
+        metrics=False,
         protocol_class=None,
     ):
         self.app = app
@@ -125,10 +147,12 @@ class Server:
         self.port = port
         self.loop = loop or asyncio.get_event_loop()
         self.logger = logger or logging.getLogger()
+        self.metrics = metrics
         self.server = None
         self.should_exit = False
         self.pid = os.getpid()
         self.protocol_class = protocol_class
+        self.state = INITIAL_STATE.copy()
 
     def set_signal_handlers(self):
         handled = (
@@ -163,7 +187,7 @@ class Server:
 
     def create_protocol(self):
         try:
-            return self.protocol_class(app=self.app, loop=self.loop, logger=self.logger)
+            return self.protocol_class(app=self.app, loop=self.loop, state=self.state, logger=self.logger)
         except Exception as exc:
             self.logger.error(exc)
             self.should_exit = True
@@ -178,6 +202,24 @@ class Server:
 
     async def tick(self):
         while not self.should_exit:
+            if self.metrics:
+                now = time.perf_counter()
+                expiry = now - 1
+                num_expired = 0
+                for finished, latency in self.state['latency']:
+                    if finished < expiry:
+                        num_expired += 1
+                    else:
+                        break
+                for idx in range(num_expired):
+                    self.state['latency'].popleft()
+
+                if self.state['latency']:
+                    latency = sum([l for f, l in self.state['latency']])
+                    latency /= len(self.state['latency'])
+                    concurrent_requests = self.state['concurrent_requests']
+                    concurrent_connections = self.state['concurrent_requests']
+                    self.logger.metrics("App latency: %0.6fs. App concurrency: %d. Connections: %d.", latency, concurrent_requests, concurrent_connections)
             self.protocol_class.tick()
             await asyncio.sleep(1)
 
