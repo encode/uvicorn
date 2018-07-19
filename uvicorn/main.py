@@ -72,7 +72,15 @@ def main(app, host: str, port: int, loop: str, http: str, workers: int, log_leve
     run(app, host, port, loop, http, log_level, workers)
 
 
-def run(app, host="127.0.0.1", port=8000, loop="auto", http="auto", log_level="info", workers=0):
+def run(
+    app,
+    host="127.0.0.1",
+    port=8000,
+    loop="auto",
+    http="auto",
+    log_level="info",
+    workers=0,
+):
     sock = get_socket(host, port, reuse=bool(workers))
     logger = get_logger(log_level)
 
@@ -95,7 +103,7 @@ def run_multiple(app, sock, loop, http, logger, workers):
     processes = []
 
     def shutdown(sig, frame):
-        logger.info('Got signal %s. Shutting down.', signal.Signals(sig).name)
+        logger.info("Got signal %s. Shutting down.", signal.Signals(sig).name)
 
         for process, event in processes:
             event.set()
@@ -106,12 +114,12 @@ def run_multiple(app, sock, loop, http, logger, workers):
     for _ in range(workers):
         event = multiprocessing.Event()
         kwargs = {
-            'app': app,
-            'sock': sock,
-            'loop': loop,
-            'http': http,
-            'logger': logger,
-            'event': event,
+            "app": app,
+            "sock": sock,
+            "loop": loop,
+            "http": http,
+            "logger": logger,
+            "event": event,
         }
         process = multiprocessing.Process(target=run_one, kwargs=kwargs)
         process.start()
@@ -140,15 +148,7 @@ def run_one(app, sock, loop, http, logger, event=None):
 
 
 class Server:
-    def __init__(
-        self,
-        app,
-        sock,
-        logger,
-        loop,
-        protocol_class,
-        event=None,
-    ):
+    def __init__(self, app, sock, logger, loop, protocol_class, event=None):
         self.app = app
         self.sock = sock
         self.logger = logger
@@ -169,8 +169,9 @@ class Server:
         If we're running in single process mode we need to handle signals
         on the event loop, and shutdown in response.
         """
+
         def shutdown(sig, frame):
-            self.logger.info('Got signal %s. Shutting down.', signal.Signals(sig).name)
+            self.logger.info("Got signal %s. Shutting down.", signal.Signals(sig).name)
             self.event.set()
 
         try:
@@ -186,6 +187,7 @@ class Server:
         If we're running in parent/worker mode we need to ignore signals
         on the event loop.
         """
+
         def ignore(sig, frame):
             pass
 
@@ -212,7 +214,9 @@ class Server:
 
     async def create_server(self):
         try:
-            self.server = await self.loop.create_server(self.create_protocol, sock=self.sock)
+            self.server = await self.loop.create_server(
+                self.create_protocol, sock=self.sock
+            )
         except Exception as exc:
             self.logger.error(exc)
             self.event.set()
