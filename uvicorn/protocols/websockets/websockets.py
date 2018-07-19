@@ -155,7 +155,7 @@ class WebSocketRequest:
             raise Exception("Unexpected message, WebSocketRequest is %s" % self.state)
 
 
-class WebSocketProtocol(websockets.WebSocketCommonProtocol):
+class WebSocketProtocol(websockets.protocol.WebSocketCommonProtocol):
     def __init__(self, http, handshake_headers):
         super().__init__(max_size=10000000, max_queue=10000000)
         self.handshake_headers = handshake_headers
