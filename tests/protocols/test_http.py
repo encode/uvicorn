@@ -1,5 +1,6 @@
+from uvicorn.protocols.http.h11 import H11Protocol
+from uvicorn.protocols.http.httptools import HttpToolsProtocol
 import asyncio
-from uvicorn.protocols.http import H11Protocol, HttpToolsProtocol
 import h11
 import pytest
 
@@ -435,9 +436,11 @@ def test_early_disconnect(protocol_cls):
         async def __call__(self, receive, send):
             nonlocal got_disconnect_event
 
-            message = await receive()
-            while message['type'] != 'http.disconnect':
-                continue
+            while True:
+                message = await receive()
+                if message['type'] == 'http.disconnect':
+                    break
+
             got_disconnect_event = True
 
     protocol = get_connected_protocol(App, protocol_cls)

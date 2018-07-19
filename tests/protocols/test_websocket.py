@@ -1,3 +1,5 @@
+from uvicorn.protocols.http.h11 import H11Protocol
+from uvicorn.protocols.http.httptools import HttpToolsProtocol
 import asyncio
 import functools
 import threading
@@ -5,7 +7,6 @@ import requests
 import pytest
 import websockets
 from contextlib import contextmanager
-from uvicorn.protocols.http import HttpToolsProtocol, H11Protocol
 
 
 class WebSocketResponse:
