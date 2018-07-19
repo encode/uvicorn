@@ -8,15 +8,15 @@ class Headers:
         self.raw_headers = raw_headers
 
     def get(self, key, default=None):
-        get_key = key.lower().encode('latin-1')
+        get_key = key.lower().encode("latin-1")
         for raw_key, raw_value in self.raw_headers:
             if raw_key == get_key:
-                return raw_value.decode('latin-1')
+                return raw_value.decode("latin-1")
         return default
 
     def __setitem__(self, key, value):
-        set_key = key.lower().encode('latin-1')
-        set_value = value.encode('latin-1')
+        set_key = key.lower().encode("latin-1")
+        set_value = value.encode("latin-1")
         for idx, (raw_key, raw_value) in enumerate(self.raw_headers):
             if raw_key == set_key:
                 self.raw_headers[idx] = set_value
@@ -39,8 +39,8 @@ def websocket_upgrade(http):
 
     # Retrieve any subprotocols to be negotiated with the consumer later
     subprotocols = [
-        subprotocol.strip() for subprotocol in
-        request_headers.get("sec-websocket-protocol", "").split(",")
+        subprotocol.strip()
+        for subprotocol in request_headers.get("sec-websocket-protocol", "").split(",")
     ]
     http.scope.update({"type": "websocket", "subprotocols": subprotocols})
     asgi_instance = http.app(http.scope)

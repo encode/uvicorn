@@ -44,11 +44,11 @@ def main(app, host: str, port: int, loop: str, http: str, workers: int, log_leve
     try:
         app = import_from_string(app)
     except ImportFromStringError as exc:
-        click.error('Error loading ASGI app. %s' % exc)
+        click.error("Error loading ASGI app. %s" % exc)
 
     if workers != 1:
         raise click.UsageError(
-            'Not yet available. For multiple worker processes, use gunicorn. '
+            "Not yet available. For multiple worker processes, use gunicorn. "
             'eg. "gunicorn -w 4 -k uvicorn.workers.UvicornWorker".'
         )
 
@@ -92,8 +92,8 @@ class Server:
 
     def set_signal_handlers(self):
         handled = (
-            signal.SIGINT,       # Unix signal 2. Sent by Ctrl+C.
-            signal.SIGTERM,      # Unix signal 15. Sent by `kill <pid>`.
+            signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
+            signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
         )
         try:
             for sig in handled:
@@ -114,7 +114,7 @@ class Server:
             self.loop.run_forever()
 
     def handle_exit(self, sig, frame):
-        if hasattr(sig, 'name'):
+        if hasattr(sig, "name"):
             msg = "Received signal %s. Shutting down." % sig.name
         else:
             msg = "Received signal. Shutting down."

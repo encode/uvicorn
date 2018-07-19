@@ -230,7 +230,9 @@ def test_subprotocols(protocol_cls, acceptable_subprotocol):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
             if acceptable_subprotocol in self.scope["subprotocols"]:
-                await self.send({"type": "websocket.accept", "subprotocol": acceptable_subprotocol})
+                await self.send(
+                    {"type": "websocket.accept", "subprotocol": acceptable_subprotocol}
+                )
             else:
                 await self.send({"type": "websocket.close"})
 
