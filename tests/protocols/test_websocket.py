@@ -1,3 +1,5 @@
+from uvicorn.protocols.http.h11 import H11Protocol
+from uvicorn.protocols.http.httptools import HttpToolsProtocol
 import asyncio
 import functools
 import threading
@@ -5,7 +7,6 @@ import requests
 import pytest
 import websockets
 from contextlib import contextmanager
-from uvicorn.protocols.http import HttpToolsProtocol, H11Protocol
 
 
 class WebSocketResponse:
@@ -229,7 +230,9 @@ def test_subprotocols(protocol_cls, acceptable_subprotocol):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
             if acceptable_subprotocol in self.scope["subprotocols"]:
-                await self.send({"type": "websocket.accept", "subprotocol": acceptable_subprotocol})
+                await self.send(
+                    {"type": "websocket.accept", "subprotocol": acceptable_subprotocol}
+                )
             else:
                 await self.send({"type": "websocket.close"})
 

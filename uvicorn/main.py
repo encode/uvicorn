@@ -1,8 +1,6 @@
-from uvicorn.protocols.http import H11Protocol, HttpToolsProtocol
-
+from uvicorn.importer import import_from_string, ImportFromStringError
 import asyncio
 import click
-import importlib
 import signal
 import os
 import logging
@@ -10,9 +8,6 @@ import platform
 import sys
 
 
-LOOP_CHOICES = click.Choice(["uvloop", "asyncio"])
-LEVEL_CHOICES = click.Choice(["debug", "info", "warning", "error", "critical"])
-HTTP_CHOICES = click.Choice(["httptools", "h11"])
 LOG_LEVELS = {
     "critical": logging.CRITICAL,
     "error": logging.ERROR,
@@ -20,94 +15,59 @@ LOG_LEVELS = {
     "info": logging.INFO,
     "debug": logging.DEBUG,
 }
-HTTP_PROTOCOLS = {"h11": H11Protocol, "httptools": HttpToolsProtocol}
+HTTP_PROTOCOLS = {
+    "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
+    "h11": "uvicorn.protocols.http.h11:H11Protocol",
+    "httptools": "uvicorn.protocols.http.httptools:HttpToolsProtocol",
+}
+LOOP_SETUPS = {
+    "auto": "uvicorn.loops.auto:auto_loop_setup",
+    "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
+    "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
+}
 
-
-if platform.python_implementation() == 'PyPy':
-    DEFAULT_LOOP = 'asyncio'
-    DEFAULT_PARSER = 'h11'
-elif platform.system() == 'Windows' or platform.system().startswith('CYGWIN'):
-    DEFAULT_LOOP = 'asyncio'
-    DEFAULT_PARSER = 'h11'
-else:
-    DEFAULT_LOOP = 'uvloop'
-    DEFAULT_PARSER = 'httptools'
+LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
+HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
+LOOP_CHOICES = click.Choice(LOOP_SETUPS.keys())
 
 
 @click.command()
 @click.argument("app")
 @click.option("--host", type=str, default="127.0.0.1", help="Host")
 @click.option("--port", type=int, default=8000, help="Port")
-@click.option("--loop", type=LOOP_CHOICES, default=DEFAULT_LOOP, help="Event loop")
-@click.option("--http", type=HTTP_CHOICES, default=DEFAULT_PARSER, help="HTTP Handler")
+@click.option("--loop", type=LOOP_CHOICES, default="auto", help="Event loop")
+@click.option("--http", type=HTTP_CHOICES, default="auto", help="HTTP Handler")
 @click.option("--workers", type=int, default=1, help="Number of worker processes")
 @click.option("--log-level", type=LEVEL_CHOICES, default="info", help="Log level")
 def main(app, host: str, port: int, loop: str, http: str, workers: int, log_level: str):
-    log_level = LOG_LEVELS[log_level]
-    logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
-    logger = logging.getLogger()
-    loop = get_event_loop(loop)
-
     sys.path.insert(0, ".")
-    app = load_app(app)
-    protocol_class = HTTP_PROTOCOLS[http]
+    try:
+        app = import_from_string(app)
+    except ImportFromStringError as exc:
+        click.error("Error loading ASGI app. %s" % exc)
 
     if workers != 1:
         raise click.UsageError(
-            'Not yet available. For multiple worker processes, use gunicorn. '
+            "Not yet available. For multiple worker processes, use gunicorn. "
             'eg. "gunicorn -w 4 -k uvicorn.workers.UvicornWorker".'
         )
 
-    server = Server(app, host, port, loop, logger, protocol_class)
-    server.run()
+    run(app, host, port, http, loop, log_level)
 
 
-def run(app, host="127.0.0.1", port=8000, log_level="info"):
+def run(app, host="127.0.0.1", port=8000, loop="auto", http="auto", log_level="info"):
     log_level = LOG_LEVELS[log_level]
     logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
-
-    loop = get_event_loop(DEFAULT_LOOP)
     logger = logging.getLogger()
-    protocol_class = {'httptools': HttpToolsProtocol, 'h11': H11Protocol}[DEFAULT_PARSER]
+
+    app = import_from_string(app)
+    loop_setup = import_from_string(LOOP_SETUPS[loop])
+    protocol_class = import_from_string(HTTP_PROTOCOLS[http])
+
+    loop = loop_setup()
 
     server = Server(app, host, port, loop, logger, protocol_class)
     server.run()
-
-
-def load_app(app):
-    if not isinstance(app, str):
-        return app
-
-    if ":" not in app:
-        message = 'Invalid app string "{app}". Must be in format "<module>:<app>".'
-        raise click.UsageError(message.format(app=app))
-
-    module_str, attrs = app.split(":", 1)
-    try:
-        module = importlib.import_module(module_str)
-    except ModuleNotFoundError as exc:
-        if exc.name != module_str:
-            raise
-        message = 'Error loading ASGI app. Could not import module "{module_str}".'
-        raise click.UsageError(message.format(module_str=module_str))
-
-    try:
-        for attr in attrs.split('.'):
-            asgi_app = getattr(module, attr)
-    except AttributeError:
-        message = 'Error loading ASGI app. No app "{attrs}" found in module "{module_str}".'
-        raise click.UsageError(message.format(attrs=attrs, module_str=module_str))
-
-    return asgi_app
-
-
-def get_event_loop(loop):
-    if loop == "uvloop":
-        import uvloop
-
-        asyncio.get_event_loop().close()
-        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    return asyncio.get_event_loop()
 
 
 class Server:
@@ -132,8 +92,8 @@ class Server:
 
     def set_signal_handlers(self):
         handled = (
-            signal.SIGINT,       # Unix signal 2. Sent by Ctrl+C.
-            signal.SIGTERM,      # Unix signal 15. Sent by `kill <pid>`.
+            signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
+            signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
         )
         try:
             for sig in handled:
@@ -154,7 +114,7 @@ class Server:
             self.loop.run_forever()
 
     def handle_exit(self, sig, frame):
-        if hasattr(sig, 'name'):
+        if hasattr(sig, "name"):
             msg = "Received signal %s. Shutting down." % sig.name
         else:
             msg = "Received signal. Shutting down."

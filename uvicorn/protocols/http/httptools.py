@@ -35,11 +35,24 @@ HIGH_WATER_LIMIT = 65536
 
 class HttpToolsProtocol(asyncio.Protocol):
     __slots__ = (
-        'app', 'loop', 'state', 'logger', 'access_logs', 'parser',
-        'transport', 'server', 'client', 'scheme',
-        'scope', 'headers', 'cycle', 'client_event',
-        'readable', 'writable', 'writable_event',
-        'pipeline'
+        "app",
+        "loop",
+        "state",
+        "logger",
+        "access_logs",
+        "parser",
+        "transport",
+        "server",
+        "client",
+        "scheme",
+        "scope",
+        "headers",
+        "cycle",
+        "client_event",
+        "readable",
+        "writable",
+        "writable_event",
+        "pipeline",
     )
 
     def __init__(self, app, loop=None, state=None, logger=None):
@@ -189,9 +202,17 @@ class HttpToolsProtocol(asyncio.Protocol):
 
 class RequestResponseCycle:
     __slots__ = (
-        'scope', 'protocol', 'disconnected', 'done_callback',
-        'body', 'more_body',
-        'response_started', 'response_complete', 'keep_alive', 'chunked_encoding', 'expected_content_length'
+        "scope",
+        "protocol",
+        "disconnected",
+        "done_callback",
+        "body",
+        "more_body",
+        "response_started",
+        "response_complete",
+        "keep_alive",
+        "chunked_encoding",
+        "expected_content_length",
     )
 
     def __init__(self, scope, protocol):

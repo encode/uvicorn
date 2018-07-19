@@ -1,5 +1,6 @@
+from uvicorn.protocols.http.h11 import H11Protocol
+from uvicorn.protocols.http.httptools import HttpToolsProtocol
 import asyncio
-from uvicorn.protocols.http import H11Protocol, HttpToolsProtocol
 import h11
 import pytest
 
@@ -21,7 +22,8 @@ class Response:
                 "type": "http.response.start",
                 "status": self.status_code,
                 "headers": [
-                    [key.encode(), value.encode()] for key, value in self.headers.items()
+                    [key.encode(), value.encode()]
+                    for key, value in self.headers.items()
                 ],
             }
         )
@@ -64,7 +66,7 @@ LARGE_POST_REQUEST = b"\r\n".join(
         b"Content-Type: text/plain",
         b"Content-Length: 100000",
         b"",
-        b'x' * 100000,
+        b"x" * 100000,
     ]
 )
 
@@ -156,13 +158,14 @@ def test_post_request(protocol_cls):
     class App:
         def __init__(self, scope):
             self.scope = scope
+
         async def __call__(self, receive, send):
-            body = b''
+            body = b""
             more_body = True
             while more_body:
                 message = await receive()
-                body += message.get('body', b'')
-                more_body = message.get('more_body', False)
+                body += message.get("body", b"")
+                more_body = message.get("more_body", False)
             response = Response(b"Body: " + body, media_type="text/plain")
             await response(receive, send)
 
@@ -200,7 +203,9 @@ def test_close(protocol_cls):
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_chunked_encoding(protocol_cls):
     def app(scope):
-        return Response(b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"})
+        return Response(
+            b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
+        )
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -274,7 +279,7 @@ def test_large_post_request(protocol_cls):
 def test_invalid_http(protocol_cls):
     app = lambda scope: None
     protocol = get_connected_protocol(app, protocol_cls)
-    protocol.data_received(b'x' * 100000)
+    protocol.data_received(b"x" * 100000)
     assert protocol.transport.is_closing()
 
 
@@ -283,6 +288,7 @@ def test_app_exception(protocol_cls):
     class App:
         def __init__(self, scope):
             self.scope = scope
+
         async def __call__(self, receive, send):
             raise Exception()
 
@@ -435,9 +441,11 @@ def test_early_disconnect(protocol_cls):
         async def __call__(self, receive, send):
             nonlocal got_disconnect_event
 
-            message = await receive()
-            while message['type'] != 'http.disconnect':
-                continue
+            while True:
+                message = await receive()
+                if message["type"] == "http.disconnect":
+                    break
+
             got_disconnect_event = True
 
     protocol = get_connected_protocol(App, protocol_cls)
