@@ -8,7 +8,8 @@ import sys
 import uvloop
 
 from gunicorn.workers.base import Worker
-from uvicorn.protocols.http import H11Protocol, HttpToolsProtocol
+from uvicorn.protocols.http.h11_impl import H11Protocol
+from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 
 
 class UvicornWorker(Worker):

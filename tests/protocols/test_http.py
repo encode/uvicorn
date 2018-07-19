@@ -1,5 +1,5 @@
-from uvicorn.protocols.http.h11 import H11Protocol
-from uvicorn.protocols.http.httptools import HttpToolsProtocol
+from uvicorn.protocols.http.h11_impl import H11Protocol
+from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 import asyncio
 import h11
 import pytest

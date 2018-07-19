@@ -1,4 +1,4 @@
-from uvicorn.protocols.http.httptools import HttpToolsProtocol
+from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 from uvicorn.protocols.http.auto import AutoHTTPProtocol
 from uvicorn.loops.auto import auto_loop_setup
 import asyncio
