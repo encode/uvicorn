@@ -69,7 +69,15 @@ def main(app, host: str, port: int, loop: str, http: str, workers: int, log_leve
     run(app, host, port, loop, http, log_level, workers)
 
 
-def run(app, host="127.0.0.1", port=8000, loop="auto", http="auto", log_level="info", workers=1):
+def run(
+    app,
+    host="127.0.0.1",
+    port=8000,
+    loop="auto",
+    http="auto",
+    log_level="info",
+    workers=1,
+):
     sock = get_socket(host, port)
     logger = get_logger(log_level)
     pid = os.getpid()
@@ -81,7 +89,7 @@ def run(app, host="127.0.0.1", port=8000, loop="auto", http="auto", log_level="i
     processes = []
 
     def shutdown(sig, frame):
-        logger.info('Got signal %s. Shutting down.', signal.Signals(sig).name)
+        logger.info("Got signal %s. Shutting down.", signal.Signals(sig).name)
 
         for process, event in processes:
             event.set()
@@ -92,12 +100,12 @@ def run(app, host="127.0.0.1", port=8000, loop="auto", http="auto", log_level="i
     for _ in range(workers):
         event = multiprocessing.Event()
         kwargs = {
-            'app': app,
-            'sock': sock,
-            'event': event,
-            'logger': logger,
-            'loop': loop,
-            'http': http,
+            "app": app,
+            "sock": sock,
+            "event": event,
+            "logger": logger,
+            "loop": loop,
+            "http": http,
         }
         process = multiprocessing.Process(target=run_one, kwargs=kwargs)
         process.start()
@@ -129,15 +137,7 @@ def run_one(app, sock, event, logger, loop="auto", http="auto"):
 
 
 class Server:
-    def __init__(
-        self,
-        app,
-        sock,
-        event,
-        logger,
-        loop,
-        protocol_class
-    ):
+    def __init__(self, app, sock, event, logger, loop, protocol_class):
         self.app = app
         self.sock = sock
         self.event = event
@@ -161,7 +161,9 @@ class Server:
 
     async def create_server(self):
         try:
-            self.server = await self.loop.create_server(self.create_protocol, sock=self.sock)
+            self.server = await self.loop.create_server(
+                self.create_protocol, sock=self.sock
+            )
         except Exception as exc:
             self.logger.error(exc)
             self.event.set()
