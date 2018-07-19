@@ -5,7 +5,7 @@ import logging
 import time
 import traceback
 from urllib.parse import unquote
-from uvicorn.protocols.websockets.websockets import websocket_upgrade
+from uvicorn.protocols.websockets.websockets_impl import websocket_upgrade
 
 import h11
 

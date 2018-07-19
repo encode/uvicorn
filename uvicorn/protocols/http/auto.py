@@ -1,10 +1,10 @@
 try:
     import httptools
 except ImportError:  # pragma: no cover
-    from uvicorn.protocols.http.h11 import H11Protocol
+    from uvicorn.protocols.http.h11_impl import H11Protocol
 
     AutoHTTPProtocol = H11Protocol
 else:
-    from uvicorn.protocols.http.httptools import HttpToolsProtocol
+    from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 
     AutoHTTPProtocol = HttpToolsProtocol

@@ -18,8 +18,8 @@ LOG_LEVELS = {
 }
 HTTP_PROTOCOLS = {
     "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
-    "h11": "uvicorn.protocols.http.h11:H11Protocol",
-    "httptools": "uvicorn.protocols.http.httptools:HttpToolsProtocol",
+    "h11": "uvicorn.protocols.http.h11_impl:H11Protocol",
+    "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
 }
 LOOP_SETUPS = {
     "auto": "uvicorn.loops.auto:auto_loop_setup",
