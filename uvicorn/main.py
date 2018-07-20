@@ -1,4 +1,7 @@
+from uvicorn.debug import DebugMiddleware
 from uvicorn.importer import import_from_string, ImportFromStringError
+from uvicorn.reloaders.noreload import NoReload
+from uvicorn.reloaders.statreload import StatReload
 import asyncio
 import click
 import signal
@@ -6,6 +9,7 @@ import os
 import logging
 import socket
 import sys
+import time
 import multiprocessing
 
 
@@ -58,15 +62,33 @@ def get_logger(log_level):
 @click.option("--loop", type=LOOP_CHOICES, default="auto", help="Event loop")
 @click.option("--http", type=HTTP_CHOICES, default="auto", help="HTTP Handler")
 @click.option("--workers", type=int, default=1, help="Number of worker processes")
+@click.option(
+    "--debug", type=bool, is_flag=True, default=False, help="Enable debug mode"
+)
 @click.option("--log-level", type=LEVEL_CHOICES, default="info", help="Log level")
-def main(app, host: str, port: int, loop: str, http: str, workers: int, log_level: str):
+def main(
+    app,
+    host: str,
+    port: int,
+    loop: str,
+    http: str,
+    workers: int,
+    debug: bool,
+    log_level: str,
+):
     sys.path.insert(0, ".")
-    try:
-        import_from_string(app)
-    except ImportFromStringError as exc:
-        click.error("Error loading ASGI app. %s" % exc)
 
-    run(app, host, port, loop, http, log_level, workers)
+    kwargs = {
+        "app": app,
+        "host": host,
+        "port": port,
+        "loop": loop,
+        "http": http,
+        "log_level": log_level,
+        "workers": workers,
+        "debug": debug,
+    }
+    run(**kwargs)
 
 
 def run(
@@ -77,6 +99,7 @@ def run(
     http="auto",
     log_level="info",
     workers=1,
+    debug=False,
 ):
     sock = get_socket(host, port)
     logger = get_logger(log_level)
@@ -87,9 +110,20 @@ def run(
     logger.info("Started parent [{}]".format(pid))
 
     processes = []
+    seen_shutdown = False
+    seen_restart = False
+
+    if debug:
+        reloader = StatReload(logger)
+    else:
+        reloader = NoReload()
 
     def shutdown(sig, frame):
-        logger.info("Got signal %s. Shutting down.", signal.Signals(sig).name)
+        nonlocal seen_shutdown
+
+        seen_shutdown = True
+
+        logger.warning("Got signal %s. Shutting down.", signal.Signals(sig).name)
 
         for process, event in processes:
             event.set()
@@ -97,28 +131,50 @@ def run(
     for sig in HANDLED_SIGNALS:
         signal.signal(sig, shutdown)
 
-    for _ in range(workers):
-        event = multiprocessing.Event()
-        kwargs = {
-            "app": app,
-            "sock": sock,
-            "event": event,
-            "logger": logger,
-            "loop": loop,
-            "http": http,
-        }
-        process = multiprocessing.Process(target=run_one, kwargs=kwargs)
-        process.start()
-        processes.append((process, event))
+    while not seen_shutdown:
+        for _ in range(workers):
+            event = multiprocessing.Event()
+            kwargs = {
+                "app": app,
+                "sock": sock,
+                "event": event,
+                "logger": logger,
+                "loop": loop,
+                "http": http,
+                "debug": debug,
+            }
+            process = multiprocessing.Process(target=run_one, kwargs=kwargs)
+            process.start()
+            processes.append((process, event))
 
-    for process, event in processes:
-        process.join()
+        while not (seen_shutdown or seen_restart):
+            if not any([process.is_alive() for process, event in processes]):
+                seen_shutdown = True
+            time.sleep(0.2)
+            seen_restart = reloader.should_restart()
+
+        if seen_restart:
+            for process, event in processes:
+                event.set()
+            seen_restart = False
+            reloader.clear()
+
+        for process, event in processes:
+            process.join()
 
     logger.info("Stopping parent [{}]".format(pid))
 
 
-def run_one(app, sock, event, logger, loop="auto", http="auto"):
-    app = import_from_string(app)
+def run_one(app, sock, event, logger, debug=False, loop="auto", http="auto"):
+    try:
+        app = import_from_string(app)
+    except ImportFromStringError as exc:
+        click.echo("Error loading ASGI app. %s" % exc)
+        sys.exit(1)
+
+    if debug:
+        app = DebugMiddleware(app)
+
     loop_setup = import_from_string(LOOP_SETUPS[loop])
     protocol_class = import_from_string(HTTP_PROTOCOLS[http])
 
