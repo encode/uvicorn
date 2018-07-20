@@ -40,13 +40,6 @@ HANDLED_SIGNALS = (
 )
 
 
-def get_socket(host, port):
-    sock = socket.socket()
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind((host, port))
-    return sock
-
-
 def get_logger(log_level):
     log_level = LOG_LEVELS[log_level]
     logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
@@ -57,17 +50,19 @@ def get_logger(log_level):
 @click.argument("app")
 @click.option("--host", type=str, default="127.0.0.1", help="Host")
 @click.option("--port", type=int, default=8000, help="Port")
+@click.option("--fd", type=int, default=None, help="File descriptor")
 @click.option("--loop", type=LOOP_CHOICES, default="auto", help="Event loop")
-@click.option("--http", type=HTTP_CHOICES, default="auto", help="HTTP Handler")
+@click.option("--http", type=HTTP_CHOICES, default="auto", help="HTTP implementation")
 @click.option("--debug", is_flag=True, default=False, help="Enable debug mode")
 @click.option("--log-level", type=LEVEL_CHOICES, default="info", help="Log level")
-def main(app, host: str, port: int, loop: str, http: str, debug: bool, log_level: str):
+def main(app, host: str, port: int, fd: int, loop: str, http: str, debug: bool, log_level: str):
     sys.path.insert(0, ".")
 
     kwargs = {
         "app": app,
         "host": host,
         "port": port,
+        "fd": fd,
         "loop": loop,
         "http": http,
         "log_level": log_level,
@@ -86,6 +81,7 @@ def run(
     app,
     host="127.0.0.1",
     port=8000,
+    fd=None,
     loop="auto",
     http="auto",
     log_level="info",
@@ -100,6 +96,13 @@ def run(
     if debug:
         app = DebugMiddleware(app)
 
+    if fd is None:
+        sock = None
+    else:
+        host = None
+        port = None
+        sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
+
     logger = get_logger(log_level)
     loop_setup = import_from_string(LOOP_SETUPS[loop])
     protocol_class = import_from_string(HTTP_PROTOCOLS[http])
@@ -110,6 +113,7 @@ def run(
         app=app,
         host=host,
         port=port,
+        sock=sock,
         logger=logger,
         loop=loop,
         protocol_class=protocol_class,
@@ -118,10 +122,11 @@ def run(
 
 
 class Server:
-    def __init__(self, app, host, port, logger, loop, protocol_class):
+    def __init__(self, app, host, port, sock, logger, loop, protocol_class):
         self.app = app
         self.host = host
         self.port = port
+        self.sock = sock
         self.logger = logger
         self.loop = loop
         self.protocol_class = protocol_class
@@ -152,10 +157,14 @@ class Server:
 
     async def create_server(self):
         self.server = await self.loop.create_server(
-            self.create_protocol, self.host, self.port
+            self.create_protocol, self.host, self.port, sock=self.sock
         )
-        message = "* Uvicorn running on http://%s:%d 🦄 (Press CTRL+C to quit)"
-        click.echo(message % (self.host, self.port))
+        if self.sock is None:
+            message = "* Uvicorn running on http://%s:%d 🦄 (Press CTRL+C to quit)"
+            click.echo(message % (self.host, self.port))
+        else:
+            message = "* Uvicorn running on socket %s 🦄 (Press CTRL+C to quit)"
+            click.echo(message % str(self.sock.getsockname()))
 
     async def tick(self):
         while not self.should_exit:
