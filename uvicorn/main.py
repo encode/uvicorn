@@ -75,9 +75,6 @@ def main(app, host: str, port: int, loop: str, http: str, debug: bool, log_level
     }
 
     if debug:
-        # kwargs['sock'] = get_socket(host, port)
-        # message = "* Uvicorn running on http://%s:%d 🦄 (Press CTRL+C to quit)"
-        # click.echo(message % (host, port))
         logger = get_logger(log_level)
         reloader = StatReload(logger)
         reloader.run(run, kwargs)
