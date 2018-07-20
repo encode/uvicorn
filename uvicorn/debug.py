@@ -80,7 +80,7 @@ class _DebugResponder:
             accept = get_accept_header(self.scope)
             if "text/html" in accept:
                 exc_html = html.escape(traceback.format_exc())
-                content = f"<html><body><h1>500 Server Error</h1><pre>{exc_html}</pre></body></html>"
+                content = "<html><body><h1>500 Server Error</h1><pre>%s</pre></body></html>" % exc_html
                 response = HTMLResponse(content, status_code=500)
             else:
                 content = traceback.format_exc()
