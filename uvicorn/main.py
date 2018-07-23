@@ -74,6 +74,12 @@ def get_logger(log_level):
     default="",
     help="Set the ASGI 'root_path' for applications submounted below a given URL path.",
 )
+@click.option(
+    "--max-connections",
+    type=int,
+    default=None,
+    help="Maximum number of concurrent connections to allow, before issuing HTTP 503 responses.",
+)
 def main(
     app,
     host: str,
@@ -86,6 +92,7 @@ def main(
     log_level: str,
     proxy_headers: bool,
     root_path: str,
+    max_connections: int,
 ):
     sys.path.insert(0, ".")
 
@@ -101,6 +108,7 @@ def main(
         "debug": debug,
         "proxy_headers": proxy_headers,
         "root_path": root_path,
+        "max_connections": max_connections,
     }
 
     if debug:
@@ -123,6 +131,7 @@ def run(
     debug=False,
     proxy_headers=False,
     root_path="",
+    max_connections=None
 ):
     try:
         app = import_from_string(app)
@@ -146,13 +155,17 @@ def run(
 
     loop = loop_setup()
 
+    state = {"total_requests": 0, "num_connections": 0}
+
     def create_protocol():
         return protocol_class(
             app=app,
             loop=loop,
             logger=logger,
+            state=state,
             proxy_headers=proxy_headers,
             root_path=root_path,
+            max_connections=max_connections
         )
 
     server = Server(

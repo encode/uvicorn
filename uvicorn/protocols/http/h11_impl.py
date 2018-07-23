@@ -51,18 +51,39 @@ DEFAULT_HEADERS = _get_default_headers()
 HIGH_WATER_LIMIT = 65536
 
 
+class ServiceUnavailable:
+    def __init__(self, scope):
+        pass
+
+    async def __call__(self, receive, send):
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 503,
+                "headers": [
+                    (b"content-type", b"text/plain; charset=utf-8"),
+                    (b"connection", b"close"),
+                ],
+            }
+        )
+        await send(
+            {"type": "http.response.body", "body": b"Service Unavailable"}
+        )
+
+
 class H11Protocol(asyncio.Protocol):
     def __init__(
-        self, app, loop=None, state=None, logger=None, proxy_headers=False, root_path=""
+        self, app, loop=None, state=None, logger=None, proxy_headers=False, root_path="", max_connections=None
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
-        self.state = {"total_requests": 0} if state is None else state
+        self.state = {"total_requests": 0, "num_connections": 0} if state is None else state
         self.logger = logger or logging.getLogger()
         self.access_logs = self.logger.level >= logging.INFO
         self.conn = h11.Connection(h11.SERVER)
         self.proxy_headers = proxy_headers
         self.root_path = root_path
+        self.max_connections = max_connections
 
         # Per-connection state
         self.transport = None
@@ -89,14 +110,19 @@ class H11Protocol(asyncio.Protocol):
 
     # Protocol interface
     def connection_made(self, transport):
+        self.state["num_connections"] += 1
+
         self.transport = transport
         self.server = transport.get_extra_info("sockname")
         self.client = transport.get_extra_info("peername")
         self.scheme = "https" if transport.get_extra_info("sslcontext") else "http"
+
         if self.access_logs:
             self.logger.debug("%s - Connected", self.server[0])
 
     def connection_lost(self, exc):
+        self.state["num_connections"] -= 1
+
         if self.access_logs:
             self.logger.debug("%s - Disconnected", self.server[0])
 
@@ -124,7 +150,7 @@ class H11Protocol(asyncio.Protocol):
                 event = self.conn.next_event()
             except h11.RemoteProtocolError:
                 msg = "Invalid HTTP request received."
-                self.logger.warn(msg)
+                self.logger.warning(msg)
                 self.transport.close()
                 return
             event_type = type(event)
@@ -167,8 +193,16 @@ class H11Protocol(asyncio.Protocol):
                         websocket_upgrade(self)
                         return
 
+                # Handle 503 responses when 'max_connections' is exceeded.
+                if self.max_connections is not None and self.state["num_connections"] >= self.max_connections:
+                    app = ServiceUnavailable
+                    message = 'Exceeded max_connections. Sending 503 responses.'
+                    self.logger.warning(message)
+                else:
+                    app = self.app
+
                 self.cycle = RequestResponseCycle(self.scope, self)
-                self.loop.create_task(self.cycle.run_asgi(self.app))
+                self.loop.create_task(self.cycle.run_asgi(app))
 
             elif event_type is h11.Data:
                 if self.conn.our_state is h11.DONE:
