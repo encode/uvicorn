@@ -48,20 +48,38 @@ def get_logger(log_level):
 
 @click.command()
 @click.argument("app")
-@click.option("--host", type=str, default="127.0.0.1", help="Host")
-@click.option("--port", type=int, default=8000, help="Port")
-@click.option("--fd", type=int, default=None, help="File descriptor")
-@click.option("--loop", type=LOOP_CHOICES, default="auto", help="Event loop")
-@click.option("--http", type=HTTP_CHOICES, default="auto", help="HTTP implementation")
-@click.option("--debug", is_flag=True, default=False, help="Enable debug mode")
-@click.option("--log-level", type=LEVEL_CHOICES, default="info", help="Log level")
-def main(app, host: str, port: int, fd: int, loop: str, http: str, debug: bool, log_level: str):
+@click.option("--host", type=str, default="127.0.0.1", help="Bind socket to this host.")
+@click.option("--port", type=int, default=8000, help="Bind socket to this port.")
+@click.option("--uds", type=str, default=None, help="Bind to a UNIX domain socket.")
+@click.option(
+    "--fd", type=int, default=None, help="Bind to socket from this file descriptor."
+)
+@click.option(
+    "--loop", type=LOOP_CHOICES, default="auto", help="Event loop implementation."
+)
+@click.option(
+    "--http", type=HTTP_CHOICES, default="auto", help="HTTP parser implementation."
+)
+@click.option("--debug", is_flag=True, default=False, help="Enable debug mode.")
+@click.option("--log-level", type=LEVEL_CHOICES, default="info", help="Log level.")
+def main(
+    app,
+    host: str,
+    port: int,
+    uds: str,
+    fd: int,
+    loop: str,
+    http: str,
+    debug: bool,
+    log_level: str,
+):
     sys.path.insert(0, ".")
 
     kwargs = {
         "app": app,
         "host": host,
         "port": port,
+        "uds": uds,
         "fd": fd,
         "loop": loop,
         "http": http,
@@ -81,6 +99,7 @@ def run(
     app,
     host="127.0.0.1",
     port=8000,
+    uds=None,
     fd=None,
     loop="auto",
     http="auto",
@@ -113,6 +132,7 @@ def run(
         app=app,
         host=host,
         port=port,
+        uds=uds,
         sock=sock,
         logger=logger,
         loop=loop,
@@ -122,10 +142,13 @@ def run(
 
 
 class Server:
-    def __init__(self, app, host, port, sock, logger, loop, protocol_class):
+    def __init__(
+        self, app, host, port, uds, sock, logger, loop, protocol_class
+    ):
         self.app = app
         self.host = host
         self.port = port
+        self.uds = uds
         self.sock = sock
         self.logger = logger
         self.loop = loop
@@ -156,15 +179,28 @@ class Server:
         return self.protocol_class(app=self.app, loop=self.loop, logger=self.logger)
 
     async def create_server(self):
-        self.server = await self.loop.create_server(
-            self.create_protocol, self.host, self.port, sock=self.sock
-        )
-        if self.sock is None:
-            message = "* Uvicorn running on http://%s:%d 🦄 (Press CTRL+C to quit)"
-            click.echo(message % (self.host, self.port))
-        else:
+        if self.sock is not None:
+            self.server = await self.loop.create_server(
+                self.create_protocol, sock=self.sock
+            )
             message = "* Uvicorn running on socket %s 🦄 (Press CTRL+C to quit)"
             click.echo(message % str(self.sock.getsockname()))
+
+        elif self.uds is not None:
+            # Create a socket using UNIX domain socket.
+            self.server = await self.loop.create_unix_server(
+                self.create_protocol, path=self.uds
+            )
+            message = "* Uvicorn running on socket %s 🦄 (Press CTRL+C to quit)"
+            click.echo(message % self.uds)
+
+        else:
+            # Standard case. Create a socket from a host/port pair.
+            self.server = await self.loop.create_server(
+                self.create_protocol, host=self.host, port=self.port
+            )
+            message = "* Uvicorn running on http://%s:%d 🦄 (Press CTRL+C to quit)"
+            click.echo(message % (self.host, self.port))
 
     async def tick(self):
         while not self.should_exit:
