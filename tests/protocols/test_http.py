@@ -133,10 +133,10 @@ class MockLoop:
         asyncio.get_event_loop().run_until_complete(coroutine)
 
 
-def get_connected_protocol(app, protocol_cls):
+def get_connected_protocol(app, protocol_cls, **kwargs):
     loop = MockLoop()
     transport = MockTransport()
-    protocol = protocol_cls(app, loop)
+    protocol = protocol_cls(app, loop, **kwargs)
     protocol.connection_made(transport)
     return protocol
 
@@ -505,3 +505,42 @@ def test_http10_request(protocol_cls):
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Version: 1.0" in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_root_path(protocol_cls):
+    def app(scope):
+        path = scope.get("root_path", "") + scope["path"]
+        return Response("Path: " + path, media_type="text/plain")
+
+    protocol = get_connected_protocol(app, protocol_cls, root_path="/app")
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Path: /app/" in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_proxy_headers(protocol_cls):
+    def app(scope):
+        scheme = scope["scheme"]
+        host, port = scope["client"]
+        addr = "%s://%s:%d" % (scheme, host, port)
+        return Response("Remote: " + addr, media_type="text/plain")
+
+    REQUEST = b"\r\n".join(
+        [
+            b"GET / HTTP/1.1",
+            b"Host: example.org",
+            b"X-Forwarded-Proto: https",
+            b"X-Forwarded-For: 1.2.3.4",
+            b"X-Forwarded-Port: 567",
+            b"",
+            b"",
+        ]
+    )
+    protocol = get_connected_protocol(app, protocol_cls, proxy_headers=True)
+    protocol.data_received(REQUEST)
+    protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Remote: https://1.2.3.4:567" in protocol.transport.buffer

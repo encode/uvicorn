@@ -62,6 +62,18 @@ def get_logger(log_level):
 )
 @click.option("--debug", is_flag=True, default=False, help="Enable debug mode.")
 @click.option("--log-level", type=LEVEL_CHOICES, default="info", help="Log level.")
+@click.option(
+    "--proxy-headers",
+    is_flag=True,
+    default=False,
+    help="Use X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to populate remote address info.",
+)
+@click.option(
+    "--root-path",
+    type=str,
+    default="",
+    help="Set the ASGI 'root_path' for applications submounted below a given URL path.",
+)
 def main(
     app,
     host: str,
@@ -72,6 +84,8 @@ def main(
     http: str,
     debug: bool,
     log_level: str,
+    proxy_headers: bool,
+    root_path: str,
 ):
     sys.path.insert(0, ".")
 
@@ -85,6 +99,8 @@ def main(
         "http": http,
         "log_level": log_level,
         "debug": debug,
+        "proxy_headers": proxy_headers,
+        "root_path": root_path,
     }
 
     if debug:
@@ -105,6 +121,8 @@ def run(
     http="auto",
     log_level="info",
     debug=False,
+    proxy_headers=False,
+    root_path="",
 ):
     try:
         app = import_from_string(app)
@@ -128,6 +146,15 @@ def run(
 
     loop = loop_setup()
 
+    def create_protocol():
+        return protocol_class(
+            app=app,
+            loop=loop,
+            logger=logger,
+            proxy_headers=proxy_headers,
+            root_path=root_path,
+        )
+
     server = Server(
         app=app,
         host=host,
@@ -136,14 +163,15 @@ def run(
         sock=sock,
         logger=logger,
         loop=loop,
-        protocol_class=protocol_class,
+        create_protocol=create_protocol,
+        on_tick=protocol_class.tick,
     )
     server.run()
 
 
 class Server:
     def __init__(
-        self, app, host, port, uds, sock, logger, loop, protocol_class
+        self, app, host, port, uds, sock, logger, loop, create_protocol, on_tick
     ):
         self.app = app
         self.host = host
@@ -152,7 +180,8 @@ class Server:
         self.sock = sock
         self.logger = logger
         self.loop = loop
-        self.protocol_class = protocol_class
+        self.create_protocol = create_protocol
+        self.on_tick = on_tick
         self.should_exit = False
         self.pid = os.getpid()
 
@@ -175,11 +204,9 @@ class Server:
         self.loop.create_task(self.tick())
         self.loop.run_forever()
 
-    def create_protocol(self):
-        return self.protocol_class(app=self.app, loop=self.loop, logger=self.logger)
-
     async def create_server(self):
         if self.sock is not None:
+            # Use an existing socket.
             self.server = await self.loop.create_server(
                 self.create_protocol, sock=self.sock
             )
@@ -204,7 +231,7 @@ class Server:
 
     async def tick(self):
         while not self.should_exit:
-            self.protocol_class.tick()
+            self.on_tick()
             await asyncio.sleep(1)
 
         self.logger.info("Stopping server process [{}]".format(self.pid))

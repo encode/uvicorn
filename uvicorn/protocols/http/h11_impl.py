@@ -23,6 +23,25 @@ def _get_status_phrase(status_code):
         return b""
 
 
+def _get_remote_from_proxy(scope):
+    headers = dict(scope["headers"])
+    scheme = scope["scheme"]
+    client = scope["client"]
+
+    if b"x-forwarded-proto" in headers:
+        scheme = headers[b"x-forwarded-proto"].decode("ascii").strip()
+
+    if b"x-forwarded-for" in headers:
+        host = headers[b"x-forwarded-for"].decode("ascii").split(",")[-1].strip()
+        try:
+            port = int(headers[b"x-forwarded-port"].decode("ascii"))
+        except (KeyError, ValueError):
+            port = 0
+        client = (host, port)
+
+    return (scheme, client)
+
+
 STATUS_PHRASES = {
     status_code: _get_status_phrase(status_code) for status_code in range(100, 600)
 }
@@ -33,13 +52,17 @@ HIGH_WATER_LIMIT = 65536
 
 
 class H11Protocol(asyncio.Protocol):
-    def __init__(self, app, loop=None, state=None, logger=None):
+    def __init__(
+        self, app, loop=None, state=None, logger=None, proxy_headers=False, root_path=""
+    ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
         self.state = {"total_requests": 0} if state is None else state
         self.logger = logger or logging.getLogger()
         self.access_logs = self.logger.level >= logging.INFO
         self.conn = h11.Connection(h11.SERVER)
+        self.proxy_headers = proxy_headers
+        self.root_path = root_path
 
         # Per-connection state
         self.transport = None
@@ -119,7 +142,7 @@ class H11Protocol(asyncio.Protocol):
                 break
 
             elif event_type is h11.Request:
-                self.headers = event.headers
+                self.headers = [(key.lower(), value) for key, value in event.headers]
                 path, _, query_string = event.target.partition(b"?")
                 self.scope = {
                     "type": "http",
@@ -128,13 +151,19 @@ class H11Protocol(asyncio.Protocol):
                     "client": self.client,
                     "scheme": self.scheme,
                     "method": event.method.decode("ascii"),
+                    "root_path": self.root_path,
                     "path": unquote(path.decode("ascii")),
                     "query_string": query_string,
                     "headers": self.headers,
                 }
-                for header in self.headers:
-                    name, value = header[0].lower(), header[1].lower()
-                    if name == b"upgrade" and value == b"websocket":
+
+                if self.proxy_headers:
+                    scheme, client = _get_remote_from_proxy(self.scope)
+                    self.scope["scheme"] = scheme
+                    self.scope["client"] = client
+
+                for name, value in self.headers:
+                    if name == b"upgrade" and value.lower() == b"websocket":
                         websocket_upgrade(self)
                         return
 
