@@ -52,39 +52,39 @@ DEFAULT_HEADERS = _get_default_headers()
 HIGH_WATER_LIMIT = 65536
 
 
-class HttpToolsProtocol(asyncio.Protocol):
-    __slots__ = (
-        "app",
-        "loop",
-        "state",
-        "logger",
-        "access_logs",
-        "parser",
-        "transport",
-        "server",
-        "client",
-        "scheme",
-        "scope",
-        "headers",
-        "cycle",
-        "client_event",
-        "readable",
-        "writable",
-        "writable_event",
-        "pipeline",
-    )
+class ServiceUnavailable:
+    def __init__(self, scope):
+        pass
 
+    async def __call__(self, receive, send):
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 503,
+                "headers": [
+                    (b"content-type", b"text/plain; charset=utf-8"),
+                    (b"connection", b"close"),
+                ],
+            }
+        )
+        await send(
+            {"type": "http.response.body", "body": b"Service Unavailable"}
+        )
+
+
+class HttpToolsProtocol(asyncio.Protocol):
     def __init__(
-        self, app, loop=None, state=None, logger=None, proxy_headers=False, root_path=""
+        self, app, loop=None, state=None, logger=None, proxy_headers=False, root_path="", max_connections=None
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
-        self.state = {"total_requests": 0} if state is None else state
+        self.state = {"total_requests": 0, "num_connections": 0} if state is None else state
         self.logger = logger or logging.getLogger()
         self.access_logs = self.logger.level >= logging.INFO
         self.parser = httptools.HttpRequestParser(self)
         self.proxy_headers = proxy_headers
         self.root_path = root_path
+        self.max_connections = max_connections
 
         # Per-connection state
         self.transport = None
@@ -113,6 +113,8 @@ class HttpToolsProtocol(asyncio.Protocol):
 
     # Protocol interface
     def connection_made(self, transport):
+        self.state["num_connections"] += 1
+
         self.transport = transport
         self.server = transport.get_extra_info("sockname")
         self.client = transport.get_extra_info("peername")
@@ -121,6 +123,8 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.logger.debug("%s - Connected", self.server[0])
 
     def connection_lost(self, exc):
+        self.state["num_connections"] -= 1
+
         if self.access_logs:
             self.logger.debug("%s - Disconnected", self.server[0])
 
@@ -136,7 +140,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.parser.feed_data(data)
         except httptools.parser.errors.HttpParserError:
             msg = "Invalid HTTP request received."
-            self.logger.warn(msg)
+            self.logger.warning(msg)
             self.transport.close()
         except httptools.HttpParserUpgrade:
             websocket_upgrade(self)
@@ -173,16 +177,24 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.parser.should_upgrade():
             return
 
+        # Handle 503 responses when 'max_connections' is exceeded.
+        if self.max_connections is not None and self.state["num_connections"] >= self.max_connections:
+            app = ServiceUnavailable
+            message = 'Exceeded max_connections. Sending 503 responses.'
+            self.logger.warning(message)
+        else:
+            app = self.app
+
         existing_cycle = self.cycle
         self.cycle = RequestResponseCycle(self.scope, self)
         if existing_cycle is None or existing_cycle.response_complete:
             # Standard case - start processing the request.
-            self.loop.create_task(self.cycle.run_asgi(self.app))
+            self.loop.create_task(self.cycle.run_asgi(app))
         else:
             # Pipelined HTTP requests need to be queued up.
             self.pause_reading()
             existing_cycle.done_callback = self.on_response_complete
-            self.pipeline.insert(0, self.cycle)
+            self.pipeline.insert(0, (self.cycle, app))
 
     def on_body(self, body: bytes):
         if self.parser.should_upgrade() or self.cycle.response_complete:
@@ -201,8 +213,8 @@ class HttpToolsProtocol(asyncio.Protocol):
     def on_response_complete(self):
         # Callback for pipelined HTTP requests to be started.
         if self.pipeline and not self.transport.is_closing():
-            cycle = self.pipeline.pop()
-            self.loop.create_task(cycle.run_asgi(self.app))
+            cycle, app = self.pipeline.pop()
+            self.loop.create_task(cycle.run_asgi(app))
             if not self.pipeline:
                 self.resume_reading()
 
@@ -229,20 +241,6 @@ class HttpToolsProtocol(asyncio.Protocol):
 
 
 class RequestResponseCycle:
-    __slots__ = (
-        "scope",
-        "protocol",
-        "disconnected",
-        "done_callback",
-        "body",
-        "more_body",
-        "response_started",
-        "response_complete",
-        "keep_alive",
-        "chunked_encoding",
-        "expected_content_length",
-    )
-
     def __init__(self, scope, protocol):
         self.scope = scope
         self.protocol = protocol

@@ -541,3 +541,12 @@ def test_proxy_headers(protocol_cls):
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Remote: https://1.2.3.4:567" in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_max_connections(protocol_cls):
+    app = lambda scope: None
+    protocol = get_connected_protocol(app, protocol_cls, max_connections=1)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b"HTTP/1.1 503 Service Unavailable" in protocol.transport.buffer
