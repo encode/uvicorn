@@ -354,21 +354,16 @@ class RequestResponseCycle:
             protocol.conn.start_next_cycle()
 
     async def receive(self):
-        # If a client calls recieve once they've already sent the response
-        # then raise an error. Allows us to stop buffering any more request
-        # body to memory once the response has been sent.
-        if self.response_complete:
-            msg = "Response already sent. Receive channel no longer available."
-            raise RuntimeError(msg)
+        send_disconnect = self.disconnected or self.response_complete
 
         protocol = self.protocol
         protocol.resume_reading()
 
-        if self.more_body and not self.body and not self.disconnected:
+        if self.more_body and not self.body and not send_disconnect:
             await protocol.client_event.wait()
             protocol.client_event.clear()
 
-        if self.disconnected:
+        if send_disconnect:
             message = {"type": "http.disconnect"}
         else:
             message = {
