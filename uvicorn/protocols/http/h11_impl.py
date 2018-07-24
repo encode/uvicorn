@@ -51,6 +51,38 @@ DEFAULT_HEADERS = _get_default_headers()
 HIGH_WATER_LIMIT = 65536
 
 
+class FlowControl:
+    def __init__(self, transport):
+        self._transport = transport
+        self.read_paused = False
+        self.write_paused = False
+        self._is_writable_event = asyncio.Event()
+        self._is_writable_event.set()
+
+    async def drain(self):
+        await self._is_writable_event.wait()
+
+    def pause_reading(self):
+        if not self.read_paused:
+            self.read_paused = True
+            self._transport.pause_reading()
+
+    def resume_reading(self):
+        if self.read_paused:
+            self.read_paused = False
+            self._transport.resume_reading()
+
+    def pause_writing(self):
+        if not self.write_paused:
+            self.write_paused = True
+            self._is_writable_event.clear()
+
+    def resume_writing(self):
+        if self.write_paused:
+            self.write_paused = False
+            self._is_writable_event.set()
+
+
 class ServiceUnavailable:
     def __init__(self, scope):
         pass
@@ -84,11 +116,8 @@ class H11Protocol(asyncio.Protocol):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
         self.connections = set() if connections is None else connections
-        self.state = (
-            {"total_requests": 0, "num_connections": 0} if state is None else state
-        )
+        self.state = {"total_requests": 0} if state is None else state
         self.logger = logger or logging.getLogger()
-        self.access_logs = self.logger.level <= logging.INFO
         self.conn = h11.Connection(h11.SERVER)
         self.proxy_headers = proxy_headers
         self.root_path = root_path
@@ -96,6 +125,7 @@ class H11Protocol(asyncio.Protocol):
 
         # Per-connection state
         self.transport = None
+        self.flow = None
         self.server = None
         self.client = None
         self.scheme = None
@@ -104,13 +134,7 @@ class H11Protocol(asyncio.Protocol):
         self.scope = None
         self.headers = None
         self.cycle = None
-        self.client_event = asyncio.Event()
-
-        # Flow control
-        self.readable = True
-        self.writable = True
-        self.writable_event = asyncio.Event()
-        self.writable_event.set()
+        self.message_event = asyncio.Event()
 
     @classmethod
     def tick(cls):
@@ -119,22 +143,21 @@ class H11Protocol(asyncio.Protocol):
 
     # Protocol interface
     def connection_made(self, transport):
-        self.state["num_connections"] += 1
         self.connections.add(self)
 
         self.transport = transport
+        self.flow = FlowControl(transport)
         self.server = transport.get_extra_info("sockname")
         self.client = transport.get_extra_info("peername")
         self.scheme = "https" if transport.get_extra_info("sslcontext") else "http"
 
-        if self.access_logs:
+        if self.logger.level <= logging.DEBUG:
             self.logger.debug("%s - Connected", self.server[0])
 
     def connection_lost(self, exc):
-        self.state["num_connections"] -= 1
         self.connections.discard(self)
 
-        if self.access_logs:
+        if self.logger.level <= logging.DEBUG:
             self.logger.debug("%s - Disconnected", self.server[0])
 
         if self.cycle and not self.cycle.response_complete:
@@ -146,7 +169,8 @@ class H11Protocol(asyncio.Protocol):
             except h11.LocalProtocolError:
                 # Premature client disconnect
                 pass
-        self.client_event.set()
+
+        self.message_event.set()
 
     def eof_received(self):
         pass
@@ -174,8 +198,7 @@ class H11Protocol(asyncio.Protocol):
                 # stop reading any more data, and ensure that at the end
                 # of the active request/response cycle we handle any
                 # events that have been buffered up.
-                self.pause_reading()
-                self.cycle.done_callback = self.on_response_complete
+                self.flow.pause_reading()
                 break
 
             elif event_type is h11.Request:
@@ -207,15 +230,23 @@ class H11Protocol(asyncio.Protocol):
                 # Handle 503 responses when 'max_connections' is exceeded.
                 if (
                     self.max_connections is not None
-                    and self.state["num_connections"] >= self.max_connections
+                    and len(self.connections) >= self.max_connections
                 ):
                     app = ServiceUnavailable
-                    message = "Exceeded max_connections. Sending 503 responses."
+                    message = "Exceeded max_connections."
                     self.logger.warning(message)
                 else:
                     app = self.app
 
-                self.cycle = RequestResponseCycle(self.scope, self)
+                self.cycle = RequestResponseCycle(
+                    scope=self.scope,
+                    conn=self.conn,
+                    transport=self.transport,
+                    flow=self.flow,
+                    logger=self.logger,
+                    message_event=self.message_event,
+                    done_callback=self.on_response_complete,
+                )
                 self.loop.create_task(self.cycle.run_asgi(app))
 
             elif event_type is h11.Data:
@@ -223,19 +254,20 @@ class H11Protocol(asyncio.Protocol):
                     continue
                 self.cycle.body += event.data
                 if len(self.cycle.body) > HIGH_WATER_LIMIT:
-                    self.pause_reading()
-                self.client_event.set()
+                    self.flow.pause_reading()
+                self.message_event.set()
 
             elif event_type is h11.EndOfMessage:
                 if self.conn.our_state is h11.DONE:
-                    self.resume_reading()
+                    self.transport.resume_reading()
                     self.conn.start_next_cycle()
                     continue
                 self.cycle.more_body = False
-                self.client_event.set()
+                self.message_event.set()
 
     def on_response_complete(self):
-        self.resume_reading()
+        self.state["total_requests"] += 1
+        self.flow.resume_reading()
         self.handle_events()
 
     def shutdown(self):
@@ -247,34 +279,27 @@ class H11Protocol(asyncio.Protocol):
         else:
             self.cycle.keep_alive = False
 
-    # Flow control
-    def pause_reading(self):
-        if self.readable:
-            self.readable = False
-            self.transport.pause_reading()
-
-    def resume_reading(self):
-        if not self.readable:
-            self.readable = True
-            self.transport.resume_reading()
-
     def pause_writing(self):
-        if self.writable:
-            self.writable = False
-            self.writable_event.clear()
+        self.flow.pause_writing()
 
     def resume_writing(self):
-        if not self.writable:
-            self.writable = True
-            self.writable_event.set()
+        self.flow.resume_writing()
 
 
 class RequestResponseCycle:
-    def __init__(self, scope, protocol):
+    def __init__(
+        self, scope, conn, transport, flow, logger, message_event, done_callback
+    ):
         self.scope = scope
-        self.protocol = protocol
+        self.conn = conn
+        self.transport = transport
+        self.flow = flow
+        self.logger = logger
+        self.message_event = message_event
+        self.done_callback = done_callback
+
+        # Connection state
         self.disconnected = False
-        self.done_callback = None
         self.keep_alive = True
 
         # Request state
@@ -293,30 +318,28 @@ class RequestResponseCycle:
         except:
             msg = "Exception in ASGI application\n%s"
             traceback_text = "".join(traceback.format_exc())
-            self.protocol.logger.error(msg, traceback_text)
+            self.logger.error(msg, traceback_text)
             if not self.response_started:
                 await self.send_500_response()
             else:
-                self.protocol.transport.close()
+                self.transport.close()
         else:
             if result is not None:
                 msg = "ASGI callable should return None, but returned '%s'."
-                self.protocol.logger.error(msg, result)
-                self.protocol.transport.close()
+                self.logger.error(msg, result)
+                self.transport.close()
             elif not self.response_started:
                 msg = "ASGI callable returned without starting response."
-                self.protocol.logger.error(msg)
+                self.logger.error(msg)
                 if not self.disconnected:
                     await self.send_500_response()
             elif not self.response_complete:
                 msg = "ASGI callable returned without completing response."
-                self.protocol.logger.error(msg)
+                self.logger.error(msg)
                 if not self.disconnected:
-                    self.protocol.transport.close()
+                    self.transport.close()
         finally:
-            if self.done_callback is not None:
-                self.done_callback()
-            self.protocol.state["total_requests"] += 1
+            self.done_callback()
 
     async def send_500_response(self):
         await self.send(
@@ -337,14 +360,13 @@ class RequestResponseCycle:
     async def send(self, message):
         global DEFAULT_HEADERS
 
-        protocol = self.protocol
         message_type = message["type"]
 
         if self.disconnected:
             return
 
-        if not protocol.writable:
-            await protocol.writable_event.wait()
+        if self.flow.write_paused:
+            await self.flow.drain()
 
         if not self.response_started:
             # Sending response status line and headers
@@ -357,8 +379,8 @@ class RequestResponseCycle:
             status_code = message["status"]
             headers = DEFAULT_HEADERS + message.get("headers", [])
 
-            if protocol.access_logs:
-                protocol.logger.info(
+            if self.logger.level <= logging.INFO:
+                self.logger.info(
                     '%s - "%s %s HTTP/%s" %d',
                     self.scope["server"][0],
                     self.scope["method"],
@@ -372,8 +394,8 @@ class RequestResponseCycle:
             event = h11.Response(
                 status_code=status_code, headers=headers, reason=reason
             )
-            output = protocol.conn.send(event)
-            protocol.transport.write(output)
+            output = self.conn.send(event)
+            self.transport.write(output)
 
         elif not self.response_complete:
             # Sending response body
@@ -386,43 +408,35 @@ class RequestResponseCycle:
 
             # Write response body
             event = h11.Data(data=body)
-            output = protocol.conn.send(event)
-            protocol.transport.write(output)
+            output = self.conn.send(event)
+            self.transport.write(output)
 
             # Handle response completion
             if not more_body:
                 self.response_complete = True
                 event = h11.EndOfMessage()
-                output = protocol.conn.send(event)
-                protocol.transport.write(output)
+                output = self.conn.send(event)
+                self.transport.write(output)
 
         else:
             # Response already sent
             msg = "Unexpected ASGI message '%s' sent, after response already completed."
             raise RuntimeError(msg % message_type)
 
-        if protocol.conn.our_state is h11.MUST_CLOSE or not self.keep_alive:
+        if self.conn.our_state is h11.MUST_CLOSE or not self.keep_alive:
             event = h11.ConnectionClosed()
-            protocol.conn.send(event)
-            protocol.transport.close()
-        elif (
-            protocol.conn.our_state is h11.DONE
-            and protocol.conn.their_state is h11.DONE
-        ):
-            protocol.resume_reading()
-            protocol.conn.start_next_cycle()
+            self.conn.send(event)
+            self.transport.close()
+        elif self.conn.our_state is h11.DONE and self.conn.their_state is h11.DONE:
+            self.flow.resume_reading()
+            self.conn.start_next_cycle()
 
     async def receive(self):
-        send_disconnect = self.disconnected or self.response_complete
+        self.flow.resume_reading()
+        await self.message_event.wait()
+        self.message_event.clear()
 
-        protocol = self.protocol
-        protocol.resume_reading()
-
-        if self.more_body and not self.body and not send_disconnect:
-            await protocol.client_event.wait()
-            protocol.client_event.clear()
-
-        if send_disconnect:
+        if self.disconnected or self.response_complete:
             message = {"type": "http.disconnect"}
         else:
             message = {

@@ -120,6 +120,9 @@ class MockTransport:
     def is_closing(self):
         return self.closed
 
+    def clear_buffer(self):
+        self.buffer = b""
+
 
 class MockLoop:
     def __init__(self):
@@ -228,17 +231,17 @@ def test_pipelined_requests(protocol_cls):
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
-    protocol.transport.buffer = b""
+    protocol.transport.clear_buffer()
 
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
-    protocol.transport.buffer = b""
+    protocol.transport.clear_buffer()
 
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
-    protocol.transport.buffer = b""
+    protocol.transport.clear_buffer()
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
