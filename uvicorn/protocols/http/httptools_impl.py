@@ -75,6 +75,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self,
         app,
         loop=None,
+        connections=None,
         state=None,
         logger=None,
         proxy_headers=False,
@@ -83,6 +84,7 @@ class HttpToolsProtocol(asyncio.Protocol):
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
+        self.connections = set() if connections is None else connections
         self.state = (
             {"total_requests": 0, "num_connections": 0} if state is None else state
         )
@@ -121,6 +123,7 @@ class HttpToolsProtocol(asyncio.Protocol):
     # Protocol interface
     def connection_made(self, transport):
         self.state["num_connections"] += 1
+        self.connections.add(self)
 
         self.transport = transport
         self.server = transport.get_extra_info("sockname")
@@ -131,6 +134,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 
     def connection_lost(self, exc):
         self.state["num_connections"] -= 1
+        self.connections.discard(self)
 
         if self.access_logs:
             self.logger.debug("%s - Disconnected", self.server[0])
@@ -190,7 +194,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             and self.state["num_connections"] >= self.max_connections
         ):
             app = ServiceUnavailable
-            message = "Exceeded max_connections. Sending 503 responses."
+            message = "Exceeded max_connections."
             self.logger.warning(message)
         else:
             app = self.app
@@ -227,6 +231,13 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.loop.create_task(cycle.run_asgi(app))
             if not self.pipeline:
                 self.resume_reading()
+
+    def shutdown(self):
+        # Called by the server to commence a graceful shutdown
+        if self.cycle is None or self.cycle.response_complete:
+            self.transport.close()
+        else:
+            self.cycle.keep_alive = False
 
     # Flow control
     def pause_reading(self):

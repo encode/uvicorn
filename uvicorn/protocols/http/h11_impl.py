@@ -74,6 +74,7 @@ class H11Protocol(asyncio.Protocol):
         self,
         app,
         loop=None,
+        connections=None,
         state=None,
         logger=None,
         proxy_headers=False,
@@ -82,6 +83,7 @@ class H11Protocol(asyncio.Protocol):
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
+        self.connections = set() if connections is None else connections
         self.state = (
             {"total_requests": 0, "num_connections": 0} if state is None else state
         )
@@ -118,6 +120,7 @@ class H11Protocol(asyncio.Protocol):
     # Protocol interface
     def connection_made(self, transport):
         self.state["num_connections"] += 1
+        self.connections.add(self)
 
         self.transport = transport
         self.server = transport.get_extra_info("sockname")
@@ -129,6 +132,7 @@ class H11Protocol(asyncio.Protocol):
 
     def connection_lost(self, exc):
         self.state["num_connections"] -= 1
+        self.connections.discard(self)
 
         if self.access_logs:
             self.logger.debug("%s - Disconnected", self.server[0])
@@ -234,6 +238,15 @@ class H11Protocol(asyncio.Protocol):
         self.resume_reading()
         self.handle_events()
 
+    def shutdown(self):
+        # Called by the server to commence a graceful shutdown
+        if self.cycle is None or self.cycle.response_complete:
+            event = h11.ConnectionClosed()
+            self.conn.send(event)
+            self.transport.close()
+        else:
+            self.cycle.keep_alive = False
+
     # Flow control
     def pause_reading(self):
         if self.readable:
@@ -262,6 +275,7 @@ class RequestResponseCycle:
         self.protocol = protocol
         self.disconnected = False
         self.done_callback = None
+        self.keep_alive = True
 
         # Request state
         self.body = b""
@@ -387,7 +401,7 @@ class RequestResponseCycle:
             msg = "Unexpected ASGI message '%s' sent, after response already completed."
             raise RuntimeError(msg % message_type)
 
-        if protocol.conn.our_state is h11.MUST_CLOSE:
+        if protocol.conn.our_state is h11.MUST_CLOSE or not self.keep_alive:
             event = h11.ConnectionClosed()
             protocol.conn.send(event)
             protocol.transport.close()
