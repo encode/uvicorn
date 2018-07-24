@@ -156,7 +156,7 @@ def run(
     loop = loop_setup()
 
     connections = set()
-    state = {"total_requests": 0, "num_connections": 0}
+    state = {"total_requests": 0}
 
     def create_protocol():
         return protocol_class(
