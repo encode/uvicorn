@@ -67,20 +67,27 @@ class ServiceUnavailable:
                 ],
             }
         )
-        await send(
-            {"type": "http.response.body", "body": b"Service Unavailable"}
-        )
+        await send({"type": "http.response.body", "body": b"Service Unavailable"})
 
 
 class HttpToolsProtocol(asyncio.Protocol):
     def __init__(
-        self, app, loop=None, state=None, logger=None, proxy_headers=False, root_path="", max_connections=None
+        self,
+        app,
+        loop=None,
+        state=None,
+        logger=None,
+        proxy_headers=False,
+        root_path="",
+        max_connections=None,
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
-        self.state = {"total_requests": 0, "num_connections": 0} if state is None else state
+        self.state = (
+            {"total_requests": 0, "num_connections": 0} if state is None else state
+        )
         self.logger = logger or logging.getLogger()
-        self.access_logs = self.logger.level >= logging.INFO
+        self.access_logs = self.logger.level <= logging.INFO
         self.parser = httptools.HttpRequestParser(self)
         self.proxy_headers = proxy_headers
         self.root_path = root_path
@@ -178,9 +185,12 @@ class HttpToolsProtocol(asyncio.Protocol):
             return
 
         # Handle 503 responses when 'max_connections' is exceeded.
-        if self.max_connections is not None and self.state["num_connections"] >= self.max_connections:
+        if (
+            self.max_connections is not None
+            and self.state["num_connections"] >= self.max_connections
+        ):
             app = ServiceUnavailable
-            message = 'Exceeded max_connections. Sending 503 responses.'
+            message = "Exceeded max_connections. Sending 503 responses."
             self.logger.warning(message)
         else:
             app = self.app
@@ -276,14 +286,15 @@ class RequestResponseCycle:
                 msg = "ASGI callable should return None, but returned '%s'."
                 self.protocol.logger.error(msg, result)
                 self.protocol.transport.close()
-            elif not self.disconnected:
-                if not self.response_started:
-                    msg = "ASGI callable returned without starting response."
-                    self.protocol.logger.error(msg)
+            elif not self.response_started:
+                msg = "ASGI callable returned without starting response."
+                self.protocol.logger.error(msg)
+                if not self.disconnected:
                     await self.send_500_response()
-                elif not self.response_complete:
-                    msg = "ASGI callable returned without completing response."
-                    self.protocol.logger.error(msg)
+            elif not self.response_complete:
+                msg = "ASGI callable returned without completing response."
+                self.protocol.logger.error(msg)
+                if not self.disconnected:
                     self.protocol.transport.close()
         finally:
             self.protocol.state["total_requests"] += 1

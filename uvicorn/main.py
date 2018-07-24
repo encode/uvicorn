@@ -131,7 +131,7 @@ def run(
     debug=False,
     proxy_headers=False,
     root_path="",
-    max_connections=None
+    max_connections=None,
 ):
     try:
         app = import_from_string(app)
@@ -165,7 +165,7 @@ def run(
             state=state,
             proxy_headers=proxy_headers,
             root_path=root_path,
-            max_connections=max_connections
+            max_connections=max_connections,
         )
 
     server = Server(
@@ -223,24 +223,24 @@ class Server:
             self.server = await self.loop.create_server(
                 self.create_protocol, sock=self.sock
             )
-            message = "* Uvicorn running on socket %s 🦄 (Press CTRL+C to quit)"
-            click.echo(message % str(self.sock.getsockname()))
+            message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
+            self.logger.info(message % str(self.sock.getsockname()))
 
         elif self.uds is not None:
             # Create a socket using UNIX domain socket.
             self.server = await self.loop.create_unix_server(
                 self.create_protocol, path=self.uds
             )
-            message = "* Uvicorn running on socket %s 🦄 (Press CTRL+C to quit)"
-            click.echo(message % self.uds)
+            message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
+            self.logger.info(message % self.uds)
 
         else:
             # Standard case. Create a socket from a host/port pair.
             self.server = await self.loop.create_server(
                 self.create_protocol, host=self.host, port=self.port
             )
-            message = "* Uvicorn running on http://%s:%d 🦄 (Press CTRL+C to quit)"
-            click.echo(message % (self.host, self.port))
+            message = "Uvicorn running on http://%s:%d (Press CTRL+C to quit)"
+            self.logger.info(message % (self.host, self.port))
 
     async def tick(self):
         while not self.should_exit:

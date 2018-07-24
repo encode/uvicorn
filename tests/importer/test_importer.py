@@ -27,7 +27,7 @@ def test_invalid_attr():
 
 def test_internal_import_error():
     with pytest.raises(ImportError) as exc:
-        import_from_string("tests.raise_import_error:myattr")
+        import_from_string("tests.importer.raise_import_error:myattr")
 
 
 def test_valid_import():
