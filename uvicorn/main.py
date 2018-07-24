@@ -155,6 +155,7 @@ def run(
 
     loop = loop_setup()
 
+    connections = set()
     state = {"total_requests": 0, "num_connections": 0}
 
     def create_protocol():
@@ -162,6 +163,7 @@ def run(
             app=app,
             loop=loop,
             logger=logger,
+            connections=connections,
             state=state,
             proxy_headers=proxy_headers,
             root_path=root_path,
@@ -176,6 +178,7 @@ def run(
         sock=sock,
         logger=logger,
         loop=loop,
+        connections=connections,
         create_protocol=create_protocol,
         on_tick=protocol_class.tick,
     )
@@ -184,7 +187,17 @@ def run(
 
 class Server:
     def __init__(
-        self, app, host, port, uds, sock, logger, loop, create_protocol, on_tick
+        self,
+        app,
+        host,
+        port,
+        uds,
+        sock,
+        logger,
+        loop,
+        connections,
+        create_protocol,
+        on_tick,
     ):
         self.app = app
         self.host = host
@@ -193,6 +206,7 @@ class Server:
         self.sock = sock
         self.logger = logger
         self.loop = loop
+        self.connections = connections
         self.create_protocol = create_protocol
         self.on_tick = on_tick
         self.should_exit = False
@@ -250,6 +264,15 @@ class Server:
         self.logger.info("Stopping server process [{}]".format(self.pid))
         self.server.close()
         await self.server.wait_closed()
+        for connection in list(self.connections):
+            connection.shutdown()
+
+        await asyncio.sleep(0.1)
+        if self.connections:
+            self.logger.info("Waiting for connections to close.")
+            while self.connections:
+                await asyncio.sleep(0.1)
+
         self.loop.stop()
 
 

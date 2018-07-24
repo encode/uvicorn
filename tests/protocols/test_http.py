@@ -550,3 +550,25 @@ def test_max_connections(protocol_cls):
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 503 Service Unavailable" in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_shutdown_during_request(protocol_cls):
+    def app(scope):
+        return Response(b"", status_code=204)
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.shutdown()
+    protocol.loop.run_one()
+    assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
+    assert protocol.transport.is_closing()
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_shutdown_during_idle(protocol_cls):
+    app = lambda scope: None
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.shutdown()
+    assert protocol.transport.buffer == b""
+    assert protocol.transport.is_closing()
