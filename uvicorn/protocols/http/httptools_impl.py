@@ -115,6 +115,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         root_path="",
         limit_concurrency=None,
         timeout_keep_alive=5,
+        timeout_response=60,
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
@@ -130,6 +131,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Timeouts
         self.timeout_keep_alive_task = None
         self.timeout_keep_alive = timeout_keep_alive
+        self.timeout_response = timeout_response
 
         # Per-connection state
         self.transport = None
@@ -248,6 +250,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             task = self.loop.create_task(self.cycle.run_asgi(app))
             task.add_done_callback(self.on_task_complete)
             self.tasks.add(task)
+            self.loop.call_later(self.timeout_response, self.timeout_response_handler, task)
         else:
             # Pipelined HTTP requests need to be queued up.
             self.flow.pause_reading()
@@ -288,6 +291,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             task = self.loop.create_task(cycle.run_asgi(app))
             task.add_done_callback(self.on_task_complete)
             self.tasks.add(task)
+            self.loop.call_later(self.timeout_response, self.timeout_response_handler, task)
 
     def on_task_complete(self, task):
         self.tasks.discard(task)
@@ -319,6 +323,14 @@ class HttpToolsProtocol(asyncio.Protocol):
         """
         if not self.transport.is_closing():
             self.transport.close()
+
+    def timeout_response_handler(self, task):
+        """
+        Called once per task, when the reponse timeout is reached.
+        """
+        if not task.done():
+            self.logger.error('Task exceeded response timeout.')
+            task.cancel()
 
 
 class RequestResponseCycle:

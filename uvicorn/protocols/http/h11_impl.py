@@ -114,6 +114,7 @@ class H11Protocol(asyncio.Protocol):
         root_path="",
         limit_concurrency=None,
         timeout_keep_alive=5,
+        timeout_response=60,
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
@@ -129,6 +130,7 @@ class H11Protocol(asyncio.Protocol):
         # Timeouts
         self.timeout_keep_alive_task = None
         self.timeout_keep_alive = timeout_keep_alive
+        self.timeout_response = timeout_response
 
         # Per-connection state
         self.transport = None
@@ -262,6 +264,7 @@ class H11Protocol(asyncio.Protocol):
                 task = self.loop.create_task(self.cycle.run_asgi(app))
                 task.add_done_callback(self.on_task_complete)
                 self.tasks.add(task)
+                self.loop.call_later(self.timeout_response, self.timeout_response_handler, task)
 
             elif event_type is h11.Data:
                 if self.conn.our_state is h11.DONE:
@@ -332,6 +335,14 @@ class H11Protocol(asyncio.Protocol):
             event = h11.ConnectionClosed()
             self.conn.send(event)
             self.transport.close()
+
+    def timeout_response_handler(self, task):
+        """
+        Called once per task, when the reponse timeout is reached.
+        """
+        if not task.done():
+            self.logger.error('Task exceeded response timeout.')
+            task.cancel()
 
 
 class RequestResponseCycle:

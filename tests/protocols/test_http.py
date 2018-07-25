@@ -133,8 +133,8 @@ class MockLoop:
         self.tasks.insert(0, coroutine)
         return MockTask()
 
-    def call_later(self, delay, callback):
-        self.later.insert(0, (delay, callback))
+    def call_later(self, delay, callback, *args):
+        self.later.insert(0, (delay, callback, args))
 
     def run_one(self):
         coroutine = self.tasks.pop()
@@ -142,15 +142,18 @@ class MockLoop:
 
     def run_later(self, with_delay):
         later = []
-        for delay, callback in self.later:
+        for delay, callback, args in self.later:
             if with_delay >= delay:
-                callback()
+                callback(*args)
             else:
-                later.append((delay, coroutine))
+                later.append((delay, callback, args))
         self.later = later
 
 
 class MockTask:
+    def done(self):
+        return True
+
     def add_done_callback(self, callback):
         pass
 
