@@ -1,4 +1,4 @@
-from starlette import Response, TestClient
+from tests.client import TestClient
 from uvicorn.debug import DebugMiddleware
 import pytest
 
@@ -34,8 +34,8 @@ def test_debug_html():
 def test_debug_after_response_sent():
     def app(scope):
         async def asgi(receive, send):
-            response = Response(b"", status_code=204)
-            await response(receive, send)
+            await send({"type": "http.response.start", "status": 204, "headers": []})
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
             raise RuntimeError("Something went wrong")
 
         return asgi
