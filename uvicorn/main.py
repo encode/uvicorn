@@ -80,6 +80,12 @@ def get_logger(log_level):
     default=None,
     help="Maximum number of concurrent connections to allow, before issuing HTTP 503 responses.",
 )
+@click.option(
+    "--timeout-keep-alive",
+    type=int,
+    default=5,
+    help="Maximum number of concurrent connections to allow, before issuing HTTP 503 responses.",
+)
 def main(
     app,
     host: str,
@@ -93,6 +99,7 @@ def main(
     proxy_headers: bool,
     root_path: str,
     max_connections: int,
+    timeout_keep_alive: int
 ):
     sys.path.insert(0, ".")
 
@@ -109,6 +116,7 @@ def main(
         "proxy_headers": proxy_headers,
         "root_path": root_path,
         "max_connections": max_connections,
+        "timeout_keep_alive": timeout_keep_alive
     }
 
     if debug:
@@ -132,6 +140,7 @@ def run(
     proxy_headers=False,
     root_path="",
     max_connections=None,
+    timeout_keep_alive=5,
 ):
     try:
         app = import_from_string(app)
@@ -168,6 +177,7 @@ def run(
             proxy_headers=proxy_headers,
             root_path=root_path,
             max_connections=max_connections,
+            timeout_keep_alive=timeout_keep_alive
         )
 
     server = Server(

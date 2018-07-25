@@ -112,6 +112,7 @@ class H11Protocol(asyncio.Protocol):
         proxy_headers=False,
         root_path="",
         max_connections=None,
+        timeout_keep_alive=5,
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
@@ -122,6 +123,10 @@ class H11Protocol(asyncio.Protocol):
         self.proxy_headers = proxy_headers
         self.root_path = root_path
         self.max_connections = max_connections
+
+        # Timeouts
+        self.timeout_keep_alive_task = None
+        self.timeout_keep_alive = timeout_keep_alive
 
         # Per-connection state
         self.transport = None
@@ -176,6 +181,10 @@ class H11Protocol(asyncio.Protocol):
         pass
 
     def data_received(self, data):
+        if self.timeout_keep_alive_task is not None:
+            self.timeout_keep_alive_task.cancel()
+            self.timeout_keep_alive_task = None
+
         self.conn.receive_data(data)
         self.handle_events()
 
@@ -267,6 +276,15 @@ class H11Protocol(asyncio.Protocol):
 
     def on_response_complete(self):
         self.state["total_requests"] += 1
+
+        # Set a short Keep-Alive timeout.
+        if not self.transport.is_closing():
+            self.timeout_keep_alive_task = self.loop.call_later(
+                self.timeout_keep_alive,
+                self.timeout_keep_alive_handler
+            )
+
+        # Unblock any pipelined events.
         self.flow.resume_reading()
         self.handle_events()
 
@@ -284,6 +302,12 @@ class H11Protocol(asyncio.Protocol):
 
     def resume_writing(self):
         self.flow.resume_writing()
+
+    def timeout_keep_alive_handler(self):
+        if not self.transport.is_closing():
+            event = h11.ConnectionClosed()
+            self.conn.send(event)
+            self.transport.close()
 
 
 class RequestResponseCycle:
