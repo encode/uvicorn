@@ -99,7 +99,7 @@ def main(
     proxy_headers: bool,
     root_path: str,
     max_connections: int,
-    timeout_keep_alive: int
+    timeout_keep_alive: int,
 ):
     sys.path.insert(0, ".")
 
@@ -116,7 +116,7 @@ def main(
         "proxy_headers": proxy_headers,
         "root_path": root_path,
         "max_connections": max_connections,
-        "timeout_keep_alive": timeout_keep_alive
+        "timeout_keep_alive": timeout_keep_alive,
     }
 
     if debug:
@@ -177,7 +177,7 @@ def run(
             proxy_headers=proxy_headers,
             root_path=root_path,
             max_connections=max_connections,
-            timeout_keep_alive=timeout_keep_alive
+            timeout_keep_alive=timeout_keep_alive,
         )
 
     server = Server(

@@ -134,6 +134,7 @@ class MockLoop:
 
     def call_later(self, delay, callback):
         self.later.insert(0, (delay, callback))
+        return MockHandle()
 
     def run_one(self):
         coroutine = self.tasks.pop()
@@ -147,6 +148,11 @@ class MockLoop:
             else:
                 later.append((delay, coroutine))
         self.later = later
+
+
+class MockHandle:
+    def cancel(self):
+        pass
 
 
 def get_connected_protocol(app, protocol_cls, **kwargs):
@@ -198,6 +204,7 @@ def test_keepalive(protocol_cls):
         return Response(b"", status_code=204)
 
     protocol = get_connected_protocol(app, protocol_cls)
+
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
@@ -210,10 +217,12 @@ def test_keepalive_timeout(protocol_cls):
         return Response(b"", status_code=204)
 
     protocol = get_connected_protocol(app, protocol_cls)
+
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
     assert not protocol.transport.is_closing()
+
     protocol.loop.run_later(with_delay=10)
     assert protocol.transport.is_closing()
 
