@@ -108,22 +108,24 @@ class HttpToolsProtocol(asyncio.Protocol):
         app,
         loop=None,
         connections=None,
+        tasks=None,
         state=None,
         logger=None,
         proxy_headers=False,
         root_path="",
-        max_connections=None,
+        limit_concurrency=None,
         timeout_keep_alive=5,
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
         self.connections = set() if connections is None else connections
+        self.tasks = set() if tasks is None else tasks
         self.state = {"total_requests": 0} if state is None else state
         self.logger = logger or logging.getLogger()
         self.parser = httptools.HttpRequestParser(self)
         self.proxy_headers = proxy_headers
         self.root_path = root_path
-        self.max_connections = max_connections
+        self.limit_concurrency = limit_concurrency
 
         # Timeouts
         self.timeout_keep_alive_task = None
@@ -220,13 +222,14 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.parser.should_upgrade():
             return
 
-        # Handle 503 responses when 'max_connections' is exceeded.
+        # Handle 503 responses when 'limit_concurrency' is exceeded.
         if (
-            self.max_connections is not None
-            and len(self.connections) >= self.max_connections
+            self.limit_concurrency is not None
+            and (len(self.connections) >= self.limit_concurrency
+            or len(self.tasks) >= self.limit_concurrency)
         ):
             app = ServiceUnavailable
-            message = "Exceeded max_connections."
+            message = "Exceeded concurrency limit."
             self.logger.warning(message)
         else:
             app = self.app
@@ -242,7 +245,9 @@ class HttpToolsProtocol(asyncio.Protocol):
         )
         if existing_cycle is None or existing_cycle.response_complete:
             # Standard case - start processing the request.
-            self.loop.create_task(self.cycle.run_asgi(app))
+            task = self.loop.create_task(self.cycle.run_asgi(app))
+            task.add_done_callback(self.on_task_complete)
+            self.tasks.add(task)
         else:
             # Pipelined HTTP requests need to be queued up.
             self.flow.pause_reading()
@@ -280,7 +285,12 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Unblock any pipelined events.
         if self.pipeline:
             cycle, app = self.pipeline.pop()
-            self.loop.create_task(cycle.run_asgi(app))
+            task = self.loop.create_task(cycle.run_asgi(app))
+            task.add_done_callback(self.on_task_complete)
+            self.tasks.add(task)
+
+    def on_task_complete(self, task):
+        self.tasks.discard(task)
 
     def shutdown(self):
         """
