@@ -48,20 +48,46 @@ def get_logger(log_level):
 
 @click.command()
 @click.argument("app")
-@click.option("--host", type=str, default="127.0.0.1", help="Bind socket to this host.")
-@click.option("--port", type=int, default=8000, help="Bind socket to this port.")
+@click.option(
+    "--host",
+    type=str,
+    default="127.0.0.1",
+    help="Bind socket to this host.",
+    show_default=True,
+)
+@click.option(
+    "--port",
+    type=int,
+    default=8000,
+    help="Bind socket to this port.",
+    show_default=True,
+)
 @click.option("--uds", type=str, default=None, help="Bind to a UNIX domain socket.")
 @click.option(
     "--fd", type=int, default=None, help="Bind to socket from this file descriptor."
 )
 @click.option(
-    "--loop", type=LOOP_CHOICES, default="auto", help="Event loop implementation."
+    "--loop",
+    type=LOOP_CHOICES,
+    default="auto",
+    help="Event loop implementation.",
+    show_default=True,
 )
 @click.option(
-    "--http", type=HTTP_CHOICES, default="auto", help="HTTP parser implementation."
+    "--http",
+    type=HTTP_CHOICES,
+    default="auto",
+    help="HTTP parser implementation.",
+    show_default=True,
 )
 @click.option("--debug", is_flag=True, default=False, help="Enable debug mode.")
-@click.option("--log-level", type=LEVEL_CHOICES, default="info", help="Log level.")
+@click.option(
+    "--log-level",
+    type=LEVEL_CHOICES,
+    default="info",
+    help="Log level.",
+    show_default=True,
+)
 @click.option(
     "--proxy-headers",
     is_flag=True,
@@ -91,12 +117,14 @@ def get_logger(log_level):
     type=int,
     default=5,
     help="Close Keep-Alive connections if no new data is received within this timeout.",
+    show_default=True,
 )
 @click.option(
     "--timeout-response",
     type=int,
     default=60,
     help="Cancel request/response tasks that do not complete within this timeout.",
+    show_default=True,
 )
 def main(
     app,
