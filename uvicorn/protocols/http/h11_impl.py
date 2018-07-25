@@ -107,22 +107,24 @@ class H11Protocol(asyncio.Protocol):
         app,
         loop=None,
         connections=None,
+        tasks=None,
         state=None,
         logger=None,
         proxy_headers=False,
         root_path="",
-        max_connections=None,
+        limit_concurrency=None,
         timeout_keep_alive=5,
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
         self.connections = set() if connections is None else connections
+        self.tasks = set() if tasks is None else tasks
         self.state = {"total_requests": 0} if state is None else state
         self.logger = logger or logging.getLogger()
         self.conn = h11.Connection(h11.SERVER)
         self.proxy_headers = proxy_headers
         self.root_path = root_path
-        self.max_connections = max_connections
+        self.limit_concurrency = limit_concurrency
 
         # Timeouts
         self.timeout_keep_alive_task = None
@@ -236,13 +238,14 @@ class H11Protocol(asyncio.Protocol):
                         websocket_upgrade(self)
                         return
 
-                # Handle 503 responses when 'max_connections' is exceeded.
+                # Handle 503 responses when 'limit_concurrency' is exceeded.
                 if (
-                    self.max_connections is not None
-                    and len(self.connections) >= self.max_connections
+                    self.limit_concurrency is not None
+                    and (len(self.connections) >= self.limit_concurrency
+                    or len(self.tasks) >= self.limit_concurrency)
                 ):
                     app = ServiceUnavailable
-                    message = "Exceeded max_connections."
+                    message = "Exceeded concurrency limit."
                     self.logger.warning(message)
                 else:
                     app = self.app
@@ -256,7 +259,9 @@ class H11Protocol(asyncio.Protocol):
                     message_event=self.message_event,
                     on_response=self.on_response_complete,
                 )
-                self.loop.create_task(self.cycle.run_asgi(app))
+                task = self.loop.create_task(self.cycle.run_asgi(app))
+                task.add_done_callback(self.on_task_complete)
+                self.tasks.add(task)
 
             elif event_type is h11.Data:
                 if self.conn.our_state is h11.DONE:
@@ -292,6 +297,9 @@ class H11Protocol(asyncio.Protocol):
         if self.conn.our_state is h11.DONE and self.conn.their_state is h11.DONE:
             self.conn.start_next_cycle()
             self.handle_events()
+
+    def on_task_complete(self, task):
+        self.tasks.discard(task)
 
     def shutdown(self):
         """

@@ -131,10 +131,10 @@ class MockLoop:
 
     def create_task(self, coroutine):
         self.tasks.insert(0, coroutine)
+        return MockTask()
 
     def call_later(self, delay, callback):
         self.later.insert(0, (delay, callback))
-        return MockHandle()
 
     def run_one(self):
         coroutine = self.tasks.pop()
@@ -150,8 +150,8 @@ class MockLoop:
         self.later = later
 
 
-class MockHandle:
-    def cancel(self):
+class MockTask:
+    def add_done_callback(self, callback):
         pass
 
 
@@ -583,9 +583,9 @@ def test_proxy_headers(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
-def test_max_connections(protocol_cls):
+def test_max_concurrency(protocol_cls):
     app = lambda scope: None
-    protocol = get_connected_protocol(app, protocol_cls, max_connections=1)
+    protocol = get_connected_protocol(app, protocol_cls, limit_concurrency=1)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 503 Service Unavailable" in protocol.transport.buffer

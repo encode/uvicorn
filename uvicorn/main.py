@@ -75,16 +75,16 @@ def get_logger(log_level):
     help="Set the ASGI 'root_path' for applications submounted below a given URL path.",
 )
 @click.option(
-    "--max-connections",
+    "--limit-concurrency",
     type=int,
     default=None,
-    help="Maximum number of concurrent connections to allow, before issuing HTTP 503 responses.",
+    help="Maximum number of concurrent connections or tasks to allow, before issuing HTTP 503 responses.",
 )
 @click.option(
     "--timeout-keep-alive",
     type=int,
     default=5,
-    help="Maximum number of concurrent connections to allow, before issuing HTTP 503 responses.",
+    help="Close Keep-Alive connections if no new data is received within this timeout.",
 )
 def main(
     app,
@@ -98,7 +98,7 @@ def main(
     log_level: str,
     proxy_headers: bool,
     root_path: str,
-    max_connections: int,
+    limit_concurrency: int,
     timeout_keep_alive: int,
 ):
     sys.path.insert(0, ".")
@@ -115,7 +115,7 @@ def main(
         "debug": debug,
         "proxy_headers": proxy_headers,
         "root_path": root_path,
-        "max_connections": max_connections,
+        "limit_concurrency": limit_concurrency,
         "timeout_keep_alive": timeout_keep_alive,
     }
 
@@ -139,7 +139,7 @@ def run(
     debug=False,
     proxy_headers=False,
     root_path="",
-    max_connections=None,
+    limit_concurrency=None,
     timeout_keep_alive=5,
 ):
     try:
@@ -165,6 +165,7 @@ def run(
     loop = loop_setup()
 
     connections = set()
+    tasks = set()
     state = {"total_requests": 0}
 
     def create_protocol():
@@ -173,10 +174,11 @@ def run(
             loop=loop,
             logger=logger,
             connections=connections,
+            tasks=tasks,
             state=state,
             proxy_headers=proxy_headers,
             root_path=root_path,
-            max_connections=max_connections,
+            limit_concurrency=limit_concurrency,
             timeout_keep_alive=timeout_keep_alive,
         )
 
@@ -189,6 +191,7 @@ def run(
         logger=logger,
         loop=loop,
         connections=connections,
+        tasks=tasks,
         create_protocol=create_protocol,
         on_tick=protocol_class.tick,
     )
@@ -206,6 +209,7 @@ class Server:
         logger,
         loop,
         connections,
+        tasks,
         create_protocol,
         on_tick,
     ):
@@ -217,6 +221,7 @@ class Server:
         self.logger = logger
         self.loop = loop
         self.connections = connections
+        self.tasks = tasks
         self.create_protocol = create_protocol
         self.on_tick = on_tick
         self.should_exit = False
@@ -281,6 +286,10 @@ class Server:
         if self.connections:
             self.logger.info("Waiting for connections to close.")
             while self.connections:
+                await asyncio.sleep(0.1)
+        if self.tasks:
+            self.logger.info("Waiting for background tasks to complete.")
+            while self.tasks:
                 await asyncio.sleep(0.1)
 
         self.loop.stop()
