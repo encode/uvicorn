@@ -86,6 +86,12 @@ def get_logger(log_level):
     default=5,
     help="Close Keep-Alive connections if no new data is received within this timeout.",
 )
+@click.option(
+    "--timeout-response",
+    type=int,
+    default=60,
+    help="Cancel request/response tasks that do not complete within this timeout.",
+)
 def main(
     app,
     host: str,
@@ -100,6 +106,7 @@ def main(
     root_path: str,
     limit_concurrency: int,
     timeout_keep_alive: int,
+    timeout_response: int,
 ):
     sys.path.insert(0, ".")
 
@@ -117,6 +124,7 @@ def main(
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
         "timeout_keep_alive": timeout_keep_alive,
+        "timeout_response": timeout_response
     }
 
     if debug:
@@ -141,6 +149,7 @@ def run(
     root_path="",
     limit_concurrency=None,
     timeout_keep_alive=5,
+    timeout_response=60,
 ):
     try:
         app = import_from_string(app)
@@ -180,6 +189,7 @@ def run(
             root_path=root_path,
             limit_concurrency=limit_concurrency,
             timeout_keep_alive=timeout_keep_alive,
+            timeout_response=timeout_response,
         )
 
     server = Server(
