@@ -47,10 +47,14 @@ class PlainTextResponse:
 
 
 def get_accept_header(scope):
+    accept = "*/*"
+
     for key, value in scope.get("headers", []):
         if key == b"accept":
-            return value.decode("ascii")
-    return ""
+            accept = value.decode("ascii")
+            break
+
+    return accept
 
 
 class DebugMiddleware:

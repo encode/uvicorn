@@ -225,10 +225,9 @@ class HttpToolsProtocol(asyncio.Protocol):
             return
 
         # Handle 503 responses when 'limit_concurrency' is exceeded.
-        if (
-            self.limit_concurrency is not None
-            and (len(self.connections) >= self.limit_concurrency
-            or len(self.tasks) >= self.limit_concurrency)
+        if self.limit_concurrency is not None and (
+            len(self.connections) >= self.limit_concurrency
+            or len(self.tasks) >= self.limit_concurrency
         ):
             app = ServiceUnavailable
             message = "Exceeded concurrency limit."
@@ -250,7 +249,9 @@ class HttpToolsProtocol(asyncio.Protocol):
             task = self.loop.create_task(self.cycle.run_asgi(app))
             task.add_done_callback(self.on_task_complete)
             self.tasks.add(task)
-            self.loop.call_later(self.timeout_response, self.timeout_response_handler, task)
+            self.loop.call_later(
+                self.timeout_response, self.timeout_response_handler, task
+            )
         else:
             # Pipelined HTTP requests need to be queued up.
             self.flow.pause_reading()
@@ -291,7 +292,9 @@ class HttpToolsProtocol(asyncio.Protocol):
             task = self.loop.create_task(cycle.run_asgi(app))
             task.add_done_callback(self.on_task_complete)
             self.tasks.add(task)
-            self.loop.call_later(self.timeout_response, self.timeout_response_handler, task)
+            self.loop.call_later(
+                self.timeout_response, self.timeout_response_handler, task
+            )
 
     def on_task_complete(self, task):
         self.tasks.discard(task)
@@ -329,7 +332,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         Called once per task, when the reponse timeout is reached.
         """
         if not task.done():
-            self.logger.error('Task exceeded response timeout.')
+            self.logger.error("Task exceeded response timeout.")
             task.cancel()
 
 

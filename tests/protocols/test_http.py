@@ -151,9 +151,6 @@ class MockLoop:
 
 
 class MockTask:
-    def done(self):
-        return True
-
     def add_done_callback(self, callback):
         pass
 
