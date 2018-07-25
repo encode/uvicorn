@@ -48,20 +48,46 @@ def get_logger(log_level):
 
 @click.command()
 @click.argument("app")
-@click.option("--host", type=str, default="127.0.0.1", help="Bind socket to this host.")
-@click.option("--port", type=int, default=8000, help="Bind socket to this port.")
+@click.option(
+    "--host",
+    type=str,
+    default="127.0.0.1",
+    help="Bind socket to this host.",
+    show_default=True,
+)
+@click.option(
+    "--port",
+    type=int,
+    default=8000,
+    help="Bind socket to this port.",
+    show_default=True,
+)
 @click.option("--uds", type=str, default=None, help="Bind to a UNIX domain socket.")
 @click.option(
     "--fd", type=int, default=None, help="Bind to socket from this file descriptor."
 )
 @click.option(
-    "--loop", type=LOOP_CHOICES, default="auto", help="Event loop implementation."
+    "--loop",
+    type=LOOP_CHOICES,
+    default="auto",
+    help="Event loop implementation.",
+    show_default=True,
 )
 @click.option(
-    "--http", type=HTTP_CHOICES, default="auto", help="HTTP parser implementation."
+    "--http",
+    type=HTTP_CHOICES,
+    default="auto",
+    help="HTTP parser implementation.",
+    show_default=True,
 )
 @click.option("--debug", is_flag=True, default=False, help="Enable debug mode.")
-@click.option("--log-level", type=LEVEL_CHOICES, default="info", help="Log level.")
+@click.option(
+    "--log-level",
+    type=LEVEL_CHOICES,
+    default="info",
+    help="Log level.",
+    show_default=True,
+)
 @click.option(
     "--proxy-headers",
     is_flag=True,
@@ -81,16 +107,24 @@ def get_logger(log_level):
     help="Maximum number of concurrent connections or tasks to allow, before issuing HTTP 503 responses.",
 )
 @click.option(
+    "--limit-max-requests",
+    type=int,
+    default=None,
+    help="Maximum number of requests to service before terminating the process.",
+)
+@click.option(
     "--timeout-keep-alive",
     type=int,
     default=5,
     help="Close Keep-Alive connections if no new data is received within this timeout.",
+    show_default=True,
 )
 @click.option(
     "--timeout-response",
     type=int,
     default=60,
     help="Cancel request/response tasks that do not complete within this timeout.",
+    show_default=True,
 )
 def main(
     app,
@@ -105,6 +139,7 @@ def main(
     proxy_headers: bool,
     root_path: str,
     limit_concurrency: int,
+    limit_max_requests: int,
     timeout_keep_alive: int,
     timeout_response: int,
 ):
@@ -123,6 +158,7 @@ def main(
         "proxy_headers": proxy_headers,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
+        "limit_max_requests": limit_max_requests,
         "timeout_keep_alive": timeout_keep_alive,
         "timeout_response": timeout_response,
     }
@@ -148,8 +184,11 @@ def run(
     proxy_headers=False,
     root_path="",
     limit_concurrency=None,
+    limit_max_requests=None,
     timeout_keep_alive=5,
     timeout_response=60,
+    install_signal_handlers=True,
+    ready_event=None,
 ):
     try:
         app = import_from_string(app)
@@ -202,8 +241,12 @@ def run(
         loop=loop,
         connections=connections,
         tasks=tasks,
+        state=state,
+        limit_max_requests=limit_max_requests,
         create_protocol=create_protocol,
         on_tick=protocol_class.tick,
+        install_signal_handlers=install_signal_handlers,
+        ready_event=ready_event,
     )
     server.run()
 
@@ -220,8 +263,12 @@ class Server:
         loop,
         connections,
         tasks,
+        state,
+        limit_max_requests,
         create_protocol,
         on_tick,
+        install_signal_handlers,
+        ready_event,
     ):
         self.app = app
         self.host = host
@@ -232,12 +279,19 @@ class Server:
         self.loop = loop
         self.connections = connections
         self.tasks = tasks
+        self.state = state
+        self.limit_max_requests = limit_max_requests
         self.create_protocol = create_protocol
         self.on_tick = on_tick
+        self.install_signal_handlers = install_signal_handlers
+        self.ready_event = ready_event
         self.should_exit = False
         self.pid = os.getpid()
 
     def set_signal_handlers(self):
+        if not self.install_signal_handlers:
+            return
+
         try:
             for sig in HANDLED_SIGNALS:
                 self.loop.add_signal_handler(sig, self.handle_exit, sig, None)
@@ -254,6 +308,8 @@ class Server:
         self.set_signal_handlers()
         self.loop.run_until_complete(self.create_server())
         self.loop.create_task(self.tick())
+        if self.ready_event is not None:
+            self.ready_event.set()
         self.loop.run_forever()
 
     async def create_server(self):
@@ -282,7 +338,14 @@ class Server:
             self.logger.info(message % (self.host, self.port))
 
     async def tick(self):
+        should_limit_requests = self.limit_max_requests is not None
+
         while not self.should_exit:
+            if (
+                should_limit_requests
+                and self.state["total_requests"] >= self.limit_max_requests
+            ):
+                break
             self.on_tick()
             await asyncio.sleep(1)
 
