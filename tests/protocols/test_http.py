@@ -127,13 +127,26 @@ class MockTransport:
 class MockLoop:
     def __init__(self):
         self.tasks = []
+        self.later = []
 
     def create_task(self, coroutine):
         self.tasks.insert(0, coroutine)
 
+    def call_later(self, delay, callback):
+        self.later.insert(0, (delay, callback))
+
     def run_one(self):
         coroutine = self.tasks.pop()
         asyncio.get_event_loop().run_until_complete(coroutine)
+
+    def run_later(self, with_delay):
+        later = []
+        for delay, callback in self.later:
+            if with_delay >= delay:
+                callback()
+            else:
+                later.append((delay, coroutine))
+        self.later = later
 
 
 def get_connected_protocol(app, protocol_cls, **kwargs):
@@ -189,6 +202,20 @@ def test_keepalive(protocol_cls):
     protocol.loop.run_one()
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
     assert not protocol.transport.is_closing()
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_keepalive_timeout(protocol_cls):
+    def app(scope):
+        return Response(b"", status_code=204)
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
+    assert not protocol.transport.is_closing()
+    protocol.loop.run_later(with_delay=10)
+    assert protocol.transport.is_closing()
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])

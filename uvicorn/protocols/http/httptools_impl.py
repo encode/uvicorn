@@ -113,6 +113,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         proxy_headers=False,
         root_path="",
         max_connections=None,
+        timeout_keep_alive=5,
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
@@ -124,26 +125,23 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.root_path = root_path
         self.max_connections = max_connections
 
+        # Timeouts
+        self.timeout_keep_alive_task = None
+        self.timeout_keep_alive = timeout_keep_alive
+
         # Per-connection state
         self.transport = None
         self.flow = None
         self.server = None
         self.client = None
         self.scheme = None
+        self.pipeline = []
 
         # Per-request state
         self.scope = None
         self.headers = None
         self.cycle = None
         self.message_event = asyncio.Event()
-
-        # Flow control
-        self.readable = True
-        self.writable = True
-        self.writable_event = asyncio.Event()
-        self.writable_event.set()
-
-        self.pipeline = []
 
     @classmethod
     def tick(cls):
@@ -177,6 +175,10 @@ class HttpToolsProtocol(asyncio.Protocol):
         pass
 
     def data_received(self, data):
+        if self.timeout_keep_alive_task is not None:
+            self.timeout_keep_alive_task.cancel()
+            self.timeout_keep_alive_task = None
+
         try:
             self.parser.feed_data(data)
         except httptools.parser.errors.HttpParserError:
@@ -264,11 +266,18 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Callback for pipelined HTTP requests to be started.
         self.state["total_requests"] += 1
 
+        # Set a short Keep-Alive timeout.
+        if not self.transport.is_closing():
+            self.timeout_keep_alive_task = self.loop.call_later(
+                self.timeout_keep_alive,
+                self.timeout_keep_alive_handler
+            )
+
+        # Unblock any pipelined events.
         if self.pipeline and not self.transport.is_closing():
+            self.flow.resume_reading()
             cycle, app = self.pipeline.pop()
             self.loop.create_task(cycle.run_asgi(app))
-            if not self.pipeline:
-                self.flow.resume_reading()
 
     def shutdown(self):
         # Called by the server to commence a graceful shutdown
@@ -282,6 +291,10 @@ class HttpToolsProtocol(asyncio.Protocol):
 
     def resume_writing(self):
         self.flow.resume_writing()
+
+    def timeout_keep_alive_handler(self):
+        if not self.transport.is_closing():
+            self.transport.close()
 
 
 class RequestResponseCycle:
