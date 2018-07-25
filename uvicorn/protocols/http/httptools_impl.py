@@ -269,8 +269,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Set a short Keep-Alive timeout.
         if not self.transport.is_closing():
             self.timeout_keep_alive_task = self.loop.call_later(
-                self.timeout_keep_alive,
-                self.timeout_keep_alive_handler
+                self.timeout_keep_alive, self.timeout_keep_alive_handler
             )
 
         # Unblock any pipelined events.
