@@ -238,7 +238,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             flow=self.flow,
             logger=self.logger,
             message_event=self.message_event,
-            done_callback=self.on_response_complete,
+            on_response=self.on_response_complete,
         )
         if existing_cycle is None or existing_cycle.response_complete:
             # Standard case - start processing the request.
@@ -266,44 +266,59 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Callback for pipelined HTTP requests to be started.
         self.state["total_requests"] += 1
 
+        if self.transport.is_closing():
+            return
+
         # Set a short Keep-Alive timeout.
-        if not self.transport.is_closing():
-            self.timeout_keep_alive_task = self.loop.call_later(
-                self.timeout_keep_alive, self.timeout_keep_alive_handler
-            )
+        self.timeout_keep_alive_task = self.loop.call_later(
+            self.timeout_keep_alive, self.timeout_keep_alive_handler
+        )
+
+        # Unpause data reads if needed.
+        self.flow.resume_reading()
 
         # Unblock any pipelined events.
-        if self.pipeline and not self.transport.is_closing():
-            self.flow.resume_reading()
+        if self.pipeline:
             cycle, app = self.pipeline.pop()
             self.loop.create_task(cycle.run_asgi(app))
 
     def shutdown(self):
-        # Called by the server to commence a graceful shutdown
+        """
+        Called by the server to commence a graceful shutdown.
+        """
         if self.cycle is None or self.cycle.response_complete:
             self.transport.close()
         else:
             self.cycle.keep_alive = False
 
     def pause_writing(self):
+        """
+        Called by the transport when the write buffer exceeds the high water mark.
+        """
         self.flow.pause_writing()
 
     def resume_writing(self):
+        """
+        Called by the transport when the write buffer drops below the low water mark.
+        """
         self.flow.resume_writing()
 
     def timeout_keep_alive_handler(self):
+        """
+        Called on a keep-alive connection if no new data is received after a short delay.
+        """
         if not self.transport.is_closing():
             self.transport.close()
 
 
 class RequestResponseCycle:
-    def __init__(self, scope, transport, flow, logger, message_event, done_callback):
+    def __init__(self, scope, transport, flow, logger, message_event, on_response):
         self.scope = scope
         self.transport = transport
         self.flow = flow
         self.logger = logger
         self.message_event = message_event
-        self.done_callback = done_callback
+        self.on_response = on_response
 
         # Connection state
         self.disconnected = False
@@ -347,8 +362,6 @@ class RequestResponseCycle:
                 self.logger.error(msg)
                 if not self.disconnected:
                     self.transport.close()
-        finally:
-            self.done_callback()
 
     async def send_500_response(self):
         await self.send(
@@ -449,8 +462,8 @@ class RequestResponseCycle:
                 self.response_complete = True
                 if not self.keep_alive:
                     self.transport.close()
-                else:
-                    self.flow.resume_reading()
+                self.on_response()
+
         else:
             # Response already sent
             msg = "Unexpected ASGI message '%s' sent, after response already completed."

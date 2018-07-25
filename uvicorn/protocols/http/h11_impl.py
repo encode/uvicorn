@@ -254,7 +254,7 @@ class H11Protocol(asyncio.Protocol):
                     flow=self.flow,
                     logger=self.logger,
                     message_event=self.message_event,
-                    done_callback=self.on_response_complete,
+                    on_response=self.on_response_complete,
                 )
                 self.loop.create_task(self.cycle.run_asgi(app))
 
@@ -277,18 +277,26 @@ class H11Protocol(asyncio.Protocol):
     def on_response_complete(self):
         self.state["total_requests"] += 1
 
+        if self.transport.is_closing():
+            return
+
         # Set a short Keep-Alive timeout.
-        if not self.transport.is_closing():
-            self.timeout_keep_alive_task = self.loop.call_later(
-                self.timeout_keep_alive, self.timeout_keep_alive_handler
-            )
+        self.timeout_keep_alive_task = self.loop.call_later(
+            self.timeout_keep_alive, self.timeout_keep_alive_handler
+        )
+
+        # Unpause data reads if needed.
+        self.flow.resume_reading()
 
         # Unblock any pipelined events.
-        self.flow.resume_reading()
-        self.handle_events()
+        if self.conn.our_state is h11.DONE and self.conn.their_state is h11.DONE:
+            self.conn.start_next_cycle()
+            self.handle_events()
 
     def shutdown(self):
-        # Called by the server to commence a graceful shutdown
+        """
+        Called by the server to commence a graceful shutdown.
+        """
         if self.cycle is None or self.cycle.response_complete:
             event = h11.ConnectionClosed()
             self.conn.send(event)
@@ -297,12 +305,21 @@ class H11Protocol(asyncio.Protocol):
             self.cycle.keep_alive = False
 
     def pause_writing(self):
+        """
+        Called by the transport when the write buffer exceeds the high water mark.
+        """
         self.flow.pause_writing()
 
     def resume_writing(self):
+        """
+        Called by the transport when the write buffer drops below the low water mark.
+        """
         self.flow.resume_writing()
 
     def timeout_keep_alive_handler(self):
+        """
+        Called on a keep-alive connection if no new data is received after a short delay.
+        """
         if not self.transport.is_closing():
             event = h11.ConnectionClosed()
             self.conn.send(event)
@@ -311,7 +328,7 @@ class H11Protocol(asyncio.Protocol):
 
 class RequestResponseCycle:
     def __init__(
-        self, scope, conn, transport, flow, logger, message_event, done_callback
+        self, scope, conn, transport, flow, logger, message_event, on_response
     ):
         self.scope = scope
         self.conn = conn
@@ -319,7 +336,7 @@ class RequestResponseCycle:
         self.flow = flow
         self.logger = logger
         self.message_event = message_event
-        self.done_callback = done_callback
+        self.on_response = on_response
 
         # Connection state
         self.disconnected = False
@@ -361,8 +378,6 @@ class RequestResponseCycle:
                 self.logger.error(msg)
                 if not self.disconnected:
                     self.transport.close()
-        finally:
-            self.done_callback()
 
     async def send_500_response(self):
         await self.send(
@@ -446,13 +461,12 @@ class RequestResponseCycle:
             msg = "Unexpected ASGI message '%s' sent, after response already completed."
             raise RuntimeError(msg % message_type)
 
-        if self.conn.our_state is h11.MUST_CLOSE or not self.keep_alive:
-            event = h11.ConnectionClosed()
-            self.conn.send(event)
-            self.transport.close()
-        elif self.conn.our_state is h11.DONE and self.conn.their_state is h11.DONE:
-            self.flow.resume_reading()
-            self.conn.start_next_cycle()
+        if self.response_complete:
+            if self.conn.our_state is h11.MUST_CLOSE or not self.keep_alive:
+                event = h11.ConnectionClosed()
+                self.conn.send(event)
+                self.transport.close()
+            self.on_response()
 
     async def receive(self):
         self.flow.resume_reading()
