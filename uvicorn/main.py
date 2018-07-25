@@ -124,7 +124,7 @@ def main(
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
         "timeout_keep_alive": timeout_keep_alive,
-        "timeout_response": timeout_response
+        "timeout_response": timeout_response,
     }
 
     if debug:
