@@ -14,7 +14,7 @@
 
 **Documentation**: [https://www.uvicorn.org](https://www.uvicorn.org)
 
-**Requirements**: Python 3.5.3+
+**Requirements**: Python 3.5, 3.6, 3.7
 
 Uvicorn is a lightning-fast ASGI server implementation, using [uvloop][uvloop] and [httptools][httptools].
 
