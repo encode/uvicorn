@@ -465,7 +465,10 @@ class RequestResponseCycle:
             more_body = message.get("more_body", False)
 
             # Write response body
-            event = h11.Data(data=body)
+            if self.scope['method'] == "HEAD":
+                event = h11.Data()
+            else:
+                event = h11.Data(data=body)
             output = self.conn.send(event)
             self.transport.write(output)
 
