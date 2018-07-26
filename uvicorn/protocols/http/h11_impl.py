@@ -434,6 +434,7 @@ class RequestResponseCycle:
                 raise RuntimeError(msg % message_type)
 
             self.response_started = True
+            self.waiting_for_100_continue = False
 
             status_code = message["status"]
             headers = DEFAULT_HEADERS + message.get("headers", [])
