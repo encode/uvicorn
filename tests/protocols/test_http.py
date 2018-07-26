@@ -625,3 +625,61 @@ def test_shutdown_during_idle(protocol_cls):
     protocol.shutdown()
     assert protocol.transport.buffer == b""
     assert protocol.transport.is_closing()
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_100_continue_sent_when_body_consumed(protocol_cls):
+    class App:
+        def __init__(self, scope):
+            self.scope = scope
+
+        async def __call__(self, receive, send):
+            body = b""
+            more_body = True
+            while more_body:
+                message = await receive()
+                body += message.get("body", b"")
+                more_body = message.get("more_body", False)
+            response = Response(b"Body: " + body, media_type="text/plain")
+            await response(receive, send)
+
+    protocol = get_connected_protocol(App, protocol_cls)
+    EXPECT_100_REQUEST = b"\r\n".join(
+        [
+            b"POST / HTTP/1.1",
+            b"Host: example.org",
+            b"Expect: 100-continue",
+            b"Content-Type: application/json",
+            b"Content-Length: 18",
+            b"",
+            b'{"hello": "world"}',
+        ]
+    )
+    protocol.data_received(EXPECT_100_REQUEST)
+    protocol.loop.run_one()
+    assert b"HTTP/1.1 100 Continue" in protocol.transport.buffer
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b'Body: {"hello": "world"}' in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_100_continue_sent_when_body_not_consumed(protocol_cls):
+    def app(scope):
+        return Response(b"", status_code=204)
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    EXPECT_100_REQUEST = b"\r\n".join(
+        [
+            b"POST / HTTP/1.1",
+            b"Host: example.org",
+            b"Expect: 100-continue",
+            b"Content-Type: application/json",
+            b"Content-Length: 18",
+            b"",
+            b'{"hello": "world"}',
+        ]
+    )
+    protocol.data_received(EXPECT_100_REQUEST)
+    protocol.loop.run_one()
+    assert b"HTTP/1.1 100 Continue" not in protocol.transport.buffer
+    assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
