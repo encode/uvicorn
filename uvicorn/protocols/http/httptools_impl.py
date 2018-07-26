@@ -214,7 +214,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 
     def on_header(self, name: bytes, value: bytes):
         name = name.lower()
-        if name == b'expect' and value.lower() == b'100-continue':
+        if name == b"expect" and value.lower() == b"100-continue":
             self.expect_100_continue = True
         self.headers.append((name, value))
 
@@ -343,7 +343,16 @@ class HttpToolsProtocol(asyncio.Protocol):
 
 
 class RequestResponseCycle:
-    def __init__(self, scope, transport, flow, logger, message_event, expect_100_continue, on_response):
+    def __init__(
+        self,
+        scope,
+        transport,
+        flow,
+        logger,
+        message_event,
+        expect_100_continue,
+        on_response,
+    ):
         self.scope = scope
         self.transport = transport
         self.flow = flow
@@ -474,7 +483,7 @@ class RequestResponseCycle:
             more_body = message.get("more_body", False)
 
             # Write response body
-            if self.scope['method'] == "HEAD":
+            if self.scope["method"] == "HEAD":
                 self.expected_content_length = 0
             elif self.chunked_encoding:
                 content = [b"%x\r\n" % len(body), body, b"\r\n"]
@@ -505,7 +514,7 @@ class RequestResponseCycle:
 
     async def receive(self):
         if self.waiting_for_100_continue and not self.transport.is_closing():
-            self.transport.write(b'HTTP/1.1 100 Continue\r\n')
+            self.transport.write(b"HTTP/1.1 100 Continue\r\n")
             self.waiting_for_100_continue = False
 
         self.flow.resume_reading()

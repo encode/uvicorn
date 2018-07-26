@@ -466,7 +466,7 @@ class RequestResponseCycle:
             more_body = message.get("more_body", False)
 
             # Write response body
-            if self.scope['method'] == "HEAD":
+            if self.scope["method"] == "HEAD":
                 event = h11.Data()
             else:
                 event = h11.Data(data=body)
@@ -494,7 +494,9 @@ class RequestResponseCycle:
 
     async def receive(self):
         if self.waiting_for_100_continue and not self.transport.is_closing():
-            event = h11.InformationalResponse(status_code=100, headers=[], reason='Continue')
+            event = h11.InformationalResponse(
+                status_code=100, headers=[], reason="Continue"
+            )
             output = self.conn.send(event)
             self.transport.write(output)
             self.waiting_for_100_continue = False

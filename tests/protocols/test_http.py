@@ -663,7 +663,7 @@ def test_100_continue_sent_when_body_consumed(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
-def test_100_continue_sent_when_body_not_consumed(protocol_cls):
+def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
     def app(scope):
         return Response(b"", status_code=204)
 
