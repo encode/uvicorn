@@ -467,7 +467,9 @@ class RequestResponseCycle:
             more_body = message.get("more_body", False)
 
             # Write response body
-            if self.chunked_encoding:
+            if self.scope['method'] == "HEAD":
+                self.expected_content_length = 0
+            elif self.chunked_encoding:
                 content = [b"%x\r\n" % len(body), body, b"\r\n"]
                 if not more_body:
                     content.append(b"0\r\n\r\n")

@@ -48,6 +48,8 @@ class Response:
 
 SIMPLE_GET_REQUEST = b"\r\n".join([b"GET / HTTP/1.1", b"Host: example.org", b"", b""])
 
+SIMPLE_HEAD_REQUEST = b"\r\n".join([b"HEAD / HTTP/1.1", b"Host: example.org", b"", b""])
+
 SIMPLE_POST_REQUEST = b"\r\n".join(
     [
         b"POST / HTTP/1.1",
@@ -173,6 +175,18 @@ def test_get_request(protocol_cls):
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_head_request(protocol_cls):
+    def app(scope):
+        return Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(SIMPLE_HEAD_REQUEST)
+    protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" not in protocol.transport.buffer
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
