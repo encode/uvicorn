@@ -361,6 +361,7 @@ class RequestResponseCycle:
         # Connection state
         self.disconnected = False
         self.keep_alive = True
+        self.waiting_for_100_continue = conn.they_are_waiting_for_100_continue
 
         # Request state
         self.body = b""
@@ -433,6 +434,7 @@ class RequestResponseCycle:
                 raise RuntimeError(msg % message_type)
 
             self.response_started = True
+            self.waiting_for_100_continue = False
 
             status_code = message["status"]
             headers = DEFAULT_HEADERS + message.get("headers", [])
@@ -465,7 +467,7 @@ class RequestResponseCycle:
             more_body = message.get("more_body", False)
 
             # Write response body
-            if self.scope['method'] == "HEAD":
+            if self.scope["method"] == "HEAD":
                 event = h11.Data()
             else:
                 event = h11.Data(data=body)
@@ -492,6 +494,14 @@ class RequestResponseCycle:
             self.on_response()
 
     async def receive(self):
+        if self.waiting_for_100_continue and not self.transport.is_closing():
+            event = h11.InformationalResponse(
+                status_code=100, headers=[], reason="Continue"
+            )
+            output = self.conn.send(event)
+            self.transport.write(output)
+            self.waiting_for_100_continue = False
+
         self.flow.resume_reading()
         await self.message_event.wait()
         self.message_event.clear()

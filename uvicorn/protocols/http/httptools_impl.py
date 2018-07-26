@@ -144,6 +144,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Per-request state
         self.scope = None
         self.headers = None
+        self.expect_100_continue = False
         self.cycle = None
         self.message_event = asyncio.Event()
 
@@ -196,6 +197,7 @@ class HttpToolsProtocol(asyncio.Protocol):
     def on_url(self, url):
         method = self.parser.get_method()
         parsed_url = httptools.parse_url(url)
+        self.expect_100_continue = False
         self.headers = []
         self.scope = {
             "type": "http",
@@ -211,7 +213,10 @@ class HttpToolsProtocol(asyncio.Protocol):
         }
 
     def on_header(self, name: bytes, value: bytes):
-        self.headers.append((name.lower(), value))
+        name = name.lower()
+        if name == b"expect" and value.lower() == b"100-continue":
+            self.expect_100_continue = True
+        self.headers.append((name, value))
 
     def on_headers_complete(self):
         http_version = self.parser.get_http_version()
@@ -242,6 +247,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             flow=self.flow,
             logger=self.logger,
             message_event=self.message_event,
+            expect_100_continue=self.expect_100_continue,
             on_response=self.on_response_complete,
         )
         if existing_cycle is None or existing_cycle.response_complete:
@@ -337,7 +343,16 @@ class HttpToolsProtocol(asyncio.Protocol):
 
 
 class RequestResponseCycle:
-    def __init__(self, scope, transport, flow, logger, message_event, on_response):
+    def __init__(
+        self,
+        scope,
+        transport,
+        flow,
+        logger,
+        message_event,
+        expect_100_continue,
+        on_response,
+    ):
         self.scope = scope
         self.transport = transport
         self.flow = flow
@@ -348,6 +363,7 @@ class RequestResponseCycle:
         # Connection state
         self.disconnected = False
         self.keep_alive = True
+        self.waiting_for_100_continue = expect_100_continue
 
         # Request state
         self.body = b""
@@ -420,6 +436,7 @@ class RequestResponseCycle:
                 raise RuntimeError(msg % message_type)
 
             self.response_started = True
+            self.waiting_for_100_continue = False
 
             status_code = message["status"]
             headers = message.get("headers", [])
@@ -467,7 +484,7 @@ class RequestResponseCycle:
             more_body = message.get("more_body", False)
 
             # Write response body
-            if self.scope['method'] == "HEAD":
+            if self.scope["method"] == "HEAD":
                 self.expected_content_length = 0
             elif self.chunked_encoding:
                 content = [b"%x\r\n" % len(body), body, b"\r\n"]
@@ -497,6 +514,10 @@ class RequestResponseCycle:
             raise RuntimeError(msg % message_type)
 
     async def receive(self):
+        if self.waiting_for_100_continue and not self.transport.is_closing():
+            self.transport.write(b"HTTP/1.1 100 Continue\r\n")
+            self.waiting_for_100_continue = False
+
         self.flow.resume_reading()
         await self.message_event.wait()
         self.message_event.clear()
