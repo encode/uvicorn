@@ -190,14 +190,6 @@ def run(
     install_signal_handlers=True,
     ready_event=None,
 ):
-    try:
-        app = import_from_string(app)
-    except ImportFromStringError as exc:
-        click.echo("Error loading ASGI app. %s" % exc)
-        sys.exit(1)
-
-    if debug:
-        app = DebugMiddleware(app)
 
     if fd is None:
         sock = None
@@ -211,6 +203,15 @@ def run(
     protocol_class = import_from_string(HTTP_PROTOCOLS[http])
 
     loop = loop_setup()
+
+    try:
+        app = import_from_string(app)
+    except ImportFromStringError as exc:
+        click.echo("Error loading ASGI app. %s" % exc)
+        sys.exit(1)
+
+    if debug:
+        app = DebugMiddleware(app)
 
     connections = set()
     tasks = set()
