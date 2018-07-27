@@ -1,3 +1,13 @@
+<p align="center">
+  <img width="320" height="320" src="https://raw.githubusercontent.com/tomchristie/uvicorn/master/docs/uvicorn.png" alt='uvicorn'>
+</p>
+
+<p align="center">
+<em>The lightning-fast ASGI server.</em>
+</p>
+
+---
+
 # Introduction
 
 Uvicorn is a lightning-fast ASGI server, built on [uvloop][uvloop] and [httptools][httptools].
@@ -12,13 +22,15 @@ WebSockets, which cannot be handled by WSGI.
 
 Uvicorn currently supports HTTP/1.1 and WebSockets. Support for HTTP/2 is planned.
 
+---
+
 ## Quickstart
 
-Requirements: Python 3.5.3+
+Requirements: Python 3.5, 3.6, 3.7
 
 Install using `pip`:
 
-```shell
+```
 $ pip install uvicorn
 ```
 
@@ -45,39 +57,54 @@ class App():
 
 Run the server:
 
-```shell
+```
 $ uvicorn app:App
 ```
 
-# Usage
+---
+
+## Usage
 
 The uvicorn command line tool is the easiest way to run your application...
 
-## Command line options
+### Command line options
 
-```shell
+```
+$ uvicorn --help
 Usage: uvicorn [OPTIONS] APP
 
 Options:
-  --host TEXT                     Host
-  --port INTEGER                  Port
-  --loop [uvloop|asyncio]         Event loop
-  --http [httptools|h11]          HTTP Handler
-  --workers INTEGER               Number of worker processes
-  --log-level [debug|info|warning|error|critical]
-                                  Log level
+  --host TEXT                     Bind socket to this host.  [default:
+                                  127.0.0.1]
+  --port INTEGER                  Bind socket to this port.  [default: 8000]
+  --uds TEXT                      Bind to a UNIX domain socket.
+  --fd INTEGER                    Bind to socket from this file descriptor.
+  --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
+  --http [auto|h11|httptools]     HTTP parser implementation.  [default: auto]
+  --debug                         Enable debug mode.
+  --log-level [critical|error|warning|info|debug]
+                                  Log level.  [default: info]
+  --proxy-headers                 Use X-Forwarded-Proto, X-Forwarded-For,
+                                  X-Forwarded-Port to populate remote address
+                                  info.
+  --root-path TEXT                Set the ASGI 'root_path' for applications
+                                  submounted below a given URL path.
+  --limit-concurrency INTEGER     Maximum number of concurrent connections or
+                                  tasks to allow, before issuing HTTP 503
+                                  responses.
+  --limit-max-requests INTEGER    Maximum number of requests to service before
+                                  terminating the process.
+  --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
+                                  is received within this timeout.  [default:
+                                  5]
+  --timeout-response INTEGER      Cancel request/response tasks that do not
+                                  complete within this timeout.  [default: 60]
   --help                          Show this message and exit.
 ```
 
-Uvicorn currently includes two HTTP implementations, "httptools" and "h11".
+For more information, see the [settings documentation](settings.md).
 
-It also supports two different event loop implementations, "uvloop" and
-Python's standard "asyncio".
-
-The default configuration is to use httptools and uvloop. If you need to
-run under [PyPy][pypy], then you should switch to h11 and asyncio.
-
-## Running programmatically
+### Running programmatically
 
 To run uvicorn directly from your application...
 
@@ -91,7 +118,7 @@ if __name__ == "__main__":
     uvicorn.run(App, "127.0.0.1", 5000, log_level="info")
 ```
 
-## Running with Gunicorn
+### Running with Gunicorn
 
 [Gunicorn][gunicorn] is a mature, fully featured server and process manager.
 
@@ -110,7 +137,9 @@ gunicorn app:App -w 4 -k uvicorn.workers.UvicornWorker
 
 For a [PyPy][pypy] compatible configuration use `uvicorn.workers.UvicornH11Worker`.
 
-# The ASGI interface
+For more information, see the [deployment documentation](deployment.md).
+
+## The ASGI interface
 
 Uvicorn uses the [ASGI specification][asgi] for interacting with an application.
 
@@ -138,7 +167,7 @@ the protocol being used.
 
 The format for HTTP messages is described in the [ASGI HTTP Message format][asgi-http].
 
-## HTTP Scope
+### HTTP Scope
 
 An incoming HTTP request might instantiate an application with the following `scope`:
 
@@ -159,7 +188,7 @@ An incoming HTTP request might instantiate an application with the following `sc
 }
 ```
 
-## HTTP Messages
+### HTTP Messages
 
 The instance coroutine communicates back to the server by sending messages to the `send` coroutine.
 
@@ -177,7 +206,7 @@ await send({
 })
 ```
 
-# Requests & responses
+### Requests & responses
 
 Here's an example that displays the method and path used in the incoming request:
 
@@ -201,7 +230,7 @@ class EchoMethodAndPath():
         })
 ```
 
-## Reading the request body
+### Reading the request body
 
 You can stream the request body without blocking the asyncio task pool,
 by fetching messages from the `receive` coroutine.
@@ -241,7 +270,7 @@ class EchoBody():
         })
 ```
 
-## Streaming responses
+### Streaming responses
 
 You can stream responses by sending multiple `http.response.body` messages to
 the `send` coroutine.
@@ -274,9 +303,9 @@ class StreamResponse():
 
 ---
 
-# Alternative ASGI servers
+## Alternative ASGI servers
 
-## Daphne
+### Daphne
 
 The first ASGI server implementation, originally developed to power Django Channels,
 is [the Daphne webserver][daphne].
@@ -285,20 +314,53 @@ It is run widely in production, and supports HTTP/1.1, HTTP/2, and WebSockets.
 
 Any of the example applications given here can equally well be run using `daphne` instead.
 
-```shell
+```
 $ pip install daphne
 $ daphne app:App
 ```
 
-## Hypercorn
+### Hypercorn
 
 [Hypercorn][hypercorn] was initially part of the Quart web framework, before
 being separated out into a standalone ASGI server.
 
-```shell
+Hypercorn supports HTTP/1.1, HTTP/2, and WebSockets.
+
+```
 $ pip install hypercorn
 $ hypercorn app:App
 ```
+
+---
+
+## ASGI frameworks
+
+You can use Uvicorn, Daphne, or Hypercorn to run any ASGI framework.
+
+For small services you can also write ASGI applications directly.
+
+### Django Channels
+
+The ASGI specification was originally designed for use with [Django Channels](https://channels.readthedocs.io/en/latest/).
+
+Channels is a little different to other ASGI frameworks in that it provides
+an asynchronous frontend onto a threaded-framework backend. It allows Django
+to support WebSockets, background tasks, and long-running connections,
+with application code still running in a standard threaded context.
+
+### API Star
+
+The [API Star](https://docs.apistar.com/) web framework supports both WSGI and ASGI modes.
+
+### Quart
+
+[Quart](https://pgjones.gitlab.io/quart/) is a Flask-like ASGI web framework.
+
+### Starlette
+
+[Starlette](https://github.com/encode/starlette) provides a lightweight collection of tools for building ASGI services.
+
+It includes request and response classes, an ASGI test client, routing, and static files support.
 
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools

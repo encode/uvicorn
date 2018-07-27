@@ -1,3 +1,19 @@
 site_name: Uvicorn
+site_description: The lightning-fast ASGI server.
+
+theme:
+    name: 'material'
+
+repo_name: encode/uvicorn
+repo_url: https://github.com/encode/uvicorn
+edit_uri: ""
+
 pages:
-    - Home: index.md
+    - Introduction: 'index.md'
+    - Settings: 'settings.md'
+    - Deployment: 'deployment.md'
+    - Server Behavior: 'server-behavior.md'
+
+markdown_extensions:
+  - markdown.extensions.codehilite:
+      guess_lang: false

@@ -23,7 +23,7 @@ When running locally, use `--debug` to turn on auto-reloading, and display error
 
 To see the complete set of available options, use `uvicorn --help`:
 
-```shell
+```
 $ uvicorn --help
 Usage: uvicorn [OPTIONS] APP
 
@@ -56,7 +56,7 @@ Options:
   --help                          Show this message and exit.
 ```
 
-See the "configuration" section of the docs for more details on the supported options for running uvicorn.
+See the [settings documentation](settings.md) for more details on the supported options for running uvicorn.
 
 ## Running programmatically
 
@@ -124,7 +124,7 @@ stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
 ```
 
-Then run with `supervisord -n`. 
+Then run with `supervisord -n`.
 
 ### Circus
 
@@ -186,6 +186,7 @@ http {
       # path for static files
       root /path/to/app/static;
     }
+  }
 
   upstream uvicorn {
     server unix:/tmp/uvicorn.sock

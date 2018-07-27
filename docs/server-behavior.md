@@ -1,6 +1,6 @@
-# Server Behaviour
+# Server Behavior
 
-Uvicorn is designed with particular attention to connection and resource managment, in order to provide a robust server implementation. It aims to ensure graceful behavior to either server or client errors, and resilience to poor client behavior or denial of service attacks.
+Uvicorn is designed with particular attention to connection and resource management, in order to provide a robust server implementation. It aims to ensure graceful behavior to either server or client errors, and resilience to poor client behavior or denial of service attacks.
 
 ## HTTP Headers
 
@@ -60,13 +60,19 @@ One exception to this might be if your application serves large file downloads, 
 
 ## Timeouts
 
-...
+Uvicorn provides the following timeouts:
+
+* Keep-Alive. Defaults to 5 seconds. Between requests, connections must receive new data within this period or be disconnected.
+* Response time. Defaults to 60 seconds. ASGI applications must run their task to completion within this timeout or have the task forcibly cancelled.
 
 ---
 
 ## Resource Limits
 
-...
+Uvicorn provides the following resource limiting:
+
+* Concurrency. Defaults to `None`. If set, this provides a maximum number of concurrent tasks *or* open connections that should be allowed. Any new requests or connections that occur once this limit has been reached will result in a "503 Service Unavailable" response. Setting this value to a limit that you know your servers are able to support will help ensure reliable resource usage, even against significantly over-resourced servers.
+* Max requests. Defaults to `None`. If set, this provides a maximum number of HTTP requests that will be serviced before terminating a process. Together with a process manager this can be used to prevent memory leaks from impacting long running processes.
 
 ---
 
@@ -101,6 +107,6 @@ Uvicorn handles process shutdown gracefully, ensuring that connections are prope
 
 ## HTTP Pipelining
 
-HTTP/1.1 provides support for sending multiple requests on a single connection, before having received each corresponding response. Servers are required to support HTTP pipelining, but it is now generally accepted to lead to implementation issues. It is not enabled on browsers, and may not neccessarily be enabled on any proxies that the HTTP request passes through.
+HTTP/1.1 provides support for sending multiple requests on a single connection, before having received each corresponding response. Servers are required to support HTTP pipelining, but it is now generally accepted to lead to implementation issues. It is not enabled on browsers, and may not necessarily be enabled on any proxies that the HTTP request passes through.
 
-Uvicorn supports pipelining gracefully. It will queue up any pipelined HTTP requests, and pause reading from the underlying transport. It will not start processing pipelined requests until each response has been dealt with in turn.
+Uvicorn supports pipelining pragmatically. It will queue up any pipelined HTTP requests, and pause reading from the underlying transport. It will not start processing pipelined requests until each response has been dealt with in turn.
