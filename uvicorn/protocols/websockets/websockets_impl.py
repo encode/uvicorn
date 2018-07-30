@@ -46,7 +46,7 @@ def websocket_upgrade(http):
     asgi_instance = http.app(http.scope)
     request = WebSocketRequest(http, response_headers)
     http.loop.create_task(asgi_instance(request.receive, request.send))
-    request.put_message({"type": "websocket.connect", "order": 0})
+    request.put_message({"type": "websocket.connect"})
 
 
 class WebSocketRequestState(enum.Enum):
@@ -151,9 +151,7 @@ class WebSocketProtocol(websockets.protocol.WebSocketCommonProtocol):
 
     async def websocket_session(self):
         close_code = None
-        order = 1
         request = self.active_request
-        path = request.scope["path"]
 
         while True:
             try:
@@ -164,23 +162,18 @@ class WebSocketProtocol(websockets.protocol.WebSocketCommonProtocol):
 
             message = {
                 "type": "websocket.receive",
-                "path": path,
                 "text": None,
                 "bytes": None,
-                "order": order,
             }
             if isinstance(data, str):
                 message["text"] = data
             elif isinstance(data, bytes):
                 message["bytes"] = data
             request.put_message(message)
-            order += 1
 
         message = {
             "type": "websocket.disconnect",
             "code": close_code,
-            "path": path,
-            "order": order,
         }
         request.put_message(message)
         self.active_request = None
