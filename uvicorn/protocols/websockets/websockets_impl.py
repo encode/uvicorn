@@ -49,43 +49,6 @@ def websocket_upgrade(http):
     request.put_message({"type": "websocket.connect", "order": 0})
 
 
-async def websocket_session(protocol):
-    close_code = None
-    order = 1
-    request = protocol.active_request
-    path = request.scope["path"]
-
-    while True:
-        try:
-            data = await protocol.recv()
-        except websockets.exceptions.ConnectionClosed as exc:
-            close_code = exc.code
-            break
-
-        message = {
-            "type": "websocket.receive",
-            "path": path,
-            "text": None,
-            "bytes": None,
-            "order": order,
-        }
-        if isinstance(data, str):
-            message["text"] = data
-        elif isinstance(data, bytes):
-            message["bytes"] = data
-        request.put_message(message)
-        order += 1
-
-    message = {
-        "type": "websocket.disconnect",
-        "code": close_code,
-        "path": path,
-        "order": order,
-    }
-    request.put_message(message)
-    protocol.active_request = None
-
-
 class WebSocketRequestState(enum.Enum):
     CONNECTING = 0
     CONNECTED = 1
@@ -178,10 +141,46 @@ class WebSocketProtocol(websockets.protocol.WebSocketCommonProtocol):
         self.transport.write(rv)
 
     def listen(self):
-        self.loop.create_task(websocket_session(self))
+        self.loop.create_task(self.websocket_session())
 
     def reject(self):
         rv = b"HTTP/1.1 403 Forbidden\r\n\r\n"
         self.active_request = None
         self.transport.write(rv)
         self.transport.close()
+
+    async def websocket_session(self):
+        close_code = None
+        order = 1
+        request = self.active_request
+        path = request.scope["path"]
+
+        while True:
+            try:
+                data = await self.recv()
+            except websockets.exceptions.ConnectionClosed as exc:
+                close_code = exc.code
+                break
+
+            message = {
+                "type": "websocket.receive",
+                "path": path,
+                "text": None,
+                "bytes": None,
+                "order": order,
+            }
+            if isinstance(data, str):
+                message["text"] = data
+            elif isinstance(data, bytes):
+                message["bytes"] = data
+            request.put_message(message)
+            order += 1
+
+        message = {
+            "type": "websocket.disconnect",
+            "code": close_code,
+            "path": path,
+            "order": order,
+        }
+        request.put_message(message)
+        self.active_request = None
