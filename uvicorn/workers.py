@@ -1,3 +1,4 @@
+import trio
 import asyncio
 import functools
 import os
@@ -177,6 +178,7 @@ class UvicornTrioWorker(Worker):
     def run(self):
         async def main():
             async with trio.open_nursery() as nursery:
+                nursery.start_soon(self.tick)
                 nursery.start_soon(self.handle_signals)
                 await self.create_servers(nursery)
 
@@ -246,28 +248,28 @@ class UvicornTrioWorker(Worker):
         self.exit_code = 1
         self.cfg.worker_abort(self)
 
-    # async def tick(self, loop):
-    #     pid = os.getpid()
-    #     cycle = 0
+    async def tick(self):
+        pid = os.getpid()
+        cycle = 0
 
-    #     while self.alive:
-    #         self.protocol_class.tick()
+        while self.alive:
+            self.protocol_class.tick()
 
-    #         cycle = (cycle + 1) % 10
-    #         if cycle == 0:
-    #             self.notify()
+            cycle = (cycle + 1) % 10
+            if cycle == 0:
+                self.notify()
 
-    #         req_count = sum([state["total_requests"] for server, state in self.servers])
-    #         if self.max_requests and req_count > self.max_requests:
-    #             self.alive = False
-    #             self.log.info("Max requests exceeded, shutting down: %s", self)
-    #         elif self.ppid != os.getppid():
-    #             self.alive = False
-    #             self.log.info("Parent changed, shutting down: %s", self)
-    #         else:
-    #             await asyncio.sleep(1)
+            req_count = sum([state["total_requests"] for server, state in self.servers])
+            if self.max_requests and req_count > self.max_requests:
+                self.alive = False
+                self.log.info("Max requests exceeded, shutting down: %s", self)
+            elif self.ppid != os.getppid():
+                self.alive = False
+                self.log.info("Parent changed, shutting down: %s", self)
+            else:
+                await trio.sleep(1)
 
-    #     for server, state in self.servers:
-    #         server.close()
-    #         await server.wait_closed()
-    #     loop.stop()
+        for server, state in self.servers:
+            server.close()
+            await server.wait_closed()
+        loop.stop()
