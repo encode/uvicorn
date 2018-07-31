@@ -222,9 +222,12 @@ class UvicornTrioWorker(Worker):
         for sock in self.sockets:
             state = {"total_requests": 0}
             protocol = functools.partial(
-                self.protocol_class, app=app, state=state, logger=self.log
+                self.protocol_class, app=app, state=state, logger=self.log,
+                loop=trio_protocol.Loop(nursery)
             )
-            server = await trio_protocol.create_server(nursery, protocol, sock=sock, ssl=ssl_ctx)
+            server = await trio_protocol.create_server(
+                nursery, protocol, sock=sock, ssl=ssl_ctx
+            )
             self.servers.append((server, state))
 
     def create_ssl_context(self, cfg):
