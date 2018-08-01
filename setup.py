@@ -68,6 +68,9 @@ setup(
     author_email='tom@tomchristie.com',
     packages=get_packages('uvicorn'),
     install_requires=requirements,
+    extras_require={
+        'trio':  ["trio-protocol>=0.2"],
+    },
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
