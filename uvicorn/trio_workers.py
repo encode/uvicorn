@@ -60,9 +60,6 @@ class UvicornWorker(Worker):
         }
         with trio.catch_signals(signals) as batched_signal_aiter:
             async for batch in batched_signal_aiter:
-                # We're only listening for one signal, so the batch is always
-                # {signal.SIGHUP}, but if we were listening to more signals
-                # then it could vary.
                 for signum in batch:
                     signals[signum](signum, None)
 
