@@ -36,6 +36,10 @@ LOOP_SETUPS = {
     "auto": "uvicorn.loops.auto:auto_loop_setup",
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
+    "trio": "uvicorn.loops.trio:trio_setup",
+}
+LOOP_SERVERS = {
+    "trio": "uvicorn.loops.trio:TrioServer",
 }
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
@@ -225,10 +229,14 @@ def run(
     logger = get_logger(log_level)
     http_protocol_class = import_from_string(HTTP_PROTOCOLS[http])
     ws_protocol_class = import_from_string(WS_PROTOCOLS[ws])
-
+    server_class = Server
     if isinstance(loop, str):
         loop_setup = import_from_string(LOOP_SETUPS[loop])
-        loop = loop_setup()
+        default_loop = loop_setup()
+        if loop in LOOP_SERVERS:
+            server_class = import_from_string(LOOP_SERVERS[loop])
+    else:
+        default_loop = loop
 
     try:
         app = import_from_string(app)
@@ -248,10 +256,10 @@ def run(
     tasks = set()
     state = {"total_requests": 0}
 
-    def create_protocol():
+    def create_protocol(loop=None):
         return http_protocol_class(
             app=app,
-            loop=loop,
+            loop=loop or default_loop,
             logger=logger,
             access_log=access_log,
             connections=connections,
@@ -263,7 +271,7 @@ def run(
             timeout_keep_alive=timeout_keep_alive,
         )
 
-    server = Server(
+    server = server_class(
         app=app,
         host=host,
         port=port,
