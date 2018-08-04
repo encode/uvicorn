@@ -176,7 +176,7 @@ http {
       proxy_set_header Host $http_host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
-      proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto
+      proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
       proxy_redirect off;
       proxy_buffering off;
       proxy_pass http://uvicorn;
