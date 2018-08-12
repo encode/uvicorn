@@ -5,7 +5,7 @@ import logging
 import time
 import traceback
 from urllib.parse import unquote
-from uvicorn.protocols.websockets.websockets_impl import websocket_upgrade
+from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 
 import h11
 
@@ -235,10 +235,25 @@ class H11Protocol(asyncio.Protocol):
                     self.scope["scheme"] = scheme
                     self.scope["client"] = client
 
+                should_upgrade = False
+                upgrade_value = None
                 for name, value in self.headers:
-                    if name == b"upgrade" and value.lower() == b"websocket":
-                        websocket_upgrade(self)
-                        return
+                    if name == b"connection":
+                        tokens = [token.lower().strip() for token in value.split(b',')]
+                        should_upgrade = b'upgrade' in tokens
+                    elif name == b"upgrade":
+                        upgrade_value = value.lower()
+
+                if should_upgrade:
+                    output = [event.method, b' ', event.target, b' HTTP/1.1\r\n']
+                    for name, value in self.headers:
+                        output += [name, b": ", value, b"\r\n"]
+                    output.append(b'\r\n')
+                    protocol = WebSocketProtocol(app=self.app, logger=self.logger)
+                    protocol.connection_made(self.transport)
+                    protocol.data_received(b''.join(output))
+                    self.transport.set_protocol(protocol)
+                    return
 
                 # Handle 503 responses when 'limit_concurrency' is exceeded.
                 if self.limit_concurrency is not None and (

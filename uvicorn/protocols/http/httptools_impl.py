@@ -5,7 +5,7 @@ import logging
 import time
 import traceback
 from urllib.parse import unquote
-from uvicorn.protocols.websockets.websockets_impl import websocket_upgrade
+from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 
 import httptools
 
@@ -142,6 +142,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.pipeline = []
 
         # Per-request state
+        self.url = None
         self.scope = None
         self.headers = None
         self.expect_100_continue = False
@@ -191,12 +192,21 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.logger.warning(msg)
             self.transport.close()
         except httptools.HttpParserUpgrade:
-            websocket_upgrade(self)
+            method = self.scope['method'].encode()
+            output = [method, b' ', self.url, b' HTTP/1.1\r\n']
+            for name, value in self.scope['headers']:
+                output += [name, b": ", value, b"\r\n"]
+            output.append(b'\r\n')
+            protocol = WebSocketProtocol(app=self.app, logger=self.logger)
+            protocol.connection_made(self.transport)
+            protocol.data_received(b''.join(output))
+            self.transport.set_protocol(protocol)
 
     # Parser callbacks
     def on_url(self, url):
         method = self.parser.get_method()
         parsed_url = httptools.parse_url(url)
+        self.url = url
         self.expect_100_continue = False
         self.headers = []
         self.scope = {

@@ -68,7 +68,7 @@ def test_invalid_upgrade(protocol_cls):
         response = requests.get(
             url, headers={"upgrade": "websocket", "connection": "upgrade"}, timeout=5
         )
-        assert response.status_code == 403
+        assert response.status_code == 400
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
@@ -85,6 +85,26 @@ def test_accept_connection(protocol_cls):
         loop = asyncio.new_event_loop()
         is_open = loop.run_until_complete(open_connection(url))
         assert is_open
+        loop.close()
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_close_connection(protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.close"})
+
+    async def open_connection(url):
+        try:
+            await websockets.connect(url)
+        except websockets.exceptions.InvalidHandshake:
+            return False
+        return True
+
+    with run_server(App, protocol_cls=protocol_cls) as url:
+        loop = asyncio.new_event_loop()
+        is_open = loop.run_until_complete(open_connection(url))
+        assert not is_open
         loop.close()
 
 
@@ -128,7 +148,9 @@ def test_send_binary_data_to_client(protocol_cls):
 def test_send_and_close_connection(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
-            await self.send({"type": "websocket.close", "text": "123"})
+            await self.send({"type": "websocket.accept"})
+            await self.send({"type": "websocket.send", "text": "123"})
+            await self.send({"type": "websocket.close"})
 
     async def get_data(url):
         async with websockets.connect(url) as websocket:
@@ -202,9 +224,11 @@ def test_send_binary_data_to_server(protocol_cls):
 def test_send_after_protocol_close(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
-            await self.send({"type": "websocket.close", "text": "123"})
+            await self.send({"type": "websocket.accept"})
+            await self.send({"type": "websocket.send", "text": "123"})
+            await self.send({"type": "websocket.close"})
             with pytest.raises(Exception):
-                await self.send({"type": "websocket.send", "text": "1234"})
+                await self.send({"type": "websocket.send", "text": "123"})
 
     async def get_data(url):
         async with websockets.connect(url) as websocket:
