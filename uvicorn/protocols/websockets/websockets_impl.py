@@ -67,19 +67,16 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         }
         self.loop.create_task(self.run_asgi(scope))
         await self.handshake_started_event.wait()
-        print('initial_response', self.initial_response)
         return self.initial_response
 
     def process_subprotocol(self, headers, available_subprotocols):
         return self.accepted_subprotocol
 
     async def ws_handler(self, protocol, path):
-        print('ws_handler')
         self.handshake_completed_event.set()
         await self.closed_event.wait()
 
     async def write_http_response(self, status, headers, body=b''):
-        print('write_http_response(%s, %s, %s)' % (status, headers, body))
         await super().write_http_response(status, headers, body)
 
     async def run_asgi(self, scope):
@@ -108,7 +105,6 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 self.transport.close()
 
     async def asgi_send(self, message):
-        print('send', message)
         message_type = message["type"]
 
         if not self.handshake_started_event.is_set():
@@ -147,8 +143,6 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 raise RuntimeError(msg % message_type)
 
     async def asgi_receive(self):
-        print('receive')
-
         if not self.connect_sent:
             self.connect_sent = True
             return {
