@@ -48,11 +48,26 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         super().connection_made(transport)
 
     async def process_request(self, path, headers):
+        """
+        This hook is called to determine if the websocket should return
+        an HTTP response and close.
+
+        Our behavior here is to start the ASGI application, and then wait
+        for either `accept` or `close` in order to determine if we should
+        close the connection.
+        """
+        path_portion, _, query_string = path.partition('?')
+
         websockets.handshake.check_request(headers)
 
         subprotocols = []
         for header in headers.get_all('Sec-WebSocket-Protocol'):
             subprotocols.extend([token.strip() for token in header.split(',')])
+
+        asgi_headers = [
+            (name.encode('ascii'), value.encode('ascii'))
+            for name, value in headers.raw_items()
+        ]
 
         scope = {
             'type': 'websocket',
@@ -60,9 +75,9 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             'server': self.server,
             'client': self.client,
             'root_path': self.root_path,
-            'path': unquote(path),
-            'query_string': b'',  # TODO
-            'headers': [],  # TODO
+            'path': unquote(path_portion),
+            'query_string': query_string.encode('ascii'),
+            'headers': asgi_headers,
             'subprotocols': subprotocols,
         }
         self.loop.create_task(self.run_asgi(scope))
@@ -70,14 +85,20 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         return self.initial_response
 
     def process_subprotocol(self, headers, available_subprotocols):
+        """
+        We override the standard 'process_subprotocol' behavior here so that
+        we return whatever subprotocol is sent in the 'accept' message.
+        """
         return self.accepted_subprotocol
 
     async def ws_handler(self, protocol, path):
+        """
+        This is the main handler function for the 'websockets' implementation
+        to call into. We just wait for close then return, and instead allow
+        'send' and 'receive' events to drive the flow.
+        """
         self.handshake_completed_event.set()
         await self.closed_event.wait()
-
-    async def write_http_response(self, status, headers, body=b''):
-        await super().write_http_response(status, headers, body)
 
     async def run_asgi(self, scope):
         """
@@ -122,11 +143,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 msg = "Expected ASGI message 'websocket.accept' or 'websocket.close', but got '%s'."
                 raise RuntimeError(msg % message_type)
 
-        else:
-            if self.closed_event.is_set():
-                msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
-                raise RuntimeError(msg % message_type)
-
+        elif not self.closed_event.is_set():
             await self.handshake_completed_event.wait()
 
             if message_type == 'websocket.send':
@@ -136,11 +153,17 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 await self.send(data)
 
             elif message_type == 'websocket.close':
+                code = message.get('code', 1000)
+                await self.close(code)
                 self.closed_event.set()
 
             else:
                 msg = "Expected ASGI message 'websocket.send' or 'websocket.close', but got '%s'."
                 raise RuntimeError(msg % message_type)
+
+        else:
+            msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
+            raise RuntimeError(msg % message_type)
 
     async def asgi_receive(self):
         if not self.connect_sent:
