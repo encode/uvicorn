@@ -25,6 +25,7 @@ HTTP_PROTOCOLS = {
     "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
 }
 WS_PROTOCOLS = {
+    "none": None,
     "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
     "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
 }
@@ -36,6 +37,7 @@ LOOP_SETUPS = {
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
+WS_CHOICES = click.Choice(WS_PROTOCOLS.keys())
 LOOP_CHOICES = click.Choice(LOOP_SETUPS.keys())
 
 HANDLED_SIGNALS = (
@@ -86,7 +88,7 @@ def get_logger(log_level):
 )
 @click.option(
     "--ws",
-    type=HTTP_CHOICES,
+    type=WS_CHOICES,
     default="wsproto",
     help="WebSocket protocol implementation.",
     show_default=True,
