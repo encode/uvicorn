@@ -86,7 +86,11 @@ class WSProtocol(asyncio.Protocol):
         self.writable.set()
 
     def shutdown(self):
-        self.conn.close(code)
+        self.queue.put_nowait({
+            'type': 'websocket.disconnect',
+            'code': 1012
+        })
+        self.conn.close(1012)
         output = self.conn.bytes_to_send()
         self.transport.write(output)
         self.transport.close()
@@ -101,7 +105,7 @@ class WSProtocol(asyncio.Protocol):
         request = event.h11request
         headers = [(key.lower(), value) for key, value in request.headers]
         path, _, query_string = request.target.partition(b'?')
-        scope = {
+        self.scope = {
             'type': 'websocket',
             'scheme': self.scheme,
             'server': self.server,
@@ -115,7 +119,7 @@ class WSProtocol(asyncio.Protocol):
         self.queue.put_nowait({
             "type": "websocket.connect"
         })
-        task = self.loop.create_task(self.run_asgi(scope))
+        task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)
         self.tasks.add(task)
 
@@ -168,9 +172,9 @@ class WSProtocol(asyncio.Protocol):
         output = self.conn.bytes_to_send()
         self.transport.write(output)
 
-    async def run_asgi(self, scope):
+    async def run_asgi(self):
         try:
-            asgi = self.app(scope)
+            asgi = self.app(self.scope)
             result = await asgi(self.receive, self.send)
         except:
             msg = "Exception in ASGI application\n%s"
@@ -194,6 +198,11 @@ class WSProtocol(asyncio.Protocol):
 
         if not self.handshake_complete:
             if message_type == "websocket.accept":
+                self.logger.info(
+                    '%s - "WebSocket %s" [accepted]',
+                    self.scope["server"][0],
+                    self.scope["path"],
+                )
                 self.handshake_complete = True
                 subprotocol = message.get("subprotocol")
                 self.conn.accept(self.connect_event, subprotocol)
@@ -201,6 +210,11 @@ class WSProtocol(asyncio.Protocol):
                 self.transport.write(output)
 
             elif message_type == "websocket.close":
+                self.logger.info(
+                    '%s - "WebSocket %s" 403',
+                    self.scope["server"][0],
+                    self.scope["path"],
+                )
                 self.handshake_complete = True
                 self.close_sent = True
                 msg = h11.Response(status_code=403, headers=[])

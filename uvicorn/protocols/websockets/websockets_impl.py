@@ -32,6 +32,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.scheme = None
 
         # Connection events
+        self.scope = None
         self.handshake_started_event = asyncio.Event()
         self.handshake_completed_event = asyncio.Event()
         self.closed_event = asyncio.Event()
@@ -83,7 +84,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             for name, value in headers.raw_items()
         ]
 
-        scope = {
+        self.scope = {
             'type': 'websocket',
             'scheme': self.scheme,
             'server': self.server,
@@ -94,7 +95,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             'headers': asgi_headers,
             'subprotocols': subprotocols,
         }
-        task = self.loop.create_task(self.run_asgi(scope))
+        task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)
         self.tasks.add(task)
         await self.handshake_started_event.wait()
@@ -116,13 +117,13 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.handshake_completed_event.set()
         await self.closed_event.wait()
 
-    async def run_asgi(self, scope):
+    async def run_asgi(self):
         """
         Wrapper around the ASGI callable, handling exceptions and unexpected
         termination states.
         """
         try:
-            asgi = self.app(scope)
+            asgi = self.app(self.scope)
             result = await asgi(self.asgi_receive, self.asgi_send)
         except:
             self.closed_event.set()
@@ -146,11 +147,21 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         if not self.handshake_started_event.is_set():
             if message_type == "websocket.accept":
+                self.logger.info(
+                    '%s - "WebSocket %s" [accepted]',
+                    self.scope["server"][0],
+                    self.scope["path"],
+                )
                 self.initial_response = None
                 self.accepted_subprotocol = message.get('subprotocol')
                 self.handshake_started_event.set()
 
             elif message_type == "websocket.close":
+                self.logger.info(
+                    '%s - "WebSocket %s" 403',
+                    self.scope["server"][0],
+                    self.scope["path"],
+                )
                 self.initial_response = (http.HTTPStatus.FORBIDDEN, [], b'')
                 self.handshake_started_event.set()
                 self.closed_event.set()
