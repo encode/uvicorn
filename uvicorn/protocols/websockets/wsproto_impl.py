@@ -31,6 +31,10 @@ class WSProtocol(asyncio.Protocol):
             extensions=[wsproto.extensions.PerMessageDeflate()],
         )
 
+        self.read_paused = False
+        self.writable = asyncio.Event()
+        self.writable.set()
+
         # Buffers
         self.bytes = b''
         self.text = ''
@@ -64,6 +68,18 @@ class WSProtocol(asyncio.Protocol):
                 self.handle_close(event)
             elif isinstance(event, wsproto.events.PingReceived):
                 self.handle_ping(event)
+
+    def pause_writing(self):
+        """
+        Called by the transport when the write buffer exceeds the high water mark.
+        """
+        self.writable.clear()
+
+    def resume_writing(self):
+        """
+        Called by the transport when the write buffer drops below the low water mark.
+        """
+        self.writable.set()
 
     # Event handlers
 
@@ -110,6 +126,9 @@ class WSProtocol(asyncio.Protocol):
                 'text': self.text
             })
             self.text = ''
+            if not self.read_paused:
+                self.read_paused = True
+                self.transport.pause_reading()
 
     def handle_bytes(self, event):
         self.bytes += event.data
@@ -119,6 +138,9 @@ class WSProtocol(asyncio.Protocol):
                 'bytes': self.bytes
             })
             self.bytes = b''
+            if not self.read_paused:
+                self.read_paused = True
+                self.transport.pause_reading()
 
     def handle_close(self, event):
         self.queue.put_nowait({
@@ -151,6 +173,8 @@ class WSProtocol(asyncio.Protocol):
                 self.transport.close()
 
     async def send(self, message):
+        await self.writable.wait()
+
         message_type = message["type"]
 
         if not self.handshake_complete:
@@ -201,4 +225,8 @@ class WSProtocol(asyncio.Protocol):
             raise RuntimeError(msg % message_type)
 
     async def receive(self):
-        return await self.queue.get()
+        message = await self.queue.get()
+        if self.read_paused and self.queue.empty():
+            self.read_paused = False
+            self.transport.resume_reading()
+        return message
