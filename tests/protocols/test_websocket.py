@@ -70,6 +70,10 @@ def test_invalid_upgrade(protocol_cls):
             url, headers={"upgrade": "websocket", "connection": "upgrade"}, timeout=5
         )
         assert response.status_code == 400
+        assert response.text in [
+            'Missing Sec-WebSocket-Version header',  # websockets
+            'Missing or empty Sec-WebSocket-Key header\n'  # wsproto
+        ]
 
 
 @pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])

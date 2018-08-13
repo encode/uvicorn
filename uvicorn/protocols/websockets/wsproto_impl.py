@@ -89,8 +89,14 @@ class WSProtocol(asyncio.Protocol):
         self.loop.create_task(self.run_asgi(scope))
 
     def handle_no_connect(self, event):
-        msg = h11.Response(status_code=400, headers=[])
+        headers = [
+            (b"content-type", b"text/plain; charset=utf-8"),
+            (b"connection", b"close"),
+        ]
+        msg = h11.Response(status_code=400, headers=headers, reason='Bad Request')
         output = self.conn._upgrade_connection.send(msg)
+        msg = h11.Data(data=event.reason.encode('utf-8'))
+        output += self.conn._upgrade_connection.send(msg)
         msg = h11.EndOfMessage()
         output += self.conn._upgrade_connection.send(msg)
         self.transport.write(output)

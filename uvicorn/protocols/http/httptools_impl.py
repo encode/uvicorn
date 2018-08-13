@@ -193,15 +193,38 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.logger.warning(msg)
             self.transport.close()
         except httptools.HttpParserUpgrade:
-            method = self.scope['method'].encode()
-            output = [method, b' ', self.url, b' HTTP/1.1\r\n']
-            for name, value in self.scope['headers']:
-                output += [name, b": ", value, b"\r\n"]
-            output.append(b'\r\n')
-            protocol = self.ws_protocol_class(app=self.app, logger=self.logger)
-            protocol.connection_made(self.transport)
-            protocol.data_received(b''.join(output))
-            self.transport.set_protocol(protocol)
+            self.handle_upgrade()
+
+    def handle_upgrade(self):
+        upgrade_value = None
+        for name, value in self.headers:
+            if name == b"upgrade":
+                upgrade_value = value.lower()
+
+        if upgrade_value != b'websocket' or self.ws_protocol_class is None:
+            msg = "Unsupported upgrade request."
+            self.logger.warning(msg)
+            content = [STATUS_LINE[400], DEFAULT_HEADERS]
+            content.extend([
+                b"content-type: text/plain; charset=utf-8\r\n",
+                b"content-length: " + str(len(msg)).encode('ascii') + b"\r\n",
+                b"connection: close\r\n",
+                b"\r\n",
+                msg.encode('ascii')
+            ])
+            self.transport.write(b"".join(content))
+            self.transport.close()
+            return
+
+        method = self.scope['method'].encode()
+        output = [method, b' ', self.url, b' HTTP/1.1\r\n']
+        for name, value in self.scope['headers']:
+            output += [name, b": ", value, b"\r\n"]
+        output.append(b'\r\n')
+        protocol = self.ws_protocol_class(app=self.app, logger=self.logger)
+        protocol.connection_made(self.transport)
+        protocol.data_received(b''.join(output))
+        self.transport.set_protocol(protocol)
 
     # Parser callbacks
     def on_url(self, url):
