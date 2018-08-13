@@ -24,6 +24,10 @@ HTTP_PROTOCOLS = {
     "h11": "uvicorn.protocols.http.h11_impl:H11Protocol",
     "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
 }
+WS_PROTOCOLS = {
+    "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
+    "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
+}
 LOOP_SETUPS = {
     "auto": "uvicorn.loops.auto:auto_loop_setup",
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
@@ -77,7 +81,14 @@ def get_logger(log_level):
     "--http",
     type=HTTP_CHOICES,
     default="auto",
-    help="HTTP parser implementation.",
+    help="HTTP protocol implementation.",
+    show_default=True,
+)
+@click.option(
+    "--ws",
+    type=HTTP_CHOICES,
+    default="wsproto",
+    help="WebSocket protocol implementation.",
     show_default=True,
 )
 @click.option("--debug", is_flag=True, default=False, help="Enable debug mode.")
@@ -134,6 +145,7 @@ def main(
     fd: int,
     loop: str,
     http: str,
+    ws: str,
     debug: bool,
     log_level: str,
     proxy_headers: bool,
@@ -153,6 +165,7 @@ def main(
         "fd": fd,
         "loop": loop,
         "http": http,
+        "ws": ws,
         "log_level": log_level,
         "debug": debug,
         "proxy_headers": proxy_headers,
@@ -179,6 +192,7 @@ def run(
     fd=None,
     loop="auto",
     http="auto",
+    ws="wsproto",
     log_level="info",
     debug=False,
     proxy_headers=False,
@@ -200,7 +214,8 @@ def run(
 
     logger = get_logger(log_level)
     loop_setup = import_from_string(LOOP_SETUPS[loop])
-    protocol_class = import_from_string(HTTP_PROTOCOLS[http])
+    http_protocol_class = import_from_string(HTTP_PROTOCOLS[http])
+    ws_protocol_class = import_from_string(WS_PROTOCOLS[ws])
 
     loop = loop_setup()
 
@@ -218,13 +233,14 @@ def run(
     state = {"total_requests": 0}
 
     def create_protocol():
-        return protocol_class(
+        return http_protocol_class(
             app=app,
             loop=loop,
             logger=logger,
             connections=connections,
             tasks=tasks,
             state=state,
+            ws_protocol_class=ws_protocol_class,
             proxy_headers=proxy_headers,
             root_path=root_path,
             limit_concurrency=limit_concurrency,
@@ -245,7 +261,7 @@ def run(
         state=state,
         limit_max_requests=limit_max_requests,
         create_protocol=create_protocol,
-        on_tick=protocol_class.tick,
+        on_tick=http_protocol_class.tick,
         install_signal_handlers=install_signal_handlers,
         ready_event=ready_event,
     )

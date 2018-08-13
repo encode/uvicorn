@@ -5,8 +5,6 @@ import logging
 import time
 import traceback
 from urllib.parse import unquote
-from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
-from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 import h11
 
@@ -111,6 +109,7 @@ class H11Protocol(asyncio.Protocol):
         tasks=None,
         state=None,
         logger=None,
+        ws_protocol_class=None,
         proxy_headers=False,
         root_path="",
         limit_concurrency=None,
@@ -124,6 +123,7 @@ class H11Protocol(asyncio.Protocol):
         self.state = {"total_requests": 0} if state is None else state
         self.logger = logger or logging.getLogger()
         self.conn = h11.Connection(h11.SERVER)
+        self.ws_protocol_class = ws_protocol_class
         self.proxy_headers = proxy_headers
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
@@ -250,7 +250,7 @@ class H11Protocol(asyncio.Protocol):
                     for name, value in self.headers:
                         output += [name, b": ", value, b"\r\n"]
                     output.append(b'\r\n')
-                    protocol = WSProtocol(app=self.app, logger=self.logger)
+                    protocol = self.ws_protocol_class(app=self.app, logger=self.logger)
                     protocol.connection_made(self.transport)
                     protocol.data_received(b''.join(output))
                     self.transport.set_protocol(protocol)

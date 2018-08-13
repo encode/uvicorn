@@ -1,5 +1,6 @@
 from uvicorn.protocols.http.h11_impl import H11Protocol
-from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
+from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 import asyncio
 import functools
 import threading
@@ -42,7 +43,7 @@ def run_loop(loop):
 def run_server(app, protocol_cls):
     asyncio.set_event_loop(None)
     loop = asyncio.new_event_loop()
-    protocol = functools.partial(protocol_cls, app=app, loop=loop)
+    protocol = functools.partial(H11Protocol, app=app, loop=loop, ws_protocol_class=protocol_cls)
     create_server_task = loop.create_server(protocol, host="127.0.0.1")
     server = loop.run_until_complete(create_server_task)
     url = "ws://127.0.0.1:%d/" % server.sockets[0].getsockname()[1]
@@ -58,7 +59,7 @@ def run_server(app, protocol_cls):
         thread.join()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
 def test_invalid_upgrade(protocol_cls):
 
     app = lambda scope: None
@@ -71,7 +72,7 @@ def test_invalid_upgrade(protocol_cls):
         assert response.status_code == 400
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
 def test_accept_connection(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -88,7 +89,7 @@ def test_accept_connection(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
 def test_close_connection(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -108,7 +109,7 @@ def test_close_connection(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
 def test_send_text_data_to_client(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -126,7 +127,7 @@ def test_send_text_data_to_client(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
 def test_send_binary_data_to_client(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -144,7 +145,7 @@ def test_send_binary_data_to_client(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
 def test_send_and_close_connection(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -170,7 +171,7 @@ def test_send_and_close_connection(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
 def test_send_text_data_to_server(protocol_cls):
     class App(WebSocketResponse):
 
@@ -195,7 +196,7 @@ def test_send_text_data_to_server(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
 def test_send_binary_data_to_server(protocol_cls):
     class App(WebSocketResponse):
 
@@ -220,7 +221,7 @@ def test_send_binary_data_to_server(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
 def test_send_after_protocol_close(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -248,7 +249,7 @@ def test_send_after_protocol_close(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
 @pytest.mark.parametrize("subprotocol", ["proto1", "proto2"])
 def test_subprotocols(protocol_cls, subprotocol):
     class App(WebSocketResponse):
