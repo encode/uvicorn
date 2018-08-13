@@ -6,6 +6,7 @@ import time
 import traceback
 from urllib.parse import unquote
 from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 import h11
 
@@ -249,7 +250,7 @@ class H11Protocol(asyncio.Protocol):
                     for name, value in self.headers:
                         output += [name, b": ", value, b"\r\n"]
                     output.append(b'\r\n')
-                    protocol = WebSocketProtocol(app=self.app, logger=self.logger)
+                    protocol = WSProtocol(app=self.app, logger=self.logger)
                     protocol.connection_made(self.transport)
                     protocol.data_received(b''.join(output))
                     self.transport.set_protocol(protocol)
