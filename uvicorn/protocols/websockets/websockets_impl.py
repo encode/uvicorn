@@ -1,6 +1,7 @@
 from urllib.parse import unquote
 import asyncio
 import http
+import logging
 import traceback
 import websockets
 
@@ -16,11 +17,13 @@ class Server:
 
 
 class WebSocketProtocol(websockets.WebSocketServerProtocol):
-    def __init__(self, app, logger):
+    def __init__(self, app, connections=None, tasks=None, loop=None, logger=None):
         self.app = app
         self.root_path = ''
-        self.logger = logger
-        self.loop = asyncio.get_event_loop()
+        self.connections = set() if connections is None else connections
+        self.tasks = set() if tasks is None else tasks
+        self.loop = loop or asyncio.get_event_loop()
+        self.logger = logger or logging.getLogger()
 
         # Connection state
         self.transport = None
@@ -41,11 +44,22 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         super().__init__(ws_handler=self.ws_handler, ws_server=server)
 
     def connection_made(self, transport):
+        self.connections.add(self)
         self.transport = transport
         self.server = transport.get_extra_info("sockname")
         self.client = transport.get_extra_info("peername")
         self.scheme = "wss" if transport.get_extra_info("sslcontext") else "ws"
         super().connection_made(transport)
+
+    def connection_lost(self, exc):
+        self.connections.remove(self)
+        super().connection_lost(exc)
+
+    def shutdown(self):
+        self.transport.close()
+
+    def on_task_complete(self, task):
+        self.tasks.discard(task)
 
     async def process_request(self, path, headers):
         """
@@ -80,7 +94,9 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             'headers': asgi_headers,
             'subprotocols': subprotocols,
         }
-        self.loop.create_task(self.run_asgi(scope))
+        task = self.loop.create_task(self.run_asgi(scope))
+        task.add_done_callback(self.on_task_complete)
+        self.tasks.add(task)
         await self.handshake_started_event.wait()
         return self.initial_response
 

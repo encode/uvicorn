@@ -313,11 +313,18 @@ class H11Protocol(asyncio.Protocol):
             self.transport.close()
             return
 
+        self.connections.discard(self)
         output = [event.method, b' ', event.target, b' HTTP/1.1\r\n']
         for name, value in self.headers:
             output += [name, b": ", value, b"\r\n"]
         output.append(b'\r\n')
-        protocol = self.ws_protocol_class(app=self.app, logger=self.logger)
+        protocol = self.ws_protocol_class(
+            app=self.app,
+            connections=self.connections,
+            tasks=self.tasks,
+            loop=self.loop,
+            logger=self.logger
+        )
         protocol.connection_made(self.transport)
         protocol.data_received(b''.join(output))
         self.transport.set_protocol(protocol)

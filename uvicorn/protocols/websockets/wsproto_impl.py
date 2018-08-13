@@ -1,6 +1,7 @@
 from urllib.parse import unquote
 import asyncio
 import h11
+import logging
 import traceback
 import wsproto.connection
 import wsproto.events
@@ -8,11 +9,13 @@ import wsproto.extensions
 
 
 class WSProtocol(asyncio.Protocol):
-    def __init__(self, app, logger):
+    def __init__(self, app, connections=None, tasks=None, loop=None, logger=None):
         self.app = app
         self.root_path = ''
-        self.logger = logger
-        self.loop = asyncio.get_event_loop()
+        self.connections = set() if connections is None else connections
+        self.tasks = set() if tasks is None else tasks
+        self.loop = loop or asyncio.get_event_loop()
+        self.logger = logger or logging.getLogger()
 
         # Connection state
         self.transport = None
@@ -42,13 +45,14 @@ class WSProtocol(asyncio.Protocol):
     # Protocol interface
 
     def connection_made(self, transport):
+        self.connections.add(self)
         self.transport = transport
         self.server = transport.get_extra_info("sockname")
         self.client = transport.get_extra_info("peername")
         self.scheme = "wss" if transport.get_extra_info("sslcontext") else "ws"
 
     def connection_lost(self, exc):
-        pass
+        self.connections.remove(self)
 
     def eof_received(self):
         pass
@@ -81,6 +85,15 @@ class WSProtocol(asyncio.Protocol):
         """
         self.writable.set()
 
+    def shutdown(self):
+        self.conn.close(code)
+        output = self.conn.bytes_to_send()
+        self.transport.write(output)
+        self.transport.close()
+
+    def on_task_complete(self, task):
+        self.tasks.discard(task)
+
     # Event handlers
 
     def handle_connect(self, event):
@@ -102,7 +115,9 @@ class WSProtocol(asyncio.Protocol):
         self.queue.put_nowait({
             "type": "websocket.connect"
         })
-        self.loop.create_task(self.run_asgi(scope))
+        task = self.loop.create_task(self.run_asgi(scope))
+        task.add_done_callback(self.on_task_complete)
+        self.tasks.add(task)
 
     def handle_no_connect(self, event):
         headers = [

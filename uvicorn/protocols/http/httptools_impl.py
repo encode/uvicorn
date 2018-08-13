@@ -216,12 +216,19 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.transport.close()
             return
 
+        self.connections.discard(self)
         method = self.scope['method'].encode()
         output = [method, b' ', self.url, b' HTTP/1.1\r\n']
         for name, value in self.scope['headers']:
             output += [name, b": ", value, b"\r\n"]
         output.append(b'\r\n')
-        protocol = self.ws_protocol_class(app=self.app, logger=self.logger)
+        protocol = self.ws_protocol_class(
+            app=self.app,
+            connections=self.connections,
+            tasks=self.tasks,
+            loop=self.loop,
+            logger=self.logger
+        )
         protocol.connection_made(self.transport)
         protocol.data_received(b''.join(output))
         self.transport.set_protocol(protocol)
