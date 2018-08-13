@@ -50,10 +50,8 @@ class WSProtocol(asyncio.Protocol):
         pass
 
     def data_received(self, data):
-        print('data_received', data)
         self.conn.receive_bytes(data)
         for event in self.conn.events():
-            print(event)
             if isinstance(event, wsproto.events.ConnectionRequested):
                 self.handle_connect(event)
             elif isinstance(event, wsproto.events.TextReceived):
@@ -128,7 +126,6 @@ class WSProtocol(asyncio.Protocol):
         self.transport.write(output)
 
     async def run_asgi(self, scope):
-        print('run_asgi')
         try:
             asgi = self.app(scope)
             result = await asgi(self.receive, self.send)
@@ -149,7 +146,6 @@ class WSProtocol(asyncio.Protocol):
 
     async def send(self, message):
         message_type = message["type"]
-        print('send', message)
 
         if not self.handshake_complete:
             if message_type == "websocket.accept":
@@ -199,5 +195,4 @@ class WSProtocol(asyncio.Protocol):
             raise RuntimeError(msg % message_type)
 
     async def receive(self):
-        print('receive')
         return await self.queue.get()
