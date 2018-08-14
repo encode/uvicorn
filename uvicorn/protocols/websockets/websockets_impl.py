@@ -144,6 +144,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             self.logger.error(msg, traceback_text)
             if not self.handshake_started_event.is_set():
                 self.send_500_response()
+            else:
+                await self.handshake_completed_event.wait()
             self.transport.close()
         else:
             self.closed_event.set()
@@ -155,6 +157,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             elif result is not None:
                 msg = "ASGI callable should return None, but returned '%s'."
                 self.logger.error(msg, result)
+                await self.handshake_completed_event.wait()
                 self.transport.close()
 
     async def asgi_send(self, message):

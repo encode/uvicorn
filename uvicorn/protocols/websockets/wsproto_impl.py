@@ -255,7 +255,7 @@ class WSProtocol(asyncio.Protocol):
 
             elif message_type == 'websocket.close':
                 self.close_sent = True
-                message.get('code', 1000)
+                code = message.get('code', 1000)
                 self.conn.close(code)
                 output = self.conn.bytes_to_send()
                 self.transport.write(output)
