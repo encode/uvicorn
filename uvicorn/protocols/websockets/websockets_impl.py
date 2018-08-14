@@ -142,6 +142,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             msg = "Exception in ASGI application\n%s"
             traceback_text = "".join(traceback.format_exc())
             self.logger.error(msg, traceback_text)
+            if not self.handshake_started_event.is_set():
+                self.send_500_response()
             self.transport.close()
         else:
             self.closed_event.set()
