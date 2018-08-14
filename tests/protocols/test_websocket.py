@@ -254,6 +254,25 @@ def test_send_after_protocol_close(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+def test_missing_handshake(protocol_cls):
+    class App:
+        def __init__(self, scope):
+            pass
+        async def __call__(self, receive, send):
+            pass
+
+    async def connect(url):
+        await websockets.connect(url)
+
+    with run_server(App, protocol_cls=protocol_cls) as url:
+        loop = asyncio.new_event_loop()
+        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc:
+            loop.run_until_complete(connect(url))
+        assert exc.value.status_code == 500
+        loop.close()
+
+
+@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
 @pytest.mark.parametrize("subprotocol", ["proto1", "proto2"])
 def test_subprotocols(protocol_cls, subprotocol):
     class App(WebSocketResponse):

@@ -108,6 +108,18 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         """
         return self.accepted_subprotocol
 
+    def send_500_response(self):
+        msg = b"Internal Server Error"
+        content = [
+            b"HTTP/1.1 500 Internal Server Error\r\n"
+            b"content-type: text/plain; charset=utf-8\r\n",
+            b"content-length: " + str(len(msg)).encode('ascii') + b"\r\n",
+            b"connection: close\r\n",
+            b"\r\n",
+            msg
+        ]
+        self.transport.write(b"".join(content))
+
     async def ws_handler(self, protocol, path):
         """
         This is the main handler function for the 'websockets' implementation
@@ -133,13 +145,14 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             self.transport.close()
         else:
             self.closed_event.set()
-            if result is not None:
-                msg = "ASGI callable should return None, but returned '%s'."
-                self.logger.error(msg, result)
-                self.transport.close()
-            elif not self.handshake_started_event.is_set():
+            if not self.handshake_started_event.is_set():
                 msg = "ASGI callable returned without sending handshake."
                 self.logger.error(msg)
+                self.send_500_response()
+                self.transport.close()
+            elif result is not None:
+                msg = "ASGI callable should return None, but returned '%s'."
+                self.logger.error(msg, result)
                 self.transport.close()
 
     async def asgi_send(self, message):

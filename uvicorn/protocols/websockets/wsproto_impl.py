@@ -172,6 +172,19 @@ class WSProtocol(asyncio.Protocol):
         output = self.conn.bytes_to_send()
         self.transport.write(output)
 
+    def send_500_response(self):
+        headers = [
+            (b"content-type", b"text/plain; charset=utf-8"),
+            (b"connection", b"close"),
+        ]
+        msg = h11.Response(status_code=500, headers=headers, reason='Internal Server Error')
+        output = self.conn._upgrade_connection.send(msg)
+        msg = h11.Data(data=b'Internal Server Error')
+        output += self.conn._upgrade_connection.send(msg)
+        msg = h11.EndOfMessage()
+        output += self.conn._upgrade_connection.send(msg)
+        self.transport.write(output)
+
     async def run_asgi(self):
         try:
             asgi = self.app(self.scope)
@@ -182,13 +195,14 @@ class WSProtocol(asyncio.Protocol):
             self.logger.error(msg, traceback_text)
             self.transport.close()
         else:
-            if result is not None:
-                msg = "ASGI callable should return None, but returned '%s'."
-                self.logger.error(msg, result)
-                self.transport.close()
-            elif not self.handshake_complete:
+            if not self.handshake_complete:
                 msg = "ASGI callable returned without completing handshake."
                 self.logger.error(msg)
+                self.send_500_response()
+                self.transport.close()
+            elif result is not None:
+                msg = "ASGI callable should return None, but returned '%s'."
+                self.logger.error(msg, result)
                 self.transport.close()
 
     async def send(self, message):
