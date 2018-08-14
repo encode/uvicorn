@@ -359,15 +359,11 @@ def test_app_close(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
 def test_client_close(protocol_cls):
-    saw_disconnect = False
-
     class App:
         def __init__(self, scope):
             pass
 
         async def __call__(self, receive, send):
-            nonlocal saw_disconnect
-
             while True:
                 message = await receive()
                 if message['type'] == 'websocket.connect':
@@ -375,7 +371,6 @@ def test_client_close(protocol_cls):
                 elif message['type'] == 'websocket.receive':
                     pass
                 elif message['type'] == 'websocket.disconnect':
-                    saw_disconnect = True
                     break
 
     async def websocket_session(url):
@@ -386,7 +381,6 @@ def test_client_close(protocol_cls):
     with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         loop.run_until_complete(websocket_session(url))
-        assert saw_disconnect
         loop.close()
 
 
