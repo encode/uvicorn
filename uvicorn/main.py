@@ -26,6 +26,7 @@ HTTP_PROTOCOLS = {
 }
 WS_PROTOCOLS = {
     "none": None,
+    "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",
     "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
     "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
 }
@@ -89,7 +90,7 @@ def get_logger(log_level):
 @click.option(
     "--ws",
     type=WS_CHOICES,
-    default="wsproto",
+    default="auto",
     help="WebSocket protocol implementation.",
     show_default=True,
 )
@@ -194,7 +195,7 @@ def run(
     fd=None,
     loop="auto",
     http="auto",
-    ws="wsproto",
+    ws="auto",
     log_level="info",
     debug=False,
     proxy_headers=False,
