@@ -3,6 +3,7 @@ from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 import asyncio
 import functools
+import time
 import threading
 import requests
 import pytest
@@ -11,27 +12,19 @@ from contextlib import contextmanager
 
 
 class WebSocketResponse:
-
-    persist = False
-
     def __init__(self, scope):
         self.scope = scope
 
     async def __call__(self, receive, send):
         self.send = send
-
-        if self.persist:
-            while True:
-                message = await receive()
-                await self.handle(message)
-        else:
+        while True:
             message = await receive()
-            await self.handle(message)
-
-    async def handle(self, message):
-        message_type = message["type"].replace(".", "_")
-        handler = getattr(self, message_type)
-        await handler(message)
+            message_type = message["type"].replace(".", "_")
+            handler = getattr(self, message_type, None)
+            if handler is not None:
+                await handler(message)
+            if message_type == 'websocket_disconnect':
+                break
 
 
 def run_loop(loop):
@@ -41,9 +34,10 @@ def run_loop(loop):
 
 @contextmanager
 def run_server(app, protocol_cls):
+    tasks = set()
     asyncio.set_event_loop(None)
     loop = asyncio.new_event_loop()
-    protocol = functools.partial(H11Protocol, app=app, loop=loop, ws_protocol_class=protocol_cls)
+    protocol = functools.partial(H11Protocol, app=app, loop=loop, tasks=tasks, ws_protocol_class=protocol_cls)
     create_server_task = loop.create_server(protocol, host="127.0.0.1")
     server = loop.run_until_complete(create_server_task)
     url = "ws://127.0.0.1:%d/" % server.sockets[0].getsockname()[1]
@@ -55,6 +49,8 @@ def run_server(app, protocol_cls):
         yield url
     finally:
         # Close the loop from our main thread.
+        while tasks:
+            time.sleep(0.01)
         loop.call_soon_threadsafe(loop.stop)
         thread.join()
 
@@ -178,9 +174,6 @@ def test_send_and_close_connection(protocol_cls):
 @pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
 def test_send_text_data_to_server(protocol_cls):
     class App(WebSocketResponse):
-
-        persist = True
-
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.accept"})
 
@@ -203,9 +196,6 @@ def test_send_text_data_to_server(protocol_cls):
 @pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
 def test_send_binary_data_to_server(protocol_cls):
     class App(WebSocketResponse):
-
-        persist = True
-
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.accept"})
 

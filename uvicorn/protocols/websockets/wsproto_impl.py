@@ -226,6 +226,10 @@ class WSProtocol(asyncio.Protocol):
                 self.transport.write(output)
 
             elif message_type == "websocket.close":
+                self.queue.put_nowait({
+                    'type': 'websocket.disconnect',
+                    'code': None
+                })
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
                     self.scope["server"][0],
@@ -251,15 +255,21 @@ class WSProtocol(asyncio.Protocol):
                 data = text_data if bytes_data is None else bytes_data
                 self.conn.send_data(data)
                 output = self.conn.bytes_to_send()
-                self.transport.write(output)
+                if not self.transport.is_closing():
+                    self.transport.write(output)
 
             elif message_type == 'websocket.close':
                 self.close_sent = True
                 code = message.get('code', 1000)
+                self.queue.put_nowait({
+                    'type': 'websocket.disconnect',
+                    'code': code
+                })
                 self.conn.close(code)
                 output = self.conn.bytes_to_send()
-                self.transport.write(output)
-                self.transport.close()
+                if not self.transport.is_closing():
+                    self.transport.write(output)
+                    self.transport.close()
 
             else:
                 msg = "Expected ASGI message 'websocket.send' or 'websocket.close', but got '%s'."
