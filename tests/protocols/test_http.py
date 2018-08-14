@@ -1,5 +1,6 @@
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
+from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 import asyncio
 import h11
 import pytest
@@ -85,8 +86,16 @@ START_POST_REQUEST = b"\r\n".join(
 
 FINISH_POST_REQUEST = b'{"hello": "world"}'
 
-
 HTTP10_GET_REQUEST = b"\r\n".join([b"GET / HTTP/1.0", b"Host: example.org", b"", b""])
+
+UPGRADE_REQUEST = b"\r\n".join([
+    b"GET / HTTP/1.1",
+    b"Host: example.org",
+    b"Connection: upgrade",
+    b"Upgrade: websocket",
+    b"",
+    b""
+])
 
 
 class MockTransport:
@@ -124,6 +133,9 @@ class MockTransport:
 
     def clear_buffer(self):
         self.buffer = b""
+
+    def set_protocol(self, protocol):
+        pass
 
 
 class MockLoop:
@@ -683,3 +695,25 @@ def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
     protocol.loop.run_one()
     assert b"HTTP/1.1 100 Continue" not in protocol.transport.buffer
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_unsupported_upgrade_request(protocol_cls):
+    def app(scope):
+        return Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(UPGRADE_REQUEST)
+    assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
+    assert b"Unsupported upgrade request." in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_supported_upgrade_request(protocol_cls):
+    def app(scope):
+        return Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, protocol_cls, ws_protocol_class=WSProtocol)
+    protocol.data_received(UPGRADE_REQUEST)
+    assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
+    assert b"Missing Sec-WebSocket-Version header" in protocol.transport.buffer

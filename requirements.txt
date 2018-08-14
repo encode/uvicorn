@@ -1,8 +1,11 @@
 click
 h11
+
+# Optional
 httptools
 uvloop
 websockets>=6.0
+wsproto
 
 # Testing
 pytest
