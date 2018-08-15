@@ -76,16 +76,19 @@ class WSGIResponder:
         environ = build_environ(self.scope, message, body)
         self.loop = asyncio.get_event_loop()
         wsgi = self.loop.run_in_executor(self.executor, self.wsgi, environ, self.start_response)
-        self.loop.create_task(self.sender(send))
+        sender = self.loop.create_task(self.sender(send))
         await asyncio.wait_for(wsgi, 60)
+        self.send_queue.append(None)
+        self.send_event.set()
+        await sender
 
     async def sender(self, send):
         while True:
             if self.send_queue:
                 message = self.send_queue.pop(0)
+                if message is None:
+                    return
                 await send(message)
-                if message['type'] == 'http.response.body' and not message.get('more_body'):
-                    break
             else:
                 await self.send_event.wait()
                 self.send_event.clear()
