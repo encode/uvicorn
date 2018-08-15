@@ -81,6 +81,11 @@ Options:
   --fd INTEGER                    Bind to socket from this file descriptor.
   --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP parser implementation.  [default: auto]
+  --ws [none|auto|websockets|wsproto]
+                                  WebSocket protocol implementation.
+                                  [default: auto]
+  --wsgi                          Use WSGI as the application interface,
+                                  instead of ASGI.
   --debug                         Enable debug mode.
   --log-level [critical|error|warning|info|debug]
                                   Log level.  [default: info]

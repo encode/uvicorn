@@ -95,7 +95,7 @@ def get_logger(log_level):
     help="WebSocket protocol implementation.",
     show_default=True,
 )
-@click.option("--wsgi", is_flag=True, default=False, help="Enable WSGI mode.")
+@click.option("--wsgi", is_flag=True, default=False, help="Use WSGI as the application interface, instead of ASGI.")
 @click.option("--debug", is_flag=True, default=False, help="Enable debug mode.")
 @click.option(
     "--log-level",
@@ -235,6 +235,7 @@ def run(
 
     if wsgi:
         app = WSGIMiddleware(app)
+        ws_protocol_class = None
     if debug:
         app = DebugMiddleware(app)
 
