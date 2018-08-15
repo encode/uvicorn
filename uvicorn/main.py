@@ -1,6 +1,7 @@
 from uvicorn.debug import DebugMiddleware
 from uvicorn.importer import import_from_string, ImportFromStringError
 from uvicorn.reloaders.statreload import StatReload
+from uvicorn.wsgi import WSGIMiddleware
 import asyncio
 import click
 import signal
@@ -94,6 +95,7 @@ def get_logger(log_level):
     help="WebSocket protocol implementation.",
     show_default=True,
 )
+@click.option("--wsgi", is_flag=True, default=False, help="Enable WSGI mode.")
 @click.option("--debug", is_flag=True, default=False, help="Enable debug mode.")
 @click.option(
     "--log-level",
@@ -149,6 +151,7 @@ def main(
     loop: str,
     http: str,
     ws: str,
+    wsgi: bool,
     debug: bool,
     log_level: str,
     proxy_headers: bool,
@@ -170,6 +173,7 @@ def main(
         "http": http,
         "ws": ws,
         "log_level": log_level,
+        "wsgi": wsgi,
         "debug": debug,
         "proxy_headers": proxy_headers,
         "root_path": root_path,
@@ -197,6 +201,7 @@ def run(
     http="auto",
     ws="auto",
     log_level="info",
+    wsgi=False,
     debug=False,
     proxy_headers=False,
     root_path="",
@@ -228,6 +233,8 @@ def run(
         click.echo("Error loading ASGI app. %s" % exc)
         sys.exit(1)
 
+    if wsgi:
+        app = WSGIMiddleware(app)
     if debug:
         app = DebugMiddleware(app)
 

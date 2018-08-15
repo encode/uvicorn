@@ -1,0 +1,112 @@
+import asyncio
+import concurrent.futures
+import io
+import sys
+
+
+def build_environ(scope, message):
+    """
+    Builds a scope and request message into a WSGI environ object.
+    """
+    environ = {
+        "REQUEST_METHOD": scope["method"],
+        "SCRIPT_NAME": "",
+        "PATH_INFO": scope["path"],
+        "QUERY_STRING": scope["query_string"].decode("ascii"),
+        "SERVER_PROTOCOL": "HTTP/%s" % scope["http_version"],
+        "wsgi.version": (1, 0),
+        "wsgi.url_scheme": scope.get("scheme", "http"),
+        "wsgi.input": io.BytesIO(message.get("body", b"")),
+        "wsgi.errors": sys.stdout,
+        "wsgi.multithread": True,
+        "wsgi.multiprocess": True,
+        "wsgi.run_once": False,
+    }
+    # Get server name and port - required in WSGI, not in ASGI
+    server = scope.get("server", ("localhost", 80))
+    environ["SERVER_NAME"] = server[0]
+    environ["SERVER_PORT"] = server[1]
+    # Go through headers and make them into environ entries
+    for name, value in scope.get("headers", []):
+        name = name.decode("latin1")
+        if name == "content-length":
+            corrected_name = "CONTENT_LENGTH"
+        elif name == "content-type":
+            corrected_name = "CONTENT_TYPE"
+        else:
+            corrected_name = "HTTP_%s" % name.upper().replace("-", "_")
+        # HTTPbis say only ASCII chars are allowed in headers, but we latin1 just in case
+        value = value.decode("latin1")
+        if corrected_name in environ:
+            value = environ[corrected_name] + "," + value
+        environ[corrected_name] = value
+    return environ
+
+
+class WSGIMiddleware:
+    def __init__(self, app, workers=10):
+        self.app = app
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
+
+    def __call__(self, scope):
+        return WSGIResponder(self.app, self.executor, scope)
+
+
+class WSGIResponder:
+    def __init__(self, app, executor, scope):
+        self.app = app
+        self.executor = executor
+        self.scope = scope
+        self.status = None
+        self.response_headers = None
+        self.send_event = asyncio.Event()
+        self.send_queue = []
+        self.loop = None
+
+    async def __call__(self, receive, send):
+        message = await receive()
+        environ = build_environ(self.scope, message)
+        self.loop = asyncio.get_event_loop()
+        wsgi = self.loop.run_in_executor(self.executor, self.wsgi, environ, self.start_response)
+        self.loop.create_task(self.sender(send))
+        await asyncio.wait_for(wsgi, 60)
+
+    async def sender(self, send):
+        while True:
+            if self.send_queue:
+                message = self.send_queue.pop(0)
+                await send(message)
+                if message['type'] == 'http.response.body' and not message.get('more_body'):
+                    break
+            else:
+                await self.send_event.wait()
+                self.send_event.clear()
+
+    def start_response(self, status, response_headers, exc_info=None):
+        status_code, _ = status.split(" ", 1)
+        status_code = int(status_code)
+        headers = [
+            (name.encode("ascii"), value.encode("ascii"))
+            for name, value in response_headers
+        ]
+        self.send_queue.append({
+            "type": "http.response.start",
+            "status": status_code,
+            "headers": headers,
+        })
+        self.loop.call_soon_threadsafe(self.send_event.set)
+
+    def wsgi(self, environ, start_response):
+        for chunk in self.app(environ, start_response):
+            self.send_queue.append({
+                "type": "http.response.body",
+                "body": chunk,
+                "more_body": True
+            })
+            self.loop.call_soon_threadsafe(self.send_event.set)
+
+        self.send_queue.append({
+            "type": "http.response.body",
+            "body": b""
+        })
+        self.loop.call_soon_threadsafe(self.send_event.set)
