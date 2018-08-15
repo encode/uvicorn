@@ -77,10 +77,10 @@ class WSGIResponder:
         self.loop = asyncio.get_event_loop()
         wsgi = self.loop.run_in_executor(self.executor, self.wsgi, environ, self.start_response)
         sender = self.loop.create_task(self.sender(send))
-        await asyncio.wait_for(wsgi, 60)
+        await asyncio.wait_for(wsgi, None)
         self.send_queue.append(None)
         self.send_event.set()
-        await sender
+        await asyncio.wait_for(sender, None)
 
     async def sender(self, send):
         while True:
