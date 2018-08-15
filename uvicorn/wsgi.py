@@ -22,10 +22,12 @@ def build_environ(scope, message, body):
         "wsgi.multiprocess": True,
         "wsgi.run_once": False,
     }
+
     # Get server name and port - required in WSGI, not in ASGI
     server = scope.get("server", ("localhost", 80))
     environ["SERVER_NAME"] = server[0]
     environ["SERVER_PORT"] = server[1]
+
     # Go through headers and make them into environ entries
     for name, value in scope.get("headers", []):
         name = name.decode("latin1")
@@ -89,6 +91,8 @@ class WSGIResponder:
                 self.send_event.clear()
 
     def start_response(self, status, response_headers, exc_info=None):
+        if exc_info is not None:
+            raise exc_info[0].with_traceback(exc_info[1], exc_info[2])
         status_code, _ = status.split(" ", 1)
         status_code = int(status_code)
         headers = [
