@@ -4,7 +4,7 @@ import io
 import sys
 
 
-def build_environ(scope, message):
+def build_environ(scope, message, body):
     """
     Builds a scope and request message into a WSGI environ object.
     """
@@ -16,7 +16,7 @@ def build_environ(scope, message):
         "SERVER_PROTOCOL": "HTTP/%s" % scope["http_version"],
         "wsgi.version": (1, 0),
         "wsgi.url_scheme": scope.get("scheme", "http"),
-        "wsgi.input": io.BytesIO(message.get("body", b"")),
+        "wsgi.input": io.BytesIO(body),
         "wsgi.errors": sys.stdout,
         "wsgi.multithread": True,
         "wsgi.multiprocess": True,
@@ -65,7 +65,13 @@ class WSGIResponder:
 
     async def __call__(self, receive, send):
         message = await receive()
-        environ = build_environ(self.scope, message)
+        body = message.get('body', b'')
+        more_body = message.get('more_body', False)
+        while more_body:
+            body_message = await receive()
+            body += body_message.get('body', b'')
+            more_body = body_message.get('more_body', False)
+        environ = build_environ(self.scope, message, body)
         self.loop = asyncio.get_event_loop()
         wsgi = self.loop.run_in_executor(self.executor, self.wsgi, environ, self.start_response)
         self.loop.create_task(self.sender(send))
