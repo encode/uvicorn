@@ -26,9 +26,13 @@ equivalent keyword arguments, eg. `uvicorn.run(App, port=5000, debug=True, timeo
 
 ## Implementation
 
-* `--loop` - Set the event loop implementation. The uvloop implementation provides greater performance, but is not compatible with Windows or PyPy. **Options:** *'auto', 'asyncio', 'uvloop'.* **Default:**: *'auto'*.
-* `--http` - Set the HTTP protocol implementation. The httptools implementation provides greater performance, but it not compatible with PyPy, and requires compilation on Windows. **Options:** *'auto', 'h11', 'httptools'.* **Default:**: *'auto'*.
-* `--ws` - Set the WebSockets protocol implementation. Either of the `websockets` and `wsproto` packages are supported. Use `'none'` to deny all websocket requests. **Options:** *'auto', 'none', 'websockets', 'wsproto'.* **Default:**: *'auto'*.
+* `--loop` - Set the event loop implementation. The uvloop implementation provides greater performance, but is not compatible with Windows or PyPy. **Options:** *'auto', 'asyncio', 'uvloop'.* **Default:** *'auto'*.
+* `--http` - Set the HTTP protocol implementation. The httptools implementation provides greater performance, but it not compatible with PyPy, and requires compilation on Windows. **Options:** *'auto', 'h11', 'httptools'.* **Default:** *'auto'*.
+* `--ws` - Set the WebSockets protocol implementation. Either of the `websockets` and `wsproto` packages are supported. Use `'none'` to deny all websocket requests. **Options:** *'auto', 'none', 'websockets', 'wsproto'.* **Default:** *'auto'*.
+
+## Application Interface
+
+* `--wsgi` - Use WSGI as the application interface rather than ASGI. Note that WSGI mode always disables WebSocket support, as it is not supported by the WSGI interface.
 
 ## HTTP
 
