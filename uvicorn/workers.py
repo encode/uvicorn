@@ -10,7 +10,7 @@ import uvloop
 from gunicorn.workers.base import Worker
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
-from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
+from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 
 
 class UvicornWorker(Worker):
@@ -26,7 +26,7 @@ class UvicornWorker(Worker):
     """
 
     protocol_class = HttpToolsProtocol
-    ws_protocol_class = WSProtocol
+    ws_protocol_class = WebSocketProtocol
     loop = "uvloop"
 
     def __init__(self, *args, **kwargs):
@@ -103,7 +103,7 @@ class UvicornWorker(Worker):
                 connections=connections,
                 state=state,
                 logger=self.log,
-                ws_protocol_class=WSProtocol
+                ws_protocol_class=WebSocketProtocol
             )
             server = await loop.create_server(protocol, sock=sock, ssl=ssl_ctx)
             self.servers.append((server, state))
