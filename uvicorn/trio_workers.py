@@ -1,5 +1,3 @@
-import trio
-import asyncio
 import functools
 import os
 import signal
@@ -9,6 +7,7 @@ import sys
 from gunicorn.workers.base import Worker
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
+from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 import trio
 import trio_protocol
@@ -22,7 +21,8 @@ class UvicornWorker(Worker):
     It runs using trio.
     """
 
-    protocol_class = H11Protocol
+    protocol_class = HttpToolsProtocol
+    ws_protocol_class = WSProtocol
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -75,8 +75,12 @@ class UvicornWorker(Worker):
         for sock in self.sockets:
             state = {"total_requests": 0}
             protocol = functools.partial(
-                self.protocol_class, app=app, state=state, logger=self.log,
-                loop=trio_protocol.Loop(nursery)
+                self.protocol_class,
+                app=app,
+                state=state,
+                logger=self.log,
+                loop=trio_protocol.Loop(nursery),
+                ws_protocol_class=self.ws_protocol_class
             )
             server = await trio_protocol.create_server(
                 nursery, protocol, sock=sock, ssl=ssl_ctx
