@@ -3,7 +3,7 @@
 Use the following options to configure Uvicorn, when running from the command line.
 
 If you're running using programmatically, using `uvicorn.run(...)`, then use
-equivalent keyword arguments, eg. `uvicorn.run(App, port=5000, debug=True, timeout_keep_alive=10)`.
+equivalent keyword arguments, eg. `uvicorn.run(App, port=5000, debug=True, access_log=False)`.
 
 ## Application
 
@@ -23,6 +23,7 @@ equivalent keyword arguments, eg. `uvicorn.run(App, port=5000, debug=True, timeo
 ## Logging
 
 * `--log-level` - Set the log level. **Options:** *'critical', 'error', 'warning', 'info', 'debug'.* **Default:** *'info'*.
+* `--no-access-log` - Disable access log only, without changing log level.
 
 ## Implementation
 

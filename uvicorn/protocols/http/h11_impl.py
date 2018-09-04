@@ -109,6 +109,7 @@ class H11Protocol(asyncio.Protocol):
         tasks=None,
         state=None,
         logger=None,
+        access_log=True,
         ws_protocol_class=None,
         proxy_headers=False,
         root_path="",
@@ -122,6 +123,7 @@ class H11Protocol(asyncio.Protocol):
         self.tasks = set() if tasks is None else tasks
         self.state = {"total_requests": 0} if state is None else state
         self.logger = logger or logging.getLogger()
+        self.access_log = access_log and (self.logger.level <= logging.INFO)
         self.conn = h11.Connection(h11.SERVER)
         self.ws_protocol_class = ws_protocol_class
         self.proxy_headers = proxy_headers
@@ -261,6 +263,7 @@ class H11Protocol(asyncio.Protocol):
                     transport=self.transport,
                     flow=self.flow,
                     logger=self.logger,
+                    access_log=self.access_log,
                     message_event=self.message_event,
                     on_response=self.on_response_complete,
                 )
@@ -394,13 +397,22 @@ class H11Protocol(asyncio.Protocol):
 
 class RequestResponseCycle:
     def __init__(
-        self, scope, conn, transport, flow, logger, message_event, on_response
+        self,
+        scope,
+        conn,
+        transport,
+        flow,
+        logger,
+        access_log,
+        message_event,
+        on_response
     ):
         self.scope = scope
         self.conn = conn
         self.transport = transport
         self.flow = flow
         self.logger = logger
+        self.access_log = access_log
         self.message_event = message_event
         self.on_response = on_response
 
@@ -485,7 +497,7 @@ class RequestResponseCycle:
             status_code = message["status"]
             headers = DEFAULT_HEADERS + message.get("headers", [])
 
-            if self.logger.level <= logging.INFO:
+            if self.access_log:
                 self.logger.info(
                     '%s - "%s %s HTTP/%s" %d',
                     self.scope["server"][0],

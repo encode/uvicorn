@@ -110,6 +110,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         tasks=None,
         state=None,
         logger=None,
+        access_log=True,
         ws_protocol_class=None,
         proxy_headers=False,
         root_path="",
@@ -123,6 +124,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.tasks = set() if tasks is None else tasks
         self.state = {"total_requests": 0} if state is None else state
         self.logger = logger or logging.getLogger()
+        self.access_log = access_log and (self.logger.level <= logging.INFO)
         self.parser = httptools.HttpRequestParser(self)
         self.ws_protocol_class = ws_protocol_class
         self.proxy_headers = proxy_headers
@@ -287,6 +289,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             transport=self.transport,
             flow=self.flow,
             logger=self.logger,
+            access_log=self.access_log,
             message_event=self.message_event,
             expect_100_continue=self.expect_100_continue,
             on_response=self.on_response_complete,
@@ -390,6 +393,7 @@ class RequestResponseCycle:
         transport,
         flow,
         logger,
+        access_log,
         message_event,
         expect_100_continue,
         on_response,
@@ -398,6 +402,7 @@ class RequestResponseCycle:
         self.transport = transport
         self.flow = flow
         self.logger = logger
+        self.access_log = access_log
         self.message_event = message_event
         self.on_response = on_response
 
@@ -482,7 +487,7 @@ class RequestResponseCycle:
             status_code = message["status"]
             headers = message.get("headers", [])
 
-            if self.logger.level <= logging.INFO:
+            if self.access_log:
                 self.logger.info(
                     '%s - "%s %s HTTP/%s" %d',
                     self.scope["server"][0],
