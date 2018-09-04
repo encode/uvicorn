@@ -89,6 +89,7 @@ Options:
   --debug                         Enable debug mode.
   --log-level [critical|error|warning|info|debug]
                                   Log level.  [default: info]
+  --no-access-log                 Disable access log.
   --proxy-headers                 Use X-Forwarded-Proto, X-Forwarded-For,
                                   X-Forwarded-Port to populate remote address
                                   info.

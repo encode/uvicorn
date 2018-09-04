@@ -104,6 +104,7 @@ def get_logger(log_level):
     help="Log level.",
     show_default=True,
 )
+@click.option("--no-access-log", is_flag=True, default=False, help="Disable access log.")
 @click.option(
     "--proxy-headers",
     is_flag=True,
@@ -154,6 +155,7 @@ def main(
     wsgi: bool,
     debug: bool,
     log_level: str,
+    no_access_log: bool,
     proxy_headers: bool,
     root_path: str,
     limit_concurrency: int,
@@ -173,6 +175,7 @@ def main(
         "http": http,
         "ws": ws,
         "log_level": log_level,
+        "access_log": not no_access_log,
         "wsgi": wsgi,
         "debug": debug,
         "proxy_headers": proxy_headers,
@@ -201,6 +204,7 @@ def run(
     http="auto",
     ws="auto",
     log_level="info",
+    access_log=True,
     wsgi=False,
     debug=False,
     proxy_headers=False,
@@ -248,6 +252,7 @@ def run(
             app=app,
             loop=loop,
             logger=logger,
+            access_log=access_log,
             connections=connections,
             tasks=tasks,
             state=state,
