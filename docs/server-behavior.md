@@ -63,7 +63,6 @@ One exception to this might be if your application serves large file downloads, 
 Uvicorn provides the following timeouts:
 
 * Keep-Alive. Defaults to 5 seconds. Between requests, connections must receive new data within this period or be disconnected.
-* Response time. Defaults to 60 seconds. ASGI applications must run their task to completion within this timeout or have the task forcibly cancelled.
 
 ---
 
