@@ -122,7 +122,7 @@ class H11Protocol(asyncio.Protocol):
         self.connections = set() if connections is None else connections
         self.tasks = set() if tasks is None else tasks
         self.state = {"total_requests": 0} if state is None else state
-        self.logger = logger or logging.getLogger()
+        self.logger = logger or logging.getLogger("uvicorn")
         self.access_log = access_log and (self.logger.level <= logging.INFO)
         self.conn = h11.Connection(h11.SERVER)
         self.ws_protocol_class = ws_protocol_class

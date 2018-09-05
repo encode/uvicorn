@@ -15,7 +15,7 @@ class WSProtocol(asyncio.Protocol):
         self.connections = set() if connections is None else connections
         self.tasks = set() if tasks is None else tasks
         self.loop = loop or asyncio.get_event_loop()
-        self.logger = logger or logging.getLogger()
+        self.logger = logger or logging.getLogger("uvicorn")
 
         # Connection state
         self.transport = None
