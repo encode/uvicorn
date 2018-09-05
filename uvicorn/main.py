@@ -225,12 +225,13 @@ def run(
         sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
 
     logger = get_logger(log_level)
-    loop_setup = import_from_string(LOOP_SETUPS[loop])
     http_protocol_class = import_from_string(HTTP_PROTOCOLS[http])
     ws_protocol_class = import_from_string(WS_PROTOCOLS[ws])
 
-    loop = loop_setup()
-
+    if isinstance(loop, str):
+        loop_setup = import_from_string(LOOP_SETUPS[loop])
+        loop = loop_setup()
+    
     try:
         app = import_from_string(app)
     except ImportFromStringError as exc:
