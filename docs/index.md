@@ -224,7 +224,7 @@ class EchoMethodAndPath():
     async def __call__(self, recieve, send):
         body = 'Received %s request to %s' % (self.scope['method'], self.scope['path'])
         await send({
-            'http.response.start',
+            'type': 'http.response.start',
             'status': 200,
             'headers': [
                 [b'content-type', b'text/plain'],
@@ -264,7 +264,7 @@ class EchoBody():
     async def __call__(self, receive, send):
         body = await self.read_body(receive)
         await send({
-            'http.response.start',
+            'type': 'http.response.start',
             'status': 200,
             'headers': [
                 [b'content-type', b'text/plain'],
@@ -289,7 +289,7 @@ class StreamResponse():
     async def __call__(self, receive, send):
         body = await self.read_body(receive)
         await send({
-            'http.response.start',
+            'type': 'http.response.start',
             'status': 200,
             'headers': [
                 [b'content-type', b'text/plain'],
