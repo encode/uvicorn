@@ -116,7 +116,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         root_path="",
         limit_concurrency=None,
         timeout_keep_alive=5,
-        timeout_response=60,
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
@@ -134,7 +133,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Timeouts
         self.timeout_keep_alive_task = None
         self.timeout_keep_alive = timeout_keep_alive
-        self.timeout_response = timeout_response
 
         # Per-connection state
         self.transport = None
@@ -297,11 +295,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         if existing_cycle is None or existing_cycle.response_complete:
             # Standard case - start processing the request.
             task = self.loop.create_task(self.cycle.run_asgi(app))
-            task.add_done_callback(self.on_task_complete)
+            task.add_done_callback(self.tasks.discard)
             self.tasks.add(task)
-            self.loop.call_later(
-                self.timeout_response, self.timeout_response_handler, task
-            )
         else:
             # Pipelined HTTP requests need to be queued up.
             self.flow.pause_reading()
@@ -340,14 +335,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.pipeline:
             cycle, app = self.pipeline.pop()
             task = self.loop.create_task(cycle.run_asgi(app))
-            task.add_done_callback(self.on_task_complete)
+            task.add_done_callback(self.tasks.discard)
             self.tasks.add(task)
-            self.loop.call_later(
-                self.timeout_response, self.timeout_response_handler, task
-            )
-
-    def on_task_complete(self, task):
-        self.tasks.discard(task)
 
     def shutdown(self):
         """
@@ -376,14 +365,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         """
         if not self.transport.is_closing():
             self.transport.close()
-
-    def timeout_response_handler(self, task):
-        """
-        Called once per task, when the reponse timeout is reached.
-        """
-        if not task.done():
-            self.logger.error("Task exceeded response timeout.")
-            task.cancel()
 
 
 class RequestResponseCycle:
@@ -449,6 +430,8 @@ class RequestResponseCycle:
                 self.logger.error(msg)
                 if not self.disconnected:
                     self.transport.close()
+        finally:
+            self.on_response = None
 
     async def send_500_response(self):
         await self.send(
