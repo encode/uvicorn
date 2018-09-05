@@ -103,8 +103,6 @@ Options:
   --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
                                   is received within this timeout.  [default:
                                   5]
-  --timeout-response INTEGER      Cancel request/response tasks that do not
-                                  complete within this timeout.  [default: 60]
   --help                          Show this message and exit.
 ```
 

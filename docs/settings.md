@@ -48,4 +48,3 @@ equivalent keyword arguments, eg. `uvicorn.run(App, port=5000, debug=True, acces
 ## Timeouts
 
 * `--timeout-keep-alive` - Close Keep-Alive connections if no new data is received within this timeout. **Default:** *5*.
-* `--timeout-response` - Cancel request/response tasks that do not complete within this timeout. **Default:** *60*.
