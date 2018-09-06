@@ -67,15 +67,17 @@ class WSGIResponder:
 
     async def __call__(self, receive, send):
         message = await receive()
-        body = message.get('body', b'')
-        more_body = message.get('more_body', False)
+        body = message.get("body", b"")
+        more_body = message.get("more_body", False)
         while more_body:
             body_message = await receive()
-            body += body_message.get('body', b'')
-            more_body = body_message.get('more_body', False)
+            body += body_message.get("body", b"")
+            more_body = body_message.get("more_body", False)
         environ = build_environ(self.scope, message, body)
         self.loop = asyncio.get_event_loop()
-        wsgi = self.loop.run_in_executor(self.executor, self.wsgi, environ, self.start_response)
+        wsgi = self.loop.run_in_executor(
+            self.executor, self.wsgi, environ, self.start_response
+        )
         sender = self.loop.create_task(self.sender(send))
         await asyncio.wait_for(wsgi, None)
         self.send_queue.append(None)
@@ -102,24 +104,17 @@ class WSGIResponder:
             (name.encode("ascii"), value.encode("ascii"))
             for name, value in response_headers
         ]
-        self.send_queue.append({
-            "type": "http.response.start",
-            "status": status_code,
-            "headers": headers,
-        })
+        self.send_queue.append(
+            {"type": "http.response.start", "status": status_code, "headers": headers}
+        )
         self.loop.call_soon_threadsafe(self.send_event.set)
 
     def wsgi(self, environ, start_response):
         for chunk in self.app(environ, start_response):
-            self.send_queue.append({
-                "type": "http.response.body",
-                "body": chunk,
-                "more_body": True
-            })
+            self.send_queue.append(
+                {"type": "http.response.body", "body": chunk, "more_body": True}
+            )
             self.loop.call_soon_threadsafe(self.send_event.set)
 
-        self.send_queue.append({
-            "type": "http.response.body",
-            "body": b""
-        })
+        self.send_queue.append({"type": "http.response.body", "body": b""})
         self.loop.call_soon_threadsafe(self.send_event.set)

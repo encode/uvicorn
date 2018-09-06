@@ -1,5 +1,5 @@
 from tests.client import TestClient
-from uvicorn.debug import DebugMiddleware
+from uvicorn.middleware.debug import DebugMiddleware
 import pytest
 
 

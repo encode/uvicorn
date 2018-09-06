@@ -1,7 +1,7 @@
-from uvicorn.debug import DebugMiddleware
 from uvicorn.importer import import_from_string, ImportFromStringError
+from uvicorn.middleware.debug import DebugMiddleware
+from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.reloaders.statreload import StatReload
-from uvicorn.wsgi import WSGIMiddleware
 import asyncio
 import click
 import signal
@@ -95,7 +95,12 @@ def get_logger(log_level):
     help="WebSocket protocol implementation.",
     show_default=True,
 )
-@click.option("--wsgi", is_flag=True, default=False, help="Use WSGI as the application interface, instead of ASGI.")
+@click.option(
+    "--wsgi",
+    is_flag=True,
+    default=False,
+    help="Use WSGI as the application interface, instead of ASGI.",
+)
 @click.option("--debug", is_flag=True, default=False, help="Enable debug mode.")
 @click.option(
     "--log-level",
@@ -104,7 +109,9 @@ def get_logger(log_level):
     help="Log level.",
     show_default=True,
 )
-@click.option("--no-access-log", is_flag=True, default=False, help="Disable access log.")
+@click.option(
+    "--no-access-log", is_flag=True, default=False, help="Disable access log."
+)
 @click.option(
     "--proxy-headers",
     is_flag=True,
@@ -221,7 +228,7 @@ def run(
     if isinstance(loop, str):
         loop_setup = import_from_string(LOOP_SETUPS[loop])
         loop = loop_setup()
-    
+
     try:
         app = import_from_string(app)
     except ImportFromStringError as exc:

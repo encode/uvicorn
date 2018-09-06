@@ -1,7 +1,7 @@
 import pytest
 import sys
 from tests.client import TestClient
-from uvicorn.wsgi import WSGIMiddleware
+from uvicorn.middleware.wsgi import WSGIMiddleware
 
 
 def hello_world(environ, start_response):
