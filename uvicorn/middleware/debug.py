@@ -93,6 +93,7 @@ class _DebugResponder:
                 content = traceback.format_exc()
                 response = PlainTextResponse(content, status_code=500)
             await response(receive, send)
+            raise
 
     async def send(self, message):
         if message["type"] == "http.response.start":
