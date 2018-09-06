@@ -1,5 +1,6 @@
 from uvicorn.importer import import_from_string, ImportFromStringError
 from uvicorn.middleware.debug import DebugMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.reloaders.statreload import StatReload
 import asyncio
@@ -240,6 +241,8 @@ def run(
         ws_protocol_class = None
     if debug:
         app = DebugMiddleware(app)
+    if proxy_headers:
+        app = ProxyHeadersMiddleware(app)
 
     connections = set()
     tasks = set()
@@ -255,7 +258,6 @@ def run(
             tasks=tasks,
             state=state,
             ws_protocol_class=ws_protocol_class,
-            proxy_headers=proxy_headers,
             root_path=root_path,
             limit_concurrency=limit_concurrency,
             timeout_keep_alive=timeout_keep_alive,

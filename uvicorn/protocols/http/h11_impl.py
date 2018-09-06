@@ -111,7 +111,6 @@ class H11Protocol(asyncio.Protocol):
         logger=None,
         access_log=True,
         ws_protocol_class=None,
-        proxy_headers=False,
         root_path="",
         limit_concurrency=None,
         timeout_keep_alive=5,
@@ -125,7 +124,6 @@ class H11Protocol(asyncio.Protocol):
         self.access_log = access_log and (self.logger.level <= logging.INFO)
         self.conn = h11.Connection(h11.SERVER)
         self.ws_protocol_class = ws_protocol_class
-        self.proxy_headers = proxy_headers
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
 
@@ -230,11 +228,6 @@ class H11Protocol(asyncio.Protocol):
                     "query_string": query_string,
                     "headers": self.headers,
                 }
-
-                if self.proxy_headers:
-                    scheme, client = _get_remote_from_proxy(self.scope)
-                    self.scope["scheme"] = scheme
-                    self.scope["client"] = client
 
                 should_upgrade = False
                 for name, value in self.headers:
