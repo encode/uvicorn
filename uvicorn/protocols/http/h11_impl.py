@@ -22,25 +22,6 @@ def _get_status_phrase(status_code):
         return b""
 
 
-def _get_remote_from_proxy(scope):
-    headers = dict(scope["headers"])
-    scheme = scope["scheme"]
-    client = scope["client"]
-
-    if b"x-forwarded-proto" in headers:
-        scheme = headers[b"x-forwarded-proto"].decode("ascii").strip()
-
-    if b"x-forwarded-for" in headers:
-        host = headers[b"x-forwarded-for"].decode("ascii").split(",")[-1].strip()
-        try:
-            port = int(headers[b"x-forwarded-port"].decode("ascii"))
-        except (KeyError, ValueError):
-            port = 0
-        client = (host, port)
-
-    return (scheme, client)
-
-
 STATUS_PHRASES = {
     status_code: _get_status_phrase(status_code) for status_code in range(100, 600)
 }
