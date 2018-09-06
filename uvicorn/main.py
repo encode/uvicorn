@@ -1,7 +1,8 @@
-from uvicorn.debug import DebugMiddleware
 from uvicorn.importer import import_from_string, ImportFromStringError
+from uvicorn.middleware.debug import DebugMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.reloaders.statreload import StatReload
-from uvicorn.wsgi import WSGIMiddleware
 import asyncio
 import click
 import signal
@@ -95,7 +96,12 @@ def get_logger(log_level):
     help="WebSocket protocol implementation.",
     show_default=True,
 )
-@click.option("--wsgi", is_flag=True, default=False, help="Use WSGI as the application interface, instead of ASGI.")
+@click.option(
+    "--wsgi",
+    is_flag=True,
+    default=False,
+    help="Use WSGI as the application interface, instead of ASGI.",
+)
 @click.option("--debug", is_flag=True, default=False, help="Enable debug mode.")
 @click.option(
     "--log-level",
@@ -104,7 +110,9 @@ def get_logger(log_level):
     help="Log level.",
     show_default=True,
 )
-@click.option("--no-access-log", is_flag=True, default=False, help="Disable access log.")
+@click.option(
+    "--no-access-log", is_flag=True, default=False, help="Disable access log."
+)
 @click.option(
     "--proxy-headers",
     is_flag=True,
@@ -221,7 +229,7 @@ def run(
     if isinstance(loop, str):
         loop_setup = import_from_string(LOOP_SETUPS[loop])
         loop = loop_setup()
-    
+
     try:
         app = import_from_string(app)
     except ImportFromStringError as exc:
@@ -233,6 +241,8 @@ def run(
         ws_protocol_class = None
     if debug:
         app = DebugMiddleware(app)
+    if proxy_headers:
+        app = ProxyHeadersMiddleware(app)
 
     connections = set()
     tasks = set()
@@ -248,7 +258,6 @@ def run(
             tasks=tasks,
             state=state,
             ws_protocol_class=ws_protocol_class,
-            proxy_headers=proxy_headers,
             root_path=root_path,
             limit_concurrency=limit_concurrency,
             timeout_keep_alive=timeout_keep_alive,

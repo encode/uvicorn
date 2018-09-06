@@ -23,25 +23,6 @@ def _get_status_line(status_code):
     return b"".join([b"HTTP/1.1 ", str(status_code).encode(), b" ", phrase, b"\r\n"])
 
 
-def _get_remote_from_proxy(scope):
-    headers = dict(scope["headers"])
-    scheme = scope["scheme"]
-    client = scope["client"]
-
-    if b"x-forwarded-proto" in headers:
-        scheme = headers[b"x-forwarded-proto"].decode("ascii").strip()
-
-    if b"x-forwarded-for" in headers:
-        host = headers[b"x-forwarded-for"].decode("ascii").split(",")[-1].strip()
-        try:
-            port = int(headers[b"x-forwarded-port"].decode("ascii"))
-        except (KeyError, ValueError):
-            port = 0
-        client = (host, port)
-
-    return (scheme, client)
-
-
 STATUS_LINE = {
     status_code: _get_status_line(status_code) for status_code in range(100, 600)
 }
@@ -112,7 +93,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         logger=None,
         access_log=True,
         ws_protocol_class=None,
-        proxy_headers=False,
         root_path="",
         limit_concurrency=None,
         timeout_keep_alive=5,
@@ -126,7 +106,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.access_log = access_log and (self.logger.level <= logging.INFO)
         self.parser = httptools.HttpRequestParser(self)
         self.ws_protocol_class = ws_protocol_class
-        self.proxy_headers = proxy_headers
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
 
@@ -263,10 +242,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         http_version = self.parser.get_http_version()
         if http_version != "1.1":
             self.scope["http_version"] = http_version
-        if self.proxy_headers:
-            scheme, client = _get_remote_from_proxy(self.scope)
-            self.scope["scheme"] = scheme
-            self.scope["client"] = client
         if self.parser.should_upgrade():
             return
 
