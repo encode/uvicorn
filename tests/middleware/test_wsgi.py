@@ -76,3 +76,9 @@ def test_wsgi_exc_info():
     client = TestClient(app)
     with pytest.raises(RuntimeError):
         response = client.get('/')
+
+    app = WSGIMiddleware(return_exc_info)
+    client = TestClient(app, raise_server_exceptions=False)
+    response = client.get('/')
+    assert response.status_code == 500
+    assert response.text == 'Internal Server Error'
