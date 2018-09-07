@@ -64,6 +64,8 @@ class WSGIResponder:
         self.send_event = asyncio.Event()
         self.send_queue = []
         self.loop = None
+        self.response_started = False
+        self.exc_info = None
 
     async def __call__(self, receive, send):
         message = await receive()
@@ -83,6 +85,8 @@ class WSGIResponder:
         self.send_queue.append(None)
         self.send_event.set()
         await asyncio.wait_for(sender, None)
+        if self.exc_info is not None:
+            raise self.exc_info[0].with_traceback(self.exc_info[1], self.exc_info[2])
 
     async def sender(self, send):
         while True:
@@ -96,18 +100,19 @@ class WSGIResponder:
                 self.send_event.clear()
 
     def start_response(self, status, response_headers, exc_info=None):
-        if exc_info is not None:
-            raise exc_info[0].with_traceback(exc_info[1], exc_info[2])
-        status_code, _ = status.split(" ", 1)
-        status_code = int(status_code)
-        headers = [
-            (name.encode("ascii"), value.encode("ascii"))
-            for name, value in response_headers
-        ]
-        self.send_queue.append(
-            {"type": "http.response.start", "status": status_code, "headers": headers}
-        )
-        self.loop.call_soon_threadsafe(self.send_event.set)
+        self.exc_info = exc_info
+        if not self.response_started:
+            self.response_started = True
+            status_code, _ = status.split(" ", 1)
+            status_code = int(status_code)
+            headers = [
+                (name.encode("ascii"), value.encode("ascii"))
+                for name, value in response_headers
+            ]
+            self.send_queue.append(
+                {"type": "http.response.start", "status": status_code, "headers": headers}
+            )
+            self.loop.call_soon_threadsafe(self.send_event.set)
 
     def wsgi(self, environ, start_response):
         for chunk in self.app(environ, start_response):
