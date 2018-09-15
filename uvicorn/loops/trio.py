@@ -3,6 +3,7 @@ import functools
 import signal
 import trio
 import trio_protocol
+
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 HANDLED_SIGNALS = (
@@ -24,20 +25,20 @@ class TrioServer:
     def __init__(
         self,
         app,
-        host,
-        port,
-        uds,
-        sock,
-        logger,
-        loop,
-        connections,
-        tasks,
-        state,
-        limit_max_requests,
         create_protocol,
-        on_tick,
-        install_signal_handlers,
-        ready_event,
+        logger,
+        host=None,
+        port=None,
+        uds=None,
+        sock=None,
+        loop=None,
+        connections=None,
+        tasks=None,
+        state=None,
+        limit_max_requests=None,
+        on_tick=lambda: None,
+        install_signal_handlers=False,
+        ready_event=None,
     ):
         self.app = app
         self.host = host
@@ -45,9 +46,9 @@ class TrioServer:
         self.uds = uds
         self.sock = sock
         self.logger = logger
-        self.connections = connections
-        self.tasks = tasks
-        self.state = state
+        self.connections = connections or set()
+        self.tasks = tasks or set()
+        self.state = state if state else {"total_requests": 0}
         self.limit_max_requests = limit_max_requests
         self.create_protocol = create_protocol
         self.on_tick = on_tick
@@ -68,33 +69,30 @@ class TrioServer:
         with trio.catch_signals(signals) as batched_signal_aiter:
             async for batch in batched_signal_aiter:
                 for signum in batch:
-                    signals[signum](signum)   
+                    signals[signum](signum)
 
     def handle_exit(self, sig):
         self.should_exit = True
 
+    async def main(self):
+        self.logger.info("Started server process [{}]".format(self.pid))
+
+        async with trio.open_nursery() as nursery:
+            loop = trio_protocol.Loop(nursery)
+            nursery.start_soon(self.tick, loop)
+            nursery.start_soon(self.handle_signals)
+            await self.create_server(nursery, loop)
+            if self.ready_event is not None:
+                self.ready_event.set()
+
     def run(self):
-        async def main():
-            self.logger.info("Started server process [{}]".format(self.pid))
-
-            async with trio.open_nursery() as nursery:
-                loop = trio_protocol.Loop(nursery)
-                nursery.start_soon(self.tick, loop)
-                nursery.start_soon(self.handle_signals)
-                await self.create_server(nursery, loop)
-                if self.ready_event is not None:
-                    self.ready_event.set()
-
-        trio.run(main)
+        trio.run(self.main)
 
     async def create_server(self, nursery, loop):
         loop = trio_protocol.Loop(nursery)
         create_protocol = functools.partial(
-            self.create_protocol,
-            loop=loop,
-            iolib=TrioLib,
-            ws_protocol_class=WSProtocol
-        )
+            self.create_protocol, loop=loop, iolib=TrioLib,
+            ws_protocol_class=WSProtocol)
 
         if self.sock is not None:
             # Use an existing socket.
@@ -112,7 +110,7 @@ class TrioServer:
             self.server = await trio_protocol.create_server(
                 nursery, create_protocol, host=self.host, port=self.port
             )
-            
+
             message = "Uvicorn running on http://%s:%d (Press CTRL+C to quit)"
             self.logger.info(message % (self.host, self.port))
 
