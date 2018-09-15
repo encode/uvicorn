@@ -89,7 +89,7 @@ class TrioServer:
         if self.sock is not None:
             # Use an existing socket.
             self.server = await trio_protocol.create_server(
-                create_protocol, sock=self.sock
+                nursery, create_protocol, sock=self.sock
             )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
             self.logger.info(message % str(self.sock.getsockname()))
