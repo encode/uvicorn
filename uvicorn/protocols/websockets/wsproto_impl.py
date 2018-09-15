@@ -1,3 +1,4 @@
+import sys
 from urllib.parse import unquote
 import asyncio
 import h11
@@ -26,7 +27,11 @@ class WSProtocol(asyncio.Protocol):
 
         # WebSocket state
         self.connect_event = None
-        self.queue = iolib.Queue(1)
+        # This queue need not be large, because we `pause_reading()` from the
+        # transport until the ASGI consumes the messages. However, it is possible
+        # that more than one message have been read, so it needs to be an unknown
+        # number larger than 1.
+        self.queue = iolib.Queue(sys.maxsize)
         self.handshake_complete = False
         self.close_sent = False
 
