@@ -3,7 +3,7 @@ import functools
 import signal
 import trio
 import trio_protocol
-
+from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -13,6 +13,11 @@ HANDLED_SIGNALS = (
 
 def trio_setup():
     pass
+
+
+class TrioLib:
+    Event = trio.Event
+    Queue = trio.Queue
 
 
 class TrioServer:
@@ -84,7 +89,12 @@ class TrioServer:
 
     async def create_server(self, nursery, loop):
         loop = trio_protocol.Loop(nursery)
-        create_protocol = functools.partial(self.create_protocol, loop=loop)
+        create_protocol = functools.partial(
+            self.create_protocol,
+            loop=loop,
+            iolib=TrioLib,
+            ws_protocol_class=WSProtocol
+        )
 
         if self.sock is not None:
             # Use an existing socket.

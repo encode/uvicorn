@@ -4,6 +4,7 @@ import http
 import logging
 import traceback
 import websockets
+from uvicorn.loops.asyncio import AsyncioLib
 
 
 class Server:
@@ -17,7 +18,7 @@ class Server:
 
 
 class WebSocketProtocol(websockets.WebSocketServerProtocol):
-    def __init__(self, app, connections=None, tasks=None, loop=None, logger=None):
+    def __init__(self, app, connections=None, tasks=None, loop=None, logger=None, iolib=AsyncioLib):
         self.app = app
         self.root_path = ''
         self.connections = set() if connections is None else connections
@@ -33,9 +34,9 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         # Connection events
         self.scope = None
-        self.handshake_started_event = asyncio.Event()
-        self.handshake_completed_event = asyncio.Event()
-        self.closed_event = asyncio.Event()
+        self.handshake_started_event = iolib.Event()
+        self.handshake_completed_event = iolib.Event()
+        self.closed_event = iolib.Event()
         self.initial_response = None
         self.connect_sent = False
         self.accepted_subprotocol = None

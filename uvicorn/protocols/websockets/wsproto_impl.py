@@ -6,10 +6,11 @@ import traceback
 import wsproto.connection
 import wsproto.events
 import wsproto.extensions
+from uvicorn.loops.asyncio import AsyncioLib
 
 
 class WSProtocol(asyncio.Protocol):
-    def __init__(self, app, connections=None, tasks=None, loop=None, logger=None):
+    def __init__(self, app, connections=None, tasks=None, loop=None, logger=None, iolib=AsyncioLib):
         self.app = app
         self.root_path = ''
         self.connections = set() if connections is None else connections
@@ -25,7 +26,7 @@ class WSProtocol(asyncio.Protocol):
 
         # WebSocket state
         self.connect_event = None
-        self.queue = asyncio.Queue()
+        self.queue = iolib.Queue(1)
         self.handshake_complete = False
         self.close_sent = False
 
@@ -35,7 +36,7 @@ class WSProtocol(asyncio.Protocol):
         )
 
         self.read_paused = False
-        self.writable = asyncio.Event()
+        self.writable = iolib.Event()
         self.writable.set()
 
         # Buffers

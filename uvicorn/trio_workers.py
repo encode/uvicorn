@@ -5,6 +5,7 @@ import ssl
 import sys
 
 from gunicorn.workers.base import Worker
+from uvicorn.loops.trio import TrioLib
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
@@ -80,7 +81,8 @@ class UvicornWorker(Worker):
                 state=state,
                 logger=self.log,
                 loop=trio_protocol.Loop(nursery),
-                ws_protocol_class=self.ws_protocol_class
+                ws_protocol_class=self.ws_protocol_class,
+                iolib=TrioLib
             )
             server = await trio_protocol.create_server(
                 nursery, protocol, sock=sock, ssl=ssl_ctx

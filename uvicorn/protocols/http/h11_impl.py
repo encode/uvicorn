@@ -5,8 +5,9 @@ import logging
 import time
 import traceback
 from urllib.parse import unquote
-
 import h11
+from uvicorn.loops.asyncio import AsyncioLib
+
 
 
 def _get_default_headers():
@@ -32,11 +33,11 @@ HIGH_WATER_LIMIT = 65536
 
 
 class FlowControl:
-    def __init__(self, transport):
+    def __init__(self, transport, *, iolib):
         self._transport = transport
         self.read_paused = False
         self.write_paused = False
-        self._is_writable_event = asyncio.Event()
+        self._is_writable_event = iolib.Event()
         self._is_writable_event.set()
 
     async def drain(self):
@@ -95,6 +96,7 @@ class H11Protocol(asyncio.Protocol):
         root_path="",
         limit_concurrency=None,
         timeout_keep_alive=5,
+        iolib=AsyncioLib
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
@@ -107,6 +109,7 @@ class H11Protocol(asyncio.Protocol):
         self.ws_protocol_class = ws_protocol_class
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
+        self.iolib = iolib
 
         # Timeouts
         self.timeout_keep_alive_task = None
@@ -123,7 +126,7 @@ class H11Protocol(asyncio.Protocol):
         self.scope = None
         self.headers = None
         self.cycle = None
-        self.message_event = asyncio.Event()
+        self.message_event = iolib.Event()
 
     @classmethod
     def tick(cls):
@@ -135,7 +138,7 @@ class H11Protocol(asyncio.Protocol):
         self.connections.add(self)
 
         self.transport = transport
-        self.flow = FlowControl(transport)
+        self.flow = FlowControl(transport, iolib=self.iolib)
         self.server = transport.get_extra_info("sockname")
         self.client = transport.get_extra_info("peername")
         self.scheme = "https" if transport.get_extra_info("sslcontext") else "http"
@@ -295,7 +298,8 @@ class H11Protocol(asyncio.Protocol):
             connections=self.connections,
             tasks=self.tasks,
             loop=self.loop,
-            logger=self.logger
+            logger=self.logger,
+            iolib=self.iolib
         )
         protocol.connection_made(self.transport)
         protocol.data_received(b''.join(output))

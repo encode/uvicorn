@@ -231,13 +231,13 @@ def run(
     http_protocol_class = import_from_string(HTTP_PROTOCOLS[http])
     ws_protocol_class = import_from_string(WS_PROTOCOLS[ws])
     server_class = Server
+
     if isinstance(loop, str):
-        loop_setup = import_from_string(LOOP_SETUPS[loop])
-        default_loop = loop_setup()
         if loop in LOOP_SERVERS:
             server_class = import_from_string(LOOP_SERVERS[loop])
-    else:
-        default_loop = loop
+
+        loop_setup = import_from_string(LOOP_SETUPS[loop])
+        loop = loop_setup()
 
     try:
         app = import_from_string(app)
@@ -257,10 +257,10 @@ def run(
     tasks = set()
     state = {"total_requests": 0}
 
-    def create_protocol(loop=None):
-        return http_protocol_class(
+    def create_protocol(**kwargs):
+        protocol_args = dict(
             app=app,
-            loop=loop or default_loop,
+            loop=loop or loop,
             logger=logger,
             access_log=access_log,
             connections=connections,
@@ -271,6 +271,8 @@ def run(
             limit_concurrency=limit_concurrency,
             timeout_keep_alive=timeout_keep_alive,
         )
+        protocol_args.update(kwargs)
+        return http_protocol_class(**protocol_args)
 
     server = server_class(
         app=app,
