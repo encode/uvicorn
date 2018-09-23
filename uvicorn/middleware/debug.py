@@ -85,7 +85,7 @@ class _DebugResponder:
             if "text/html" in accept:
                 exc_html = html.escape(traceback.format_exc())
                 content = (
-                    "<html><body><h1>500 Server Error</h1><pre>%s</pre></body></html>"
+                    "<html><head><link rel='icon' href='data:,'></head><body><h1>500 Server Error</h1><pre>%s</pre></body></html>"
                     % exc_html
                 )
                 response = HTMLResponse(content, status_code=500)
