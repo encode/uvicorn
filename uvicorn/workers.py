@@ -103,7 +103,8 @@ class UvicornWorker(Worker):
                 connections=connections,
                 state=state,
                 logger=self.log,
-                ws_protocol_class=WebSocketProtocol
+                ws_protocol_class=WebSocketProtocol,
+                timeout_keep_alive=self.cfg.keepalive
             )
             server = await loop.create_server(protocol, sock=sock, ssl=ssl_ctx)
             self.servers.append((server, state))
