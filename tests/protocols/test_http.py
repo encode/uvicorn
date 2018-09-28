@@ -57,6 +57,12 @@ UPGRADE_REQUEST = b"\r\n".join([
     b""
 ])
 
+INVALID_REQUEST = b"\r\n".join([
+    b"GET /?x=y z HTTP/1.1",  # bad space character
+    b"Host: example.org",
+    b"",
+    b""
+])
 
 class MockTransport:
     def __init__(self, sockname=None, peername=None, sslcontext=False):
@@ -651,3 +657,14 @@ def test_supported_upgrade_request(protocol_cls):
     protocol.data_received(UPGRADE_REQUEST)
     assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
     assert b"Missing Sec-WebSocket-Version header" in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_invalid_http_request(protocol_cls):
+    def app(scope):
+        return Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(INVALID_REQUEST)
+    assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
+    assert b"Invalid HTTP request received." in protocol.transport.buffer
