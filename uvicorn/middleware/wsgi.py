@@ -28,6 +28,10 @@ def build_environ(scope, message, body):
     environ["SERVER_NAME"] = server[0]
     environ["SERVER_PORT"] = server[1]
 
+    # Get client IP address
+    client = scope.get("client")
+    environ["REMOTE_ADDR"] = client[0]
+
     # Go through headers and make them into environ entries
     for name, value in scope.get("headers", []):
         name = name.decode("latin1")
