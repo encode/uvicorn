@@ -742,5 +742,5 @@ def test_invalid_http_request(request_line, protocol_cls, caplog, event_loop):
 
     with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
         protocol.data_received(request)
-        assert not protocol.transport.buffer
-        assert "Invalid HTTP request received." in caplog.messages
+        assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
+        assert b"Invalid HTTP request received." in protocol.transport.buffer
