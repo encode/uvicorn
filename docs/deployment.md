@@ -163,7 +163,7 @@ The recommended configuration for proxying from Nginx is to use a UNIX domain so
 
 When fronting the application with a proxy server you want to make sure that the proxy sets headers to ensure that application can properly determine the client address of the incoming connection, and if the connection was over `http` or `https`.
 
-You should ensure that the `X-Forwarded-For`, `X-Forwarded-Port`, and  `X-Forwarded-Proto` headers are set by the proxy, and that Uvicorn is run using the `--proxy-headers` setting. This ensure that the ASGI scope includes correct `client` and `scheme` information.
+You should ensure that the `X-Forwarded-For` and `X-Forwarded-Proto` headers are set by the proxy, and that Uvicorn is run using the `--proxy-headers` setting. This ensure that the ASGI scope includes correct `client` and `scheme` information.
 
 Here's how a simple Nginx configuration might look. This example includes setting proxy headers, and using a UNIX domain socket to communicate with the application server.
 
@@ -178,7 +178,6 @@ http {
     location / {
       proxy_set_header Host $http_host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Port 80;
       proxy_set_header X-Forwarded-Proto $scheme;
       proxy_redirect off;
       proxy_buffering off;

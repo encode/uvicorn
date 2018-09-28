@@ -38,7 +38,7 @@ equivalent keyword arguments, eg. `uvicorn.run(App, port=5000, debug=True, acces
 ## HTTP
 
 * `--root-path` - Set the ASGI `root_path` for applications submounted below a given URL path.
-* `--proxy-headers` - Use X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to populate remote scheme/address info.
+* `--proxy-headers` - Use the X-Forwarded-Proto and X-Forwarded-For headers to populate remote scheme/address info.
 
 ## Resource Limits
 
