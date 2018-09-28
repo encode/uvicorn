@@ -44,9 +44,9 @@ Together with the read flow control, this behavior ensures that responses that r
 
 The `Expect: 100-Continue` header may be sent by clients to require a confirmation from the server before uploading the request body. This can be used to ensure that large request bodies are only sent once the client has confirmation that the server is willing to accept the request.
 
-Uvicorn ensures that any required `100 Continue` confirmations are only sent if the ASGI application calls `recieve` to read the request body.
+Uvicorn ensures that any required `100 Continue` confirmations are only sent if the ASGI application calls `receive` to read the request body.
 
-Note that that proxy configurations may not neccssarily forward on `Expect: 100-Continue` headers. In particular Nginx defaults to buffering request bodies, and automatically sends `100 Continues` rather than passing the header on to the upstream server.
+Note that that proxy configurations may not necessarily forward on `Expect: 100-Continue` headers. In particular Nginx defaults to buffering request bodies, and automatically sends `100 Continues` rather than passing the header on to the upstream server.
 
 ### HEAD requests
 
