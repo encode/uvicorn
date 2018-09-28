@@ -29,8 +29,8 @@ def build_environ(scope, message, body):
     environ["SERVER_PORT"] = server[1]
 
     # Get client IP address
-    client = scope.get("client")
-    environ["REMOTE_ADDR"] = client[0]
+    if "client" in scope:
+        environ["REMOTE_ADDR"] = scope["client"][0]
 
     # Go through headers and make them into environ entries
     for name, value in scope.get("headers", []):
