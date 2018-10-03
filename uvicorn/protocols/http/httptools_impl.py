@@ -428,6 +428,9 @@ class RequestResponseCycle:
         message_type = message["type"]
 
         if self.disconnected:
+            if self.response_started:
+                # Client disconnected before we could send the complete response
+                self.response_complete = True
             return
 
         if self.flow.write_paused:
