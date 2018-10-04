@@ -52,7 +52,7 @@ class MessageLoggerResponder:
             await inner(self.receive, self.send)
         except:
             log_text = '%s - ASGI [%d] Raised exception'
-            self.logger.debug(texlog_text, self.client_addr, self.task_counter)
+            self.logger.debug(log_text, self.client_addr, self.task_counter)
             raise
         else:
             log_text = '%s - ASGI [%d] Completed'
