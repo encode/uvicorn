@@ -15,7 +15,7 @@ def message_with_placeholders(message):
     """
     new_message = message.copy()
     for attr in PLACEHOLDER_FORMAT.keys():
-        if attr in message:
+        if message.get(attr) is not None:
             content = message[attr]
             placeholder = PLACEHOLDER_FORMAT[attr].format(length=len(content))
             new_message[attr] = placeholder
