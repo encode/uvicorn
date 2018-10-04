@@ -1,6 +1,7 @@
 from uvicorn.importer import import_from_string, ImportFromStringError
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.reloaders.statreload import StatReload
 import asyncio
@@ -241,6 +242,8 @@ def run(
         ws_protocol_class = None
     if debug:
         app = DebugMiddleware(app)
+    if logger.level <= logging.DEBUG:
+        app = MessageLoggerMiddleware(app)
     if proxy_headers:
         app = ProxyHeadersMiddleware(app)
 
