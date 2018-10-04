@@ -405,16 +405,14 @@ class RequestResponseCycle:
                 msg = "ASGI callable should return None, but returned '%s'."
                 self.logger.error(msg, result)
                 self.transport.close()
-            elif not self.response_started:
+            elif not self.response_started and not self.disconnected:
                 msg = "ASGI callable returned without starting response."
                 self.logger.error(msg)
-                if not self.disconnected:
-                    await self.send_500_response()
-            elif not self.response_complete:
+                await self.send_500_response()
+            elif not self.response_complete and not self.disconnected:
                 msg = "ASGI callable returned without completing response."
                 self.logger.error(msg)
-                if not self.disconnected:
-                    self.transport.close()
+                self.transport.close()
         finally:
             self.on_response = None
 
