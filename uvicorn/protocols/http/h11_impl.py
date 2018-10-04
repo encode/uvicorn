@@ -118,6 +118,7 @@ class H11Protocol(asyncio.Protocol):
         self.server = None
         self.client = None
         self.scheme = None
+        self.connection_id = None
 
         # Per-request state
         self.scope = None
@@ -130,6 +131,20 @@ class H11Protocol(asyncio.Protocol):
         global DEFAULT_HEADERS
         DEFAULT_HEADERS = _get_default_headers()
 
+    def get_connection_id(self):
+        if self.client:
+            if isinstance(self.client, str):
+                connection_id = self.client
+            else:
+                connection_id = self.client[0]
+        else:
+            if isinstance(self.server, str):
+                connection_id = self.server
+            else:
+                connection_id = self.server[0]
+
+        return connection_id
+
     # Protocol interface
     def connection_made(self, transport):
         self.connections.add(self)
@@ -139,15 +154,16 @@ class H11Protocol(asyncio.Protocol):
         self.server = transport.get_extra_info("sockname")
         self.client = transport.get_extra_info("peername")
         self.scheme = "https" if transport.get_extra_info("sslcontext") else "http"
+        self.connection_id = self.get_connection_id()
 
         if self.logger.level <= logging.DEBUG:
-            self.logger.debug("%s - Connected", self.client[0])
+            self.logger.debug("%s - Connected", self.connection_id)
 
     def connection_lost(self, exc):
         self.connections.discard(self)
 
         if self.logger.level <= logging.DEBUG:
-            self.logger.debug("%s - Disconnected", self.client[0])
+            self.logger.debug("%s - Disconnected", self.connection_id)
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
