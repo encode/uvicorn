@@ -1,4 +1,5 @@
 import logging
+import ssl
 import sys
 
 from uvicorn.importer import ImportFromStringError, import_from_string
@@ -46,6 +47,17 @@ def get_logger(log_level):
     return logger
 
 
+def create_ssl_context(certfile, keyfile, ssl_version, cert_reqs, ca_certs, ciphers):
+    ctx = ssl.SSLContext(ssl_version)
+    ctx.load_cert_chain(certfile, keyfile)
+    ctx.verify_mode = cert_reqs
+    if ca_certs:
+        ctx.load_verify_locations(ca_certs)
+    if ciphers:
+        ctx.set_ciphers(ciphers)
+    return ctx
+
+
 class Config:
     def __init__(
         self,
@@ -72,6 +84,12 @@ class Config:
         timeout_notify=30,
         callback_notify=None,
         install_signal_handlers=True,
+        keyfile=None,
+        certfile=None,
+        ssl_version=ssl.PROTOCOL_TLS,
+        cert_reqs=ssl.CERT_NONE,
+        ca_certs=None,
+        ciphers="TLSv1",
     ):
         self.app = app
         self.host = host
@@ -95,7 +113,12 @@ class Config:
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
         self.callback_notify = callback_notify
-
+        self.keyfile = keyfile
+        self.certfile = certfile
+        self.ssl_version = ssl_version
+        self.cert_reqs = cert_reqs
+        self.ca_certs = ca_certs
+        self.ciphers = ciphers
         self.loaded = False
 
     def load(self):
@@ -139,5 +162,17 @@ class Config:
             self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
             self.loaded_app = ProxyHeadersMiddleware(self.loaded_app)
+
+        if self.keyfile or self.certfile:
+            self.ssl = create_ssl_context(
+                keyfile=self.keyfile,
+                certfile=self.certfile,
+                ssl_version=self.ssl_version,
+                cert_reqs=self.cert_reqs,
+                ca_certs=self.ca_certs,
+                ciphers=self.ciphers,
+            )
+        else:
+            self.ssl = None
 
         self.loaded = True
