@@ -18,7 +18,7 @@ def _get_default_headers():
 def _get_status_phrase(status_code):
     try:
         return http.HTTPStatus(status_code).phrase.encode()
-    except ValueError:
+    except ValueError as exc:
         return b""
 
 
@@ -155,7 +155,7 @@ class H11Protocol(asyncio.Protocol):
             event = h11.ConnectionClosed()
             try:
                 self.conn.send(event)
-            except h11.LocalProtocolError:
+            except h11.LocalProtocolError as exc:
                 # Premature client disconnect
                 pass
 
@@ -176,7 +176,7 @@ class H11Protocol(asyncio.Protocol):
         while True:
             try:
                 event = self.conn.next_event()
-            except h11.RemoteProtocolError:
+            except h11.RemoteProtocolError as exc:
                 msg = "Invalid HTTP request received."
                 self.logger.warning(msg)
                 self.transport.close()

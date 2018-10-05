@@ -7,6 +7,7 @@ from uvicorn.reloaders.statreload import StatReload
 import asyncio
 import click
 import signal
+import ssl
 import os
 import logging
 import socket
@@ -145,6 +146,36 @@ def get_logger(log_level):
     help="Close Keep-Alive connections if no new data is received within this timeout.",
     show_default=True,
 )
+@click.option(
+    "--keyfile", type=str, default=None, help="SSL key file", show_default=True
+)
+@click.option(
+    "--certfile", type=str, default=None, help="SSL certificate file", show_default=True
+)
+@click.option(
+    "--ssl-version",
+    type=int,
+    default=ssl.PROTOCOL_TLS,
+    help="SSL version to use (see stdlib ssl module's)",
+    show_default=True,
+)
+@click.option(
+    "--cert-reqs",
+    type=int,
+    default=ssl.CERT_NONE,
+    help="Whether client certificate is required (see stdlib ssl module's)",
+    show_default=True,
+)
+@click.option(
+    "--ca-certs", type=str, default=None, help="CA certificates file", show_default=True
+)
+@click.option(
+    "--ciphers",
+    type=str,
+    default="TLSv1",
+    help="Ciphers to use (see stdlib ssl module's)",
+    show_default=True,
+)
 def main(
     app,
     host: str,
@@ -163,6 +194,12 @@ def main(
     limit_concurrency: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
+    keyfile: str,
+    certfile: str,
+    ssl_version: int,
+    cert_reqs: int,
+    ca_certs: str,
+    ciphers: str,
 ):
     sys.path.insert(0, ".")
 
@@ -184,6 +221,12 @@ def main(
         "limit_concurrency": limit_concurrency,
         "limit_max_requests": limit_max_requests,
         "timeout_keep_alive": timeout_keep_alive,
+        "keyfile": keyfile,
+        "certfile": certfile,
+        "ssl_version": ssl_version,
+        "cert_reqs": cert_reqs,
+        "ca_certs": ca_certs,
+        "ciphers": ciphers,
     }
 
     if debug:
@@ -192,6 +235,17 @@ def main(
         reloader.run(run, kwargs)
     else:
         run(**kwargs)
+
+
+def create_ssl_context(certfile, keyfile, ssl_version, cert_reqs, ca_certs, ciphers):
+    ctx = ssl.SSLContext(ssl_version)
+    ctx.load_cert_chain(certfile, keyfile)
+    ctx.verify_mode = cert_reqs
+    if ca_certs:
+        ctx.load_verify_locations(ca_certs)
+    if ciphers:
+        ctx.set_ciphers(ciphers)
+    return ctx
 
 
 def run(
@@ -214,6 +268,12 @@ def run(
     timeout_keep_alive=5,
     install_signal_handlers=True,
     ready_event=None,
+    keyfile=None,
+    certfile=None,
+    ssl_version=None,
+    cert_reqs=False,
+    ca_certs=None,
+    ciphers=None,
 ):
 
     if fd is None:
@@ -250,6 +310,17 @@ def run(
     connections = set()
     tasks = set()
     state = {"total_requests": 0}
+    if keyfile or certfile:
+        sslctx = create_ssl_context(
+            keyfile=keyfile,
+            certfile=certfile,
+            ssl_version=ssl_version,
+            cert_reqs=cert_reqs,
+            ca_certs=ca_certs,
+            ciphers=ciphers,
+        )
+    else:
+        sslctx = None
 
     def create_protocol():
         return http_protocol_class(
@@ -282,6 +353,7 @@ def run(
         on_tick=http_protocol_class.tick,
         install_signal_handlers=install_signal_handlers,
         ready_event=ready_event,
+        ssl=sslctx,
     )
     server.run()
 
@@ -304,6 +376,7 @@ class Server:
         on_tick,
         install_signal_handlers,
         ready_event,
+        ssl,
     ):
         self.app = app
         self.host = host
@@ -322,6 +395,7 @@ class Server:
         self.ready_event = ready_event
         self.should_exit = False
         self.pid = os.getpid()
+        self.ssl = ssl
 
     def set_signal_handlers(self):
         if not self.install_signal_handlers:
@@ -330,7 +404,7 @@ class Server:
         try:
             for sig in HANDLED_SIGNALS:
                 self.loop.add_signal_handler(sig, self.handle_exit, sig, None)
-        except NotImplementedError:
+        except NotImplementedError as exc:
             # Windows
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)
@@ -351,7 +425,7 @@ class Server:
         if self.sock is not None:
             # Use an existing socket.
             self.server = await self.loop.create_server(
-                self.create_protocol, sock=self.sock
+                self.create_protocol, sock=self.sock, ssl=self.ssl
             )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
             self.logger.info(message % str(self.sock.getsockname()))
@@ -359,7 +433,7 @@ class Server:
         elif self.uds is not None:
             # Create a socket using UNIX domain socket.
             self.server = await self.loop.create_unix_server(
-                self.create_protocol, path=self.uds
+                self.create_protocol, path=self.uds, ssl=self.ssl
             )
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
             self.logger.info(message % self.uds)
@@ -367,7 +441,7 @@ class Server:
         else:
             # Standard case. Create a socket from a host/port pair.
             self.server = await self.loop.create_server(
-                self.create_protocol, host=self.host, port=self.port
+                self.create_protocol, host=self.host, port=self.port, ssl=self.ssl
             )
             message = "Uvicorn running on http://%s:%d (Press CTRL+C to quit)"
             self.logger.info(message % (self.host, self.port))
