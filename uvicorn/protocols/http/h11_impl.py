@@ -141,13 +141,13 @@ class H11Protocol(asyncio.Protocol):
         self.scheme = "https" if transport.get_extra_info("sslcontext") else "http"
 
         if self.logger.level <= logging.DEBUG:
-            self.logger.debug("%s - Connected", self.client[0])
+            self.logger.debug("%s - Connected", self.client)
 
     def connection_lost(self, exc):
         self.connections.discard(self)
 
         if self.logger.level <= logging.DEBUG:
-            self.logger.debug("%s - Disconnected", self.client[0])
+            self.logger.debug("%s - Disconnected", self.client)
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
@@ -458,7 +458,7 @@ class RequestResponseCycle:
             if self.access_log:
                 self.logger.info(
                     '%s - "%s %s HTTP/%s" %d',
-                    self.scope["client"][0],
+                    self.scope["client"],
                     self.scope["method"],
                     self.scope["path"],
                     self.scope["http_version"],
