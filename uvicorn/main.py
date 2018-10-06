@@ -26,6 +26,7 @@ LOG_LEVELS = {
 HTTP_PROTOCOLS = {
     "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
     "h11": "uvicorn.protocols.http.h11_impl:H11Protocol",
+    "h2": "uvicorn.protocols.http.h2_impl:H2Protocol",
     "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
 }
 WS_PROTOCOLS = {
@@ -237,7 +238,9 @@ def main(
         run(**kwargs)
 
 
-def create_ssl_context(certfile, keyfile, ssl_version, cert_reqs, ca_certs, ciphers):
+def create_ssl_context(
+    certfile, keyfile, ssl_version, cert_reqs, ca_certs, ciphers, enable_h2
+):
     ctx = ssl.SSLContext(ssl_version)
     ctx.load_cert_chain(certfile, keyfile)
     ctx.verify_mode = cert_reqs
@@ -245,6 +248,24 @@ def create_ssl_context(certfile, keyfile, ssl_version, cert_reqs, ca_certs, ciph
         ctx.load_verify_locations(ca_certs)
     if ciphers:
         ctx.set_ciphers(ciphers)
+    if enable_h2:
+        ctx.options |= (
+            ssl.OP_NO_SSLv2
+            | ssl.OP_NO_SSLv3
+            | ssl.OP_NO_TLSv1
+            | ssl.OP_NO_TLSv1_1
+            | ssl.OP_NO_COMPRESSION
+        )
+        for cipher in ctx.get_ciphers():
+            if cipher["protocol"] in ["TLSv1.2", "TLSv1.3"]:
+                break
+        else:
+            raise RuntimeError("HTTP/2 required tls version must higher than TLSv1.1")
+        ctx.set_alpn_protocols(["h2", "http/1.1"])
+        try:
+            ctx.set_npn_protocols(["h2", "http/1.1"])
+        except NotImplementedError:
+            pass
     return ctx
 
 
@@ -318,6 +339,7 @@ def run(
             cert_reqs=cert_reqs,
             ca_certs=ca_certs,
             ciphers=ciphers,
+            enable_h2=getattr(http_protocol_class, "http2"),
         )
     else:
         sslctx = None
