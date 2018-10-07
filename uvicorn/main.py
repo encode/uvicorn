@@ -173,7 +173,7 @@ def get_logger(log_level):
 @click.option(
     "--ciphers",
     type=str,
-    default="TLSv1",
+    default="TLSv1.2",
     help="Ciphers to use (see stdlib ssl module's)",
     show_default=True,
 )
@@ -255,6 +255,7 @@ def create_ssl_context(
             | ssl.OP_NO_TLSv1
             | ssl.OP_NO_TLSv1_1
             | ssl.OP_NO_COMPRESSION
+            | ssl.OP_CIPHER_SERVER_PREFERENCE
         )
         for cipher in ctx.get_ciphers():
             if cipher["protocol"] in ["TLSv1.2", "TLSv1.3"]:

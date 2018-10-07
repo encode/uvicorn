@@ -142,7 +142,6 @@ class H2Protocol(asyncio.Protocol):
         self.client = transport.get_extra_info("peername")
         self.scheme = "https" if transport.get_extra_info("sslcontext") else "http"
 
-        self.logger.debug("connection made, tranport %s", dir(transport))
         self.conn.initiate_connection()
         self.transport.write(self.conn.data_to_send())
         self.logger.debug("%s - Connected", self.client[0])
@@ -156,7 +155,7 @@ class H2Protocol(asyncio.Protocol):
 
         # TODO: send close
 
-        self.logger.debug("Disconnected, current streams: %s", self.streams)
+        self.logger.debug("Disconnected, current streams: %s", self.streams.keys())
         self.logger.debug("Exc", exc_info=exc)
         self.streams = {}
         self.message_event.set()
@@ -229,9 +228,7 @@ class H2Protocol(asyncio.Protocol):
             unquote(path),
             query_string.encode("ascii"),
         )
-
-        self.logger.debug("Request received, current scope %s", self.scope)
-        self.logger.debug("Request received, current headers %s", self.scope["headers"])
+        self.logger.debug("Request received.")
 
         cycle = RequestResponseCycle(
             scope=self.scope,
@@ -249,7 +246,9 @@ class H2Protocol(asyncio.Protocol):
             headers=self.scope["headers"], scope=self.scope, cycle=cycle
         )
         self.logger.debug(
-            "On request received, current %s, streams: %s", stream_id, self.streams
+            "On request received, current %s, streams: %s",
+            stream_id,
+            self.streams.keys(),
         )
 
         # Handle 503 responses when 'limit_concurrency' is exceeded.
@@ -279,7 +278,7 @@ class H2Protocol(asyncio.Protocol):
     def on_data_received(self, event):
         stream_id = event.stream_id
         self.logger.debug(
-            "On data received, current %s, streams: %s", stream_id, self.streams
+            "On data received, current %s, streams: %s", stream_id, self.streams.keys()
         )
         try:
             self.streams[stream_id].cycle.body += event.data
@@ -288,7 +287,7 @@ class H2Protocol(asyncio.Protocol):
                 stream_id, error_code=h2.errors.ErrorCodes.PROTOCOL_ERROR
             )
         else:
-            body_size = self.streams[stream_id].body.getbuffer().nbytes
+            body_size = len(self.streams[stream_id].body)
             if body_size > HIGH_WATER_LIMIT:
                 self.flow.pause_reading()
             self.message_event.set()
@@ -296,7 +295,7 @@ class H2Protocol(asyncio.Protocol):
     def on_stream_ended(self, event):
         stream_id = event.stream_id
         self.logger.debug(
-            "On stream ended, current %s, streams: %s", stream_id, self.streams
+            "On stream ended, current %s, streams: %s", stream_id, self.streams.keys()
         )
         try:
             stream = self.streams[stream_id]
@@ -311,12 +310,17 @@ class H2Protocol(asyncio.Protocol):
             self.message_event.set()
 
     def on_connection_terminated(self, event):
-        stream_id = event.stream_id
         self.logger.debug(
-            "On connection terminated, current %s, streams: %s", stream_id, self.streams
+            "Terminated data %s, code: %s", event.additional_data, event.error_code
         )
-        self.streams.pop(stream_id).cycle.disconnected = True
-        self.conn.close_cconnection(last_stream_id=stream_id)
+        stream_id = event.last_stream_id
+        self.logger.debug(
+            "On connection terminated, current %s, streams: %s",
+            stream_id,
+            self.streams.keys(),
+        )
+        # self.streams.pop(stream_id).cycle.disconnected = True
+        self.conn.close_connection(last_stream_id=stream_id)
         self.transport.write(self.conn.data_to_send())
         self.transport.close()
 
@@ -324,7 +328,9 @@ class H2Protocol(asyncio.Protocol):
         upgrade_value = None
 
     def shutdown(self):
-        self.logger.debug("Shutdown. streams: %s, tasks: %s", self.streams, self.tasks)
+        self.logger.debug(
+            "Shutdown. streams: %s, tasks: %s", self.streams.keys(), self.tasks
+        )
         if self.streams:
             for stream_id, stream in self.streams.items():
                 if stream.cycle.response_complete:
@@ -509,7 +515,7 @@ class RequestResponseCycle:
                     self.response_complete = True
             elif message_type == "http.response.push":
                 push_stream_id = self.conn.get_next_available_stream_id()
-                self.logger.debug("headers in scope %s", self.scope["headers"])
+                # self.logger.debug("headers in scope %s", self.scope["headers"])
                 request_headers = [
                     (ensure_bytes(name), ensure_bytes(value))
                     for name, value in (
@@ -520,6 +526,9 @@ class RequestResponseCycle:
                         *message["headers"],
                     )
                 ]
+                self.logger.debug(
+                    "On push request %s headers %s", push_stream_id, request_headers
+                )
                 try:
                     self.conn.push_stream(
                         stream_id=self.stream_id,
