@@ -340,13 +340,13 @@ def run(
             cert_reqs=cert_reqs,
             ca_certs=ca_certs,
             ciphers=ciphers,
-            enable_h2=getattr(http_protocol_class, "http2"),
+            enable_h2=getattr(http_protocol_class, "http2", False),
         )
     else:
         sslctx = None
 
     def create_protocol():
-        return http_protocol_class(
+        protocol = http_protocol_class(
             app=app,
             loop=loop,
             logger=logger,
@@ -359,6 +359,9 @@ def run(
             limit_concurrency=limit_concurrency,
             timeout_keep_alive=timeout_keep_alive,
         )
+        if not (keyfile and certfile):
+            protocol.h2_protocol_class = import_from_string(HTTP_PROTOCOLS["h2"])
+        return protocol
 
     server = Server(
         app=app,

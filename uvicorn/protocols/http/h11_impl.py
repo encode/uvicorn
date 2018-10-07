@@ -105,6 +105,7 @@ class H11Protocol(asyncio.Protocol):
         self.access_log = access_log and (self.logger.level <= logging.INFO)
         self.conn = h11.Connection(h11.SERVER)
         self.ws_protocol_class = ws_protocol_class
+        self.h2_protocol_class = None
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
 
@@ -213,8 +214,8 @@ class H11Protocol(asyncio.Protocol):
                 should_upgrade = False
                 for name, value in self.headers:
                     if name == b"connection":
-                        tokens = [token.lower().strip() for token in value.split(b',')]
-                        if b'upgrade' in tokens:
+                        tokens = [token.lower().strip() for token in value.split(b",")]
+                        if b"upgrade" in tokens:
                             self.handle_upgrade(event)
                             return
 
@@ -265,7 +266,41 @@ class H11Protocol(asyncio.Protocol):
             if name == b"upgrade":
                 upgrade_value = value.lower()
 
-        if upgrade_value != b'websocket' or self.ws_protocol_class is None:
+        if upgrade_value == b"websocket" and self.ws_protocol_class is not None:
+            self.connections.discard(self)
+            output = [event.method, b" ", event.target, b" HTTP/1.1\r\n"]
+            for name, value in self.headers:
+                output.extend([name, b": ", value, b"\r\n"])
+            output.append(b"\r\n")
+            protocol = self.ws_protocol_class(
+                app=self.app,
+                connections=self.connections,
+                tasks=self.tasks,
+                loop=self.loop,
+                logger=self.logger,
+            )
+            protocol.connection_made(self.transport)
+            protocol.data_received(b"".join(output))
+            self.transport.set_protocol(protocol)
+        elif upgrade_value == b"h2c":
+            self.connections.discard(self)
+
+            headers = ((b"upgrade", b"h2c"), *self.headers)
+            self.transport.write(
+                self.conn.send(
+                    h11.InformationalResponse(status_code=101, headers=headers)
+                )
+            )
+            protocol = self.h2_protocol_class(
+                app=self.app,
+                connections=self.connections,
+                tasks=self.tasks,
+                loop=self.loop,
+                logger=self.logger,
+            )
+            protocol.connection_made(self.transport, upgrade_request=event)
+            self.transport.set_protocol(protocol)
+        else:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
             reason = STATUS_PHRASES[400]
@@ -276,30 +311,13 @@ class H11Protocol(asyncio.Protocol):
             event = h11.Response(status_code=400, headers=headers, reason=reason)
             output = self.conn.send(event)
             self.transport.write(output)
-            event = h11.Data(data=b'Unsupported upgrade request.')
+            event = h11.Data(data=b"Unsupported upgrade request.")
             output = self.conn.send(event)
             self.transport.write(output)
             event = h11.EndOfMessage()
             output = self.conn.send(event)
             self.transport.write(output)
             self.transport.close()
-            return
-
-        self.connections.discard(self)
-        output = [event.method, b' ', event.target, b' HTTP/1.1\r\n']
-        for name, value in self.headers:
-            output += [name, b": ", value, b"\r\n"]
-        output.append(b'\r\n')
-        protocol = self.ws_protocol_class(
-            app=self.app,
-            connections=self.connections,
-            tasks=self.tasks,
-            loop=self.loop,
-            logger=self.logger
-        )
-        protocol.connection_made(self.transport)
-        protocol.data_received(b''.join(output))
-        self.transport.set_protocol(protocol)
 
     def on_response_complete(self):
         self.state["total_requests"] += 1
@@ -363,7 +381,7 @@ class RequestResponseCycle:
         logger,
         access_log,
         message_event,
-        on_response
+        on_response,
     ):
         self.scope = scope
         self.conn = conn

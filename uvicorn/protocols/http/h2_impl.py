@@ -94,10 +94,10 @@ class H2Protocol(asyncio.Protocol):
         state=None,
         logger=None,
         access_log=None,
-        ws_protocol_class=None,
         root_path="",
         limit_concurrency=None,
         timeout_keep_alive=5,
+        ws_protocol_class=None,
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
@@ -109,7 +109,6 @@ class H2Protocol(asyncio.Protocol):
         self.conn = h2.connection.H2Connection(
             config=h2.config.H2Configuration(client_side=False, header_encoding=None)
         )
-        self.ws_protocol_class = ws_protocol_class
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
 
@@ -126,7 +125,6 @@ class H2Protocol(asyncio.Protocol):
 
         # Per-request state
         self.scope = None
-        self.headers = None
         self.streams = {}
         self.message_event = asyncio.Event()
 
@@ -135,34 +133,64 @@ class H2Protocol(asyncio.Protocol):
         global DEFAULT_HEADERS
         DEFAULT_HEADERS = _get_default_headers()
 
-    def connection_made(self, transport: asyncio.Transport):
+    def connection_made(self, transport: asyncio.Transport, upgrade_request=None):
+        self.connections.add(self)
+
         self.transport = transport
         self.flow = FlowControl(transport)
         self.server = transport.get_extra_info("sockname")
         self.client = transport.get_extra_info("peername")
         self.scheme = "https" if transport.get_extra_info("sslcontext") else "http"
 
-        self.conn.initiate_connection()
+        if upgrade_request is None:
+            self.conn.initiate_connection()
+        else:
+            settings = ""
+            headers = []
+            for name, value in upgrade_request.headers:
+                if name.lower() == b"http2-settings":
+                    settings = value.decode()
+                elif name.lower() == b"host":
+                    headers.append((b":authority", value))
+                headers.append((name, value))
+            headers.append((b":method", upgrade_request.method))
+            headers.append((b":path", upgrade_request.target))
+            headers.append((b":scheme", self.scheme.encode("ascii")))
+            self.conn.initiate_upgrade_connection(settings)
+            event = h2.events.RequestReceived()
+            event.stream_id = 1
+            event.headers = headers
+            self.on_request_received(event)
         self.transport.write(self.conn.data_to_send())
         self.logger.debug("%s - Connected", self.client[0])
 
     def connection_lost(self, exc):
+        self.connections.discard(self)
+
         self.logger.debug("%s - Disconnected", self.client[0])
 
         for stream_id, stream in self.streams.items():
             if stream.cycle and not stream.cycle.response_complete:
                 stream.cycle.disconnected = True
+                try:
+                    self.conn.close_connection(stream_id)
+                    self.transport.write(self.conn.data_to_send())
+                except h2.exceptions.ProtocolError as e:
+                    self.logger.debug(
+                        "connection lost, failed to close connection.", exc_info=e
+                    )
 
-        # TODO: send close
-
-        self.logger.debug("Disconnected, current streams: %s", self.streams.keys())
-        self.logger.debug("Exc", exc_info=exc)
+        self.logger.debug(
+            "Disconnected, current streams: %s", list(self.streams.keys()), exc_info=exc
+        )
         self.streams = {}
         self.message_event.set()
 
     def eof_received(self):
+        self.logger.debug(
+            "eof received, current streams: %s", list(self.streams.keys())
+        )
         self.streams = {}
-        self.logger.debug("eof received, current streams: %s", self.streams)
 
     def data_received(self, data):
         if self.timeout_keep_alive_task is not None:
@@ -185,15 +213,29 @@ class H2Protocol(asyncio.Protocol):
                     self.on_stream_ended(event)
                 elif isinstance(event, h2.events.ConnectionTerminated):
                     self.on_connection_terminated(event)
-                else:
-                    self.logger.debug("Unhandled event %s.", event)
+                elif isinstance(event, h2.events.WindowUpdated):
+                    # self.conn.increment_flow_control_window(event.delta, event.stream_id)
+                    pass
+                elif isinstance(event, h2.events.RemoteSettingsChanged):
+                    pass
+                elif isinstance(event, h2.events.PingAcknowledged):
+                    pass
+                elif isinstance(event, h2.events.PriorityUpdated):
+                    pass
+                elif isinstance(event, h2.events.StreamReset):
+                    self.logger.debug(
+                        "stream(%s) reset by %s with error_code %s",
+                        event.stream_id,
+                        "server" if event.remote_reset else "remote peer",
+                        event.error_code,
+                    )
+                    self.streams.pop(event.stream_id, None)
 
                 self.transport.write(self.conn.data_to_send())
 
     def on_request_received(self, event):
-        self.headers = []
         self.scope = dict(
-            headers=self.headers,
+            headers=[],
             http_version="2",
             server=self.server,
             client=self.client,
@@ -212,23 +254,13 @@ class H2Protocol(asyncio.Protocol):
             if key in scope_mapping:
                 self.scope[scope_mapping[key]] = value.decode("ascii")
             else:
-                lower_key = key.lower()
-                if lower_key == "connection":
-                    tokens = [
-                        token.lower().strip().decode("ascii")
-                        for token in value.split(b",")
-                    ]
-                    if "upgrade" in tokens:
-                        self.handle_upgrade(event)
-                        return
-                self.scope["headers"].append((lower_key, value))
+                self.scope["headers"].append((key.lower(), value))
 
         path, _, query_string = self.scope["path"].partition("?")
         self.scope["path"], self.scope["query_string"] = (
             unquote(path),
             query_string.encode("ascii"),
         )
-        self.logger.debug("Request received.")
 
         cycle = RequestResponseCycle(
             scope=self.scope,
@@ -240,15 +272,15 @@ class H2Protocol(asyncio.Protocol):
             access_log=self.access_log,
             message_event=self.message_event,
             on_response=self.on_response_complete,
-            on_request=self.on_request_received,
+            new_request=self.on_request_received,
         )
         self.streams[stream_id] = _StreamRequest(
             headers=self.scope["headers"], scope=self.scope, cycle=cycle
         )
         self.logger.debug(
-            "On request received, current %s, streams: %s",
+            "New request received, current stream(%s), all streams: %s",
             stream_id,
-            self.streams.keys(),
+            list(self.streams.keys()),
         )
 
         # Handle 503 responses when 'limit_concurrency' is exceeded.
@@ -262,15 +294,11 @@ class H2Protocol(asyncio.Protocol):
         else:
             app = self.app
 
-        def cleanup(task):
-            self.streams.pop(stream_id)
-
         task = self.loop.create_task(self.streams[stream_id].cycle.run_asgi(app))
         task.add_done_callback(self.tasks.discard)
-        # task.add_done_callback(cleanup)
         task.add_done_callback(
             lambda t: self.logger.debug(
-                "task done StreamID(%s), path %s", stream_id, self.scope["path"]
+                "stream(%s) done, path(%s)", stream_id, self.scope["path"]
             )
         )
         self.tasks.add(task)
@@ -287,7 +315,7 @@ class H2Protocol(asyncio.Protocol):
                 stream_id, error_code=h2.errors.ErrorCodes.PROTOCOL_ERROR
             )
         else:
-            body_size = len(self.streams[stream_id].body)
+            body_size = len(self.streams[stream_id].cycle.body)
             if body_size > HIGH_WATER_LIMIT:
                 self.flow.pause_reading()
             self.message_event.set()
@@ -300,9 +328,8 @@ class H2Protocol(asyncio.Protocol):
         try:
             stream = self.streams[stream_id]
         except KeyError:
-            # TODO: error code
             self.conn.reset_stream(
-                stream_id, error_code=h2.errors.ErrorCodes.PROTOCOL_ERROR
+                stream_id, error_code=h2.errors.ErrorCodes.STREAM_CLOSED
             )
         else:
             self.transport.resume_reading()
@@ -310,22 +337,23 @@ class H2Protocol(asyncio.Protocol):
             self.message_event.set()
 
     def on_connection_terminated(self, event):
-        self.logger.debug(
-            "Terminated data %s, code: %s", event.additional_data, event.error_code
-        )
         stream_id = event.last_stream_id
         self.logger.debug(
-            "On connection terminated, current %s, streams: %s",
+            "H2Connection terminated, additional_data(%s), error_code(%s), last_stream(%s), streams: %s",
+            event.additional_data,
+            event.error_code,
             stream_id,
-            self.streams.keys(),
+            list(self.streams.keys()),
         )
-        # self.streams.pop(stream_id).cycle.disconnected = True
+        stream = self.streams.pop(stream_id)
+        if stream:
+            stream.cycle.disconnected = True
         self.conn.close_connection(last_stream_id=stream_id)
         self.transport.write(self.conn.data_to_send())
         self.transport.close()
 
     def handle_upgrade(self, event):
-        upgrade_value = None
+        pass
 
     def shutdown(self):
         self.logger.debug(
@@ -334,11 +362,12 @@ class H2Protocol(asyncio.Protocol):
         if self.streams:
             for stream_id, stream in self.streams.items():
                 if stream.cycle.response_complete:
-                    self.conn.close_cconnection(last_stream_id=stream_id)
+                    self.conn.close_connection(last_stream_id=stream_id)
                     self.transport.write(self.conn.data_to_send())
                 else:
                     stream.cycle.keep_alive = False
             self.streams = {}
+        return True
 
     def pause_writing(self):
         """
@@ -389,7 +418,7 @@ class RequestResponseCycle:
         stream_id,
         message_event,
         on_response,
-        on_request,
+        new_request,
     ):
         self.scope = scope
         self.conn = conn
@@ -399,7 +428,7 @@ class RequestResponseCycle:
         self.access_log = access_log
         self.message_event = message_event
         self.on_response = on_response
-        self.on_request = on_request
+        self.new_request = new_request
         self.stream_id = stream_id
 
         # Connection state
@@ -515,7 +544,6 @@ class RequestResponseCycle:
                     self.response_complete = True
             elif message_type == "http.response.push":
                 push_stream_id = self.conn.get_next_available_stream_id()
-                # self.logger.debug("headers in scope %s", self.scope["headers"])
                 request_headers = [
                     (ensure_bytes(name), ensure_bytes(value))
                     for name, value in (
@@ -541,7 +569,7 @@ class RequestResponseCycle:
                     event = h2.events.RequestReceived()
                     event.stream_id = push_stream_id
                     event.headers = request_headers
-                    self.on_request(event)
+                    self.new_request(event)
                     self.transport.write(self.conn.data_to_send())
             else:
                 msg = "Expected ASGI message 'http.response.body', but got '%s'."
