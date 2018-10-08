@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import os
+import logging
 import signal
 import ssl
 import sys
@@ -8,6 +9,7 @@ import sys
 import uvloop
 
 from gunicorn.workers.base import Worker
+from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
@@ -90,6 +92,9 @@ class UvicornWorker(Worker):
     async def create_servers(self, loop):
         cfg = self.cfg
         app = self.wsgi
+
+        if self.log.level <= logging.DEBUG:
+            app = MessageLoggerMiddleware(app)
 
         ssl_ctx = self.create_ssl_context(self.cfg) if self.cfg.is_ssl else None
 
