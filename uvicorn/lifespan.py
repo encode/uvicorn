@@ -30,7 +30,7 @@ class Lifespan:
         except:
             msg = "Exception in 'lifespan' protocol\n%s"
             traceback_text = "".join(traceback.format_exc())
-            self.logger.error(msg, traceback_text)
+            self.logger.debug(msg, traceback_text)
             self.asgi = None
         finally:
             self.startup_event.set()
