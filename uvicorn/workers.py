@@ -34,6 +34,7 @@ class UvicornWorker(Worker):
         self.servers = []
         self.exit_code = 0
         self.log.level = self.log.loglevel
+        self.lifespan = None
 
     def init_process(self):
         if self.loop == "uvloop":
@@ -47,6 +48,12 @@ class UvicornWorker(Worker):
             asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
         super().init_process()
+
+        scope = {'type': 'lifespan'}
+        try:
+            self.lifespan = app(scope)
+        except:
+            self.lifespan = None
 
     def run(self):
         loop = asyncio.get_event_loop()

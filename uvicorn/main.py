@@ -1,4 +1,5 @@
 from uvicorn.importer import import_from_string, ImportFromStringError
+from uvicorn.lifespan import Lifespan
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
@@ -341,6 +342,12 @@ class Server:
     def run(self):
         self.logger.info("Started server process [{}]".format(self.pid))
         self.set_signal_handlers()
+        self.lifespan = Lifespan(self.app, self.logger)
+        if self.lifespan.is_enabled:
+            self.loop.create_task(self.lifespan.run())
+            self.loop.run_until_complete(self.lifespan.wait_startup())
+        else:
+            self.logger.debug("Lifespan protocol is not recognized by the application")
         self.loop.run_until_complete(self.create_server())
         self.loop.create_task(self.tick())
         if self.ready_event is not None:
@@ -399,6 +406,9 @@ class Server:
             self.logger.info("Waiting for background tasks to complete.")
             while self.tasks:
                 await asyncio.sleep(0.1)
+
+        if self.lifespan.is_enabled:
+            await self.lifespan.wait_cleanup()
 
         self.loop.stop()
 

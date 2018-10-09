@@ -39,7 +39,7 @@ class MessageLoggerResponder:
         self.app = app
         self.logger = logger
         self.task_counter = task_counter
-        self.client_addr = scope['client']
+        self.client_addr = scope.get('client')
 
     async def __call__(self, receive, send):
         self._receive = receive
