@@ -11,7 +11,9 @@ class Lifespan:
         self.logger = logger or logging.getLogger("uvicorn")
         self.startup_timeout = startup_timeout
         self.cleanup_timeout = cleanup_timeout
-
+        self.startup_event = asyncio.Event()
+        self.cleanup_event = asyncio.Event()
+        self.receive_queue = asyncio.Queue()
         try:
             self.asgi = app({'type': 'lifespan'})
         except:
@@ -22,9 +24,7 @@ class Lifespan:
         return self.asgi is not None
 
     async def run(self):
-        self.startup_event = asyncio.Event()
-        self.cleanup_event = asyncio.Event()
-        self.receive_queue = asyncio.Queue()
+        assert self.is_enabled
         try:
             await self.asgi(self.receive, self.send)
         except:
