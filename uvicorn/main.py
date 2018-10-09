@@ -344,6 +344,7 @@ class Server:
         self.set_signal_handlers()
         self.lifespan = Lifespan(self.app, self.logger)
         if self.lifespan.is_enabled:
+            self.logger.info("Waiting for application startup.")
             self.loop.create_task(self.lifespan.run())
             self.loop.run_until_complete(self.lifespan.wait_startup())
         else:
@@ -408,6 +409,7 @@ class Server:
                 await asyncio.sleep(0.1)
 
         if self.lifespan.is_enabled:
+            self.logger.info("Waiting for application cleanup.")
             await self.lifespan.wait_cleanup()
 
         self.loop.stop()
