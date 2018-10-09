@@ -285,6 +285,7 @@ def run(
         ready_event=ready_event,
     )
     server.run()
+    return server
 
 
 class Server:
