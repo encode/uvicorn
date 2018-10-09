@@ -54,13 +54,9 @@ class Lifespan:
         return message
 
     async def wait_startup(self):
-        self.logger.info("Waiting for application startup.")
         await self.receive_queue.put({'type': 'lifespan.startup'})
         await asyncio.wait_for(self.startup_event.wait(), timeout=self.startup_timeout)
-        self.logger.info("Application startup complete.")
 
     async def wait_cleanup(self):
-        self.logger.info("Waiting for application cleanup.")
         await self.receive_queue.put({'type': 'lifespan.cleanup'})
         await asyncio.wait_for(self.cleanup_event.wait(), timeout=self.cleanup_timeout)
-        self.logger.info("Application cleanup complete.")
