@@ -343,6 +343,12 @@ You can use Uvicorn, Daphne, or Hypercorn to run any ASGI framework.
 
 For small services you can also write ASGI applications directly.
 
+### Starlette
+
+[Starlette](https://github.com/encode/starlette) is a lightweight ASGI framework/toolkit.
+
+It is ideal for building high performance asyncio services, and supports both HTTP and WebSockets.
+
 ### Django Channels
 
 The ASGI specification was originally designed for use with [Django Channels](https://channels.readthedocs.io/en/latest/).
@@ -352,19 +358,9 @@ an asynchronous frontend onto a threaded-framework backend. It allows Django
 to support WebSockets, background tasks, and long-running connections,
 with application code still running in a standard threaded context.
 
-### API Star
-
-The [API Star](https://docs.apistar.com/) web framework supports both WSGI and ASGI modes.
-
 ### Quart
 
 [Quart](https://pgjones.gitlab.io/quart/) is a Flask-like ASGI web framework.
-
-### Starlette
-
-[Starlette](https://github.com/encode/starlette) provides a lightweight collection of tools for building ASGI services.
-
-It includes request and response classes, an ASGI test client, routing, and static files support.
 
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
