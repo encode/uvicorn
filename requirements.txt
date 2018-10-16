@@ -2,6 +2,7 @@ click
 h11
 
 # Optional
+h2
 httptools
 uvloop
 websockets>=6.0
