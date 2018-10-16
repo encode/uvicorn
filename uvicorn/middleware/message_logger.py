@@ -36,20 +36,27 @@ class MessageLoggerMiddleware:
 class MessageLoggerResponder:
     def __init__(self, scope, app, logger, task_counter):
         self.scope = scope
-        self.app = app
         self.logger = logger
         self.task_counter = task_counter
         self.client_addr = scope.get('client')
 
+        logged_scope = message_with_placeholders(scope)
+        log_text = '%s - ASGI [%d] Initialized %s'
+        self.logger.debug(log_text, self.client_addr, self.task_counter, logged_scope)
+        try:
+            self.inner = app(scope)
+        except:
+            log_text = '%s - ASGI [%d] Raised exception'
+            self.logger.debug(log_text, self.client_addr, self.task_counter)
+            raise
+
     async def __call__(self, receive, send):
         self._receive = receive
         self._send = send
-        logged_scope = message_with_placeholders(self.scope)
-        log_text = '%s - ASGI [%d] Started %s'
-        self.logger.debug(log_text, self.client_addr, self.task_counter, logged_scope)
+        log_text = '%s - ASGI [%d] Started task'
+        self.logger.debug(log_text, self.client_addr, self.task_counter)
         try:
-            inner = self.app(self.scope)
-            await inner(self.receive, self.send)
+            await self.inner(self.receive, self.send)
         except:
             log_text = '%s - ASGI [%d] Raised exception'
             self.logger.debug(log_text, self.client_addr, self.task_counter)
