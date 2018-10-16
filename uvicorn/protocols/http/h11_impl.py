@@ -5,6 +5,7 @@ import logging
 import time
 import traceback
 from urllib.parse import unquote
+from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 import h11
 
@@ -136,9 +137,9 @@ class H11Protocol(asyncio.Protocol):
 
         self.transport = transport
         self.flow = FlowControl(transport)
-        self.server = transport.get_extra_info("sockname")
-        self.client = transport.get_extra_info("peername")
-        self.scheme = "https" if transport.get_extra_info("sslcontext") else "http"
+        self.server = get_local_addr(transport)
+        self.client = get_remote_addr(transport)
+        self.scheme = "https" if is_ssl(transport) else "http"
 
         if self.logger.level <= logging.DEBUG:
             self.logger.debug("%s - Connected", self.client)

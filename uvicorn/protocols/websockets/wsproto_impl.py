@@ -1,4 +1,5 @@
 from urllib.parse import unquote
+from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 import asyncio
 import h11
 import logging
@@ -47,9 +48,9 @@ class WSProtocol(asyncio.Protocol):
     def connection_made(self, transport):
         self.connections.add(self)
         self.transport = transport
-        self.server = transport.get_extra_info("sockname")
-        self.client = transport.get_extra_info("peername")
-        self.scheme = "wss" if transport.get_extra_info("sslcontext") else "ws"
+        self.server = get_local_addr(transport)
+        self.client = get_remote_addr(transport)
+        self.scheme = "wss" if is_ssl(transport) else "ws"
 
     def connection_lost(self, exc):
         self.connections.remove(self)
