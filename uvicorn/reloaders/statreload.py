@@ -51,7 +51,7 @@ class StatReload:
         for filename in self.iter_py_files():
             try:
                 mtime = os.stat(filename).st_mtime
-            except OSError:
+            except OSError as exc:
                 continue
 
             old_time = self.mtimes.get(filename)

@@ -19,7 +19,7 @@ def _get_default_headers():
 def _get_status_line(status_code):
     try:
         phrase = http.HTTPStatus(status_code).phrase.encode()
-    except ValueError:
+    except ValueError as exc:
         phrase = b""
     return b"".join([b"HTTP/1.1 ", str(status_code).encode(), b" ", phrase, b"\r\n"])
 
@@ -168,11 +168,11 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         try:
             self.parser.feed_data(data)
-        except httptools.parser.errors.HttpParserError:
+        except httptools.parser.errors.HttpParserError as exc:
             msg = "Invalid HTTP request received."
             self.logger.warning(msg)
             self.transport.close()
-        except httptools.HttpParserUpgrade:
+        except httptools.HttpParserUpgrade as exc:
             self.handle_upgrade()
 
     def handle_upgrade(self):
