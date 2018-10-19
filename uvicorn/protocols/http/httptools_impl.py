@@ -266,6 +266,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             access_log=self.access_log,
             message_event=self.message_event,
             expect_100_continue=self.expect_100_continue,
+            keep_alive=http_version != "1.0",
             on_response=self.on_response_complete,
         )
         if existing_cycle is None or existing_cycle.response_complete:
@@ -353,6 +354,7 @@ class RequestResponseCycle:
         access_log,
         message_event,
         expect_100_continue,
+        keep_alive,
         on_response,
     ):
         self.scope = scope
@@ -365,7 +367,7 @@ class RequestResponseCycle:
 
         # Connection state
         self.disconnected = False
-        self.keep_alive = True
+        self.keep_alive = keep_alive
         self.waiting_for_100_continue = expect_100_continue
 
         # Request state
