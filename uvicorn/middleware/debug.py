@@ -78,7 +78,7 @@ class _DebugResponder:
         try:
             asgi = self.app(self.scope)
             await asgi(receive, self.send)
-        except:
+        except BaseException as exc:
             if self.response_started:
                 raise
             accept = get_accept_header(self.scope)

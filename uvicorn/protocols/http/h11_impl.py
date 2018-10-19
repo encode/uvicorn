@@ -3,7 +3,6 @@ from email.utils import formatdate
 import http
 import logging
 import time
-import traceback
 from urllib.parse import unquote
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
@@ -393,10 +392,9 @@ class RequestResponseCycle:
         try:
             asgi = app(self.scope)
             result = await asgi(self.receive, self.send)
-        except:
+        except BaseException as exc:
             msg = "Exception in ASGI application\n%s"
-            traceback_text = "".join(traceback.format_exc())
-            self.logger.error(msg, traceback_text)
+            self.logger.error(msg, exc_info=exc)
             if not self.response_started:
                 await self.send_500_response()
             else:

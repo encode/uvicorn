@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import traceback
 
 
 STATE_TRANSITION_ERROR = 'Got invalid state transition on lifespan protocol.'
@@ -16,7 +15,7 @@ class Lifespan:
         self.receive_queue = asyncio.Queue()
         try:
             self.asgi = app({'type': 'lifespan'})
-        except:
+        except BaseException as exc:
             self.asgi = None
 
     @property
@@ -27,10 +26,9 @@ class Lifespan:
         assert self.is_enabled
         try:
             await self.asgi(self.receive, self.send)
-        except:
+        except BaseException as exc:
             msg = "Exception in 'lifespan' protocol\n%s"
-            traceback_text = "".join(traceback.format_exc())
-            self.logger.debug(msg, traceback_text)
+            self.logger.debug(msg, exc_info=exc)
             self.asgi = None
         finally:
             self.startup_event.set()

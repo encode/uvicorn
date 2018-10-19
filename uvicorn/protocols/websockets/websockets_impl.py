@@ -3,7 +3,6 @@ from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 import asyncio
 import http
 import logging
-import traceback
 import websockets
 
 
@@ -139,11 +138,10 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         try:
             asgi = self.app(self.scope)
             result = await asgi(self.asgi_receive, self.asgi_send)
-        except:
+        except BaseException as exc:
             self.closed_event.set()
             msg = "Exception in ASGI application\n%s"
-            traceback_text = "".join(traceback.format_exc())
-            self.logger.error(msg, traceback_text)
+            self.logger.error(msg, exc_info=exc)
             if not self.handshake_started_event.is_set():
                 self.send_500_response()
             else:
