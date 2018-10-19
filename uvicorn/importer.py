@@ -28,7 +28,7 @@ def import_from_string(import_str):
     try:
         for attr_str in attrs_str.split("."):
             instance = getattr(instance, attr_str)
-    except AttributeError:
+    except AttributeError as exc:
         message = 'Attribute "{attrs_str}" not found in module "{module_str}".'
         raise ImportFromStringError(
             message.format(attrs_str=attrs_str, module_str=module_str)

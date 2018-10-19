@@ -331,7 +331,7 @@ class Server:
         try:
             for sig in HANDLED_SIGNALS:
                 self.loop.add_signal_handler(sig, self.handle_exit, sig, None)
-        except NotImplementedError:
+        except NotImplementedError as exc:
             # Windows
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)

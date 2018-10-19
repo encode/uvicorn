@@ -1,9 +1,9 @@
 try:
     import websockets
-except ImportError:  # pragma: no cover
+except ImportError as exc:  # pragma: no cover
     try:
         import wsproto
-    except ImportError:
+    except ImportError as exc:
         AutoWebSocketsProtocol = None
     else:
         from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
