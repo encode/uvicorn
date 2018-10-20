@@ -14,7 +14,7 @@ class LifespanContext:
         return self.app
 
     async def __aexit__(self, exc_type, exc, tb):
-        await self.lifespan.wait_cleanup()
+        await self.lifespan.wait_shutdown()
 
 
 def test_lifespan_enabled():
@@ -40,9 +40,9 @@ def test_lifespan():
             startup_complete = True
             await send({'type': 'lifespan.startup.complete'})
             message = await receive()
-            assert message['type'] == 'lifespan.cleanup'
+            assert message['type'] == 'lifespan.shutdown'
             cleanup_complete = True
-            await send({'type': 'lifespan.cleanup.complete'})
+            await send({'type': 'lifespan.shutdown.complete'})
         return lifespan
 
     async def test(app):
