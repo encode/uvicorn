@@ -409,7 +409,7 @@ class Server:
                 await asyncio.sleep(0.1)
 
         if self.lifespan.is_enabled:
-            self.logger.info("Waiting for application cleanup.")
+            self.logger.info("Waiting for application shutdown.")
             await self.lifespan.wait_shutdown()
 
         self.loop.stop()

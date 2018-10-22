@@ -160,7 +160,7 @@ class UvicornWorker(Worker):
             await server.wait_closed()
 
         if self.lifespan.is_enabled:
-            await self.lifespan.wait_cleanup()
+            await self.lifespan.wait_shutdown()
 
         loop.stop()
 

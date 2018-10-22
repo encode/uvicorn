@@ -34,7 +34,7 @@ class Lifespan:
             self.asgi = None
         finally:
             self.startup_event.set()
-            self.cleanup_event.set()
+            self.shutdown_event.set()
 
     async def send(self, message):
         if message['type'] == 'lifespan.startup.complete':
