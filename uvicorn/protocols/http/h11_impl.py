@@ -393,7 +393,7 @@ class RequestResponseCycle:
             asgi = app(self.scope)
             result = await asgi(self.receive, self.send)
         except BaseException as exc:
-            msg = "Exception in ASGI application\n%s"
+            msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
             if not self.response_started:
                 await self.send_500_response()

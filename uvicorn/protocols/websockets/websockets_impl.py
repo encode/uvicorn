@@ -140,7 +140,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             result = await asgi(self.asgi_receive, self.asgi_send)
         except BaseException as exc:
             self.closed_event.set()
-            msg = "Exception in ASGI application\n%s"
+            msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
             if not self.handshake_started_event.is_set():
                 self.send_500_response()

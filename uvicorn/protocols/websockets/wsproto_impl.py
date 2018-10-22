@@ -190,7 +190,7 @@ class WSProtocol(asyncio.Protocol):
             asgi = self.app(self.scope)
             result = await asgi(self.receive, self.send)
         except BaseException as exc:
-            msg = "Exception in ASGI application\n%s"
+            msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
             if not self.handshake_complete:
                 self.send_500_response()

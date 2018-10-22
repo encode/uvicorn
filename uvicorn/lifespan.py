@@ -27,7 +27,7 @@ class Lifespan:
         try:
             await self.asgi(self.receive, self.send)
         except BaseException as exc:
-            msg = "Exception in 'lifespan' protocol\n%s"
+            msg = "Exception in 'lifespan' protocol\n"
             self.logger.debug(msg, exc_info=exc)
             self.asgi = None
         finally:
