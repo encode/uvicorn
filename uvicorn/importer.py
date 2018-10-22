@@ -20,7 +20,7 @@ def import_from_string(import_str):
         module = importlib.import_module(module_str)
     except ImportError as exc:
         if exc.name != module_str:
-            raise
+            raise exc from None
         message = 'Could not import module "{module_str}".'
         raise ImportFromStringError(message.format(module_str=module_str))
 
