@@ -55,6 +55,7 @@ class WSGIMiddleware:
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
     def __call__(self, scope):
+        assert scope["type"] == "http"
         return WSGIResponder(self.app, self.executor, scope)
 
 
