@@ -410,7 +410,7 @@ class Server:
 
         if self.lifespan.is_enabled:
             self.logger.info("Waiting for application cleanup.")
-            await self.lifespan.wait_cleanup()
+            await self.lifespan.wait_shutdown()
 
         self.loop.stop()
 
