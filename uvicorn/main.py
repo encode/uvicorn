@@ -52,9 +52,12 @@ HANDLED_SIGNALS = (
 
 
 def get_logger(log_level):
-    log_level = LOG_LEVELS[log_level]
+    if isinstance(log_level, str):
+        log_level = LOG_LEVELS[log_level]
     logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
-    return logging.getLogger("uvicorn")
+    logger = logging.getLogger("uvicorn")
+    logger.setLevel(log_level)
+    return logger
 
 
 @click.command()
@@ -205,6 +208,7 @@ def run(
     http="auto",
     ws="auto",
     log_level="info",
+    logger=None,
     access_log=True,
     wsgi=False,
     debug=False,
@@ -224,7 +228,10 @@ def run(
         port = None
         sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
 
-    logger = get_logger(log_level)
+    if logger is None:
+        logger = get_logger(log_level)
+    else:
+        assert log_level == "info", "Cannot set both 'logger' and 'log_level'"
     http_protocol_class = import_from_string(HTTP_PROTOCOLS[http])
     ws_protocol_class = import_from_string(WS_PROTOCOLS[ws])
 
