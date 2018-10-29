@@ -13,7 +13,7 @@ def test_message_logger(caplog):
 
         return asgi
 
-    caplog.set_level(logging.DEBUG)
+    caplog.set_level(logging.DEBUG, logger="uvicorn")
     app = MessageLoggerMiddleware(app)
     client = TestClient(app)
     response = client.get("/")
@@ -34,7 +34,7 @@ def test_message_logger_exc(caplog):
 
         return asgi
 
-    caplog.set_level(logging.DEBUG)
+    caplog.set_level(logging.DEBUG, logger="uvicorn")
     app = MessageLoggerMiddleware(app)
     client = TestClient(app)
     with pytest.raises(RuntimeError):
@@ -52,7 +52,7 @@ def test_message_logger_scope_exc(caplog):
     def app(scope):
         raise RuntimeError()
 
-    caplog.set_level(logging.DEBUG)
+    caplog.set_level(logging.DEBUG, logger="uvicorn")
     app = MessageLoggerMiddleware(app)
     client = TestClient(app)
     with pytest.raises(RuntimeError):
