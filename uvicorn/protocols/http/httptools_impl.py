@@ -228,7 +228,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             "scheme": self.scheme,
             "method": method.decode("ascii"),
             "root_path": self.root_path,
-            "path": parsed_url.path.decode("ascii"),
+            "path": unquote(parsed_url.path.decode("ascii")),
             "query_string": parsed_url.query if parsed_url.query else b"",
             "headers": self.headers,
         }
