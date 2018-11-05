@@ -78,9 +78,9 @@ class _DebugResponder:
         try:
             asgi = self.app(self.scope)
             await asgi(receive, self.send)
-        except:
+        except BaseException as exc:
             if self.response_started:
-                raise
+                raise exc from None
             accept = get_accept_header(self.scope)
             if "text/html" in accept:
                 exc_html = html.escape(traceback.format_exc())
@@ -93,7 +93,7 @@ class _DebugResponder:
                 content = traceback.format_exc()
                 response = PlainTextResponse(content, status_code=500)
             await response(receive, send)
-            raise
+            raise exc from None
 
     async def send(self, message):
         if message["type"] == "http.response.start":

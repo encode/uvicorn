@@ -3,7 +3,6 @@ from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 import asyncio
 import h11
 import logging
-import traceback
 import wsproto.connection
 import wsproto.events
 import wsproto.extensions
@@ -190,10 +189,9 @@ class WSProtocol(asyncio.Protocol):
         try:
             asgi = self.app(self.scope)
             result = await asgi(self.receive, self.send)
-        except:
-            msg = "Exception in ASGI application\n%s"
-            traceback_text = "".join(traceback.format_exc())
-            self.logger.error(msg, traceback_text)
+        except BaseException as exc:
+            msg = "Exception in ASGI application\n"
+            self.logger.error(msg, exc_info=exc)
             if not self.handshake_complete:
                 self.send_500_response()
             self.transport.close()

@@ -45,10 +45,10 @@ class MessageLoggerResponder:
         self.logger.debug(log_text, self.client_addr, self.task_counter, logged_scope)
         try:
             self.inner = app(scope)
-        except:
+        except BaseException as exc:
             log_text = '%s - ASGI [%d] Raised exception'
             self.logger.debug(log_text, self.client_addr, self.task_counter)
-            raise
+            raise exc from None
 
     async def __call__(self, receive, send):
         self._receive = receive
@@ -57,10 +57,10 @@ class MessageLoggerResponder:
         self.logger.debug(log_text, self.client_addr, self.task_counter)
         try:
             await self.inner(self.receive, self.send)
-        except:
+        except BaseException as exc:
             log_text = '%s - ASGI [%d] Raised exception'
             self.logger.debug(log_text, self.client_addr, self.task_counter)
-            raise
+            raise exc from None
         else:
             log_text = '%s - ASGI [%d] Completed'
             self.logger.debug(log_text, self.client_addr, self.task_counter)

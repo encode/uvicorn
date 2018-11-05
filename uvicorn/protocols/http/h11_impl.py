@@ -3,7 +3,6 @@ from email.utils import formatdate
 import http
 import logging
 import time
-import traceback
 from urllib.parse import unquote
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
@@ -19,7 +18,7 @@ def _get_default_headers():
 def _get_status_phrase(status_code):
     try:
         return http.HTTPStatus(status_code).phrase.encode()
-    except ValueError:
+    except ValueError as exc:
         return b""
 
 
@@ -156,7 +155,7 @@ class H11Protocol(asyncio.Protocol):
             event = h11.ConnectionClosed()
             try:
                 self.conn.send(event)
-            except h11.LocalProtocolError:
+            except h11.LocalProtocolError as exc:
                 # Premature client disconnect
                 pass
 
@@ -177,7 +176,7 @@ class H11Protocol(asyncio.Protocol):
         while True:
             try:
                 event = self.conn.next_event()
-            except h11.RemoteProtocolError:
+            except h11.RemoteProtocolError as exc:
                 msg = "Invalid HTTP request received."
                 self.logger.warning(msg)
                 self.transport.close()
@@ -393,10 +392,9 @@ class RequestResponseCycle:
         try:
             asgi = app(self.scope)
             result = await asgi(self.receive, self.send)
-        except:
-            msg = "Exception in ASGI application\n%s"
-            traceback_text = "".join(traceback.format_exc())
-            self.logger.error(msg, traceback_text)
+        except BaseException as exc:
+            msg = "Exception in ASGI application\n"
+            self.logger.error(msg, exc_info=exc)
             if not self.response_started:
                 await self.send_500_response()
             else:
