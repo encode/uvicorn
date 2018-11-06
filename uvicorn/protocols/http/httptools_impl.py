@@ -3,6 +3,7 @@ from email.utils import formatdate
 import http
 import logging
 import time
+import urllib
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 import httptools
@@ -217,7 +218,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         parsed_url = httptools.parse_url(url)
         path = parsed_url.path.decode("ascii")
         if '%' in path:
-            path = unquote(path)
+            path = urllib.parse.unquote(path)
         self.url = url
         self.expect_100_continue = False
         self.headers = []
