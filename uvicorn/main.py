@@ -382,7 +382,7 @@ class Server:
         else:
             # Standard case. Create a socket from a host/port pair.
             self.server = await self.loop.create_server(
-                self.create_protocol, host=self.host, port=self.port
+                self.create_protocol, host=self.host, port=self.port, reuse_port=False
             )
             message = "Uvicorn running on http://%s:%d (Press CTRL+C to quit)"
             self.logger.info(message % (self.host, self.port))
