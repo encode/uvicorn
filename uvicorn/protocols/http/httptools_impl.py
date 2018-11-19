@@ -472,7 +472,7 @@ class RequestResponseCycle:
                     self.keep_alive = False
                 content.extend([name, b": ", value, b"\r\n"])
 
-            if self.chunked_encoding is None:
+            if self.chunked_encoding is None and self.scope["method"] != 'HEAD' and status_code not in (204, 304):
                 # Neither content-length nor transfer-encoding specified
                 self.chunked_encoding = True
                 content.append(b"transfer-encoding: chunked\r\n")
