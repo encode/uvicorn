@@ -219,7 +219,7 @@ class EchoMethodAndPath():
     def __init__(self, scope):
         self.scope = scope
 
-    async def __call__(self, recieve, send):
+    async def __call__(self, receive, send):
         body = 'Received %s request to %s' % (self.scope['method'], self.scope['path'])
         await send({
             'type': 'http.response.start',
