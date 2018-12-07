@@ -167,7 +167,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             if message_type == "websocket.accept":
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
-                    self.scope["server"][0],
+                    self.scope["client"],
                     self.scope["path"],
                 )
                 self.initial_response = None
@@ -177,7 +177,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             elif message_type == "websocket.close":
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
-                    self.scope["server"][0],
+                    self.scope["client"],
                     self.scope["path"],
                 )
                 self.initial_response = (http.HTTPStatus.FORBIDDEN, [], b'')
