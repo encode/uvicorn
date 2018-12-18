@@ -354,6 +354,9 @@ class Server:
             self.logger.info("Waiting for application startup.")
             self.loop.create_task(self.lifespan.run())
             self.loop.run_until_complete(self.lifespan.wait_startup())
+            if self.lifespan.error_occured:
+                self.logger.error("Application startup failed. Exiting.")
+                return
         else:
             self.logger.debug("Lifespan protocol is not recognized by the application")
         self.loop.run_until_complete(self.create_server())

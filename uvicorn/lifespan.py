@@ -13,6 +13,7 @@ class Lifespan:
         self.startup_event = asyncio.Event()
         self.shutdown_event = asyncio.Event()
         self.receive_queue = asyncio.Queue()
+        self.error_occured = False
         try:
             self.asgi = app({'type': 'lifespan'})
         except BaseException as exc:
@@ -28,8 +29,9 @@ class Lifespan:
             await self.asgi(self.receive, self.send)
         except BaseException as exc:
             msg = "Exception in 'lifespan' protocol\n"
-            self.logger.debug(msg, exc_info=exc)
+            self.logger.error(msg, exc_info=exc)
             self.asgi = None
+            self.error_occured = True
         finally:
             self.startup_event.set()
             self.shutdown_event.set()

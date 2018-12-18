@@ -6,7 +6,8 @@ import threading
 def test_run():
     class App:
         def __init__(self, scope):
-            pass
+            if scope['type'] != 'http':
+                raise Exception()
 
         async def __call__(self, receive, send):
             await send({"type": "http.response.start", "status": 204, "headers": []})
