@@ -364,16 +364,9 @@ with application code still running in a standard threaded context.
 
 ### FastAPI
 
-[**FastAPI**](https://github.com/tiangolo/fastapi) is an API framework based on **Starlette** and **Pydantic**.
+[**FastAPI**](https://github.com/tiangolo/fastapi) is an API framework based on **Starlette** and **Pydantic**, heavily inspired by previous server versions of **APIStar**.
 
-It is heavily inspired by previous server versions of **APIStar**. You write your endpoint / route / operation function parameters with Python 3.6+ type declarations and you get (from that single declaration):
-
-* Editor support (with completion and type checks).
-* Data conversion (parsing, serialization).
-* Data validation.
-* Automatic **OpenAPI 3** schemas (including **JSON Schema**).
-
-It also includes 2 web user interfaces with automatic interactive API documentation and is fully compatible with **Starlette**, so, you can use all the other Starlette's features too.
+You write your API function parameters with Python 3.6+ type declarations and get automatic data conversion, data validation, OpenAPI schemas (with JSON Schemas) and interactive API documentation UIs.
 
 
 [uvloop]: https://github.com/MagicStack/uvloop
