@@ -362,6 +362,13 @@ with application code still running in a standard threaded context.
 
 [Quart](https://pgjones.gitlab.io/quart/) is a Flask-like ASGI web framework.
 
+### FastAPI
+
+[**FastAPI**](https://github.com/tiangolo/fastapi) is an API framework based on **Starlette** and **Pydantic**, heavily inspired by previous server versions of **APIStar**.
+
+You write your API function parameters with Python 3.6+ type declarations and get automatic data conversion, data validation, OpenAPI schemas (with JSON Schemas) and interactive API documentation UIs.
+
+
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
 [gunicorn]: http://gunicorn.org/
