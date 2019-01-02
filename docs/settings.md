@@ -48,3 +48,7 @@ equivalent keyword arguments, eg. `uvicorn.run(App, port=5000, debug=True, acces
 ## Timeouts
 
 * `--timeout-keep-alive` - Close Keep-Alive connections if no new data is received within this timeout. **Default:** *5*.
+
+## Lifespan
+
+* `--disable-lifespan` - Disable lifespan events (such as startup and shutdown) within an ASGI application.
