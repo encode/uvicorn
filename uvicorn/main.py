@@ -154,7 +154,6 @@ def get_logger(log_level):
     is_flag=True,
     default=False,
     help="Disable lifespan events (such as startup and shutdown) within an ASGI application.",
-    show_default=True,
 )
 def main(
     app,
