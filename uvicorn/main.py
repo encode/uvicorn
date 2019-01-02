@@ -150,7 +150,7 @@ def get_logger(log_level):
     show_default=True,
 )
 @click.option(
-    "--enable-lifespan",
+    "--disable-lifespan",
     is_flag=True,
     default=False,
     help="Enable lifespan events such as startup and shutdown within an ASGI application.",
@@ -174,7 +174,7 @@ def main(
     limit_concurrency: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
-    enable_lifespan: bool,
+    disable_lifespan: bool,
 ):
     sys.path.insert(0, ".")
 
@@ -196,7 +196,7 @@ def main(
         "limit_concurrency": limit_concurrency,
         "limit_max_requests": limit_max_requests,
         "timeout_keep_alive": timeout_keep_alive,
-        "enable_lifespan": enable_lifespan,
+        "disable_lifespan": disable_lifespan,
     }
 
     if debug:
@@ -225,7 +225,7 @@ def run(
     root_path="",
     limit_concurrency=None,
     limit_max_requests=None,
-    enable_lifespan=False,
+    disable_lifespan=False,
     timeout_keep_alive=5,
     install_signal_handlers=True,
     ready_event=None,
@@ -296,7 +296,7 @@ def run(
         tasks=tasks,
         state=state,
         limit_max_requests=limit_max_requests,
-        enable_lifespan=enable_lifespan,
+        disable_lifespan=disable_lifespan,
         create_protocol=create_protocol,
         on_tick=http_protocol_class.tick,
         install_signal_handlers=install_signal_handlers,
@@ -319,7 +319,7 @@ class Server:
         tasks,
         state,
         limit_max_requests,
-        enable_lifespan,
+        disable_lifespan,
         create_protocol,
         on_tick,
         install_signal_handlers,
@@ -336,7 +336,7 @@ class Server:
         self.tasks = tasks
         self.state = state
         self.limit_max_requests = limit_max_requests
-        self.enable_lifespan = enable_lifespan
+        self.disable_lifespan = disable_lifespan
         self.create_protocol = create_protocol
         self.on_tick = on_tick
         self.install_signal_handlers = install_signal_handlers
@@ -362,7 +362,7 @@ class Server:
     def run(self):
         self.logger.info("Started server process [{}]".format(self.pid))
         self.set_signal_handlers()
-        if self.enable_lifespan:
+        if not self.disable_lifespan:
             self.lifespan = Lifespan(self.app, self.logger)
             if self.lifespan.is_enabled:
                 self.logger.info("Waiting for application startup.")
@@ -434,10 +434,9 @@ class Server:
             while self.tasks:
                 await asyncio.sleep(0.1)
 
-        if self.enable_lifespan:
-            if self.lifespan.is_enabled:
-                self.logger.info("Waiting for application shutdown.")
-                await self.lifespan.wait_shutdown()
+        if not self.disable_lifespan and self.lifespan.is_enabled:
+            self.logger.info("Waiting for application shutdown.")
+            await self.lifespan.wait_shutdown()
 
         self.loop.stop()
 
