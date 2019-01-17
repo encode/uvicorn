@@ -494,7 +494,7 @@ class RequestResponseCycle:
                 self.expected_content_length = 0
             elif self.chunked_encoding:
                 content = [b"%x\r\n" % len(body), body, b"\r\n"]
-                if not more_body:
+                if not more_body and len(body) > 0:
                     content.append(b"0\r\n\r\n")
                 self.transport.write(b"".join(content))
             else:

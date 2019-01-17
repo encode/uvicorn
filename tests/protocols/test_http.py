@@ -1,9 +1,10 @@
+import re
+
 from tests.response import Response
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 import asyncio
-import h11
 import pytest
 
 
@@ -237,6 +238,21 @@ def test_chunked_encoding(protocol_cls):
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"0\r\n\r\n" in protocol.transport.buffer
+    assert not protocol.transport.is_closing()
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_chunked_encoding_empty_body(protocol_cls):
+    def app(scope):
+        return Response(
+            b"", status_code=200, headers={"transfer-encoding": "chunked"}
+        )
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert len(re.findall(b"(?=\r\n\r\n0\r\n\r\n)", protocol.transport.buffer)) == 1
     assert not protocol.transport.is_closing()
 
 
