@@ -1,3 +1,4 @@
+from uvicorn.global_state import GlobalState
 from uvicorn.importer import import_from_string, ImportFromStringError
 from uvicorn.lifespan import Lifespan
 from uvicorn.middleware.debug import DebugMiddleware
@@ -227,7 +228,7 @@ def run(
     disable_lifespan=False,
     timeout_keep_alive=5,
     install_signal_handlers=True,
-    ready_event=None,
+    global_state=None,
 ):
 
     if fd is None:
@@ -264,9 +265,8 @@ def run(
     if proxy_headers:
         app = ProxyHeadersMiddleware(app)
 
-    connections = set()
-    tasks = set()
-    state = {"total_requests": 0}
+    if global_state is None:
+        global_state = GlobalState()
 
     def create_protocol():
         return http_protocol_class(
@@ -274,9 +274,7 @@ def run(
             loop=loop,
             logger=logger,
             access_log=access_log,
-            connections=connections,
-            tasks=tasks,
-            state=state,
+            global_state=global_state,
             ws_protocol_class=ws_protocol_class,
             root_path=root_path,
             limit_concurrency=limit_concurrency,
@@ -291,15 +289,12 @@ def run(
         sock=sock,
         logger=logger,
         loop=loop,
-        connections=connections,
-        tasks=tasks,
-        state=state,
+        global_state=global_state,
         limit_max_requests=limit_max_requests,
         disable_lifespan=disable_lifespan,
         create_protocol=create_protocol,
         on_tick=http_protocol_class.tick,
         install_signal_handlers=install_signal_handlers,
-        ready_event=ready_event,
     )
     server.run()
 
@@ -314,15 +309,12 @@ class Server:
         sock,
         logger,
         loop,
-        connections,
-        tasks,
-        state,
+        global_state,
         limit_max_requests,
         disable_lifespan,
         create_protocol,
         on_tick,
         install_signal_handlers,
-        ready_event,
     ):
         self.app = app
         self.host = host
@@ -331,15 +323,12 @@ class Server:
         self.sock = sock
         self.logger = logger
         self.loop = loop
-        self.connections = connections
-        self.tasks = tasks
-        self.state = state
+        self.global_state = global_state
         self.limit_max_requests = limit_max_requests
         self.disable_lifespan = disable_lifespan
         self.create_protocol = create_protocol
         self.on_tick = on_tick
         self.install_signal_handlers = install_signal_handlers
-        self.ready_event = ready_event
         self.should_exit = False
         self.pid = os.getpid()
 
@@ -376,8 +365,7 @@ class Server:
                 )
         self.loop.run_until_complete(self.create_server())
         self.loop.create_task(self.tick())
-        if self.ready_event is not None:
-            self.ready_event.set()
+        self.global_state.started.set()
         self.loop.run_forever()
 
     async def create_server(self):
@@ -411,7 +399,7 @@ class Server:
         while not self.should_exit:
             if (
                 should_limit_requests
-                and self.state["total_requests"] >= self.limit_max_requests
+                and self.global_state.total_requests >= self.limit_max_requests
             ):
                 break
             self.on_tick()
@@ -420,17 +408,17 @@ class Server:
         self.logger.info("Stopping server process [{}]".format(self.pid))
         self.server.close()
         await self.server.wait_closed()
-        for connection in list(self.connections):
+        for connection in list(self.global_state.connections):
             connection.shutdown()
 
         await asyncio.sleep(0.1)
-        if self.connections:
+        if self.global_state.connections:
             self.logger.info("Waiting for connections to close.")
-            while self.connections:
+            while self.global_state.connections:
                 await asyncio.sleep(0.1)
-        if self.tasks:
+        if self.global_state.tasks:
             self.logger.info("Waiting for background tasks to complete.")
-            while self.tasks:
+            while self.global_state.tasks:
                 await asyncio.sleep(0.1)
 
         if not self.disable_lifespan and self.lifespan.is_enabled:

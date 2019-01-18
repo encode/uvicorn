@@ -9,6 +9,7 @@ import sys
 import uvloop
 
 from gunicorn.workers.base import Worker
+from uvicorn.global_state import GlobalState
 from uvicorn.lifespan import Lifespan
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -109,20 +110,18 @@ class UvicornWorker(Worker):
         ssl_ctx = self.create_ssl_context(self.cfg) if self.cfg.is_ssl else None
 
         for sock in self.sockets:
-            state = {"total_requests": 0}
-            connections = set()
+            global_state = GlobalState()
             protocol = functools.partial(
                 self.protocol_class,
                 app=app,
                 loop=loop,
-                connections=connections,
-                state=state,
+                global_state=global_state,
                 logger=self.log,
                 ws_protocol_class=WebSocketProtocol,
                 timeout_keep_alive=self.cfg.keepalive
             )
             server = await loop.create_server(protocol, sock=sock, ssl=ssl_ctx)
-            self.servers.append((server, state))
+            self.servers.append((server, global_state))
 
     def create_ssl_context(self, cfg):
         ctx = ssl.SSLContext(cfg.ssl_version)
@@ -145,7 +144,7 @@ class UvicornWorker(Worker):
             if cycle == 0:
                 self.notify()
 
-            req_count = sum([state["total_requests"] for server, state in self.servers])
+            req_count = sum([state.total_requests for server, state in self.servers])
             if self.max_requests and req_count > self.max_requests:
                 self.alive = False
                 self.log.info("Max requests exceeded, shutting down: %s", self)

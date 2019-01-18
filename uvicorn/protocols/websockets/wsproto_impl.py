@@ -9,13 +9,17 @@ import wsproto.extensions
 
 
 class WSProtocol(asyncio.Protocol):
-    def __init__(self, app, connections=None, tasks=None, loop=None, logger=None):
+    def __init__(self, app, global_state=None, loop=None, logger=None):
         self.app = app
         self.root_path = ''
-        self.connections = set() if connections is None else connections
-        self.tasks = set() if tasks is None else tasks
         self.loop = loop or asyncio.get_event_loop()
         self.logger = logger or logging.getLogger("uvicorn")
+
+        # Global state
+        if global_state is None:
+            global_state = GlobalState()
+        self.connections = global_state.connections
+        self.tasks = global_state.tasks
 
         # Connection state
         self.transport = None
