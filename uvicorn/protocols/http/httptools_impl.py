@@ -493,7 +493,10 @@ class RequestResponseCycle:
             if self.scope["method"] == "HEAD":
                 self.expected_content_length = 0
             elif self.chunked_encoding:
-                content = [b"%x\r\n" % len(body), body, b"\r\n"]
+                if body:
+                    content = [b"%x\r\n" % len(body), body, b"\r\n"]
+                else:
+                    content = []
                 if not more_body:
                     content.append(b"0\r\n\r\n")
                 self.transport.write(b"".join(content))
