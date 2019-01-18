@@ -483,7 +483,7 @@ class RequestResponseCycle:
 
             # Write response body
             if self.scope["method"] == "HEAD":
-                event = h11.Data()
+                event = h11.Data(data=b'')
             else:
                 event = h11.Data(data=body)
             output = self.conn.send(event)
