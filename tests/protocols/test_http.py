@@ -242,30 +242,30 @@ def test_chunked_encoding(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_chunked_encoding_empty_body(protocol_cls):
-    class App():
-        def __init__(self, scope):
-            assert scope['type'] == 'http'
-            self.scope = scope
+    def app(scope):
+        return Response(
+            b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
+        )
 
-        async def __call__(self, receive, send):
-            await send({
-                'type': 'http.response.start',
-                'status': 200,
-                'headers': [
-                    [b'content-type', b'text/plain'],
-                ],
-            })
-            await send({
-                'type': 'http.response.body',
-                'body': b'',
-            })
-
-    protocol = get_connected_protocol(App, protocol_cls)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-    print(protocol.transport.buffer)
     assert protocol.transport.buffer.count(b'0\r\n\r\n') == 1
+    assert not protocol.transport.is_closing()
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_chunked_encoding_head_request(protocol_cls):
+    def app(scope):
+        return Response(
+            b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
+        )
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(SIMPLE_HEAD_REQUEST)
+    protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert not protocol.transport.is_closing()
 
 
