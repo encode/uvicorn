@@ -226,7 +226,7 @@ def test_close(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
-def test_chunked_encoding(protocol_cls):
+def test_chunked_encoding_get_request(protocol_cls):
     def app(scope):
         return Response(
             b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
@@ -237,6 +237,20 @@ def test_chunked_encoding(protocol_cls):
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"0\r\n\r\n" in protocol.transport.buffer
+    assert not protocol.transport.is_closing()
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+def test_chunked_encoding_head_request(protocol_cls):
+    def app(scope):
+        return Response(
+            b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
+        )
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(SIMPLE_HEAD_REQUEST)
+    protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert not protocol.transport.is_closing()
 
 
