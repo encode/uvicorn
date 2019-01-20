@@ -183,6 +183,7 @@ def main(
         "access_log": not no_access_log,
         "wsgi": wsgi,
         "debug": debug,
+        "use_reloader": debug,
         "proxy_headers": proxy_headers,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
@@ -190,17 +191,7 @@ def main(
         "timeout_keep_alive": timeout_keep_alive,
     }
 
-    if debug:
-        run_with_reloader(**kwargs)
-    else:
-        run(**kwargs)
-
-
-def run_with_reloader(**kwargs):
-    log_level = kwargs.get("log_level", "info")
-    logger = get_logger(log_level)
-    reloader = StatReload(logger)
-    reloader.run(run, kwargs)
+    run(**kwargs)
 
 
 def run(
@@ -217,6 +208,7 @@ def run(
     access_log=True,
     wsgi=False,
     debug=False,
+    use_reloader=False,
     proxy_headers=False,
     root_path="",
     limit_concurrency=None,
@@ -296,7 +288,12 @@ def run(
         install_signal_handlers=install_signal_handlers,
         ready_event=ready_event,
     )
-    server.run()
+
+    if use_reloader:
+        reloader = StatReload(logger)
+        reloader.run(server.run, {})
+    else:
+        server.run()
 
 
 class Server:
