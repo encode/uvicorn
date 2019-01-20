@@ -20,6 +20,12 @@ class StatReload:
     def handle_exit(self, sig, frame):
         self.should_exit = True
 
+    @staticmethod
+    def handle_fds(target, fd_stdin, **kwargs):
+        """Handle stdin in subprocess for pdb."""
+        sys.stdin = os.fdopen(fd_stdin)
+        target(**kwargs)
+
     def run(self, target, kwargs):
         pid = os.getpid()
 
@@ -28,7 +34,12 @@ class StatReload:
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.handle_exit)
 
-        process = multiprocessing.Process(target=target, kwargs=kwargs)
+        def get_subprocess():
+            return multiprocessing.Process(target=self.handle_fds,
+                                           args=(target, sys.stdin.fileno()),
+                                           kwargs=kwargs)
+
+        process = get_subprocess()
         process.start()
 
         while process.is_alive() and not self.should_exit:
@@ -37,7 +48,8 @@ class StatReload:
                 self.clear()
                 os.kill(process.pid, signal.SIGTERM)
                 process.join()
-                process = multiprocessing.Process(target=target, kwargs=kwargs)
+
+                process = get_subprocess()
                 process.start()
 
         self.logger.info("Stopping reloader process [{}]".format(pid))
