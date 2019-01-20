@@ -191,11 +191,16 @@ def main(
     }
 
     if debug:
-        logger = get_logger(log_level)
-        reloader = StatReload(logger)
-        reloader.run(run, kwargs)
+        run_with_reloader(**kwargs)
     else:
         run(**kwargs)
+
+
+def run_with_reloader(**kwargs):
+    log_level = kwargs.get("log_level", "info")
+    logger = get_logger(log_level)
+    reloader = StatReload(logger)
+    reloader.run(run, kwargs)
 
 
 def run(
