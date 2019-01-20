@@ -291,7 +291,7 @@ def run(
 
     if use_reloader:
         reloader = StatReload(logger)
-        reloader.run(server.run, {})
+        reloader.run(server.run)
     else:
         server.run()
 

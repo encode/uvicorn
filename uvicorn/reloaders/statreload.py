@@ -20,7 +20,7 @@ class StatReload:
     def handle_exit(self, sig, frame):
         self.should_exit = True
 
-    def run(self, target, kwargs):
+    def run(self, target):
         pid = os.getpid()
 
         self.logger.info("Started reloader process [{}]".format(pid))
@@ -28,7 +28,7 @@ class StatReload:
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.handle_exit)
 
-        process = multiprocessing.Process(target=target, kwargs=kwargs)
+        process = multiprocessing.Process(target=target)
         process.start()
 
         while process.is_alive() and not self.should_exit:
@@ -37,7 +37,7 @@ class StatReload:
                 self.clear()
                 os.kill(process.pid, signal.SIGTERM)
                 process.join()
-                process = multiprocessing.Process(target=target, kwargs=kwargs)
+                process = multiprocessing.Process(target=target)
                 process.start()
 
         self.logger.info("Stopping reloader process [{}]".format(pid))
