@@ -181,7 +181,6 @@ def run(**kwargs):
         global_state = GlobalState()
 
     config = Config(**kwargs)
-    print(config, global_state)
 
     server = Server(config=config, global_state=global_state)
     server.run()
