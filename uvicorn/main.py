@@ -1,4 +1,4 @@
-from uvicorn.config import Config, LOG_LEVELS, HTTP_PROTOCOLS, WS_PROTOCOLS, LOOP_SETUPS
+from uvicorn.config import get_logger, Config, LOG_LEVELS, HTTP_PROTOCOLS, WS_PROTOCOLS, LOOP_SETUPS
 from uvicorn.global_state import GlobalState
 from uvicorn.lifespan import Lifespan
 from uvicorn.reloaders.statreload import StatReload
