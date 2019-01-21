@@ -9,6 +9,7 @@ import sys
 import uvloop
 
 from gunicorn.workers.base import Worker
+from uvicorn.config import Config
 from uvicorn.global_state import GlobalState
 from uvicorn.lifespan import Lifespan
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
