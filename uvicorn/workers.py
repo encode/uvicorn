@@ -111,7 +111,7 @@ class UvicornWorker(Worker):
             app=app,
             loop=loop,
             logger=self.log,
-            ws_protocol_class=WebSocketProtocol,
+            ws='websockets',
             timeout_keep_alive=gunicorn_cfg.keepalive
         )
         ssl_ctx = self.create_ssl_context(self.cfg) if self.cfg.is_ssl else None
