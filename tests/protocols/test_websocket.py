@@ -1,3 +1,4 @@
+from uvicorn.global_state import GlobalState
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
@@ -37,7 +38,8 @@ def run_server(app, protocol_cls):
     tasks = set()
     asyncio.set_event_loop(None)
     loop = asyncio.new_event_loop()
-    protocol = functools.partial(H11Protocol, app=app, loop=loop, tasks=tasks, ws_protocol_class=protocol_cls)
+    global_state = GlobalState()
+    protocol = functools.partial(H11Protocol, app=app, loop=loop, global_state=global_state, ws_protocol_class=protocol_cls)
     create_server_task = loop.create_server(protocol, host="127.0.0.1")
     server = loop.run_until_complete(create_server_task)
     url = "ws://127.0.0.1:%d/" % server.sockets[0].getsockname()[1]

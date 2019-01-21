@@ -4,6 +4,7 @@ import http
 import logging
 import time
 import urllib
+from uvicorn.global_state import GlobalState
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 import httptools
@@ -87,9 +88,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self,
         app,
         loop=None,
-        connections=None,
-        tasks=None,
-        state=None,
+        global_state=None,
         logger=None,
         access_log=True,
         ws_protocol_class=None,
@@ -99,9 +98,6 @@ class HttpToolsProtocol(asyncio.Protocol):
     ):
         self.app = app
         self.loop = loop or asyncio.get_event_loop()
-        self.connections = set() if connections is None else connections
-        self.tasks = set() if tasks is None else tasks
-        self.state = {"total_requests": 0} if state is None else state
         self.logger = logger or logging.getLogger("uvicorn")
         self.access_log = access_log and (self.logger.level <= logging.INFO)
         self.parser = httptools.HttpRequestParser(self)
@@ -112,6 +108,13 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Timeouts
         self.timeout_keep_alive_task = None
         self.timeout_keep_alive = timeout_keep_alive
+
+        # Global state
+        if global_state is None:
+            global_state = GlobalState()
+        self.global_state = global_state
+        self.connections = global_state.connections
+        self.tasks = global_state.tasks
 
         # Per-connection state
         self.transport = None
@@ -203,8 +206,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         output.append(b'\r\n')
         protocol = self.ws_protocol_class(
             app=self.app,
-            connections=self.connections,
-            tasks=self.tasks,
+            global_state=self.global_state,
             loop=self.loop,
             logger=self.logger
         )
@@ -297,7 +299,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 
     def on_response_complete(self):
         # Callback for pipelined HTTP requests to be started.
-        self.state["total_requests"] += 1
+        self.global_state.total_requests += 1
 
         if self.transport.is_closing():
             return
