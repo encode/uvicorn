@@ -98,9 +98,6 @@ class MockTransport:
     def set_protocol(self, protocol):
         pass
 
-    def set_write_buffer_limits(self, limits):
-        pass
-
 
 class MockLoop:
     def __init__(self):
@@ -212,6 +209,9 @@ def test_keepalive_timeout(protocol_cls):
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
+    assert not protocol.transport.is_closing()
+
+    protocol.loop.run_later(with_delay=1)
     assert not protocol.transport.is_closing()
 
     protocol.loop.run_later(with_delay=10)
@@ -668,7 +668,7 @@ def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_unsupported_upgrade_request(protocol_cls):
     def app(scope):
-        return Response("Hello, world", media_type="text/plain")
+        pass  # pragma: no cover
 
     protocol = get_connected_protocol(app, protocol_cls, ws="none")
     protocol.data_received(UPGRADE_REQUEST)
@@ -679,7 +679,7 @@ def test_unsupported_upgrade_request(protocol_cls):
 @pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
 def test_supported_upgrade_request(protocol_cls):
     def app(scope):
-        return Response("Hello, world", media_type="text/plain")
+        pass  # pragma: no cover
 
     protocol = get_connected_protocol(app, protocol_cls, ws="wsproto")
     protocol.data_received(UPGRADE_REQUEST)

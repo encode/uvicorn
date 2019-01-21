@@ -36,7 +36,6 @@ def run_loop(loop):
 
 @contextmanager
 def run_server(app, protocol_cls):
-    tasks = set()
     asyncio.set_event_loop(None)
     loop = asyncio.new_event_loop()
     config = Config(app=app, loop=loop, ws=protocol_cls)
@@ -53,7 +52,7 @@ def run_server(app, protocol_cls):
         yield url
     finally:
         # Close the loop from our main thread.
-        while tasks:
+        while global_state.tasks:
             time.sleep(0.01)
         loop.call_soon_threadsafe(loop.stop)
         thread.join()
@@ -105,7 +104,7 @@ def test_close_connection(protocol_cls):
             await websockets.connect(url)
         except websockets.exceptions.InvalidHandshake:
             return False
-        return True
+        return True  # pragma: no cover
 
     with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()

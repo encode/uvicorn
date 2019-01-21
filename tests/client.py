@@ -68,11 +68,10 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
 
         async def receive():
             body = request.body
-            if isinstance(body, str):
-                body_bytes = body.encode("utf-8")  # type: bytes
-            elif body is None:
+            if body is None:
                 body_bytes = b""
             else:
+                assert isinstance(body, bytes)
                 body_bytes = body
             return {"type": "http.request", "body": body_bytes}
 
