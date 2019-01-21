@@ -83,30 +83,20 @@ class ServiceUnavailable:
 
 
 class H11Protocol(asyncio.Protocol):
-    def __init__(
-        self,
-        app,
-        loop=None,
-        global_state=None,
-        logger=None,
-        access_log=True,
-        ws_protocol_class=None,
-        root_path="",
-        limit_concurrency=None,
-        timeout_keep_alive=5,
-    ):
-        self.app = app
-        self.loop = loop or asyncio.get_event_loop()
-        self.logger = logger or logging.getLogger("uvicorn")
-        self.access_log = access_log and (self.logger.level <= logging.INFO)
+    def __init__(self, config, global_state=None):
+        self.config = config
+        self.app = config.app
+        self.loop = config.loop or asyncio.get_event_loop()
+        self.logger = config.logger or logging.getLogger("uvicorn")
+        self.access_log = config.access_log and (self.logger.level <= logging.INFO)
         self.conn = h11.Connection(h11.SERVER)
-        self.ws_protocol_class = ws_protocol_class
-        self.root_path = root_path
-        self.limit_concurrency = limit_concurrency
+        self.ws_protocol_class = config.ws_protocol_class
+        self.root_path = config.root_path
+        self.limit_concurrency = config.limit_concurrency
 
         # Timeouts
         self.timeout_keep_alive_task = None
-        self.timeout_keep_alive = timeout_keep_alive
+        self.timeout_keep_alive = config.timeout_keep_alive
 
         # Global state
         if global_state is None:
@@ -294,10 +284,8 @@ class H11Protocol(asyncio.Protocol):
             output += [name, b": ", value, b"\r\n"]
         output.append(b'\r\n')
         protocol = self.ws_protocol_class(
-            app=self.app,
+            config=self.config,
             global_state=self.global_state,
-            loop=self.loop,
-            logger=self.logger
         )
         protocol.connection_made(self.transport)
         protocol.data_received(b''.join(output))

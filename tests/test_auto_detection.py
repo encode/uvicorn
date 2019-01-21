@@ -1,3 +1,4 @@
+from uvicorn.config import Config
 from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 from uvicorn.protocols.http.auto import AutoHTTPProtocol
 from uvicorn.loops.auto import auto_loop_setup
@@ -9,7 +10,8 @@ import uvloop
 
 
 def test_http_auto():
-    protocol = AutoHTTPProtocol(app=None)
+    config = Config(app=None)
+    protocol = AutoHTTPProtocol(config=config)
     assert isinstance(protocol, HttpToolsProtocol)
 
 

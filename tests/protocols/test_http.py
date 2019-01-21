@@ -1,4 +1,5 @@
 from tests.response import Response
+from uvicorn.config import Config
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
@@ -97,6 +98,9 @@ class MockTransport:
     def set_protocol(self, protocol):
         pass
 
+    def set_write_buffer_limits(self, limits):
+        pass
+
 
 class MockLoop:
     def __init__(self):
@@ -132,7 +136,8 @@ class MockTask:
 def get_connected_protocol(app, protocol_cls, **kwargs):
     loop = MockLoop()
     transport = MockTransport()
-    protocol = protocol_cls(app, loop, **kwargs)
+    config = Config(app=app, loop=loop, **kwargs)
+    protocol = protocol_cls(config=config)
     protocol.connection_made(transport)
     return protocol
 
@@ -665,7 +670,7 @@ def test_unsupported_upgrade_request(protocol_cls):
     def app(scope):
         return Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(app, protocol_cls)
+    protocol = get_connected_protocol(app, protocol_cls, ws="none")
     protocol.data_received(UPGRADE_REQUEST)
     assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
     assert b"Unsupported upgrade request." in protocol.transport.buffer
@@ -676,7 +681,7 @@ def test_supported_upgrade_request(protocol_cls):
     def app(scope):
         return Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(app, protocol_cls, ws_protocol_class=WSProtocol)
+    protocol = get_connected_protocol(app, protocol_cls, ws="wsproto")
     protocol.data_received(UPGRADE_REQUEST)
     assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
     assert b"Missing Sec-WebSocket-Version header" in protocol.transport.buffer

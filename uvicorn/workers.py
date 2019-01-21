@@ -105,20 +105,22 @@ class UvicornWorker(Worker):
         self.cfg.worker_abort(self)
 
     async def create_servers(self, loop, app):
-        cfg = self.cfg
-
+        gunicorn_cfg = self.cfg
+        config = Config(
+            app=app,
+            loop=loop,
+            logger=self.log,
+            ws_protocol_class=WebSocketProtocol,
+            timeout_keep_alive=gunicorn_cfg.keepalive
+        )
         ssl_ctx = self.create_ssl_context(self.cfg) if self.cfg.is_ssl else None
 
         for sock in self.sockets:
             global_state = GlobalState()
             protocol = functools.partial(
                 self.protocol_class,
-                app=app,
-                loop=loop,
+                config=config,
                 global_state=global_state,
-                logger=self.log,
-                ws_protocol_class=WebSocketProtocol,
-                timeout_keep_alive=self.cfg.keepalive
             )
             server = await loop.create_server(protocol, sock=sock, ssl=ssl_ctx)
             self.servers.append((server, global_state))
