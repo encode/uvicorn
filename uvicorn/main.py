@@ -199,6 +199,7 @@ class Server:
         self.on_tick = config.http_protocol_class.tick
         self.install_signal_handlers = config.install_signal_handlers
         self.should_exit = False
+        self.force_exit = False
         self.pid = os.getpid()
 
         def create_protocol():
@@ -222,7 +223,10 @@ class Server:
                 signal.signal(sig, self.handle_exit)
 
     def handle_exit(self, sig, frame):
-        self.should_exit = True
+        if self.should_exit:
+            self.force_exit = True
+        else:
+            self.should_exit = True
 
     def run(self):
         self.logger.info("Started server process [{}]".format(self.pid))
@@ -289,18 +293,21 @@ class Server:
             connection.shutdown()
 
         await asyncio.sleep(0.1)
-        if self.global_state.connections:
-            self.logger.info("Waiting for connections to close.")
-            while self.global_state.connections:
+        if self.global_state.connections and not self.force_exit:
+            self.logger.info("Waiting for connections to close. (Press CTRL+C to force quit)")
+            while self.global_state.connections and not self.force_exit:
                 await asyncio.sleep(0.1)
-        if self.global_state.tasks:
-            self.logger.info("Waiting for background tasks to complete.")
-            while self.global_state.tasks:
+        if self.global_state.tasks and not self.force_exit:
+            self.logger.info("Waiting for background tasks to complete. (Press CTRL+C to force quit)")
+            while self.global_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
 
-        if not self.disable_lifespan and self.lifespan.is_enabled:
+        if not self.disable_lifespan and self.lifespan.is_enabled and not self.force_exit:
             self.logger.info("Waiting for application shutdown.")
             await self.lifespan.wait_shutdown()
+
+        if self.force_exit:
+            self.logger.info("Forced quit.")
 
         self.loop.stop()
 
