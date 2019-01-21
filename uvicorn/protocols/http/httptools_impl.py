@@ -514,7 +514,7 @@ class RequestResponseCycle:
 
     async def receive(self):
         if self.waiting_for_100_continue and not self.transport.is_closing():
-            self.transport.write(b"HTTP/1.1 100 Continue\r\n")
+            self.transport.write(b"HTTP/1.1 100 Continue\r\n\r\n")
             self.waiting_for_100_continue = False
 
         self.flow.resume_reading()
