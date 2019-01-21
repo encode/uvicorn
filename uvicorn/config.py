@@ -121,7 +121,7 @@ class Config:
 
         if self.wsgi:
             self.app = WSGIMiddleware(self.app)
-            ws_protocol_class = None
+            self.ws_protocol_class = None
         if self.debug:
             self.app = DebugMiddleware(self.app)
         if self.logger.level <= logging.DEBUG:
