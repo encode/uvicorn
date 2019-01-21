@@ -1,10 +1,6 @@
 from uvicorn.config import Config, LOG_LEVELS, HTTP_PROTOCOLS, WS_PROTOCOLS, LOOP_SETUPS
 from uvicorn.global_state import GlobalState
 from uvicorn.lifespan import Lifespan
-from uvicorn.middleware.debug import DebugMiddleware
-from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-from uvicorn.middleware.message_logger import MessageLoggerMiddleware
-from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.reloaders.statreload import StatReload
 import asyncio
 import click
