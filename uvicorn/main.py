@@ -1,5 +1,5 @@
+from uvicorn.config import Config, LOG_LEVELS, HTTP_PROTOCOLS, WS_PROTOCOLS, LOOP_SETUPS
 from uvicorn.global_state import GlobalState
-from uvicorn.importer import import_from_string, ImportFromStringError
 from uvicorn.lifespan import Lifespan
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -17,30 +17,6 @@ import time
 import multiprocessing
 
 
-LOG_LEVELS = {
-    "critical": logging.CRITICAL,
-    "error": logging.ERROR,
-    "warning": logging.WARNING,
-    "info": logging.INFO,
-    "debug": logging.DEBUG,
-}
-HTTP_PROTOCOLS = {
-    "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
-    "h11": "uvicorn.protocols.http.h11_impl:H11Protocol",
-    "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
-}
-WS_PROTOCOLS = {
-    "none": None,
-    "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",
-    "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
-    "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
-}
-LOOP_SETUPS = {
-    "auto": "uvicorn.loops.auto:auto_loop_setup",
-    "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
-    "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
-}
-
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
 WS_CHOICES = click.Choice(WS_PROTOCOLS.keys())
@@ -50,15 +26,6 @@ HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
 )
-
-
-def get_logger(log_level):
-    if isinstance(log_level, str):
-        log_level = LOG_LEVELS[log_level]
-    logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
-    logger = logging.getLogger("uvicorn")
-    logger.setLevel(log_level)
-    return logger
 
 
 @click.command()
@@ -207,130 +174,45 @@ def main(
         run(**kwargs)
 
 
-def run(
-    app,
-    host="127.0.0.1",
-    port=8000,
-    uds=None,
-    fd=None,
-    loop="auto",
-    http="auto",
-    ws="auto",
-    log_level="info",
-    logger=None,
-    access_log=True,
-    wsgi=False,
-    debug=False,
-    proxy_headers=False,
-    root_path="",
-    limit_concurrency=None,
-    limit_max_requests=None,
-    disable_lifespan=False,
-    timeout_keep_alive=5,
-    install_signal_handlers=True,
-    global_state=None,
-):
-
-    if fd is None:
-        sock = None
+def run(**kwargs):
+    if 'global_state' in kwargs:
+        global_state = kwargs.pop('global_state')
     else:
-        host = None
-        port = None
-        sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
-
-    if logger is None:
-        logger = get_logger(log_level)
-    else:
-        assert log_level == "info", "Cannot set both 'logger' and 'log_level'"
-    http_protocol_class = import_from_string(HTTP_PROTOCOLS[http])
-    ws_protocol_class = import_from_string(WS_PROTOCOLS[ws])
-
-    if isinstance(loop, str):
-        loop_setup = import_from_string(LOOP_SETUPS[loop])
-        loop = loop_setup()
-
-    try:
-        app = import_from_string(app)
-    except ImportFromStringError as exc:
-        click.echo("Error loading ASGI app. %s" % exc)
-        sys.exit(1)
-
-    if wsgi:
-        app = WSGIMiddleware(app)
-        ws_protocol_class = None
-    if debug:
-        app = DebugMiddleware(app)
-    if logger.level <= logging.DEBUG:
-        app = MessageLoggerMiddleware(app)
-    if proxy_headers:
-        app = ProxyHeadersMiddleware(app)
-
-    if global_state is None:
         global_state = GlobalState()
 
-    def create_protocol():
-        return http_protocol_class(
-            app=app,
-            loop=loop,
-            logger=logger,
-            access_log=access_log,
-            global_state=global_state,
-            ws_protocol_class=ws_protocol_class,
-            root_path=root_path,
-            limit_concurrency=limit_concurrency,
-            timeout_keep_alive=timeout_keep_alive,
-        )
+    config = Config(**kwargs)
+    print(config, global_state)
 
-    server = Server(
-        app=app,
-        host=host,
-        port=port,
-        uds=uds,
-        sock=sock,
-        logger=logger,
-        loop=loop,
-        global_state=global_state,
-        limit_max_requests=limit_max_requests,
-        disable_lifespan=disable_lifespan,
-        create_protocol=create_protocol,
-        on_tick=http_protocol_class.tick,
-        install_signal_handlers=install_signal_handlers,
-    )
+    server = Server(config=config, global_state=global_state)
     server.run()
 
 
 class Server:
-    def __init__(
-        self,
-        app,
-        host,
-        port,
-        uds,
-        sock,
-        logger,
-        loop,
-        global_state,
-        limit_max_requests,
-        disable_lifespan,
-        create_protocol,
-        on_tick,
-        install_signal_handlers,
-    ):
-        self.app = app
-        self.host = host
-        self.port = port
-        self.uds = uds
-        self.sock = sock
-        self.logger = logger
-        self.loop = loop
+    def __init__(self, config, global_state):
+        self.config = config
         self.global_state = global_state
-        self.limit_max_requests = limit_max_requests
-        self.disable_lifespan = disable_lifespan
-        self.create_protocol = create_protocol
-        self.on_tick = on_tick
-        self.install_signal_handlers = install_signal_handlers
+
+        self.app = config.app
+        self.host = config.host
+        self.port = config.port
+        self.uds = config.uds
+        self.sock = config.sock
+        self.logger = config.logger
+        self.loop = config.loop
+        self.limit_max_requests = config.limit_max_requests
+        self.disable_lifespan = config.disable_lifespan
+        self.on_tick = config.http_protocol_class.tick
+        self.install_signal_handlers = config.install_signal_handlers
         self.should_exit = False
         self.pid = os.getpid()
+
+        def create_protocol():
+            return config.http_protocol_class(
+                config=config,
+                global_state=global_state
+            )
+
+        self.create_protocol = create_protocol
 
     def set_signal_handlers(self):
         if not self.install_signal_handlers:

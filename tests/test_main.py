@@ -15,6 +15,7 @@ def test_run():
             await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     state = GlobalState()
+
     thread = threading.Thread(
         target=run,
         kwargs={
