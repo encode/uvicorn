@@ -507,13 +507,13 @@ class RequestResponseCycle:
             self.transport.write(output)
             self.waiting_for_100_continue = False
 
-        self.flow.resume_reading()
-        await self.message_event.wait()
-        self.message_event.clear()
-
         if self.disconnected or self.response_complete:
             message = {"type": "http.disconnect"}
         else:
+            self.flow.resume_reading()
+            await self.message_event.wait()
+            self.message_event.clear()
+
             message = {
                 "type": "http.request",
                 "body": self.body,
