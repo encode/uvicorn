@@ -12,7 +12,7 @@ def hello_world(scope):
 
 
 def test_explicit_base_url():
-    client = TestClient(hello_world, base_url = "http://testserver:321")
+    client = TestClient(hello_world, base_url="http://testserver:321")
     response = client.get('/')
     assert response.status_code == 200
     assert response.text == 'hello, world'

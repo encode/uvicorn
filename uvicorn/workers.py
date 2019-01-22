@@ -137,7 +137,6 @@ class UvicornWorker(Worker):
         return ctx
 
     async def tick(self, loop):
-        pid = os.getpid()
         cycle = 0
 
         while self.alive:

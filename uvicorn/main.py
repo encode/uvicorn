@@ -6,11 +6,7 @@ import asyncio
 import click
 import signal
 import os
-import logging
-import socket
 import sys
-import time
-import multiprocessing
 
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())

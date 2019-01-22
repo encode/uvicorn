@@ -15,3 +15,11 @@ script:
 
 after_script:
     - codecov
+
+jobs:
+    include:
+        - stage: style
+          install: skip
+          script:
+              - pip install flake8
+              - flake8 .

@@ -33,7 +33,7 @@ def raise_exception(environ, start_response):
 def return_exc_info(environ, start_response):
     try:
         raise RuntimeError('Something went wrong')
-    except:
+    except RuntimeError:
         status = '500 Internal Server Error'
         output = b'Internal Server Error'
         headers = [

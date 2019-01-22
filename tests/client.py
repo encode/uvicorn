@@ -112,7 +112,6 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         return self.build_response(request, raw)
 
 
-
 class _TestClient(requests.Session):
     def __init__(self, app: typing.Callable, base_url: str, raise_server_exceptions=True) -> None:
         super(_TestClient, self).__init__()

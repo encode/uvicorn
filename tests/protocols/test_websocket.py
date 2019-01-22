@@ -163,7 +163,7 @@ def test_send_and_close_connection(protocol_cls):
             is_open = True
             try:
                 await websocket.recv()
-            except:
+            except Exception:
                 is_open = False
             return (data, is_open)
 
@@ -235,7 +235,7 @@ def test_send_after_protocol_close(protocol_cls):
             is_open = True
             try:
                 await websocket.recv()
-            except:
+            except Exception:
                 is_open = False
             return (data, is_open)
 
@@ -252,6 +252,7 @@ def test_missing_handshake(protocol_cls):
     class App:
         def __init__(self, scope):
             pass
+
         async def __call__(self, receive, send):
             pass
 
@@ -271,6 +272,7 @@ def test_send_before_handshake(protocol_cls):
     class App:
         def __init__(self, scope):
             pass
+
         async def __call__(self, receive, send):
             await send({"type": "websocket.send", "text": "123"})
 
@@ -290,6 +292,7 @@ def test_duplicate_handshake(protocol_cls):
     class App:
         def __init__(self, scope):
             pass
+
         async def __call__(self, receive, send):
             await send({"type": "websocket.accept"})
             await send({"type": "websocket.accept"})
@@ -315,6 +318,7 @@ def test_asgi_return_value(protocol_cls):
     class App:
         def __init__(self, scope):
             pass
+
         async def __call__(self, receive, send):
             await send({"type": "websocket.accept"})
             return 123
