@@ -170,13 +170,13 @@ def main(
         run(**kwargs)
 
 
-def run(**kwargs):
+def run(app, **kwargs):
     if 'global_state' in kwargs:
         global_state = kwargs.pop('global_state')
     else:
         global_state = GlobalState()
 
-    config = Config(**kwargs)
+    config = Config(app, **kwargs)
 
     server = Server(config=config, global_state=global_state)
     server.run()
