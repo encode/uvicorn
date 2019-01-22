@@ -1,4 +1,5 @@
 from urllib.parse import unquote
+from uvicorn.global_state import GlobalState
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 import asyncio
 import h11

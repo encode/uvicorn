@@ -5,6 +5,7 @@ from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 import click
 import logging
+import socket
 import sys
 
 
