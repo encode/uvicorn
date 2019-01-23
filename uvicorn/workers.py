@@ -10,7 +10,7 @@ import uvloop
 
 from gunicorn.workers.base import Worker
 from uvicorn.config import Config
-from uvicorn.global_state import GlobalState
+from uvicorn.main import ServerState
 from uvicorn.lifespan import Lifespan
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -117,14 +117,14 @@ class UvicornWorker(Worker):
         ssl_ctx = self.create_ssl_context(self.cfg) if self.cfg.is_ssl else None
 
         for sock in self.sockets:
-            global_state = GlobalState()
+            server_state = ServerState()
             protocol = functools.partial(
                 self.protocol_class,
                 config=config,
-                global_state=global_state,
+                server_state=server_state,
             )
             server = await loop.create_server(protocol, sock=sock, ssl=ssl_ctx)
-            self.servers.append((server, global_state))
+            self.servers.append((server, server_state))
 
     def create_ssl_context(self, cfg):
         ctx = ssl.SSLContext(cfg.ssl_version)
