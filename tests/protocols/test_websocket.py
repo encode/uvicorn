@@ -1,5 +1,5 @@
 from uvicorn.config import Config
-from uvicorn.global_state import GlobalState
+from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
@@ -39,8 +39,8 @@ def run_server(app, protocol_cls):
     asyncio.set_event_loop(None)
     loop = asyncio.new_event_loop()
     config = Config(app=app, loop=loop, ws=protocol_cls)
-    global_state = GlobalState()
-    protocol = functools.partial(H11Protocol, config=config, global_state=global_state)
+    server_state = ServerState()
+    protocol = functools.partial(H11Protocol, config=config, server_state=server_state)
     create_server_task = loop.create_server(protocol, host="127.0.0.1")
     server = loop.run_until_complete(create_server_task)
     url = "ws://127.0.0.1:%d/" % server.sockets[0].getsockname()[1]
@@ -52,7 +52,7 @@ def run_server(app, protocol_cls):
         yield url
     finally:
         # Close the loop from our main thread.
-        while global_state.tasks:
+        while server_state.tasks:
             time.sleep(0.01)
         loop.call_soon_threadsafe(loop.stop)
         thread.join()

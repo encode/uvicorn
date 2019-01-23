@@ -4,7 +4,6 @@ import http
 import logging
 import time
 from urllib.parse import unquote
-from uvicorn.global_state import GlobalState
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 import h11
@@ -83,7 +82,7 @@ class ServiceUnavailable:
 
 
 class H11Protocol(asyncio.Protocol):
-    def __init__(self, config, global_state=None):
+    def __init__(self, config, server_state):
         if not config.loaded:
             config.load()
 
@@ -101,12 +100,10 @@ class H11Protocol(asyncio.Protocol):
         self.timeout_keep_alive_task = None
         self.timeout_keep_alive = config.timeout_keep_alive
 
-        # Global state
-        if global_state is None:
-            global_state = GlobalState()
-        self.global_state = global_state
-        self.connections = global_state.connections
-        self.tasks = global_state.tasks
+        # Shared server state
+        self.server_state = server_state
+        self.connections = server_state.connections
+        self.tasks = server_state.tasks
 
         # Per-connection state
         self.transport = None
@@ -288,14 +285,14 @@ class H11Protocol(asyncio.Protocol):
         output.append(b'\r\n')
         protocol = self.ws_protocol_class(
             config=self.config,
-            global_state=self.global_state,
+            server_state=self.server_state,
         )
         protocol.connection_made(self.transport)
         protocol.data_received(b''.join(output))
         self.transport.set_protocol(protocol)
 
     def on_response_complete(self):
-        self.global_state.total_requests += 1
+        self.server_state.total_requests += 1
 
         if self.transport.is_closing():
             return

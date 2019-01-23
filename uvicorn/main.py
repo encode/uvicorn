@@ -1,5 +1,4 @@
 from uvicorn.config import get_logger, Config, LOG_LEVELS, HTTP_PROTOCOLS, WS_PROTOCOLS, LOOP_SETUPS
-from uvicorn.global_state import GlobalState
 from uvicorn.lifespan import Lifespan
 from uvicorn.reloaders.statreload import StatReload
 import asyncio
@@ -10,6 +9,7 @@ import os
 import logging
 import socket
 import sys
+import threading
 import time
 import multiprocessing
 
@@ -172,25 +172,31 @@ def main(
 
 
 def run(app, **kwargs):
-    if 'global_state' in kwargs:
-        global_state = kwargs.pop('global_state')
-    else:
-        global_state = GlobalState()
-
     config = Config(app, **kwargs)
-    server = Server(config=config, global_state=global_state)
+    server = Server(config=config)
     server.run()
 
 
+class ServerState:
+    """
+    Shared servers state that is available between all protocol instances.
+    """
+    def __init__(self):
+        self.total_requests = 0
+        self.connections = set()
+        self.tasks = set()
+
+
 class Server:
-    def __init__(self, config, global_state):
+    def __init__(self, config):
         self.config = config
-        self.global_state = global_state
+        self.server_state = ServerState()
 
         self.limit_max_requests = config.limit_max_requests
         self.disable_lifespan = config.disable_lifespan
         self.should_exit = False
         self.force_exit = False
+        self.started = threading.Event()
         self.pid = os.getpid()
 
     def set_signal_handlers(self):
@@ -237,7 +243,7 @@ class Server:
                 )
         self.loop.run_until_complete(self.create_server())
         self.loop.create_task(self.tick())
-        self.global_state.started.set()
+        self.started.set()
         self.loop.run_forever()
 
     async def create_server(self):
@@ -246,7 +252,7 @@ class Server:
         create_protocol = functools.partial(
             config.http_protocol_class,
             config=config,
-            global_state=self.global_state
+            server_state=self.server_state
         )
 
         if config.fd is not None:
@@ -282,7 +288,7 @@ class Server:
         while not self.should_exit:
             if (
                 should_limit_requests
-                and self.global_state.total_requests >= self.limit_max_requests
+                and self.server_state.total_requests >= self.limit_max_requests
             ):
                 break
             on_tick()
@@ -291,17 +297,17 @@ class Server:
         self.logger.info("Stopping server process [{}]".format(self.pid))
         self.server.close()
         await self.server.wait_closed()
-        for connection in list(self.global_state.connections):
+        for connection in list(self.server_state.connections):
             connection.shutdown()
 
         await asyncio.sleep(0.1)
-        if self.global_state.connections and not self.force_exit:
+        if self.server_state.connections and not self.force_exit:
             self.logger.info("Waiting for connections to close. (Press CTRL+C to force quit)")
-            while self.global_state.connections and not self.force_exit:
+            while self.server_state.connections and not self.force_exit:
                 await asyncio.sleep(0.1)
-        if self.global_state.tasks and not self.force_exit:
+        if self.server_state.tasks and not self.force_exit:
             self.logger.info("Waiting for background tasks to complete. (Press CTRL+C to force quit)")
-            while self.global_state.tasks and not self.force_exit:
+            while self.server_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
 
         if not self.disable_lifespan and self.lifespan.is_enabled and not self.force_exit:

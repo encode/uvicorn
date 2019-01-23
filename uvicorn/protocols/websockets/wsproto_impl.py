@@ -9,7 +9,7 @@ import wsproto.extensions
 
 
 class WSProtocol(asyncio.Protocol):
-    def __init__(self, config, global_state=None):
+    def __init__(self, config, server_state):
         if not config.loaded:
             config.load()
 
@@ -19,11 +19,9 @@ class WSProtocol(asyncio.Protocol):
         self.logger = config.logger_instance
         self.root_path = config.root_path
 
-        # Global state
-        if global_state is None:
-            global_state = GlobalState()
-        self.connections = global_state.connections
-        self.tasks = global_state.tasks
+        # Shared server state
+        self.connections = server_state.connections
+        self.tasks = server_state.tasks
 
         # Connection state
         self.transport = None

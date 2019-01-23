@@ -1,5 +1,5 @@
-from uvicorn import run
-from uvicorn.global_state import GlobalState
+from uvicorn.main import Server
+from uvicorn.config import Config
 import requests
 import threading
 
@@ -14,20 +14,17 @@ def test_run():
             await send({"type": "http.response.start", "status": 204, "headers": []})
             await send({"type": "http.response.body", "body": b"", "more_body": False})
 
-    state = GlobalState()
-
-    thread = threading.Thread(
-        target=run,
-        kwargs={
-            "app": App,
-            "loop": "asyncio",
-            "install_signal_handlers": False,
-            "global_state": state,
-            "limit_max_requests": 1,
-        },
+    config = Config(
+        app=App,
+        loop="asyncio",
+        install_signal_handlers=False,
+        limit_max_requests=1
     )
+    server = Server(config=config)
+
+    thread = threading.Thread(target=server.run)
     thread.start()
-    state.started.wait()
+    server.started.wait()
     response = requests.get("http://127.0.0.1:8000")
     assert response.status_code == 204
     thread.join()

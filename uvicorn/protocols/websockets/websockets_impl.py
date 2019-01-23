@@ -1,5 +1,4 @@
 from urllib.parse import unquote
-from uvicorn.global_state import GlobalState
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 import asyncio
 import http
@@ -18,7 +17,7 @@ class Server:
 
 
 class WebSocketProtocol(websockets.WebSocketServerProtocol):
-    def __init__(self, config, global_state=None):
+    def __init__(self, config, server_state):
         if not config.loaded:
             config.load()
 
@@ -28,11 +27,9 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.logger = config.logger_instance
         self.root_path = config.root_path
 
-        # Global state
-        if global_state is None:
-            global_state = GlobalState()
-        self.connections = global_state.connections
-        self.tasks = global_state.tasks
+        # Shared server state
+        self.connections = server_state.connections
+        self.tasks = server_state.tasks
 
         # Connection state
         self.transport = None
