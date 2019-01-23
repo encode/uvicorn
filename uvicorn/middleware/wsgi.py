@@ -115,7 +115,11 @@ class WSGIResponder:
                 for name, value in response_headers
             ]
             self.send_queue.append(
-                {"type": "http.response.start", "status": status_code, "headers": headers}
+                {
+                    "type": "http.response.start",
+                    "status": status_code,
+                    "headers": headers,
+                }
             )
             self.loop.call_soon_threadsafe(self.send_event.set)
 

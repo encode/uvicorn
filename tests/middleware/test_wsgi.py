@@ -1,44 +1,46 @@
-import pytest
 import sys
+
+import pytest
+
 from tests.client import TestClient
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
 
 def hello_world(environ, start_response):
-    status = '200 OK'
-    output = b'Hello World!\n'
+    status = "200 OK"
+    output = b"Hello World!\n"
     headers = [
-        ('Content-Type', 'text/plain; charset=utf-8'),
-        ('Content-Length', str(len(output)))
+        ("Content-Type", "text/plain; charset=utf-8"),
+        ("Content-Length", str(len(output))),
     ]
     start_response(status, headers)
     return [output]
 
 
 def echo_body(environ, start_response):
-    status = '200 OK'
-    output = environ['wsgi.input'].read()
+    status = "200 OK"
+    output = environ["wsgi.input"].read()
     headers = [
-        ('Content-Type', 'text/plain; charset=utf-8'),
-        ('Content-Length', str(len(output)))
+        ("Content-Type", "text/plain; charset=utf-8"),
+        ("Content-Length", str(len(output))),
     ]
     start_response(status, headers)
     return [output]
 
 
 def raise_exception(environ, start_response):
-    raise RuntimeError('Something went wrong')
+    raise RuntimeError("Something went wrong")
 
 
 def return_exc_info(environ, start_response):
     try:
-        raise RuntimeError('Something went wrong')
+        raise RuntimeError("Something went wrong")
     except:
-        status = '500 Internal Server Error'
-        output = b'Internal Server Error'
+        status = "500 Internal Server Error"
+        output = b"Internal Server Error"
         headers = [
-            ('Content-Type', 'text/plain; charset=utf-8'),
-            ('Content-Length', str(len(output)))
+            ("Content-Type", "text/plain; charset=utf-8"),
+            ("Content-Length", str(len(output))),
         ]
         start_response(status, headers, exc_info=sys.exc_info())
         return [output]
@@ -47,15 +49,15 @@ def return_exc_info(environ, start_response):
 def test_wsgi_get():
     app = WSGIMiddleware(hello_world)
     client = TestClient(app)
-    response = client.get('/')
+    response = client.get("/")
     assert response.status_code == 200
-    assert response.text == 'Hello World!\n'
+    assert response.text == "Hello World!\n"
 
 
 def test_wsgi_post():
     app = WSGIMiddleware(echo_body)
     client = TestClient(app)
-    response = client.post('/', json={"example": 123})
+    response = client.post("/", json={"example": 123})
     assert response.status_code == 200
     assert response.text == '{"example": 123}'
 
@@ -66,7 +68,7 @@ def test_wsgi_exception():
     app = WSGIMiddleware(raise_exception)
     client = TestClient(app)
     with pytest.raises(RuntimeError):
-        response = client.get('/')
+        response = client.get("/")
 
 
 def test_wsgi_exc_info():
@@ -75,10 +77,10 @@ def test_wsgi_exc_info():
     app = WSGIMiddleware(return_exc_info)
     client = TestClient(app)
     with pytest.raises(RuntimeError):
-        response = client.get('/')
+        response = client.get("/")
 
     app = WSGIMiddleware(return_exc_info)
     client = TestClient(app, raise_server_exceptions=False)
-    response = client.get('/')
+    response = client.get("/")
     assert response.status_code == 500
-    assert response.text == 'Internal Server Error'
+    assert response.text == "Internal Server Error"

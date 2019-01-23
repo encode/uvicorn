@@ -1,13 +1,14 @@
+import asyncio
+
+import h11
+import pytest
+
 from tests.response import Response
 from uvicorn.config import Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
-import asyncio
-import h11
-import pytest
-
 
 SIMPLE_GET_REQUEST = b"\r\n".join([b"GET / HTTP/1.1", b"Host: example.org", b"", b""])
 
@@ -50,14 +51,16 @@ FINISH_POST_REQUEST = b'{"hello": "world"}'
 
 HTTP10_GET_REQUEST = b"\r\n".join([b"GET / HTTP/1.0", b"Host: example.org", b"", b""])
 
-UPGRADE_REQUEST = b"\r\n".join([
-    b"GET / HTTP/1.1",
-    b"Host: example.org",
-    b"Connection: upgrade",
-    b"Upgrade: websocket",
-    b"",
-    b""
-])
+UPGRADE_REQUEST = b"\r\n".join(
+    [
+        b"GET / HTTP/1.1",
+        b"Host: example.org",
+        b"Connection: upgrade",
+        b"Upgrade: websocket",
+        b"",
+        b"",
+    ]
+)
 
 
 class MockTransport:
@@ -258,7 +261,7 @@ def test_chunked_encoding_empty_body(protocol_cls):
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-    assert protocol.transport.buffer.count(b'0\r\n\r\n') == 1
+    assert protocol.transport.buffer.count(b"0\r\n\r\n") == 1
     assert not protocol.transport.is_closing()
 
 

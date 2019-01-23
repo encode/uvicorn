@@ -1,7 +1,7 @@
 import asyncio
 import io
 import typing
-from urllib.parse import unquote, urlparse, urljoin
+from urllib.parse import unquote, urljoin, urlparse
 
 import requests
 
@@ -112,9 +112,10 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         return self.build_response(request, raw)
 
 
-
 class _TestClient(requests.Session):
-    def __init__(self, app: typing.Callable, base_url: str, raise_server_exceptions=True) -> None:
+    def __init__(
+        self, app: typing.Callable, base_url: str, raise_server_exceptions=True
+    ) -> None:
         super(_TestClient, self).__init__()
         adapter = _ASGIAdapter(app, raise_server_exceptions=raise_server_exceptions)
         self.mount("http://", adapter)
@@ -128,7 +129,9 @@ class _TestClient(requests.Session):
 
 
 def TestClient(
-    app: typing.Callable, base_url: str = "http://testserver", raise_server_exceptions=True
+    app: typing.Callable,
+    base_url: str = "http://testserver",
+    raise_server_exceptions=True,
 ) -> _TestClient:
     """
     We have to work around py.test discovery attempting to pick up

@@ -1,6 +1,7 @@
+import pytest
+
 from tests.client import TestClient
 from uvicorn.middleware.debug import DebugMiddleware
-import pytest
 
 
 def test_debug_text():
@@ -44,9 +45,9 @@ def test_debug_after_response_sent():
 
     app = DebugMiddleware(app)
     client = TestClient(app, raise_server_exceptions=False)
-    response = client.get('/')
+    response = client.get("/")
     assert response.status_code == 204
-    assert response.content == b''
+    assert response.content == b""
 
 
 def test_debug_error_during_scope():

@@ -1,9 +1,10 @@
-from urllib.parse import unquote
-from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 import asyncio
 import http
-import logging
+from urllib.parse import unquote
+
 import websockets
+
+from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 
 class Server:
@@ -78,29 +79,29 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         for either `accept` or `close` in order to determine if we should
         close the connection.
         """
-        path_portion, _, query_string = path.partition('?')
+        path_portion, _, query_string = path.partition("?")
 
         websockets.handshake.check_request(headers)
 
         subprotocols = []
-        for header in headers.get_all('Sec-WebSocket-Protocol'):
-            subprotocols.extend([token.strip() for token in header.split(',')])
+        for header in headers.get_all("Sec-WebSocket-Protocol"):
+            subprotocols.extend([token.strip() for token in header.split(",")])
 
         asgi_headers = [
-            (name.encode('ascii'), value.encode('ascii'))
+            (name.encode("ascii"), value.encode("ascii"))
             for name, value in headers.raw_items()
         ]
 
         self.scope = {
-            'type': 'websocket',
-            'scheme': self.scheme,
-            'server': self.server,
-            'client': self.client,
-            'root_path': self.root_path,
-            'path': unquote(path_portion),
-            'query_string': query_string.encode('ascii'),
-            'headers': asgi_headers,
-            'subprotocols': subprotocols,
+            "type": "websocket",
+            "scheme": self.scheme,
+            "server": self.server,
+            "client": self.client,
+            "root_path": self.root_path,
+            "path": unquote(path_portion),
+            "query_string": query_string.encode("ascii"),
+            "headers": asgi_headers,
+            "subprotocols": subprotocols,
         }
         task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)
@@ -120,10 +121,10 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         content = [
             b"HTTP/1.1 500 Internal Server Error\r\n"
             b"content-type: text/plain; charset=utf-8\r\n",
-            b"content-length: " + str(len(msg)).encode('ascii') + b"\r\n",
+            b"content-length: " + str(len(msg)).encode("ascii") + b"\r\n",
             b"connection: close\r\n",
             b"\r\n",
-            msg
+            msg,
         ]
         self.transport.write(b"".join(content))
 
@@ -177,7 +178,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                     self.scope["root_path"] + self.scope["path"],
                 )
                 self.initial_response = None
-                self.accepted_subprotocol = message.get('subprotocol')
+                self.accepted_subprotocol = message.get("subprotocol")
                 self.handshake_started_event.set()
 
             elif message_type == "websocket.close":
@@ -186,7 +187,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                     self.scope["client"],
                     self.scope["root_path"] + self.scope["path"],
                 )
-                self.initial_response = (http.HTTPStatus.FORBIDDEN, [], b'')
+                self.initial_response = (http.HTTPStatus.FORBIDDEN, [], b"")
                 self.handshake_started_event.set()
                 self.closed_event.set()
 
@@ -197,14 +198,14 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         elif not self.closed_event.is_set():
             await self.handshake_completed_event.wait()
 
-            if message_type == 'websocket.send':
-                bytes_data = message.get('bytes')
-                text_data = message.get('text')
+            if message_type == "websocket.send":
+                bytes_data = message.get("bytes")
+                text_data = message.get("text")
                 data = text_data if bytes_data is None else bytes_data
                 await self.send(data)
 
-            elif message_type == 'websocket.close':
-                code = message.get('code', 1000)
+            elif message_type == "websocket.close":
+                code = message.get("code", 1000)
                 await self.close(code)
                 self.closed_event.set()
 
@@ -219,18 +220,13 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
     async def asgi_receive(self):
         if not self.connect_sent:
             self.connect_sent = True
-            return {
-                "type": "websocket.connect"
-            }
+            return {"type": "websocket.connect"}
 
         await self.handshake_completed_event.wait()
         try:
             data = await self.recv()
         except websockets.ConnectionClosed as exc:
-            return {
-                "type": "websocket.disconnect",
-                "code": exc.code,
-            }
+            return {"type": "websocket.disconnect", "code": exc.code}
 
         is_text = isinstance(data, str)
         return {

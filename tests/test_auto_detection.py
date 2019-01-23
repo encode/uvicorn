@@ -1,10 +1,12 @@
-from uvicorn.config import Config
-from uvicorn.main import ServerState
-from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
-from uvicorn.protocols.http.auto import AutoHTTPProtocol
-from uvicorn.loops.auto import auto_loop_setup
 import asyncio
+
 import uvloop
+
+from uvicorn.config import Config
+from uvicorn.loops.auto import auto_loop_setup
+from uvicorn.main import ServerState
+from uvicorn.protocols.http.auto import AutoHTTPProtocol
+from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 
 # TODO: Add pypy to our testing matrix, and assert we get the correct classes
 #       dependent on the platform we're running the tests under.

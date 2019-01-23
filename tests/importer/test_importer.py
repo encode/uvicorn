@@ -1,7 +1,6 @@
-from uvicorn.importer import import_from_string, ImportFromStringError
 import pytest
-import os
-import sys
+
+from uvicorn.importer import ImportFromStringError, import_from_string
 
 
 def test_invalid_format():
