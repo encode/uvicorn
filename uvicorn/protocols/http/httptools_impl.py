@@ -1,12 +1,13 @@
 import asyncio
-from email.utils import formatdate
 import http
 import logging
 import time
 import urllib
-from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+from email.utils import formatdate
 
 import httptools
+
+from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 
 def _get_default_headers():
@@ -173,33 +174,34 @@ class HttpToolsProtocol(asyncio.Protocol):
             if name == b"upgrade":
                 upgrade_value = value.lower()
 
-        if upgrade_value != b'websocket' or self.ws_protocol_class is None:
+        if upgrade_value != b"websocket" or self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
             content = [STATUS_LINE[400], DEFAULT_HEADERS]
-            content.extend([
-                b"content-type: text/plain; charset=utf-8\r\n",
-                b"content-length: " + str(len(msg)).encode('ascii') + b"\r\n",
-                b"connection: close\r\n",
-                b"\r\n",
-                msg.encode('ascii')
-            ])
+            content.extend(
+                [
+                    b"content-type: text/plain; charset=utf-8\r\n",
+                    b"content-length: " + str(len(msg)).encode("ascii") + b"\r\n",
+                    b"connection: close\r\n",
+                    b"\r\n",
+                    msg.encode("ascii"),
+                ]
+            )
             self.transport.write(b"".join(content))
             self.transport.close()
             return
 
         self.connections.discard(self)
-        method = self.scope['method'].encode()
-        output = [method, b' ', self.url, b' HTTP/1.1\r\n']
-        for name, value in self.scope['headers']:
+        method = self.scope["method"].encode()
+        output = [method, b" ", self.url, b" HTTP/1.1\r\n"]
+        for name, value in self.scope["headers"]:
             output += [name, b": ", value, b"\r\n"]
-        output.append(b'\r\n')
+        output.append(b"\r\n")
         protocol = self.ws_protocol_class(
-            config=self.config,
-            server_state=self.server_state,
+            config=self.config, server_state=self.server_state
         )
         protocol.connection_made(self.transport)
-        protocol.data_received(b''.join(output))
+        protocol.data_received(b"".join(output))
         self.transport.set_protocol(protocol)
 
     # Parser callbacks
@@ -207,7 +209,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         method = self.parser.get_method()
         parsed_url = httptools.parse_url(url)
         path = parsed_url.path.decode("ascii")
-        if '%' in path:
+        if "%" in path:
             path = urllib.parse.unquote(path)
         self.url = url
         self.expect_100_continue = False
@@ -462,7 +464,11 @@ class RequestResponseCycle:
                     self.keep_alive = False
                 content.extend([name, b": ", value, b"\r\n"])
 
-            if self.chunked_encoding is None and self.scope["method"] != 'HEAD' and status_code not in (204, 304):
+            if (
+                self.chunked_encoding is None
+                and self.scope["method"] != "HEAD"
+                and status_code not in (204, 304)
+            ):
                 # Neither content-length nor transfer-encoding specified
                 self.chunked_encoding = True
                 content.append(b"transfer-encoding: chunked\r\n")

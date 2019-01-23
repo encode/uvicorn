@@ -15,21 +15,15 @@ app = ProxyHeadersMiddleware(app)
 
 def test_proxy_headers():
     client = TestClient(app)
-    headers = {
-        "X-Forwarded-Proto": "https",
-        "X-Forwarded-For": "1.2.3.4",
-    }
-    response = client.get('/', headers=headers)
+    headers = {"X-Forwarded-Proto": "https", "X-Forwarded-For": "1.2.3.4"}
+    response = client.get("/", headers=headers)
     assert response.status_code == 200
     assert response.text == "Remote: https://1.2.3.4:0"
 
 
 def test_proxy_headers_no_port():
     client = TestClient(app)
-    headers = {
-        "X-Forwarded-Proto": "https",
-        "X-Forwarded-For": "1.2.3.4",
-    }
-    response = client.get('/', headers=headers)
+    headers = {"X-Forwarded-Proto": "https", "X-Forwarded-For": "1.2.3.4"}
+    response = client.get("/", headers=headers)
     assert response.status_code == 200
     assert response.text == "Remote: https://1.2.3.4:0"

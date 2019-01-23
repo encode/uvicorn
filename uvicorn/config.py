@@ -1,11 +1,11 @@
-from uvicorn.importer import import_from_string, ImportFromStringError
-from uvicorn.middleware.debug import DebugMiddleware
-from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-from uvicorn.middleware.message_logger import MessageLoggerMiddleware
-from uvicorn.middleware.wsgi import WSGIMiddleware
 import logging
 import sys
 
+from uvicorn.importer import ImportFromStringError, import_from_string
+from uvicorn.middleware.debug import DebugMiddleware
+from uvicorn.middleware.message_logger import MessageLoggerMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+from uvicorn.middleware.wsgi import WSGIMiddleware
 
 LOG_LEVELS = {
     "critical": logging.CRITICAL,

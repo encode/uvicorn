@@ -1,12 +1,13 @@
 import asyncio
-from email.utils import formatdate
 import http
 import logging
 import time
+from email.utils import formatdate
 from urllib.parse import unquote
-from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 import h11
+
+from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 
 def _get_default_headers():
@@ -206,8 +207,8 @@ class H11Protocol(asyncio.Protocol):
                 should_upgrade = False
                 for name, value in self.headers:
                     if name == b"connection":
-                        tokens = [token.lower().strip() for token in value.split(b',')]
-                        if b'upgrade' in tokens:
+                        tokens = [token.lower().strip() for token in value.split(b",")]
+                        if b"upgrade" in tokens:
                             self.handle_upgrade(event)
                             return
 
@@ -258,7 +259,7 @@ class H11Protocol(asyncio.Protocol):
             if name == b"upgrade":
                 upgrade_value = value.lower()
 
-        if upgrade_value != b'websocket' or self.ws_protocol_class is None:
+        if upgrade_value != b"websocket" or self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
             reason = STATUS_PHRASES[400]
@@ -269,7 +270,7 @@ class H11Protocol(asyncio.Protocol):
             event = h11.Response(status_code=400, headers=headers, reason=reason)
             output = self.conn.send(event)
             self.transport.write(output)
-            event = h11.Data(data=b'Unsupported upgrade request.')
+            event = h11.Data(data=b"Unsupported upgrade request.")
             output = self.conn.send(event)
             self.transport.write(output)
             event = h11.EndOfMessage()
@@ -279,16 +280,15 @@ class H11Protocol(asyncio.Protocol):
             return
 
         self.connections.discard(self)
-        output = [event.method, b' ', event.target, b' HTTP/1.1\r\n']
+        output = [event.method, b" ", event.target, b" HTTP/1.1\r\n"]
         for name, value in self.headers:
             output += [name, b": ", value, b"\r\n"]
-        output.append(b'\r\n')
+        output.append(b"\r\n")
         protocol = self.ws_protocol_class(
-            config=self.config,
-            server_state=self.server_state,
+            config=self.config, server_state=self.server_state
         )
         protocol.connection_made(self.transport)
-        protocol.data_received(b''.join(output))
+        protocol.data_received(b"".join(output))
         self.transport.set_protocol(protocol)
 
     def on_response_complete(self):
@@ -353,7 +353,7 @@ class RequestResponseCycle:
         logger,
         access_log,
         message_event,
-        on_response
+        on_response,
     ):
         self.scope = scope
         self.conn = conn
@@ -473,7 +473,7 @@ class RequestResponseCycle:
 
             # Write response body
             if self.scope["method"] == "HEAD":
-                event = h11.Data(data=b'')
+                event = h11.Data(data=b"")
             else:
                 event = h11.Data(data=body)
             output = self.conn.send(event)

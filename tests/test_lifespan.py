@@ -1,4 +1,5 @@
 import asyncio
+
 from uvicorn.lifespan import Lifespan
 
 
@@ -36,13 +37,14 @@ def test_lifespan():
         async def lifespan(receive, send):
             nonlocal startup_complete, cleanup_complete
             message = await receive()
-            assert message['type'] == 'lifespan.startup'
+            assert message["type"] == "lifespan.startup"
             startup_complete = True
-            await send({'type': 'lifespan.startup.complete'})
+            await send({"type": "lifespan.startup.complete"})
             message = await receive()
-            assert message['type'] == 'lifespan.shutdown'
+            assert message["type"] == "lifespan.shutdown"
             cleanup_complete = True
-            await send({'type': 'lifespan.shutdown.complete'})
+            await send({"type": "lifespan.shutdown.complete"})
+
         return lifespan
 
     async def test(app):

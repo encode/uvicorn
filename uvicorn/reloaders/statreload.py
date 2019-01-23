@@ -1,9 +1,8 @@
+import multiprocessing
 import os
 import signal
 import sys
 import time
-import multiprocessing
-
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.

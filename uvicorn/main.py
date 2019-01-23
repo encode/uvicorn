@@ -1,18 +1,23 @@
-from uvicorn.config import get_logger, Config, LOG_LEVELS, HTTP_PROTOCOLS, WS_PROTOCOLS, LOOP_SETUPS
-from uvicorn.lifespan import Lifespan
-from uvicorn.reloaders.statreload import StatReload
 import asyncio
-import click
 import functools
-import signal
 import os
-import logging
+import signal
 import socket
 import sys
 import threading
-import time
-import multiprocessing
 
+import click
+
+from uvicorn.config import (
+    HTTP_PROTOCOLS,
+    LOG_LEVELS,
+    LOOP_SETUPS,
+    WS_PROTOCOLS,
+    Config,
+    get_logger,
+)
+from uvicorn.lifespan import Lifespan
+from uvicorn.reloaders.statreload import StatReload
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
@@ -181,6 +186,7 @@ class ServerState:
     """
     Shared servers state that is available between all protocol instances.
     """
+
     def __init__(self):
         self.total_requests = 0
         self.connections = set()
@@ -247,17 +253,13 @@ class Server:
         config = self.config
 
         create_protocol = functools.partial(
-            config.http_protocol_class,
-            config=config,
-            server_state=self.server_state
+            config.http_protocol_class, config=config, server_state=self.server_state
         )
 
         if config.fd is not None:
             # Use an existing socket, from a file descriptor.
             sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
-            self.server = await self.loop.create_server(
-                create_protocol, sock=sock
-            )
+            self.server = await self.loop.create_server(create_protocol, sock=sock)
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
             self.logger.info(message % str(sock.getsockname()))
 
@@ -299,15 +301,23 @@ class Server:
 
         await asyncio.sleep(0.1)
         if self.server_state.connections and not self.force_exit:
-            self.logger.info("Waiting for connections to close. (Press CTRL+C to force quit)")
+            self.logger.info(
+                "Waiting for connections to close. (Press CTRL+C to force quit)"
+            )
             while self.server_state.connections and not self.force_exit:
                 await asyncio.sleep(0.1)
         if self.server_state.tasks and not self.force_exit:
-            self.logger.info("Waiting for background tasks to complete. (Press CTRL+C to force quit)")
+            self.logger.info(
+                "Waiting for background tasks to complete. (Press CTRL+C to force quit)"
+            )
             while self.server_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
 
-        if not self.disable_lifespan and self.lifespan.is_enabled and not self.force_exit:
+        if (
+            not self.disable_lifespan
+            and self.lifespan.is_enabled
+            and not self.force_exit
+        ):
             self.logger.info("Waiting for application shutdown.")
             await self.lifespan.wait_shutdown()
 

@@ -13,13 +13,13 @@ def test_get_local_addr():
     transport = MockTransport({"sockname": "path/to/unix-domain-socket"})
     assert get_local_addr(transport) == None
 
-    transport = MockTransport({"sockname": ['123.45.6.7', 123]})
-    assert get_local_addr(transport) == ('123.45.6.7', 123)
+    transport = MockTransport({"sockname": ["123.45.6.7", 123]})
+    assert get_local_addr(transport) == ("123.45.6.7", 123)
 
 
 def test_get_remote_addr():
     transport = MockTransport({"peername": None})
     assert get_remote_addr(transport) == None
 
-    transport = MockTransport({"peername": ['123.45.6.7', 123]})
-    assert get_remote_addr(transport) == ('123.45.6.7', 123)
+    transport = MockTransport({"peername": ["123.45.6.7", 123]})
+    assert get_remote_addr(transport) == ("123.45.6.7", 123)
