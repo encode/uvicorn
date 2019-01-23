@@ -9,7 +9,7 @@ wsproto
 
 # Testing
 autoflake
-black
+black; python_version >= '3.6'
 codecov
 isort
 pytest
