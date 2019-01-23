@@ -1,5 +1,6 @@
 from tests.response import Response
 from uvicorn.config import Config
+from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
@@ -134,7 +135,8 @@ def get_connected_protocol(app, protocol_cls, **kwargs):
     loop = MockLoop()
     transport = MockTransport()
     config = Config(app=app, loop=loop, **kwargs)
-    protocol = protocol_cls(config=config)
+    server_state = ServerState()
+    protocol = protocol_cls(config=config, server_state=server_state)
     protocol.connection_made(transport)
     return protocol
 

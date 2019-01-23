@@ -4,7 +4,6 @@ import http
 import logging
 import time
 import urllib
-from uvicorn.global_state import GlobalState
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 import httptools
@@ -84,11 +83,14 @@ class ServiceUnavailable:
 
 
 class HttpToolsProtocol(asyncio.Protocol):
-    def __init__(self, config, global_state=None):
+    def __init__(self, config, server_state):
+        if not config.loaded:
+            config.load()
+
         self.config = config
-        self.app = config.app
-        self.loop = config.loop or asyncio.get_event_loop()
-        self.logger = config.logger or logging.getLogger("uvicorn")
+        self.app = config.loaded_app
+        self.loop = config.loop_instance
+        self.logger = config.logger_instance
         self.access_log = config.access_log and (self.logger.level <= logging.INFO)
         self.parser = httptools.HttpRequestParser(self)
         self.ws_protocol_class = config.ws_protocol_class
@@ -100,11 +102,9 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.timeout_keep_alive = config.timeout_keep_alive
 
         # Global state
-        if global_state is None:
-            global_state = GlobalState()
-        self.global_state = global_state
-        self.connections = global_state.connections
-        self.tasks = global_state.tasks
+        self.server_state = server_state
+        self.connections = server_state.connections
+        self.tasks = server_state.tasks
 
         # Per-connection state
         self.transport = None
@@ -196,7 +196,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         output.append(b'\r\n')
         protocol = self.ws_protocol_class(
             config=self.config,
-            global_state=self.global_state,
+            server_state=self.server_state,
         )
         protocol.connection_made(self.transport)
         protocol.data_received(b''.join(output))
@@ -287,7 +287,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 
     def on_response_complete(self):
         # Callback for pipelined HTTP requests to be started.
-        self.global_state.total_requests += 1
+        self.server_state.total_requests += 1
 
         if self.transport.is_closing():
             return

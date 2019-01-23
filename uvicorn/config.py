@@ -3,7 +3,6 @@ from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
-import click
 import logging
 import sys
 
@@ -62,9 +61,8 @@ class Config:
         root_path="",
         limit_concurrency=None,
         limit_max_requests=None,
-        disable_lifespan=False,
         timeout_keep_alive=5,
-        install_signal_handlers=True,
+        disable_lifespan=False,
     ):
         self.app = app
         self.host = host
@@ -83,48 +81,49 @@ class Config:
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests
-        self.disable_lifespan = disable_lifespan
         self.timeout_keep_alive = timeout_keep_alive
-        self.install_signal_handlers = install_signal_handlers
+        self.disable_lifespan = disable_lifespan
 
-        if fd is None:
-            self.sock = None
-        else:
-            self.host = None
-            self.port = None
-            self.sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
+        self.loaded = False
+
+    def load(self):
+        assert not self.loaded
 
         if self.logger is None:
-            self.logger = get_logger(log_level)
+            self.logger_instance = get_logger(self.log_level)
         else:
-            assert log_level == "info", "Cannot set both 'logger' and 'log_level'"
+            self.logger_instance = self.logger
 
-        if isinstance(http, str):
-            self.http_protocol_class = import_from_string(HTTP_PROTOCOLS[http])
+        if isinstance(self.http, str):
+            self.http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
         else:
-            self.http_protocol_class = http
+            self.http_protocol_class = self.http
 
-        if isinstance(ws, str):
-            self.ws_protocol_class = import_from_string(WS_PROTOCOLS[ws])
+        if isinstance(self.ws, str):
+            self.ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
         else:
-            self.ws_protocol_class = ws
+            self.ws_protocol_class = self.ws
 
         if isinstance(self.loop, str):
-            loop_setup = import_from_string(LOOP_SETUPS[loop])
-            self.loop = loop_setup()
+            loop_setup = import_from_string(LOOP_SETUPS[self.loop])
+            self.loop_instance = loop_setup()
+        else:
+            self.loop_instance = self.loop
 
         try:
-            self.app = import_from_string(self.app)
+            self.loaded_app = import_from_string(self.app)
         except ImportFromStringError as exc:
-            click.echo("Error loading ASGI app. %s" % exc)
+            self.logger_instance.error("Error loading ASGI app. %s" % exc)
             sys.exit(1)
 
         if self.wsgi:
-            self.app = WSGIMiddleware(self.app)
+            self.loaded_app = WSGIMiddleware(self.loaded_app)
             self.ws_protocol_class = None
         if self.debug:
-            self.app = DebugMiddleware(self.app)
-        if self.logger.level <= logging.DEBUG:
-            self.app = MessageLoggerMiddleware(self.app)
+            self.loaded_app = DebugMiddleware(self.loaded_app)
+        if self.logger_instance.level <= logging.DEBUG:
+            self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
-            self.app = ProxyHeadersMiddleware(self.app)
+            self.loaded_app = ProxyHeadersMiddleware(self.loaded_app)
+
+        self.loaded = True

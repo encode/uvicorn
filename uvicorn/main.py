@@ -1,14 +1,15 @@
 from uvicorn.config import get_logger, Config, LOG_LEVELS, HTTP_PROTOCOLS, WS_PROTOCOLS, LOOP_SETUPS
-from uvicorn.global_state import GlobalState
 from uvicorn.lifespan import Lifespan
 from uvicorn.reloaders.statreload import StatReload
 import asyncio
 import click
+import functools
 import signal
 import os
 import logging
 import socket
 import sys
+import threading
 import time
 import multiprocessing
 
@@ -171,61 +172,44 @@ def main(
 
 
 def run(app, **kwargs):
-    if 'global_state' in kwargs:
-        global_state = kwargs.pop('global_state')
-    else:
-        global_state = GlobalState()
-
     config = Config(app, **kwargs)
-
-    server = Server(config=config, global_state=global_state)
+    server = Server(config=config)
     server.run()
 
 
-class Server:
-    def __init__(self, config, global_state):
-        self.config = config
-        self.global_state = global_state
+class ServerState:
+    """
+    Shared servers state that is available between all protocol instances.
+    """
+    def __init__(self):
+        self.total_requests = 0
+        self.connections = set()
+        self.tasks = set()
 
-        self.app = config.app
-        self.loop = config.loop
-        self.logger = config.logger
+
+class Server:
+    def __init__(self, config):
+        self.config = config
+        self.server_state = ServerState()
+
         self.limit_max_requests = config.limit_max_requests
         self.disable_lifespan = config.disable_lifespan
-        self.on_tick = config.http_protocol_class.tick
         self.should_exit = False
         self.force_exit = False
+        self.started = threading.Event()
         self.pid = os.getpid()
 
-        def create_protocol():
-            return config.http_protocol_class(
-                config=config,
-                global_state=global_state
-            )
-
-        self.create_protocol = create_protocol
-
-    def set_signal_handlers(self):
-        if not self.config.install_signal_handlers:
-            return
-
-        try:
-            for sig in HANDLED_SIGNALS:
-                self.loop.add_signal_handler(sig, self.handle_exit, sig, None)
-        except NotImplementedError as exc:
-            # Windows
-            for sig in HANDLED_SIGNALS:
-                signal.signal(sig, self.handle_exit)
-
-    def handle_exit(self, sig, frame):
-        if self.should_exit:
-            self.force_exit = True
-        else:
-            self.should_exit = True
-
     def run(self):
+        config = self.config
+        if not config.loaded:
+            config.load()
+
+        self.app = config.loaded_app
+        self.loop = config.loop_instance
+        self.logger = config.logger_instance
+
         self.logger.info("Started server process [{}]".format(self.pid))
-        self.set_signal_handlers()
+        self.install_signal_handlers()
         if not self.disable_lifespan:
             self.lifespan = Lifespan(self.app, self.logger)
             if self.lifespan.is_enabled:
@@ -241,24 +225,46 @@ class Server:
                 )
         self.loop.run_until_complete(self.create_server())
         self.loop.create_task(self.tick())
-        self.global_state.started.set()
+        self.started.set()
         self.loop.run_forever()
+
+    def install_signal_handlers(self):
+        try:
+            for sig in HANDLED_SIGNALS:
+                self.loop.add_signal_handler(sig, self.handle_exit, sig, None)
+        except NotImplementedError as exc:
+            # Windows
+            for sig in HANDLED_SIGNALS:
+                signal.signal(sig, self.handle_exit)
+
+    def handle_exit(self, sig, frame):
+        if self.should_exit:
+            self.force_exit = True
+        else:
+            self.should_exit = True
 
     async def create_server(self):
         config = self.config
 
-        if config.sock is not None:
-            # Use an existing socket.
+        create_protocol = functools.partial(
+            config.http_protocol_class,
+            config=config,
+            server_state=self.server_state
+        )
+
+        if config.fd is not None:
+            # Use an existing socket, from a file descriptor.
+            sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
             self.server = await self.loop.create_server(
-                self.create_protocol, sock=config.sock
+                create_protocol, sock=sock
             )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
-            self.logger.info(message % str(config.sock.getsockname()))
+            self.logger.info(message % str(sock.getsockname()))
 
         elif config.uds is not None:
             # Create a socket using UNIX domain socket.
             self.server = await self.loop.create_unix_server(
-                self.create_protocol, path=config.uds
+                create_protocol, path=config.uds
             )
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
             self.logger.info(message % config.uds)
@@ -266,37 +272,39 @@ class Server:
         else:
             # Standard case. Create a socket from a host/port pair.
             self.server = await self.loop.create_server(
-                self.create_protocol, host=config.host, port=config.port
+                create_protocol, host=config.host, port=config.port
             )
             message = "Uvicorn running on http://%s:%d (Press CTRL+C to quit)"
             self.logger.info(message % (config.host, config.port))
 
     async def tick(self):
+        on_tick = self.config.http_protocol_class.tick
+
         should_limit_requests = self.limit_max_requests is not None
 
         while not self.should_exit:
             if (
                 should_limit_requests
-                and self.global_state.total_requests >= self.limit_max_requests
+                and self.server_state.total_requests >= self.limit_max_requests
             ):
                 break
-            self.on_tick()
+            on_tick()
             await asyncio.sleep(1)
 
         self.logger.info("Stopping server process [{}]".format(self.pid))
         self.server.close()
         await self.server.wait_closed()
-        for connection in list(self.global_state.connections):
+        for connection in list(self.server_state.connections):
             connection.shutdown()
 
         await asyncio.sleep(0.1)
-        if self.global_state.connections and not self.force_exit:
+        if self.server_state.connections and not self.force_exit:
             self.logger.info("Waiting for connections to close. (Press CTRL+C to force quit)")
-            while self.global_state.connections and not self.force_exit:
+            while self.server_state.connections and not self.force_exit:
                 await asyncio.sleep(0.1)
-        if self.global_state.tasks and not self.force_exit:
+        if self.server_state.tasks and not self.force_exit:
             self.logger.info("Waiting for background tasks to complete. (Press CTRL+C to force quit)")
-            while self.global_state.tasks and not self.force_exit:
+            while self.server_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
 
         if not self.disable_lifespan and self.lifespan.is_enabled and not self.force_exit:
