@@ -177,6 +177,7 @@ def run(app, **kwargs):
         global_state = GlobalState()
 
     config = Config(app, **kwargs)
+    config.load()
 
     server = Server(config=config, global_state=global_state)
     server.run()
@@ -187,9 +188,9 @@ class Server:
         self.config = config
         self.global_state = global_state
 
-        self.app = config.app
-        self.loop = config.loop
-        self.logger = config.logger
+        self.app = config.loaded_app
+        self.loop = config.loop_instance
+        self.logger = config.logger_instance
         self.limit_max_requests = config.limit_max_requests
         self.disable_lifespan = config.disable_lifespan
         self.on_tick = config.http_protocol_class.tick
@@ -247,13 +248,14 @@ class Server:
     async def create_server(self):
         config = self.config
 
-        if config.sock is not None:
-            # Use an existing socket.
+        if config.fd is not None:
+            # Use an existing socket, from a file descriptor.
+            sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
             self.server = await self.loop.create_server(
-                self.create_protocol, sock=config.sock
+                self.create_protocol, sock=sock
             )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
-            self.logger.info(message % str(config.sock.getsockname()))
+            self.logger.info(message % str(sock.getsockname()))
 
         elif config.uds is not None:
             # Create a socket using UNIX domain socket.

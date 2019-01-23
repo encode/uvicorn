@@ -19,11 +19,14 @@ class Server:
 
 class WebSocketProtocol(websockets.WebSocketServerProtocol):
     def __init__(self, config, global_state=None):
+        if not config.loaded:
+            config.load()
+
         self.config = config
-        self.app = config.app
+        self.app = config.loaded_app
+        self.loop = config.loop_instance
+        self.logger = config.logger_instance
         self.root_path = config.root_path
-        self.loop = config.loop or asyncio.get_event_loop()
-        self.logger = config.logger or logging.getLogger("uvicorn")
 
         # Global state
         if global_state is None:
