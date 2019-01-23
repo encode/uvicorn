@@ -3,7 +3,6 @@ from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
-import click
 import logging
 import sys
 
@@ -114,7 +113,7 @@ class Config:
         try:
             self.loaded_app = import_from_string(self.app)
         except ImportFromStringError as exc:
-            click.echo("Error loading ASGI app. %s" % exc)
+            self.logger_instance.error("Error loading ASGI app. %s" % exc)
             sys.exit(1)
 
         if self.wsgi:
