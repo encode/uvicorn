@@ -178,8 +178,6 @@ def run(app, **kwargs):
         global_state = GlobalState()
 
     config = Config(app, **kwargs)
-    config.load()
-
     server = Server(config=config, global_state=global_state)
     server.run()
 
@@ -189,9 +187,6 @@ class Server:
         self.config = config
         self.global_state = global_state
 
-        self.app = config.loaded_app
-        self.loop = config.loop_instance
-        self.logger = config.logger_instance
         self.limit_max_requests = config.limit_max_requests
         self.disable_lifespan = config.disable_lifespan
         self.should_exit = False
@@ -217,6 +212,14 @@ class Server:
             self.should_exit = True
 
     def run(self):
+        config = self.config
+        if not config.loaded:
+            config.load()
+
+        self.app = config.loaded_app
+        self.loop = config.loop_instance
+        self.logger = config.logger_instance
+
         self.logger.info("Started server process [{}]".format(self.pid))
         self.set_signal_handlers()
         if not self.disable_lifespan:
