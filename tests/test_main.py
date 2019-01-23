@@ -14,13 +14,16 @@ def test_run():
             await send({"type": "http.response.start", "status": 204, "headers": []})
             await send({"type": "http.response.body", "body": b"", "more_body": False})
 
+    class CustomServer(Server):
+        def install_signal_handlers(self):
+            pass
+
     config = Config(
         app=App,
         loop="asyncio",
-        install_signal_handlers=False,
         limit_max_requests=1
     )
-    server = Server(config=config)
+    server = CustomServer(config=config)
 
     thread = threading.Thread(target=server.run)
     thread.start()

@@ -62,9 +62,8 @@ class Config:
         root_path="",
         limit_concurrency=None,
         limit_max_requests=None,
-        disable_lifespan=False,
         timeout_keep_alive=5,
-        install_signal_handlers=True,
+        disable_lifespan=False,
     ):
         self.app = app
         self.host = host
@@ -83,9 +82,8 @@ class Config:
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests
-        self.disable_lifespan = disable_lifespan
         self.timeout_keep_alive = timeout_keep_alive
-        self.install_signal_handlers = install_signal_handlers
+        self.disable_lifespan = disable_lifespan
 
         self.loaded = False
 

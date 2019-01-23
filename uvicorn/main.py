@@ -199,24 +199,6 @@ class Server:
         self.started = threading.Event()
         self.pid = os.getpid()
 
-    def set_signal_handlers(self):
-        if not self.config.install_signal_handlers:
-            return
-
-        try:
-            for sig in HANDLED_SIGNALS:
-                self.loop.add_signal_handler(sig, self.handle_exit, sig, None)
-        except NotImplementedError as exc:
-            # Windows
-            for sig in HANDLED_SIGNALS:
-                signal.signal(sig, self.handle_exit)
-
-    def handle_exit(self, sig, frame):
-        if self.should_exit:
-            self.force_exit = True
-        else:
-            self.should_exit = True
-
     def run(self):
         config = self.config
         if not config.loaded:
@@ -227,7 +209,7 @@ class Server:
         self.logger = config.logger_instance
 
         self.logger.info("Started server process [{}]".format(self.pid))
-        self.set_signal_handlers()
+        self.install_signal_handlers()
         if not self.disable_lifespan:
             self.lifespan = Lifespan(self.app, self.logger)
             if self.lifespan.is_enabled:
@@ -245,6 +227,21 @@ class Server:
         self.loop.create_task(self.tick())
         self.started.set()
         self.loop.run_forever()
+
+    def install_signal_handlers(self):
+        try:
+            for sig in HANDLED_SIGNALS:
+                self.loop.add_signal_handler(sig, self.handle_exit, sig, None)
+        except NotImplementedError as exc:
+            # Windows
+            for sig in HANDLED_SIGNALS:
+                signal.signal(sig, self.handle_exit)
+
+    def handle_exit(self, sig, frame):
+        if self.should_exit:
+            self.force_exit = True
+        else:
+            self.should_exit = True
 
     async def create_server(self):
         config = self.config
