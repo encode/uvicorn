@@ -10,18 +10,19 @@ import click
 
 from uvicorn.config import (
     HTTP_PROTOCOLS,
+    LIFESPAN,
     LOG_LEVELS,
     LOOP_SETUPS,
     WS_PROTOCOLS,
     Config,
     get_logger,
 )
-from uvicorn.lifespan import Lifespan
 from uvicorn.reloaders.statreload import StatReload
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
 WS_CHOICES = click.Choice(WS_PROTOCOLS.keys())
+LIFESPAN_CHOICES = click.Choice(LIFESPAN.keys())
 LOOP_CHOICES = click.Choice(LOOP_SETUPS.keys())
 
 HANDLED_SIGNALS = (
@@ -72,6 +73,13 @@ HANDLED_SIGNALS = (
     show_default=True,
 )
 @click.option(
+    "--lifespan",
+    type=LIFESPAN_CHOICES,
+    default="auto",
+    help="Lifespan implementation.",
+    show_default=True,
+)
+@click.option(
     "--wsgi",
     is_flag=True,
     default=False,
@@ -119,12 +127,6 @@ HANDLED_SIGNALS = (
     help="Close Keep-Alive connections if no new data is received within this timeout.",
     show_default=True,
 )
-@click.option(
-    "--disable-lifespan",
-    is_flag=True,
-    default=False,
-    help="Disable lifespan events (such as startup and shutdown) within an ASGI application.",
-)
 def main(
     app,
     host: str,
@@ -134,6 +136,7 @@ def main(
     loop: str,
     http: str,
     ws: str,
+    lifespan: str,
     wsgi: bool,
     debug: bool,
     log_level: str,
@@ -143,7 +146,6 @@ def main(
     limit_concurrency: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
-    disable_lifespan: bool,
 ):
     sys.path.insert(0, ".")
 
@@ -156,6 +158,7 @@ def main(
         "loop": loop,
         "http": http,
         "ws": ws,
+        "lifespan": lifespan,
         "log_level": log_level,
         "access_log": not no_access_log,
         "wsgi": wsgi,
@@ -165,7 +168,6 @@ def main(
         "limit_concurrency": limit_concurrency,
         "limit_max_requests": limit_max_requests,
         "timeout_keep_alive": timeout_keep_alive,
-        "disable_lifespan": disable_lifespan,
     }
 
     if debug:
@@ -199,7 +201,6 @@ class Server:
         self.server_state = ServerState()
 
         self.limit_max_requests = config.limit_max_requests
-        self.disable_lifespan = config.disable_lifespan
         self.should_exit = False
         self.force_exit = False
         self.started = threading.Event()
@@ -210,25 +211,14 @@ class Server:
         if not config.loaded:
             config.load()
 
-        self.app = config.loaded_app
         self.loop = config.loop_instance
         self.logger = config.logger_instance
+        self.lifespan = config.lifespan_class(config)
 
         self.logger.info("Started server process [{}]".format(self.pid))
         self.install_signal_handlers()
-        if not self.disable_lifespan:
-            self.lifespan = Lifespan(self.app, self.logger)
-            if self.lifespan.is_enabled:
-                self.logger.info("Waiting for application startup.")
-                self.loop.create_task(self.lifespan.run())
-                self.loop.run_until_complete(self.lifespan.wait_startup())
-                if self.lifespan.error_occured:
-                    self.logger.error("Application startup failed. Exiting.")
-                    return
-            else:
-                self.logger.debug(
-                    "Lifespan protocol is not recognized by the application"
-                )
+        self.loop.create_task(self.lifespan.run())
+        self.loop.run_until_complete(self.lifespan.startup())
         self.loop.run_until_complete(self.create_server())
         self.loop.create_task(self.tick())
         self.started.set()
@@ -282,11 +272,9 @@ class Server:
     async def tick(self):
         on_tick = self.config.http_protocol_class.tick
 
-        should_limit_requests = self.limit_max_requests is not None
-
         while not self.should_exit:
             if (
-                should_limit_requests
+                self.limit_max_requests is not None
                 and self.server_state.total_requests >= self.limit_max_requests
             ):
                 break
@@ -298,14 +286,15 @@ class Server:
         await self.server.wait_closed()
         for connection in list(self.server_state.connections):
             connection.shutdown()
-
         await asyncio.sleep(0.1)
+
         if self.server_state.connections and not self.force_exit:
             self.logger.info(
                 "Waiting for connections to close. (Press CTRL+C to force quit)"
             )
             while self.server_state.connections and not self.force_exit:
                 await asyncio.sleep(0.1)
+
         if self.server_state.tasks and not self.force_exit:
             self.logger.info(
                 "Waiting for background tasks to complete. (Press CTRL+C to force quit)"
@@ -313,13 +302,8 @@ class Server:
             while self.server_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
 
-        if (
-            not self.disable_lifespan
-            and self.lifespan.is_enabled
-            and not self.force_exit
-        ):
-            self.logger.info("Waiting for application shutdown.")
-            await self.lifespan.wait_shutdown()
+        if not self.force_exit:
+            await self.lifespan.shutdown()
 
         if self.force_exit:
             self.logger.info("Forced quit.")

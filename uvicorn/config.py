@@ -25,6 +25,11 @@ WS_PROTOCOLS = {
     "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
     "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
 }
+LIFESPAN = {
+    "auto": "uvicorn.lifespan.auto:LifespanAuto",
+    "on": "uvicorn.lifespan.on:LifespanOn",
+    "off": "uvicorn.lifespan.off:LifespanOff",
+}
 LOOP_SETUPS = {
     "auto": "uvicorn.loops.auto:auto_loop_setup",
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
@@ -52,6 +57,7 @@ class Config:
         loop="auto",
         http="auto",
         ws="auto",
+        lifespan="auto",
         log_level="info",
         logger=None,
         access_log=True,
@@ -62,7 +68,6 @@ class Config:
         limit_concurrency=None,
         limit_max_requests=None,
         timeout_keep_alive=5,
-        disable_lifespan=False,
     ):
         self.app = app
         self.host = host
@@ -72,6 +77,7 @@ class Config:
         self.loop = loop
         self.http = http
         self.ws = ws
+        self.lifespan = lifespan
         self.log_level = log_level
         self.logger = logger
         self.access_log = access_log
@@ -82,7 +88,6 @@ class Config:
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests
         self.timeout_keep_alive = timeout_keep_alive
-        self.disable_lifespan = disable_lifespan
 
         self.loaded = False
 
@@ -103,6 +108,8 @@ class Config:
             self.ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
         else:
             self.ws_protocol_class = self.ws
+
+        self.lifespan_class = import_from_string(LIFESPAN[self.lifespan])
 
         if isinstance(self.loop, str):
             loop_setup = import_from_string(LOOP_SETUPS[self.loop])
