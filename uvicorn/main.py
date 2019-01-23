@@ -4,6 +4,7 @@ from uvicorn.lifespan import Lifespan
 from uvicorn.reloaders.statreload import StatReload
 import asyncio
 import click
+import functools
 import signal
 import os
 import logging
@@ -193,18 +194,9 @@ class Server:
         self.logger = config.logger_instance
         self.limit_max_requests = config.limit_max_requests
         self.disable_lifespan = config.disable_lifespan
-        self.on_tick = config.http_protocol_class.tick
         self.should_exit = False
         self.force_exit = False
         self.pid = os.getpid()
-
-        def create_protocol():
-            return config.http_protocol_class(
-                config=config,
-                global_state=global_state
-            )
-
-        self.create_protocol = create_protocol
 
     def set_signal_handlers(self):
         if not self.config.install_signal_handlers:
@@ -248,11 +240,17 @@ class Server:
     async def create_server(self):
         config = self.config
 
+        create_protocol = functools.partial(
+            config.http_protocol_class,
+            config=config,
+            global_state=self.global_state
+        )
+
         if config.fd is not None:
             # Use an existing socket, from a file descriptor.
             sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
             self.server = await self.loop.create_server(
-                self.create_protocol, sock=sock
+                create_protocol, sock=sock
             )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
             self.logger.info(message % str(sock.getsockname()))
@@ -260,7 +258,7 @@ class Server:
         elif config.uds is not None:
             # Create a socket using UNIX domain socket.
             self.server = await self.loop.create_unix_server(
-                self.create_protocol, path=config.uds
+                create_protocol, path=config.uds
             )
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
             self.logger.info(message % config.uds)
@@ -268,12 +266,14 @@ class Server:
         else:
             # Standard case. Create a socket from a host/port pair.
             self.server = await self.loop.create_server(
-                self.create_protocol, host=config.host, port=config.port
+                create_protocol, host=config.host, port=config.port
             )
             message = "Uvicorn running on http://%s:%d (Press CTRL+C to quit)"
             self.logger.info(message % (config.host, config.port))
 
     async def tick(self):
+        on_tick = self.config.http_protocol_class.tick
+
         should_limit_requests = self.limit_max_requests is not None
 
         while not self.should_exit:
@@ -282,7 +282,7 @@ class Server:
                 and self.global_state.total_requests >= self.limit_max_requests
             ):
                 break
-            self.on_tick()
+            on_tick()
             await asyncio.sleep(1)
 
         self.logger.info("Stopping server process [{}]".format(self.pid))
