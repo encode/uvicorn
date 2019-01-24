@@ -54,6 +54,7 @@ class Config:
         port=8000,
         uds=None,
         fd=None,
+        sockets=None,
         loop="auto",
         http="auto",
         ws="auto",
@@ -74,6 +75,7 @@ class Config:
         self.port = port
         self.uds = uds
         self.fd = fd
+        self.sockets = sockets
         self.loop = loop
         self.http = http
         self.ws = ws

@@ -1,4 +1,5 @@
 import threading
+import time
 
 import requests
 
@@ -25,7 +26,8 @@ def test_run():
 
     thread = threading.Thread(target=server.run)
     thread.start()
-    server.started.wait()
+    while not server.started:
+        time.sleep(0.01)
     response = requests.get("http://127.0.0.1:8000")
     assert response.status_code == 204
     thread.join()
