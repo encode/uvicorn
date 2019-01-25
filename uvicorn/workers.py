@@ -11,10 +11,7 @@ class UvicornWorker(Worker):
     rather than a WSGI callable.
     """
 
-    CONFIG_KWARGS = {
-        "loop": "uvloop",
-        "http": "httptools",
-    }
+    CONFIG_KWARGS = {"loop": "uvloop", "http": "httptools"}
 
     def run(self):
         self.log.level = self.log.loglevel
@@ -39,7 +36,4 @@ class UvicornWorker(Worker):
 
 
 class UvicornH11Worker(UvicornWorker):
-    CONFIG_KWARGS = {
-        "loop": "asyncio",
-        "http": "h11",
-    }
+    CONFIG_KWARGS = {"loop": "asyncio", "http": "h11"}
