@@ -69,6 +69,9 @@ class Config:
         limit_concurrency=None,
         limit_max_requests=None,
         timeout_keep_alive=5,
+        timeout_notify=30,
+        callback_notify=None,
+        install_signal_handlers=True,
     ):
         self.app = app
         self.host = host
@@ -90,6 +93,8 @@ class Config:
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests
         self.timeout_keep_alive = timeout_keep_alive
+        self.timeout_notify = timeout_notify
+        self.callback_notify = callback_notify
 
         self.loaded = False
 

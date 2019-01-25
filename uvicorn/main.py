@@ -3,6 +3,8 @@ import functools
 import os
 import signal
 import sys
+import time
+from email.utils import formatdate
 
 import click
 
@@ -191,6 +193,7 @@ class ServerState:
         self.total_requests = 0
         self.connections = set()
         self.tasks = set()
+        self.default_headers = []
 
 
 class Server:
@@ -268,26 +271,45 @@ class Server:
         self.started = True
 
     async def main_loop(self):
-        on_tick = self.config.http_protocol_class.tick
-        limit_max_requests = self.config.limit_max_requests
+        counter = 0
+        should_exit = await self.on_tick(counter)
+        while not should_exit:
+            counter += 1
+            counter = counter % 864000
+            await asyncio.sleep(0.1)
+            should_exit = await self.on_tick(counter)
 
-        while not self.should_exit:
-            if (
-                limit_max_requests is not None
-                and self.server_state.total_requests >= limit_max_requests
-            ):
-                break
-            on_tick()
-            await asyncio.sleep(1)
+    async def on_tick(self, counter) -> bool:
+        # Update the default headers, once per second.
+        if counter % 10 == 0:
+            current_time = time.time()
+            current_date = formatdate(current_time, usegmt=True).encode()
+            self.server_state.default_headers = [
+                (b"server", b"uvicorn"),
+                (b"date", current_date),
+            ]
+
+        # Callback to `callback_notify` once every `timeout_notify` seconds.
+        if self.config.callback_notify is not None:
+            if counter % (10 * self.config.timeout_notify) == 0:
+                await self.config.callback_notify()
+
+        # Determine if we should exit.
+        if self.should_exit:
+            return True
+        if self.config.limit_max_requests is not None:
+            return self.server_state.total_requests >= self.config.limit_max_requests
+        return False
 
     async def shutdown(self):
         self.logger.info("Shutting down")
 
         # Stop accepting new connections.
-        for server in self.servers:
-            server.close()
-        for server in self.servers:
-            await server.wait_closed()
+        if not self.config.sockets:
+            for server in self.servers:
+                server.close()
+            for server in self.servers:
+                await server.wait_closed()
 
         # Request shutdown on all existing connections.
         for connection in list(self.server_state.connections):

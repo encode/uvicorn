@@ -1,6 +1,6 @@
 import uvloop
-
 from gunicorn.workers.base import Worker
+
 from uvicorn.config import Config
 from uvicorn.main import Server
 
@@ -20,11 +20,16 @@ class UvicornWorker(Worker):
             "sockets": self.sockets,
             "logger": self.log,
             "timeout_keep_alive": self.cfg.keepalive,
+            "timeout_notify": self.timeout,
+            "callback_notify": self.callback_notify,
         }
         kwargs.update(self.CONFIG_KWARGS)
         self.config = Config(**kwargs)
-        server = Server(config=self.config)
-        server.run()
+        self.server = Server(config=self.config)
+        self.server.run()
 
     def init_signals(self):
         pass
+
+    async def callback_notify(self):
+        self.notify()

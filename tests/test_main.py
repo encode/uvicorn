@@ -23,7 +23,6 @@ def test_run():
 
     config = Config(app=App, loop="asyncio", limit_max_requests=1)
     server = CustomServer(config=config)
-
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
