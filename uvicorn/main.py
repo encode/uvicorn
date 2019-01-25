@@ -2,26 +2,27 @@ import asyncio
 import functools
 import os
 import signal
-import socket
 import sys
-import threading
+import time
+from email.utils import formatdate
 
 import click
 
 from uvicorn.config import (
     HTTP_PROTOCOLS,
+    LIFESPAN,
     LOG_LEVELS,
     LOOP_SETUPS,
     WS_PROTOCOLS,
     Config,
     get_logger,
 )
-from uvicorn.lifespan import Lifespan
 from uvicorn.reloaders.statreload import StatReload
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
 WS_CHOICES = click.Choice(WS_PROTOCOLS.keys())
+LIFESPAN_CHOICES = click.Choice(LIFESPAN.keys())
 LOOP_CHOICES = click.Choice(LOOP_SETUPS.keys())
 
 HANDLED_SIGNALS = (
@@ -72,6 +73,13 @@ HANDLED_SIGNALS = (
     show_default=True,
 )
 @click.option(
+    "--lifespan",
+    type=LIFESPAN_CHOICES,
+    default="auto",
+    help="Lifespan implementation.",
+    show_default=True,
+)
+@click.option(
     "--wsgi",
     is_flag=True,
     default=False,
@@ -119,12 +127,6 @@ HANDLED_SIGNALS = (
     help="Close Keep-Alive connections if no new data is received within this timeout.",
     show_default=True,
 )
-@click.option(
-    "--disable-lifespan",
-    is_flag=True,
-    default=False,
-    help="Disable lifespan events (such as startup and shutdown) within an ASGI application.",
-)
 def main(
     app,
     host: str,
@@ -134,6 +136,7 @@ def main(
     loop: str,
     http: str,
     ws: str,
+    lifespan: str,
     wsgi: bool,
     debug: bool,
     log_level: str,
@@ -143,7 +146,6 @@ def main(
     limit_concurrency: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
-    disable_lifespan: bool,
 ):
     sys.path.insert(0, ".")
 
@@ -156,6 +158,7 @@ def main(
         "loop": loop,
         "http": http,
         "ws": ws,
+        "lifespan": lifespan,
         "log_level": log_level,
         "access_log": not no_access_log,
         "wsgi": wsgi,
@@ -165,7 +168,6 @@ def main(
         "limit_concurrency": limit_concurrency,
         "limit_max_requests": limit_max_requests,
         "timeout_keep_alive": timeout_keep_alive,
-        "disable_lifespan": disable_lifespan,
     }
 
     if debug:
@@ -191,6 +193,7 @@ class ServerState:
         self.total_requests = 0
         self.connections = set()
         self.tasks = set()
+        self.default_headers = []
 
 
 class Server:
@@ -198,41 +201,138 @@ class Server:
         self.config = config
         self.server_state = ServerState()
 
-        self.limit_max_requests = config.limit_max_requests
-        self.disable_lifespan = config.disable_lifespan
+        self.started = False
         self.should_exit = False
         self.force_exit = False
-        self.started = threading.Event()
-        self.pid = os.getpid()
 
     def run(self):
+        process_id = os.getpid()
+
         config = self.config
         if not config.loaded:
             config.load()
 
-        self.app = config.loaded_app
         self.loop = config.loop_instance
         self.logger = config.logger_instance
+        self.lifespan = config.lifespan_class(config)
 
-        self.logger.info("Started server process [{}]".format(self.pid))
         self.install_signal_handlers()
-        if not self.disable_lifespan:
-            self.lifespan = Lifespan(self.app, self.logger)
-            if self.lifespan.is_enabled:
-                self.logger.info("Waiting for application startup.")
-                self.loop.create_task(self.lifespan.run())
-                self.loop.run_until_complete(self.lifespan.wait_startup())
-                if self.lifespan.error_occured:
-                    self.logger.error("Application startup failed. Exiting.")
-                    return
-            else:
-                self.logger.debug(
-                    "Lifespan protocol is not recognized by the application"
-                )
-        self.loop.run_until_complete(self.create_server())
-        self.loop.create_task(self.tick())
-        self.started.set()
-        self.loop.run_forever()
+
+        self.logger.info("Started server process [{}]".format(process_id))
+        self.loop.run_until_complete(self.startup())
+        self.loop.run_until_complete(self.main_loop())
+        self.loop.run_until_complete(self.shutdown())
+        self.loop.stop()
+        self.logger.info("Finished server process [{}]".format(process_id))
+
+    async def startup(self):
+        config = self.config
+
+        await self.lifespan.startup()
+
+        create_protocol = functools.partial(
+            config.http_protocol_class, config=config, server_state=self.server_state
+        )
+
+        if config.sockets is not None:
+            # Explicitly passed a list of open sockets.
+            # We use this when the server is run from a Gunicorn worker.
+            self.servers = []
+            for socket in config.sockets:
+                server = await self.loop.create_server(create_protocol, sock=socket)
+                self.servers.append(server)
+
+        elif config.fd is not None:
+            # Use an existing socket, from a file descriptor.
+            sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
+            server = await self.loop.create_server(create_protocol, sock=sock)
+            message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
+            self.logger.info(message % str(sock.getsockname()))
+            self.servers = [server]
+
+        elif config.uds is not None:
+            # Create a socket using UNIX domain socket.
+            server = await self.loop.create_unix_server(
+                create_protocol, path=config.uds
+            )
+            message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
+            self.logger.info(message % config.uds)
+            self.servers = [server]
+
+        else:
+            # Standard case. Create a socket from a host/port pair.
+            server = await self.loop.create_server(
+                create_protocol, host=config.host, port=config.port
+            )
+            message = "Uvicorn running on http://%s:%d (Press CTRL+C to quit)"
+            self.logger.info(message % (config.host, config.port))
+            self.servers = [server]
+
+        self.started = True
+
+    async def main_loop(self):
+        counter = 0
+        should_exit = await self.on_tick(counter)
+        while not should_exit:
+            counter += 1
+            counter = counter % 864000
+            await asyncio.sleep(0.1)
+            should_exit = await self.on_tick(counter)
+
+    async def on_tick(self, counter) -> bool:
+        # Update the default headers, once per second.
+        if counter % 10 == 0:
+            current_time = time.time()
+            current_date = formatdate(current_time, usegmt=True).encode()
+            self.server_state.default_headers = [
+                (b"server", b"uvicorn"),
+                (b"date", current_date),
+            ]
+
+        # Callback to `callback_notify` once every `timeout_notify` seconds.
+        if self.config.callback_notify is not None:
+            if counter % (10 * self.config.timeout_notify) == 0:
+                await self.config.callback_notify()
+
+        # Determine if we should exit.
+        if self.should_exit:
+            return True
+        if self.config.limit_max_requests is not None:
+            return self.server_state.total_requests >= self.config.limit_max_requests
+        return False
+
+    async def shutdown(self):
+        self.logger.info("Shutting down")
+
+        # Stop accepting new connections.
+        if not self.config.sockets:
+            for server in self.servers:
+                server.close()
+            for server in self.servers:
+                await server.wait_closed()
+
+        # Request shutdown on all existing connections.
+        for connection in list(self.server_state.connections):
+            connection.shutdown()
+        await asyncio.sleep(0.1)
+
+        # Wait for existing connections to finish sending responses.
+        if self.server_state.connections and not self.force_exit:
+            msg = "Waiting for connections to close. (CTRL+C to force quit)"
+            self.logger.info(msg)
+            while self.server_state.connections and not self.force_exit:
+                await asyncio.sleep(0.1)
+
+        # Wait for existing tasks to complete.
+        if self.server_state.tasks and not self.force_exit:
+            msg = "Waiting for background tasks to complete. (CTRL+C to force quit)"
+            self.logger.info(msg)
+            while self.server_state.tasks and not self.force_exit:
+                await asyncio.sleep(0.1)
+
+        # Send the lifespan shutdown event, and wait for application shutdown.
+        if not self.force_exit:
+            await self.lifespan.shutdown()
 
     def install_signal_handlers(self):
         try:
@@ -248,83 +348,6 @@ class Server:
             self.force_exit = True
         else:
             self.should_exit = True
-
-    async def create_server(self):
-        config = self.config
-
-        create_protocol = functools.partial(
-            config.http_protocol_class, config=config, server_state=self.server_state
-        )
-
-        if config.fd is not None:
-            # Use an existing socket, from a file descriptor.
-            sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
-            self.server = await self.loop.create_server(create_protocol, sock=sock)
-            message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
-            self.logger.info(message % str(sock.getsockname()))
-
-        elif config.uds is not None:
-            # Create a socket using UNIX domain socket.
-            self.server = await self.loop.create_unix_server(
-                create_protocol, path=config.uds
-            )
-            message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
-            self.logger.info(message % config.uds)
-
-        else:
-            # Standard case. Create a socket from a host/port pair.
-            self.server = await self.loop.create_server(
-                create_protocol, host=config.host, port=config.port
-            )
-            message = "Uvicorn running on http://%s:%d (Press CTRL+C to quit)"
-            self.logger.info(message % (config.host, config.port))
-
-    async def tick(self):
-        on_tick = self.config.http_protocol_class.tick
-
-        should_limit_requests = self.limit_max_requests is not None
-
-        while not self.should_exit:
-            if (
-                should_limit_requests
-                and self.server_state.total_requests >= self.limit_max_requests
-            ):
-                break
-            on_tick()
-            await asyncio.sleep(1)
-
-        self.logger.info("Stopping server process [{}]".format(self.pid))
-        self.server.close()
-        await self.server.wait_closed()
-        for connection in list(self.server_state.connections):
-            connection.shutdown()
-
-        await asyncio.sleep(0.1)
-        if self.server_state.connections and not self.force_exit:
-            self.logger.info(
-                "Waiting for connections to close. (Press CTRL+C to force quit)"
-            )
-            while self.server_state.connections and not self.force_exit:
-                await asyncio.sleep(0.1)
-        if self.server_state.tasks and not self.force_exit:
-            self.logger.info(
-                "Waiting for background tasks to complete. (Press CTRL+C to force quit)"
-            )
-            while self.server_state.tasks and not self.force_exit:
-                await asyncio.sleep(0.1)
-
-        if (
-            not self.disable_lifespan
-            and self.lifespan.is_enabled
-            and not self.force_exit
-        ):
-            self.logger.info("Waiting for application shutdown.")
-            await self.lifespan.wait_shutdown()
-
-        if self.force_exit:
-            self.logger.info("Forced quit.")
-
-        self.loop.stop()
 
 
 if __name__ == "__main__":

@@ -1,19 +1,11 @@
 import asyncio
 import http
 import logging
-import time
 import urllib
-from email.utils import formatdate
 
 import httptools
 
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
-
-
-def _get_default_headers():
-    current_time = time.time()
-    current_date = formatdate(current_time, usegmt=True).encode()
-    return b"".join([b"server: uvicorn\r\ndate: ", current_date, b"\r\n"])
 
 
 def _get_status_line(status_code):
@@ -27,8 +19,6 @@ def _get_status_line(status_code):
 STATUS_LINE = {
     status_code: _get_status_line(status_code) for status_code in range(100, 600)
 }
-
-DEFAULT_HEADERS = _get_default_headers()
 
 HIGH_WATER_LIMIT = 65536
 
@@ -106,6 +96,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.server_state = server_state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
+        self.default_headers = server_state.default_headers
 
         # Per-connection state
         self.transport = None
@@ -122,11 +113,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.expect_100_continue = False
         self.cycle = None
         self.message_event = asyncio.Event()
-
-    @classmethod
-    def tick(cls):
-        global DEFAULT_HEADERS
-        DEFAULT_HEADERS = _get_default_headers()
 
     # Protocol interface
     def connection_made(self, transport):
@@ -177,7 +163,9 @@ class HttpToolsProtocol(asyncio.Protocol):
         if upgrade_value != b"websocket" or self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
-            content = [STATUS_LINE[400], DEFAULT_HEADERS]
+            content = [STATUS_LINE[400]]
+            for name, value in self.default_headers:
+                content.extend([name, b": ", value, b"\r\n"])
             content.extend(
                 [
                     b"content-type: text/plain; charset=utf-8\r\n",
@@ -258,6 +246,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             flow=self.flow,
             logger=self.logger,
             access_log=self.access_log,
+            default_headers=self.default_headers,
             message_event=self.message_event,
             expect_100_continue=self.expect_100_continue,
             keep_alive=http_version != "1.0",
@@ -346,6 +335,7 @@ class RequestResponseCycle:
         flow,
         logger,
         access_log,
+        default_headers,
         message_event,
         expect_100_continue,
         keep_alive,
@@ -356,6 +346,7 @@ class RequestResponseCycle:
         self.flow = flow
         self.logger = logger
         self.access_log = access_log
+        self.default_headers = default_headers
         self.message_event = message_event
         self.on_response = on_response
 
@@ -437,7 +428,7 @@ class RequestResponseCycle:
             self.waiting_for_100_continue = False
 
             status_code = message["status"]
-            headers = message.get("headers", [])
+            headers = self.default_headers + message.get("headers", [])
 
             if self.access_log:
                 self.logger.info(
@@ -450,7 +441,7 @@ class RequestResponseCycle:
                 )
 
             # Write response status line and headers
-            content = [STATUS_LINE[status_code], DEFAULT_HEADERS]
+            content = [STATUS_LINE[status_code]]
 
             for name, value in headers:
                 name = name.lower()

@@ -1,19 +1,11 @@
 import asyncio
 import http
 import logging
-import time
-from email.utils import formatdate
 from urllib.parse import unquote
 
 import h11
 
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
-
-
-def _get_default_headers():
-    current_time = time.time()
-    current_date = formatdate(current_time, usegmt=True).encode()
-    return [["server", "uvicorn"], ["date", current_date]]
 
 
 def _get_status_phrase(status_code):
@@ -26,8 +18,6 @@ def _get_status_phrase(status_code):
 STATUS_PHRASES = {
     status_code: _get_status_phrase(status_code) for status_code in range(100, 600)
 }
-
-DEFAULT_HEADERS = _get_default_headers()
 
 HIGH_WATER_LIMIT = 65536
 
@@ -105,6 +95,7 @@ class H11Protocol(asyncio.Protocol):
         self.server_state = server_state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
+        self.default_headers = server_state.default_headers
 
         # Per-connection state
         self.transport = None
@@ -118,11 +109,6 @@ class H11Protocol(asyncio.Protocol):
         self.headers = None
         self.cycle = None
         self.message_event = asyncio.Event()
-
-    @classmethod
-    def tick(cls):
-        global DEFAULT_HEADERS
-        DEFAULT_HEADERS = _get_default_headers()
 
     # Protocol interface
     def connection_made(self, transport):
@@ -230,6 +216,7 @@ class H11Protocol(asyncio.Protocol):
                     flow=self.flow,
                     logger=self.logger,
                     access_log=self.access_log,
+                    default_headers=self.default_headers,
                     message_event=self.message_event,
                     on_response=self.on_response_complete,
                 )
@@ -352,6 +339,7 @@ class RequestResponseCycle:
         flow,
         logger,
         access_log,
+        default_headers,
         message_event,
         on_response,
     ):
@@ -361,6 +349,7 @@ class RequestResponseCycle:
         self.flow = flow
         self.logger = logger
         self.access_log = access_log
+        self.default_headers = default_headers
         self.message_event = message_event
         self.on_response = on_response
 
@@ -422,8 +411,6 @@ class RequestResponseCycle:
 
     # ASGI interface
     async def send(self, message):
-        global DEFAULT_HEADERS
-
         message_type = message["type"]
 
         if self.disconnected:
@@ -442,7 +429,7 @@ class RequestResponseCycle:
             self.waiting_for_100_continue = False
 
             status_code = message["status"]
-            headers = DEFAULT_HEADERS + message.get("headers", [])
+            headers = self.default_headers + message.get("headers", [])
 
             if self.access_log:
                 self.logger.info(
