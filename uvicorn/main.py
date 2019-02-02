@@ -312,8 +312,9 @@ class Server:
             server = await self.loop.create_server(
                 create_protocol, host=config.host, port=config.port, ssl=config.ssl
             )
-            message = "Uvicorn running on http://%s:%d (Press CTRL+C to quit)"
-            self.logger.info(message % (config.host, config.port))
+            protocol_name = "https" if config.ssl else "http"
+            message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
+            self.logger.info(message % (protocol_name, config.host, config.port))
             self.servers = [server]
 
         self.started = True
@@ -323,7 +324,7 @@ class Server:
         should_exit = await self.on_tick(counter)
         while not should_exit:
             counter += 1
-            counter = counter % 864_000
+            counter = counter % 864000
             await asyncio.sleep(0.1)
             should_exit = await self.on_tick(counter)
 

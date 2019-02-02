@@ -40,6 +40,15 @@ equivalent keyword arguments, eg. `uvicorn.run(App, port=5000, debug=True, acces
 * `--root-path` - Set the ASGI `root_path` for applications submounted below a given URL path.
 * `--proxy-headers` - Use the X-Forwarded-Proto and X-Forwarded-For headers to populate remote scheme/address info.
 
+## HTTPS
+
+* `--keyfile` - SSL key file
+* `--certfile` - SSL certificate file
+* `--ssl-version` - SSL version to use (see stdlib ssl module's)
+* `--cert-reqs` - Whether client certificate is required (see stdlib ssl module's)
+* `--ca-certs` - CA certificates file
+* `--ciphers` - Ciphers to use (see stdlib ssl module's)
+
 ## Resource Limits
 
 * `--limit-concurrency` - Maximum number of concurrent connections or tasks to allow, before issuing HTTP 503 responses. Useful for ensuring known memory usage patterns even under over-resourced loads.

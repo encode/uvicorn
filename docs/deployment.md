@@ -13,7 +13,7 @@ As a general rule, you probably want to:
 
 Typically you'll run `uvicorn` from the command line.
 
-```
+```bash
 $ uvicorn app:App --debug --port 5000
 ```
 
@@ -34,15 +34,17 @@ Options:
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
   --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
-  --http [auto|h11|httptools]     HTTP parser implementation.  [default: auto]
+  --http [auto|h11|httptools]     HTTP protocol implementation.  [default: auto]
   --ws [none|auto|websockets|wsproto]
                                   WebSocket protocol implementation.
                                   [default: auto]
+  --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --wsgi                          Use WSGI as the application interface,
                                   instead of ASGI.
   --debug                         Enable debug mode.
   --log-level [critical|error|warning|info|debug]
                                   Log level.  [default: info]
+  --no-access-log                 Disable access log.
   --proxy-headers                 Use X-Forwarded-Proto, X-Forwarded-For,
                                   X-Forwarded-Port to populate remote address
                                   info.
@@ -56,6 +58,15 @@ Options:
   --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
                                   is received within this timeout.  [default:
                                   5]
+  --keyfile TEXT                  SSL key file
+  --certfile TEXT                 SSL certificate file
+  --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
+                                  [default: 2]
+  --cert-reqs INTEGER             Whether client certificate is required (see
+                                  stdlib ssl module's)  [default: 0]
+  --ca-certs TEXT                 CA certificates file
+  --ciphers TEXT                  Ciphers to use (see stdlib ssl module's)
+                                  [default: TLSv1]
   --help                          Show this message and exit.
 ```
 
@@ -115,7 +126,7 @@ A simple supervisor configuration might look something like this:
 
 **supervisord.conf**:
 
-```
+```ini
 [supervisord]
 
 [fcgi-program:uvicorn]
@@ -140,7 +151,7 @@ A simple circus configuration might look something like this:
 
 **circus.ini**:
 
-```
+```ini
 [watcher:web]
 cmd = venv/bin/uvicorn --fd $(circus.sockets.web) example:App
 use_sockets = True
@@ -167,7 +178,7 @@ You should ensure that the `X-Forwarded-For` and `X-Forwarded-Proto` headers are
 
 Here's how a simple Nginx configuration might look. This example includes setting proxy headers, and using a UNIX domain socket to communicate with the application server.
 
-```
+```conf
 http {
   server {
     listen 80;
@@ -208,3 +219,12 @@ Running behind a content delivery network, such as Cloudflare or Cloud Front, pr
 Proper usage of cache control headers can mean that a CDN is able to serve large amounts of data without always having to forward the request on to your server.
 
 Content Delivery Networks can also be a low-effort way to provide HTTPS termination.
+
+## Running with HTTPS
+
+To run uvicorn with https, a certificate and a private key are required.
+The recommended way to get them is using [Let's Encrypt](https://letsencrypt.org/)
+
+```bash
+$ uvicorn app:App --port 5000 --keyfile=./key.pem --certfile=./cert.pem
+```
