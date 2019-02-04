@@ -23,6 +23,17 @@ class UvicornWorker(Worker):
             "timeout_notify": self.timeout,
             "callback_notify": self.callback_notify,
         }
+
+        if self.cfg.is_ssl:
+            _ssl_opt = {
+                "keyfile": self.cfg.ssl_options.get("keyfile"),
+                "certfile": self.cfg.ssl_options.get("certfile"),
+                "ssl_version": self.cfg.ssl_options.get("ssl_version"),
+                "cert_reqs": self.cfg.ssl_options.get("cert_reqs"),
+                "ca_certs": self.cfg.ssl_options.get("ca_certs"),
+                "ciphers": self.cfg.ssl_options.get("ciphers"),
+            }
+            kwargs.update(_ssl_opt)
         kwargs.update(self.CONFIG_KWARGS)
         self.config = Config(**kwargs)
         self.server = Server(config=self.config)
