@@ -26,12 +26,12 @@ class UvicornWorker(Worker):
 
         if self.cfg.is_ssl:
             _ssl_opt = {
-                "keyfile": self.cfg.ssl_options.get("keyfile"),
-                "certfile": self.cfg.ssl_options.get("certfile"),
+                "ssl_keyfile": self.cfg.ssl_options.get("keyfile"),
+                "ssl_certfile": self.cfg.ssl_options.get("certfile"),
                 "ssl_version": self.cfg.ssl_options.get("ssl_version"),
-                "cert_reqs": self.cfg.ssl_options.get("cert_reqs"),
-                "ca_certs": self.cfg.ssl_options.get("ca_certs"),
-                "ciphers": self.cfg.ssl_options.get("ciphers"),
+                "ssl_cert_reqs": self.cfg.ssl_options.get("cert_reqs"),
+                "ssl_ca_certs": self.cfg.ssl_options.get("ca_certs"),
+                "ssl_ciphers": self.cfg.ssl_options.get("ciphers"),
             }
             kwargs.update(_ssl_opt)
         kwargs.update(self.CONFIG_KWARGS)

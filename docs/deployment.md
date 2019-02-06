@@ -58,14 +58,14 @@ Options:
   --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
                                   is received within this timeout.  [default:
                                   5]
-  --keyfile TEXT                  SSL key file
-  --certfile TEXT                 SSL certificate file
+  --ssl-keyfile TEXT              SSL key file
+  --ssl-certfile TEXT             SSL certificate file
   --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
                                   [default: 2]
-  --cert-reqs INTEGER             Whether client certificate is required (see
+  --ssl-cert-reqs INTEGER         Whether client certificate is required (see
                                   stdlib ssl module's)  [default: 0]
-  --ca-certs TEXT                 CA certificates file
-  --ciphers TEXT                  Ciphers to use (see stdlib ssl module's)
+  --ssl-ca-certs TEXT             CA certificates file
+  --ssl-ciphers TEXT              Ciphers to use (see stdlib ssl module's)
                                   [default: TLSv1]
   --help                          Show this message and exit.
 ```
@@ -223,8 +223,22 @@ Content Delivery Networks can also be a low-effort way to provide HTTPS terminat
 ## Running with HTTPS
 
 To run uvicorn with https, a certificate and a private key are required.
-The recommended way to get them is using [Let's Encrypt](https://letsencrypt.org/)
+The recommended way to get them is using [Let's Encrypt][letsencrypt].
+
+For local development with https, it's possible to use [mkcert][mkcert]
+to generate a valid certificat and private key.
 
 ```bash
-$ uvicorn app:App --port 5000 --keyfile=./key.pem --certfile=./cert.pem
+$ uvicorn app:App --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.pem
 ```
+
+### Running gunicorn worker
+
+It also possible to use certificates with uvicorn's worker for gunicorn
+
+```bash
+$ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornWorker app:App
+```
+
+[letsencrypt]: https://letsencrypt.org/
+[mkcert]: https://github.com/FiloSottile/mkcert

@@ -84,12 +84,12 @@ class Config:
         timeout_notify=30,
         callback_notify=None,
         install_signal_handlers=True,
-        keyfile=None,
-        certfile=None,
+        ssl_keyfile=None,
+        ssl_certfile=None,
         ssl_version=ssl.PROTOCOL_TLS,
-        cert_reqs=ssl.CERT_NONE,
-        ca_certs=None,
-        ciphers="TLSv1",
+        ssl_cert_reqs=ssl.CERT_NONE,
+        ssl_ca_certs=None,
+        ssl_ciphers="TLSv1",
     ):
         self.app = app
         self.host = host
@@ -113,12 +113,13 @@ class Config:
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
         self.callback_notify = callback_notify
-        self.keyfile = keyfile
-        self.certfile = certfile
+        self.ssl_keyfile = ssl_keyfile
+        self.ssl_certfile = ssl_certfile
         self.ssl_version = ssl_version
-        self.cert_reqs = cert_reqs
-        self.ca_certs = ca_certs
-        self.ciphers = ciphers
+        self.ssl_cert_reqs = ssl_cert_reqs
+        self.ssl_ca_certs = ssl_ca_certs
+        self.ssl_ciphers = ssl_ciphers
+
         self.loaded = False
 
     def load(self):
@@ -163,14 +164,14 @@ class Config:
         if self.proxy_headers:
             self.loaded_app = ProxyHeadersMiddleware(self.loaded_app)
 
-        if self.keyfile or self.certfile:
+        if self.ssl_keyfile or self.ssl_certfile:
             self.ssl = create_ssl_context(
-                keyfile=self.keyfile,
-                certfile=self.certfile,
+                keyfile=self.ssl_keyfile,
+                certfile=self.ssl_certfile,
                 ssl_version=self.ssl_version,
-                cert_reqs=self.cert_reqs,
-                ca_certs=self.ca_certs,
-                ciphers=self.ciphers,
+                cert_reqs=self.ssl_cert_reqs,
+                ca_certs=self.ssl_ca_certs,
+                ciphers=self.ssl_ciphers,
             )
         else:
             self.ssl = None

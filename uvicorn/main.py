@@ -129,10 +129,10 @@ HANDLED_SIGNALS = (
     show_default=True,
 )
 @click.option(
-    "--keyfile", type=str, default=None, help="SSL key file", show_default=True
+    "--ssl-keyfile", type=str, default=None, help="SSL key file", show_default=True
 )
 @click.option(
-    "--certfile", type=str, default=None, help="SSL certificate file", show_default=True
+    "--ssl-certfile", type=str, default=None, help="SSL certificate file", show_default=True
 )
 @click.option(
     "--ssl-version",
@@ -142,17 +142,17 @@ HANDLED_SIGNALS = (
     show_default=True,
 )
 @click.option(
-    "--cert-reqs",
+    "--ssl-cert-reqs",
     type=int,
     default=ssl.CERT_NONE,
     help="Whether client certificate is required (see stdlib ssl module's)",
     show_default=True,
 )
 @click.option(
-    "--ca-certs", type=str, default=None, help="CA certificates file", show_default=True
+    "--ssl-ca-certs", type=str, default=None, help="CA certificates file", show_default=True
 )
 @click.option(
-    "--ciphers",
+    "--ssl-ciphers",
     type=str,
     default="TLSv1",
     help="Ciphers to use (see stdlib ssl module's)",
@@ -177,12 +177,12 @@ def main(
     limit_concurrency: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
-    keyfile: str,
-    certfile: str,
+    ssl_keyfile: str,
+    ssl_certfile: str,
     ssl_version: int,
-    cert_reqs: int,
-    ca_certs: str,
-    ciphers: str,
+    ssl_cert_reqs: int,
+    ssl_ca_certs: str,
+    ssl_ciphers: str,
 ):
     sys.path.insert(0, ".")
 
@@ -205,12 +205,12 @@ def main(
         "limit_concurrency": limit_concurrency,
         "limit_max_requests": limit_max_requests,
         "timeout_keep_alive": timeout_keep_alive,
-        "keyfile": keyfile,
-        "certfile": certfile,
+        "ssl_keyfile": ssl_keyfile,
+        "ssl_certfile": ssl_certfile,
         "ssl_version": ssl_version,
-        "cert_reqs": cert_reqs,
-        "ca_certs": ca_certs,
-        "ciphers": ciphers,
+        "ssl_cert_reqs": ssl_cert_reqs,
+        "ssl_ca_certs": ssl_ca_certs,
+        "ssl_ciphers": ssl_ciphers,
     }
 
     if debug:
