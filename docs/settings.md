@@ -42,12 +42,12 @@ equivalent keyword arguments, eg. `uvicorn.run(App, port=5000, debug=True, acces
 
 ## HTTPS
 
-* `--keyfile` - SSL key file
-* `--certfile` - SSL certificate file
+* `--ssl-keyfile` - SSL key file
+* `--ssl-certfile` - SSL certificate file
 * `--ssl-version` - SSL version to use (see stdlib ssl module's)
-* `--cert-reqs` - Whether client certificate is required (see stdlib ssl module's)
-* `--ca-certs` - CA certificates file
-* `--ciphers` - Ciphers to use (see stdlib ssl module's)
+* `--ssl-cert-reqs` - Whether client certificate is required (see stdlib ssl module's)
+* `--ssl-ca-certs` - CA certificates file
+* `--ssl-ciphers` - Ciphers to use (see stdlib ssl module's)
 
 ## Resource Limits
 
