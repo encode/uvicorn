@@ -132,7 +132,11 @@ HANDLED_SIGNALS = (
     "--ssl-keyfile", type=str, default=None, help="SSL key file", show_default=True
 )
 @click.option(
-    "--ssl-certfile", type=str, default=None, help="SSL certificate file", show_default=True
+    "--ssl-certfile",
+    type=str,
+    default=None,
+    help="SSL certificate file",
+    show_default=True,
 )
 @click.option(
     "--ssl-version",
@@ -149,7 +153,11 @@ HANDLED_SIGNALS = (
     show_default=True,
 )
 @click.option(
-    "--ssl-ca-certs", type=str, default=None, help="CA certificates file", show_default=True
+    "--ssl-ca-certs",
+    type=str,
+    default=None,
+    help="CA certificates file",
+    show_default=True,
 )
 @click.option(
     "--ssl-ciphers",
