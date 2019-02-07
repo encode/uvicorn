@@ -1,4 +1,5 @@
 import logging
+import ssl
 import sys
 
 from uvicorn.importer import ImportFromStringError, import_from_string
@@ -46,6 +47,17 @@ def get_logger(log_level):
     return logger
 
 
+def create_ssl_context(certfile, keyfile, ssl_version, cert_reqs, ca_certs, ciphers):
+    ctx = ssl.SSLContext(ssl_version)
+    ctx.load_cert_chain(certfile, keyfile)
+    ctx.verify_mode = cert_reqs
+    if ca_certs:
+        ctx.load_verify_locations(ca_certs)
+    if ciphers:
+        ctx.set_ciphers(ciphers)
+    return ctx
+
+
 class Config:
     def __init__(
         self,
@@ -72,6 +84,12 @@ class Config:
         timeout_notify=30,
         callback_notify=None,
         install_signal_handlers=True,
+        ssl_keyfile=None,
+        ssl_certfile=None,
+        ssl_version=ssl.PROTOCOL_TLS,
+        ssl_cert_reqs=ssl.CERT_NONE,
+        ssl_ca_certs=None,
+        ssl_ciphers="TLSv1",
     ):
         self.app = app
         self.host = host
@@ -95,6 +113,12 @@ class Config:
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
         self.callback_notify = callback_notify
+        self.ssl_keyfile = ssl_keyfile
+        self.ssl_certfile = ssl_certfile
+        self.ssl_version = ssl_version
+        self.ssl_cert_reqs = ssl_cert_reqs
+        self.ssl_ca_certs = ssl_ca_certs
+        self.ssl_ciphers = ssl_ciphers
 
         self.loaded = False
 
@@ -139,5 +163,17 @@ class Config:
             self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
             self.loaded_app = ProxyHeadersMiddleware(self.loaded_app)
+
+        if self.ssl_keyfile or self.ssl_certfile:
+            self.ssl = create_ssl_context(
+                keyfile=self.ssl_keyfile,
+                certfile=self.ssl_certfile,
+                ssl_version=self.ssl_version,
+                cert_reqs=self.ssl_cert_reqs,
+                ca_certs=self.ssl_ca_certs,
+                ciphers=self.ssl_ciphers,
+            )
+        else:
+            self.ssl = None
 
         self.loaded = True

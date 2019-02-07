@@ -2,7 +2,7 @@ import asyncio
 import functools
 import os
 import signal
-import socket
+import ssl
 import sys
 import time
 from email.utils import formatdate
@@ -128,6 +128,44 @@ HANDLED_SIGNALS = (
     help="Close Keep-Alive connections if no new data is received within this timeout.",
     show_default=True,
 )
+@click.option(
+    "--ssl-keyfile", type=str, default=None, help="SSL key file", show_default=True
+)
+@click.option(
+    "--ssl-certfile",
+    type=str,
+    default=None,
+    help="SSL certificate file",
+    show_default=True,
+)
+@click.option(
+    "--ssl-version",
+    type=int,
+    default=ssl.PROTOCOL_TLS,
+    help="SSL version to use (see stdlib ssl module's)",
+    show_default=True,
+)
+@click.option(
+    "--ssl-cert-reqs",
+    type=int,
+    default=ssl.CERT_NONE,
+    help="Whether client certificate is required (see stdlib ssl module's)",
+    show_default=True,
+)
+@click.option(
+    "--ssl-ca-certs",
+    type=str,
+    default=None,
+    help="CA certificates file",
+    show_default=True,
+)
+@click.option(
+    "--ssl-ciphers",
+    type=str,
+    default="TLSv1",
+    help="Ciphers to use (see stdlib ssl module's)",
+    show_default=True,
+)
 def main(
     app,
     host: str,
@@ -147,6 +185,12 @@ def main(
     limit_concurrency: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
+    ssl_keyfile: str,
+    ssl_certfile: str,
+    ssl_version: int,
+    ssl_cert_reqs: int,
+    ssl_ca_certs: str,
+    ssl_ciphers: str,
 ):
     sys.path.insert(0, ".")
 
@@ -169,6 +213,12 @@ def main(
         "limit_concurrency": limit_concurrency,
         "limit_max_requests": limit_max_requests,
         "timeout_keep_alive": timeout_keep_alive,
+        "ssl_keyfile": ssl_keyfile,
+        "ssl_certfile": ssl_certfile,
+        "ssl_version": ssl_version,
+        "ssl_cert_reqs": ssl_cert_reqs,
+        "ssl_ca_certs": ssl_ca_certs,
+        "ssl_ciphers": ssl_ciphers,
     }
 
     if debug:
@@ -240,13 +290,17 @@ class Server:
             # We use this when the server is run from a Gunicorn worker.
             self.servers = []
             for socket in config.sockets:
-                server = await self.loop.create_server(create_protocol, sock=socket)
+                server = await self.loop.create_server(
+                    create_protocol, sock=socket, ssl=config.ssl
+                )
                 self.servers.append(server)
 
         elif config.fd is not None:
             # Use an existing socket, from a file descriptor.
             sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
-            server = await self.loop.create_server(create_protocol, sock=sock)
+            server = await self.loop.create_server(
+                create_protocol, sock=sock, ssl=config.ssl
+            )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
             self.logger.info(message % str(sock.getsockname()))
             self.servers = [server]
@@ -263,10 +317,11 @@ class Server:
         else:
             # Standard case. Create a socket from a host/port pair.
             server = await self.loop.create_server(
-                create_protocol, host=config.host, port=config.port
+                create_protocol, host=config.host, port=config.port, ssl=config.ssl
             )
-            message = "Uvicorn running on http://%s:%d (Press CTRL+C to quit)"
-            self.logger.info(message % (config.host, config.port))
+            protocol_name = "https" if config.ssl else "http"
+            message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
+            self.logger.info(message % (protocol_name, config.host, config.port))
             self.servers = [server]
 
         self.started = True
