@@ -2,13 +2,20 @@ import asyncio
 
 import h11
 import pytest
-
-from tests.response import Response
 from uvicorn.config import Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
-from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
+
+from tests.response import Response
+
+try:
+    from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
+except ImportError:
+    HttpToolsProtocol = None
+
+
+HTTP_PROTOCOLS = [p for p in [H11Protocol, HttpToolsProtocol] if p is not None]
 
 SIMPLE_GET_REQUEST = b"\r\n".join([b"GET / HTTP/1.1", b"Host: example.org", b"", b""])
 
@@ -144,7 +151,7 @@ def get_connected_protocol(app, protocol_cls, **kwargs):
     return protocol
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_get_request(protocol_cls):
     def app(scope):
         return Response("Hello, world", media_type="text/plain")
@@ -156,7 +163,7 @@ def test_get_request(protocol_cls):
     assert b"Hello, world" in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_head_request(protocol_cls):
     def app(scope):
         return Response("Hello, world", media_type="text/plain")
@@ -168,7 +175,7 @@ def test_head_request(protocol_cls):
     assert b"Hello, world" not in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_post_request(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -191,7 +198,7 @@ def test_post_request(protocol_cls):
     assert b'Body: {"hello": "world"}' in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_keepalive(protocol_cls):
     def app(scope):
         return Response(b"", status_code=204)
@@ -204,7 +211,7 @@ def test_keepalive(protocol_cls):
     assert not protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_keepalive_timeout(protocol_cls):
     def app(scope):
         return Response(b"", status_code=204)
@@ -223,7 +230,7 @@ def test_keepalive_timeout(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_close(protocol_cls):
     def app(scope):
         return Response(b"", status_code=204, headers={"connection": "close"})
@@ -235,7 +242,7 @@ def test_close(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_chunked_encoding(protocol_cls):
     def app(scope):
         return Response(
@@ -250,7 +257,7 @@ def test_chunked_encoding(protocol_cls):
     assert not protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_chunked_encoding_empty_body(protocol_cls):
     def app(scope):
         return Response(
@@ -265,7 +272,7 @@ def test_chunked_encoding_empty_body(protocol_cls):
     assert not protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_chunked_encoding_head_request(protocol_cls):
     def app(scope):
         return Response(
@@ -279,7 +286,7 @@ def test_chunked_encoding_head_request(protocol_cls):
     assert not protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_pipelined_requests(protocol_cls):
     def app(scope):
         return Response("Hello, world", media_type="text/plain")
@@ -305,7 +312,7 @@ def test_pipelined_requests(protocol_cls):
     protocol.transport.clear_buffer()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_undersized_request(protocol_cls):
     def app(scope):
         return Response(b"xxx", headers={"content-length": "10"})
@@ -316,7 +323,7 @@ def test_undersized_request(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_oversized_request(protocol_cls):
     def app(scope):
         return Response(b"xxx" * 20, headers={"content-length": "10"})
@@ -327,7 +334,7 @@ def test_oversized_request(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_large_post_request(protocol_cls):
     def app(scope):
         return Response("Hello, world", media_type="text/plain")
@@ -339,7 +346,7 @@ def test_large_post_request(protocol_cls):
     assert not protocol.transport.read_paused
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_invalid_http(protocol_cls):
     app = lambda scope: None
     protocol = get_connected_protocol(app, protocol_cls)
@@ -347,7 +354,7 @@ def test_invalid_http(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_app_exception(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -363,7 +370,7 @@ def test_app_exception(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_app_init_exception(protocol_cls):
     def app(scope):
         raise Exception()
@@ -375,7 +382,7 @@ def test_app_init_exception(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_exception_during_response(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -393,7 +400,7 @@ def test_exception_during_response(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_no_response_returned(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -409,7 +416,7 @@ def test_no_response_returned(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_partial_response_returned(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -425,7 +432,7 @@ def test_partial_response_returned(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_duplicate_start_message(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -442,7 +449,7 @@ def test_duplicate_start_message(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_missing_start_message(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -458,7 +465,7 @@ def test_missing_start_message(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_message_after_body_complete(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -476,7 +483,7 @@ def test_message_after_body_complete(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_value_returned(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -494,7 +501,7 @@ def test_value_returned(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_early_disconnect(protocol_cls):
     got_disconnect_event = False
 
@@ -520,7 +527,7 @@ def test_early_disconnect(protocol_cls):
     assert got_disconnect_event
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_early_response(protocol_cls):
     def app(scope):
         return Response("Hello, world", media_type="text/plain")
@@ -533,7 +540,7 @@ def test_early_response(protocol_cls):
     assert not protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_read_after_response(protocol_cls):
     message_after_response = None
 
@@ -555,7 +562,7 @@ def test_read_after_response(protocol_cls):
     assert message_after_response == {"type": "http.disconnect"}
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_http10_request(protocol_cls):
     def app(scope):
         content = "Version: %s" % scope["http_version"]
@@ -568,7 +575,7 @@ def test_http10_request(protocol_cls):
     assert b"Version: 1.0" in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_root_path(protocol_cls):
     def app(scope):
         path = scope.get("root_path", "") + scope["path"]
@@ -581,7 +588,7 @@ def test_root_path(protocol_cls):
     assert b"Path: /app/" in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_max_concurrency(protocol_cls):
     app = lambda scope: None
     protocol = get_connected_protocol(app, protocol_cls, limit_concurrency=1)
@@ -590,7 +597,7 @@ def test_max_concurrency(protocol_cls):
     assert b"HTTP/1.1 503 Service Unavailable" in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_shutdown_during_request(protocol_cls):
     def app(scope):
         return Response(b"", status_code=204)
@@ -603,7 +610,7 @@ def test_shutdown_during_request(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_shutdown_during_idle(protocol_cls):
     app = lambda scope: None
     protocol = get_connected_protocol(app, protocol_cls)
@@ -612,7 +619,7 @@ def test_shutdown_during_idle(protocol_cls):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_100_continue_sent_when_body_consumed(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -647,7 +654,7 @@ def test_100_continue_sent_when_body_consumed(protocol_cls):
     assert b'Body: {"hello": "world"}' in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
     def app(scope):
         return Response(b"", status_code=204)
@@ -670,7 +677,7 @@ def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_unsupported_upgrade_request(protocol_cls):
     def app(scope):
         pass  # pragma: no cover
@@ -681,7 +688,7 @@ def test_unsupported_upgrade_request(protocol_cls):
     assert b"Unsupported upgrade request." in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol, H11Protocol])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_supported_upgrade_request(protocol_cls):
     def app(scope):
         pass  # pragma: no cover

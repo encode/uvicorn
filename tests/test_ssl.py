@@ -1,4 +1,5 @@
 import contextlib
+import sys
 import tempfile
 import threading
 import time
@@ -8,7 +9,6 @@ from functools import partialmethod
 import pytest
 import requests
 from urllib3.exceptions import InsecureRequestWarning
-
 from uvicorn.config import Config
 from uvicorn.main import Server
 
@@ -104,6 +104,9 @@ def create_certfile_and_keyfile(request):
 
 
 def test_run(create_certfile_and_keyfile):
+
+    if sys.platform.startswith("win"):
+        pytest.skip("Skipping SSL test on Windows for now :(")
 
     certfile, keyfile = create_certfile_and_keyfile
 

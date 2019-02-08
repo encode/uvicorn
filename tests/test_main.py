@@ -2,7 +2,6 @@ import threading
 import time
 
 import requests
-
 from uvicorn.config import Config
 from uvicorn.main import Server
 

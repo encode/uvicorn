@@ -6,13 +6,23 @@ from contextlib import contextmanager
 
 import pytest
 import requests
-import websockets
-
 from uvicorn.config import Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
-from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
+
+try:
+    import websockets
+    from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+except ImportError:
+    websockets = None
+    WebSocketProtocol = None
+
+
+WS_PROTOCOLS = [p for p in [WSProtocol, WebSocketProtocol] if p is not None]
+pytestmark = pytest.mark.skipif(
+    websockets is None, reason="This test needs the websockets module"
+)
 
 
 class WebSocketResponse:
@@ -60,7 +70,7 @@ def run_server(app, protocol_cls):
         thread.join()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_invalid_upgrade(protocol_cls):
 
     app = lambda scope: None
@@ -78,7 +88,7 @@ def test_invalid_upgrade(protocol_cls):
         ]
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_accept_connection(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -95,7 +105,7 @@ def test_accept_connection(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_close_connection(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -115,7 +125,7 @@ def test_close_connection(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_send_text_data_to_client(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -133,7 +143,7 @@ def test_send_text_data_to_client(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_send_binary_data_to_client(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -151,7 +161,7 @@ def test_send_binary_data_to_client(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_send_and_close_connection(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -177,7 +187,7 @@ def test_send_and_close_connection(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_send_text_data_to_server(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -199,7 +209,7 @@ def test_send_text_data_to_server(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_send_binary_data_to_server(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -221,7 +231,7 @@ def test_send_binary_data_to_server(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_send_after_protocol_close(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -249,7 +259,7 @@ def test_send_after_protocol_close(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_missing_handshake(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -269,7 +279,7 @@ def test_missing_handshake(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_send_before_handshake(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -289,7 +299,7 @@ def test_send_before_handshake(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_duplicate_handshake(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -311,7 +321,7 @@ def test_duplicate_handshake(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_asgi_return_value(protocol_cls):
     """
     The ASGI callable should return 'None'. If it doesn't make sure that
@@ -338,7 +348,7 @@ def test_asgi_return_value(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_app_close(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -368,7 +378,7 @@ def test_app_close(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_client_close(protocol_cls):
     class App:
         def __init__(self, scope):
@@ -395,7 +405,7 @@ def test_client_close(protocol_cls):
         loop.close()
 
 
-@pytest.mark.parametrize("protocol_cls", [WebSocketProtocol, WSProtocol])
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("subprotocol", ["proto1", "proto2"])
 def test_subprotocols(protocol_cls, subprotocol):
     class App(WebSocketResponse):
