@@ -25,10 +25,10 @@ install:
     - if [ "$TRAVIS_OS_NAME" = "windows" ]; then
         choco install python3;
         export PATH=/c/Python37:/c/Python37/Scripts:$PATH;
-        python -m pip install -U click h11 wsproto websockets;
+        python -m pip install -U click h11 wsproto==0.12.* websockets;
         python -m pip install -U autoflake black codecov isort pytest pytest-cov requests;
       elif [ "$TRAVIS_PYTHON_VERSION" = "pypy3.5" ]; then
-        pip install -U click h11 wsproto;
+        pip install -U click h11 wsproto==0.12.*;
         pip install -U pytest pytest-cov requests codecov;
       else
         pip install -U -r requirements.txt;
