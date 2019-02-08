@@ -6,7 +6,6 @@ from contextlib import contextmanager
 
 import pytest
 import requests
-import websockets
 from uvicorn.config import Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
