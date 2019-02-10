@@ -31,7 +31,8 @@ Uvicorn currently supports HTTP/1.1 and WebSockets. Support for HTTP/2 is planne
 Install using `pip`:
 
 ```shell
-$ pip install uvicorn
+$ pip install uvicorn[pure]  # Install pure Python deps (works anywhere)
+$ pip install uvicorn[fast]  # Install fast deps (not for e.g. Windows or Pypy)
 ```
 
 Create an application, in `example.py`:

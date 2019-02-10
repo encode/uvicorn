@@ -3,7 +3,6 @@
 
 import os
 import re
-import sys
 
 from setuptools import setup
 
@@ -60,17 +59,10 @@ setup(
     author_email='tom@tomchristie.com',
     packages=get_packages('uvicorn'),
     data_files = [("", ["LICENSE.md"])],
-    install_requires=[
-        'click'
-        'h11',
-        'wsproto'
-    ],
+    install_requires=['click'],
     extras_require={
-        'full': [
-            'uvloop',
-            'httptools',
-            'websockets>=6.0'
-        ]
+        'pure': ['h11', 'wsproto==0.13.*'],
+        'fast': ['uvloop', 'httptools', 'websockets>=6.0'],
     },
     classifiers=[
         'Development Status :: 4 - Beta',
