@@ -113,6 +113,7 @@ class Config:
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
         self.callback_notify = callback_notify
+        self.install_signal_handlers = install_signal_handlers
         self.ssl_keyfile = ssl_keyfile
         self.ssl_certfile = ssl_certfile
         self.ssl_version = ssl_version

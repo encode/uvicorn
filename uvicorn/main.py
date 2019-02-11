@@ -232,7 +232,7 @@ def main(
 def run(app, **kwargs):
     config = Config(app, **kwargs)
     server = Server(config=config)
-    server.run()
+    server.main()
 
 
 class ServerState:
@@ -256,27 +256,34 @@ class Server:
         self.should_exit = False
         self.force_exit = False
 
-    def run(self):
+    def main(self):
+        self.config.setup_event_loop()
+
+        self.loop.run_until_complete(self.run())
+        self.loop.stop()
+
+    async def run(self):
         process_id = os.getpid()
 
         config = self.config
         if not config.loaded:
             config.load()
 
-        config.setup_event_loop()
-
-        self.loop = asyncio.get_event_loop()
         self.logger = config.logger_instance
         self.lifespan = config.lifespan_class(config)
 
-        self.install_signal_handlers()
+        if config.install_signal_handlers:
+            self.install_signal_handlers()
 
         self.logger.info("Started server process [{}]".format(process_id))
-        self.loop.run_until_complete(self.startup())
-        self.loop.run_until_complete(self.main_loop())
-        self.loop.run_until_complete(self.shutdown())
-        self.loop.stop()
+        await self.startup()
+        await self.main_loop()
+        await self.shutdown()
         self.logger.info("Finished server process [{}]".format(process_id))
+
+    @property
+    def loop(self):
+        return asyncio.get_event_loop()
 
     async def startup(self):
         config = self.config
@@ -401,11 +408,14 @@ class Server:
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)
 
-    def handle_exit(self, sig, frame):
+    def stop(self):
         if self.should_exit:
             self.force_exit = True
         else:
             self.should_exit = True
+
+    def handle_exit(self, sig, frame):
+        self.stop()
 
 
 if __name__ == "__main__":
