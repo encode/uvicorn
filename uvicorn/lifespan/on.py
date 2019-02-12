@@ -9,6 +9,9 @@ class LifespanOn:
         if not config.loaded:
             config.load()
 
+        if config.loop_instance is None:
+            config.setup_event_loop()
+
         self.config = config
         self.logger = config.logger_instance
         self.startup_event = asyncio.Event()

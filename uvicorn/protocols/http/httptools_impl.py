@@ -78,6 +78,9 @@ class HttpToolsProtocol(asyncio.Protocol):
         if not config.loaded:
             config.load()
 
+        if config.loop_instance is None:
+            config.setup_event_loop()
+
         self.config = config
         self.app = config.loaded_app
         self.loop = config.loop_instance

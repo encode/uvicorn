@@ -121,6 +121,7 @@ class Config:
         self.ssl_ciphers = ssl_ciphers
 
         self.loaded = False
+        self.loop_instance = None
 
     def load(self):
         assert not self.loaded
@@ -141,12 +142,6 @@ class Config:
             self.ws_protocol_class = self.ws
 
         self.lifespan_class = import_from_string(LIFESPAN[self.lifespan])
-
-        if isinstance(self.loop, str):
-            loop_setup = import_from_string(LOOP_SETUPS[self.loop])
-            self.loop_instance = loop_setup()
-        else:
-            self.loop_instance = self.loop
 
         try:
             self.loaded_app = import_from_string(self.app)
@@ -177,3 +172,10 @@ class Config:
             self.ssl = None
 
         self.loaded = True
+
+    def setup_event_loop(self):
+        if isinstance(self.loop, str):
+            loop_setup = import_from_string(LOOP_SETUPS[self.loop])
+            self.loop_instance = loop_setup()
+        else:
+            self.loop_instance = self.loop

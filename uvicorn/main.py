@@ -263,6 +263,9 @@ class Server:
         if not config.loaded:
             config.load()
 
+        if config.loop_instance is None:
+            config.setup_event_loop()
+
         self.loop = config.loop_instance
         self.logger = config.logger_instance
         self.lifespan = config.lifespan_class(config)
