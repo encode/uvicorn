@@ -14,9 +14,6 @@ class WSProtocol(asyncio.Protocol):
         if not config.loaded:
             config.load()
 
-        if not config.loop_setup:
-            config.setup_event_loop()
-
         self.config = config
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
