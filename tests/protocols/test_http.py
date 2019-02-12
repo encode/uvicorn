@@ -146,7 +146,7 @@ def get_connected_protocol(app, protocol_cls, **kwargs):
     transport = MockTransport()
     config = Config(app=app, loop=loop, **kwargs)
     server_state = ServerState()
-    protocol = protocol_cls(config=config, server_state=server_state)
+    protocol = protocol_cls(config=config, server_state=server_state, _loop=loop)
     protocol.connection_made(transport)
     return protocol
 

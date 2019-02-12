@@ -10,16 +10,16 @@ from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 
 class WSProtocol(asyncio.Protocol):
-    def __init__(self, config, server_state):
+    def __init__(self, config, server_state, _loop=None):
         if not config.loaded:
             config.load()
 
-        if config.loop_instance is None:
+        if not config.loop_setup:
             config.setup_event_loop()
 
         self.config = config
         self.app = config.loaded_app
-        self.loop = config.loop_instance
+        self.loop = _loop or asyncio.get_event_loop()
         self.logger = config.logger_instance
         self.root_path = config.root_path
 

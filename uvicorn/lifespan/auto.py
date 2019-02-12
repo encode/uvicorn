@@ -6,7 +6,7 @@ def LifespanAuto(config):
     if not config.loaded:
         config.load()
 
-    if config.loop_instance is None:
+    if not config.loop_setup:
         config.setup_event_loop()
 
     try:
