@@ -176,8 +176,7 @@ class Config:
     def setup_event_loop(self):
         assert not self.loop_setup
 
-        if isinstance(self.loop, str):
-            loop_setup = import_from_string(LOOP_SETUPS[self.loop])
-            loop_setup()
+        loop_setup = import_from_string(LOOP_SETUPS[self.loop])
+        loop_setup()
 
         self.loop_setup = True

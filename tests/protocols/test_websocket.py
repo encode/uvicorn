@@ -50,7 +50,7 @@ def run_loop(loop):
 def run_server(app, protocol_cls):
     asyncio.set_event_loop(None)
     loop = asyncio.new_event_loop()
-    config = Config(app=app, loop=loop, ws=protocol_cls)
+    config = Config(app=app, ws=protocol_cls)
     server_state = ServerState()
     protocol = functools.partial(H11Protocol, config=config, server_state=server_state)
     create_server_task = loop.create_server(protocol, host="127.0.0.1")
