@@ -6,9 +6,6 @@ def LifespanAuto(config):
     if not config.loaded:
         config.load()
 
-    if not config.loop_setup:
-        config.setup_event_loop()
-
     try:
         config.loaded_app({"type": "lifespan"})
     except BaseException as exc:
