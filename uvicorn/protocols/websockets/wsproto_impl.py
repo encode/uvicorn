@@ -2,11 +2,21 @@ import asyncio
 from urllib.parse import unquote
 
 import h11
-import wsproto.connection
-import wsproto.events
-import wsproto.extensions
+import wsproto
+from wsproto import events, ConnectionType
+from wsproto.extensions import PerMessageDeflate
+from wsproto.utilities import RemoteProtocolError
+from wsproto.connection import ConnectionState
 
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+
+
+# Check wsproto version. We've build against 0.13. We don't know about 0.14 yet.
+assert wsproto.__version__ > "0.13", "Need wsproto version 0.13"
+
+# References for moving from 0.12 to 0.13:
+# https://gitlab.com/pgjones/hypercorn/commit/5b635eba3914445e242457bba93e41e940aec34b
+# https://github.com/python-hyper/wsproto/blob/master/CHANGELOG.rst#0130-2019-01-24
 
 
 class WSProtocol(asyncio.Protocol):
@@ -35,20 +45,8 @@ class WSProtocol(asyncio.Protocol):
         self.queue = asyncio.Queue()
         self.handshake_complete = False
         self.close_sent = False
-        
-        if hasattr(wsproto, "WSConnection"):
-            self.conn = wsproto.WSConnection(
-                connection_type=wsproto.connection.SERVER,
-                #extensions=[wsproto.extensions.PerMessageDeflate()],
-            )
-        else:  # wsproto < 0.13
-            # https://github.com/python-hyper/wsproto/blob/master/CHANGELOG.rst#0130-2019-01-24
-            # todo: someday, remove this (and bit below) and depend on wsproto >=0.13
-            self.data_received = data_received_old
-            self.conn = wsproto.connection.WSConnection(
-                conn_type=wsproto.connection.SERVER,
-                extensions=[wsproto.extensions.PerMessageDeflate()],
-            )
+
+        self.conn = wsproto.WSConnection(connection_type=ConnectionType.SERVER)
 
         self.read_paused = False
         self.writable = asyncio.Event()
@@ -68,53 +66,42 @@ class WSProtocol(asyncio.Protocol):
         self.scheme = "wss" if is_ssl(transport) else "ws"
 
     def connection_lost(self, exc):
+        if exc is not None:
+            self.queue.put_nowait({"type": "websocket.disconnect"})
         self.connections.remove(self)
 
     def eof_received(self):
         pass
-    
+
     def data_received(self, data):
+        # Push data. Can raise RemoteProtocolError (previously resulted in Fail event)
         try:
             self.conn.receive_data(data)
-        except wsproto.utilities.RemoteProtocolError as err:
+        except RemoteProtocolError as err:
             if err.event_hint is not None:
-                #self.handle_no_connect(wsproto.events.CloseConnection(code=err.event_hint.status_code, reason=str(err)))
-                output = self.conn.send(err.event_hint)
-                self.transport.write(output)
+                self.transport.write(self.conn.send(err.event_hint))
                 self.transport.close()
             else:
-                self.handle_no_connect(wsproto.events.CloseConnection())
-            return
+                self.handle_no_connect(events.CloseConnection())
+        else:
+            self.handle_events()
+
+    def handle_events(self):
         for event in self.conn.events():
-            if isinstance(event, wsproto.events.Request):
+            if isinstance(event, events.Request):
                 self.handle_connect(event)
-            elif isinstance(event, wsproto.events.TextMessage):
+            elif isinstance(event, events.TextMessage):
                 self.handle_text(event)
-            elif isinstance(event, wsproto.events.BytesMessage):
+            elif isinstance(event, events.BytesMessage):
                 self.handle_bytes(event)
-            elif isinstance(event, wsproto.events.RejectConnection):
+            elif isinstance(event, events.RejectConnection):
                 self.handle_no_connect(event)
-            elif isinstance(event, wsproto.events.RejectData):
+            elif isinstance(event, events.RejectData):
                 self.handle_no_connect(event)
-            elif isinstance(event, wsproto.events.CloseConnection):
+            elif isinstance(event, events.CloseConnection):
                 self.handle_close(event)
-            elif isinstance(event, wsproto.events.Ping):
-                self.handle_ping(event)
-    
-    def data_received_old(self, data):
-        func = self.conn.receive_bytes(data)
-        for event in self.conn.events():
-            if isinstance(event, wsproto.events.ConnectionRequested):
-                self.handle_connect(event)
-            elif isinstance(event, wsproto.events.TextReceived):
-                self.handle_text(event)
-            elif isinstance(event, wsproto.events.BytesReceived):
-                self.handle_bytes(event)
-            elif isinstance(event, wsproto.events.ConnectionFailed):
-                self.handle_no_connect(event)
-            elif isinstance(event, wsproto.events.ConnectionClosed):
-                self.handle_close(event)
-            elif isinstance(event, wsproto.events.PingReceived):
+                break  # todo: right?
+            elif isinstance(event, events.Ping):
                 self.handle_ping(event)
 
     def pause_writing(self):
@@ -131,9 +118,7 @@ class WSProtocol(asyncio.Protocol):
 
     def shutdown(self):
         self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
-        # self.conn.close(1012)
         output = self.conn.send(wsproto.events.CloseConnection(code=code))
-        # output = self.conn.bytes_to_send()
         self.transport.write(output)
         self.transport.close()
 
@@ -144,23 +129,20 @@ class WSProtocol(asyncio.Protocol):
 
     def handle_connect(self, event):
         self.connect_event = event
-        # print([x for x in dir(event) if not x.startswith('__')])
-        request = event#.h11request
-        # headers = [(key.lower(), value) for key, value in request.headers]
-        headers = [(key.lower(), value) for key, value in request.extra_headers]
-        #path, _, query_string = request.target.partition(b"?")
-        path, _, query_string = request.target.partition("?")
+        headers = [(key.lower(), value) for key, value in event.extra_headers]
+        # todo: Hypercorn adds (b"host", event.host.encode()), should Uvicorn do too?
+        path, _, query_string = event.target.partition("?")
         self.scope = {
             "type": "websocket",
+            "http_version": "1.1",
             "scheme": self.scheme,
             "server": self.server,
             "client": self.client,
             "root_path": self.root_path,
-            #"path": unquote(path.decode("ascii")),
             "path": unquote(path),
-            "query_string": query_string,
+            "query_string": query_string.encode("ascii"),
             "headers": headers,
-            "subprotocols": [],
+            "subprotocols": event.subprotocols,
         }
         self.queue.put_nowait({"type": "websocket.connect"})
         task = self.loop.create_task(self.run_asgi())
@@ -192,6 +174,7 @@ class WSProtocol(asyncio.Protocol):
 
     def handle_bytes(self, event):
         self.bytes += event.data
+        # todo: question (AK): should we guard the size of this (hypercorn does)
         if event.message_finished:
             self.queue.put_nowait({"type": "websocket.receive", "bytes": self.bytes})
             self.bytes = b""
@@ -200,15 +183,13 @@ class WSProtocol(asyncio.Protocol):
                 self.transport.pause_reading()
 
     def handle_close(self, event):
+        if self.conn.state == ConnectionState.REMOTE_CLOSING:
+            self.transport.write(self.conn.send(event.response()))
         self.queue.put_nowait({"type": "websocket.disconnect", "code": event.code})
-        output = self.conn.send(event.response())
-        self.transport.write(output)
         self.transport.close()
 
     def handle_ping(self, event):
-        # output = self.conn.bytes_to_send()
-        output = self.conn.send(event.response())
-        self.transport.write(output)
+        self.transport.write(self.conn.send(event.response()))
 
     def send_500_response(self):
         headers = [
@@ -219,7 +200,7 @@ class WSProtocol(asyncio.Protocol):
             output = self.conn.send(wsproto.events.RejectConnection(status_code=500))
         else:
             msg = h11.Response(
-            status_code=500, headers=headers, reason="Internal Server Error"
+                status_code=500, headers=headers, reason="Internal Server Error"
             )
             output = self.conn.send(msg)
             msg = h11.Data(data=b"Internal Server Error")
@@ -263,9 +244,11 @@ class WSProtocol(asyncio.Protocol):
                 )
                 self.handshake_complete = True
                 subprotocol = message.get("subprotocol")
-                # self.conn.accept(self.connect_event, subprotocol)
-                output = self.conn.send(wsproto.events.AcceptConnection(subprotocol=subprotocol))
-                # output = self.conn.bytes_to_send()
+                output = self.conn.send(
+                    wsproto.events.AcceptConnection(
+                        subprotocol=subprotocol, extensions=[PerMessageDeflate()]
+                    )
+                )
                 self.transport.write(output)
 
             elif message_type == "websocket.close":
@@ -293,9 +276,7 @@ class WSProtocol(asyncio.Protocol):
                 bytes_data = message.get("bytes")
                 text_data = message.get("text")
                 data = text_data if bytes_data is None else bytes_data
-                # self.conn.send_data(data)
                 output = self.conn.send(wsproto.events.Message(data=data))
-                # output = self.conn.bytes_to_send()
                 if not self.transport.is_closing():
                     self.transport.write(output)
 
@@ -303,9 +284,7 @@ class WSProtocol(asyncio.Protocol):
                 self.close_sent = True
                 code = message.get("code", 1000)
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
-                # self.conn.close(code)
                 output = self.conn.send(wsproto.events.CloseConnection(code=code))
-                # output = self.conn.bytes_to_send()
                 if not self.transport.is_closing():
                     self.transport.write(output)
                     self.transport.close()

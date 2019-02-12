@@ -695,5 +695,8 @@ def test_supported_upgrade_request(protocol_cls):
 
     protocol = get_connected_protocol(app, protocol_cls, ws="wsproto")
     protocol.data_received(UPGRADE_REQUEST)
-    assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
-    assert b"Missing Sec-WebSocket-Version header" in protocol.transport.buffer
+    if b"HTTP/1.1 426 " in protocol.transport.buffer:
+        pass  # wsproto 0.13
+    else:
+        assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
+        assert b"Missing Sec-WebSocket-Version header" in protocol.transport.buffer
