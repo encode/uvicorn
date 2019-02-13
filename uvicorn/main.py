@@ -259,8 +259,9 @@ class Server:
     def main(self):
         self.config.setup_event_loop()
 
-        self.loop.run_until_complete(self.run())
-        self.loop.stop()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.run())
+        loop.stop()
 
     async def run(self):
         process_id = os.getpid()
@@ -280,10 +281,6 @@ class Server:
         await self.shutdown()
         self.logger.info("Finished server process [{}]".format(process_id))
 
-    @property
-    def loop(self):
-        return asyncio.get_event_loop()
-
     async def startup(self):
         config = self.config
 
@@ -293,12 +290,14 @@ class Server:
             config.http_protocol_class, config=config, server_state=self.server_state
         )
 
+        loop = asyncio.get_event_loop()
+
         if config.sockets is not None:
             # Explicitly passed a list of open sockets.
             # We use this when the server is run from a Gunicorn worker.
             self.servers = []
             for socket in config.sockets:
-                server = await self.loop.create_server(
+                server = await loop.create_server(
                     create_protocol, sock=socket, ssl=config.ssl
                 )
                 self.servers.append(server)
@@ -306,7 +305,7 @@ class Server:
         elif config.fd is not None:
             # Use an existing socket, from a file descriptor.
             sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
-            server = await self.loop.create_server(
+            server = await loop.create_server(
                 create_protocol, sock=sock, ssl=config.ssl
             )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
@@ -315,7 +314,7 @@ class Server:
 
         elif config.uds is not None:
             # Create a socket using UNIX domain socket.
-            server = await self.loop.create_unix_server(
+            server = await loop.create_unix_server(
                 create_protocol, path=config.uds
             )
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
@@ -324,7 +323,7 @@ class Server:
 
         else:
             # Standard case. Create a socket from a host/port pair.
-            server = await self.loop.create_server(
+            server = await loop.create_server(
                 create_protocol, host=config.host, port=config.port, ssl=config.ssl
             )
             protocol_name = "https" if config.ssl else "http"
@@ -399,9 +398,11 @@ class Server:
             await self.lifespan.shutdown()
 
     def install_signal_handlers(self):
+        loop = asyncio.get_event_loop()
+
         try:
             for sig in HANDLED_SIGNALS:
-                self.loop.add_signal_handler(sig, self.handle_exit, sig, None)
+                loop.add_signal_handler(sig, self.handle_exit, sig, None)
         except NotImplementedError as exc:
             # Windows
             for sig in HANDLED_SIGNALS:
