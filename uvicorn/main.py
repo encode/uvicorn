@@ -263,8 +263,7 @@ class Server:
         if not config.loaded:
             config.load()
 
-        if not config.loop_setup:
-            config.setup_event_loop()
+        config.setup_event_loop()
 
         self.loop = asyncio.get_event_loop()
         self.logger = config.logger_instance

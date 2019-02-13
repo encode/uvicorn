@@ -121,7 +121,6 @@ class Config:
         self.ssl_ciphers = ssl_ciphers
 
         self.loaded = False
-        self.loop_setup = False
 
     def load(self):
         assert not self.loaded
@@ -174,9 +173,5 @@ class Config:
         self.loaded = True
 
     def setup_event_loop(self):
-        assert not self.loop_setup
-
         loop_setup = import_from_string(LOOP_SETUPS[self.loop])
         loop_setup()
-
-        self.loop_setup = True
