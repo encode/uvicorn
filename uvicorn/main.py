@@ -407,14 +407,11 @@ class Server:
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)
 
-    def stop(self):
+    def handle_exit(self, sig, frame):
         if self.should_exit:
             self.force_exit = True
         else:
             self.should_exit = True
-
-    def handle_exit(self, sig, frame):
-        self.stop()
 
 
 if __name__ == "__main__":
