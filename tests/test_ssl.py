@@ -131,7 +131,7 @@ def test_run(create_certfile_and_keyfile):
         ssl_certfile=certfile.name,
     )
     server = CustomServer(config=config)
-    thread = threading.Thread(target=server.main)
+    thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)

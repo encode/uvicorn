@@ -232,7 +232,7 @@ def main(
 def run(app, **kwargs):
     config = Config(app, **kwargs)
     server = Server(config=config)
-    server.main()
+    server.run()
 
 
 class ServerState:
@@ -256,13 +256,13 @@ class Server:
         self.should_exit = False
         self.force_exit = False
 
-    def main(self):
+    def run(self):
         self.config.setup_event_loop()
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.run())
+        loop.run_until_complete(self.serve())
         loop.stop()
 
-    async def run(self):
+    async def serve(self):
         process_id = os.getpid()
 
         config = self.config
