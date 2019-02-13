@@ -272,8 +272,7 @@ class Server:
         self.logger = config.logger_instance
         self.lifespan = config.lifespan_class(config)
 
-        if config.install_signal_handlers:
-            self.install_signal_handlers()
+        self.install_signal_handlers()
 
         self.logger.info("Started server process [{}]".format(process_id))
         await self.startup()

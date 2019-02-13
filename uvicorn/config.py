@@ -83,7 +83,6 @@ class Config:
         timeout_keep_alive=5,
         timeout_notify=30,
         callback_notify=None,
-        install_signal_handlers=True,
         ssl_keyfile=None,
         ssl_certfile=None,
         ssl_version=ssl.PROTOCOL_TLS,
@@ -113,7 +112,6 @@ class Config:
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
         self.callback_notify = callback_notify
-        self.install_signal_handlers = install_signal_handlers
         self.ssl_keyfile = ssl_keyfile
         self.ssl_certfile = ssl_certfile
         self.ssl_version = ssl_version
