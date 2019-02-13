@@ -258,7 +258,6 @@ class Server:
 
     def main(self):
         self.config.setup_event_loop()
-
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.run())
         loop.stop()
