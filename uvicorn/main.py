@@ -313,9 +313,7 @@ class Server:
 
         elif config.uds is not None:
             # Create a socket using UNIX domain socket.
-            server = await loop.create_unix_server(
-                create_protocol, path=config.uds
-            )
+            server = await loop.create_unix_server(create_protocol, path=config.uds)
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
             self.logger.info(message % config.uds)
             self.servers = [server]
