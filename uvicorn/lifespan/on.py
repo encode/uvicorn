@@ -19,7 +19,8 @@ class LifespanOn:
     async def startup(self):
         self.logger.info("Waiting for application startup.")
 
-        self.config.loop_instance.create_task(self.main())
+        loop = asyncio.get_event_loop()
+        loop.create_task(self.main())
 
         await self.receive_queue.put({"type": "lifespan.startup"})
         await self.startup_event.wait()

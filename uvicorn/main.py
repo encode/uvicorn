@@ -263,7 +263,9 @@ class Server:
         if not config.loaded:
             config.load()
 
-        self.loop = config.loop_instance
+        config.setup_event_loop()
+
+        self.loop = asyncio.get_event_loop()
         self.logger = config.logger_instance
         self.lifespan = config.lifespan_class(config)
 

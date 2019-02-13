@@ -142,12 +142,6 @@ class Config:
 
         self.lifespan_class = import_from_string(LIFESPAN[self.lifespan])
 
-        if isinstance(self.loop, str):
-            loop_setup = import_from_string(LOOP_SETUPS[self.loop])
-            self.loop_instance = loop_setup()
-        else:
-            self.loop_instance = self.loop
-
         try:
             self.loaded_app = import_from_string(self.app)
         except ImportFromStringError as exc:
@@ -177,3 +171,7 @@ class Config:
             self.ssl = None
 
         self.loaded = True
+
+    def setup_event_loop(self):
+        loop_setup = import_from_string(LOOP_SETUPS[self.loop])
+        loop_setup()

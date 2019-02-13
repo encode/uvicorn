@@ -41,7 +41,7 @@ def test_lifespan():
         return lifespan
 
     async def test():
-        config = Config(app=app, loop=asyncio.get_event_loop())
+        config = Config(app=app)
         lifespan = LifespanOn(config)
 
         assert not startup_complete
@@ -76,7 +76,7 @@ def test_lifespan_with_error():
         return lifespan
 
     async def test():
-        config = Config(app=app, loop=asyncio.get_event_loop())
+        config = Config(app=app)
         lifespan = LifespanOn(config)
 
         assert not startup_complete

@@ -73,13 +73,13 @@ class ServiceUnavailable:
 
 
 class H11Protocol(asyncio.Protocol):
-    def __init__(self, config, server_state):
+    def __init__(self, config, server_state, _loop=None):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
-        self.loop = config.loop_instance
+        self.loop = _loop or asyncio.get_event_loop()
         self.logger = config.logger_instance
         self.access_log = config.access_log and (self.logger.level <= logging.INFO)
         self.conn = h11.Connection(h11.SERVER)
