@@ -9,6 +9,7 @@ from functools import partialmethod
 import pytest
 import requests
 from urllib3.exceptions import InsecureRequestWarning
+
 from uvicorn.config import Config
 from uvicorn.main import Server
 
