@@ -14,10 +14,6 @@ from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 # Check wsproto version. We've build against 0.13. We don't know about 0.14 yet.
 assert wsproto.__version__ > "0.13", "Need wsproto version 0.13"
 
-# References for moving from 0.12 to 0.13:
-# https://gitlab.com/pgjones/hypercorn/commit/5b635eba3914445e242457bba93e41e940aec34b
-# https://github.com/python-hyper/wsproto/blob/master/CHANGELOG.rst#0130-2019-01-24
-
 
 class WSProtocol(asyncio.Protocol):
     def __init__(self, config, server_state):
@@ -74,7 +70,6 @@ class WSProtocol(asyncio.Protocol):
         pass
 
     def data_received(self, data):
-        # Push data. Can raise RemoteProtocolError (previously resulted in Fail event)
         try:
             self.conn.receive_data(data)
         except RemoteProtocolError as err:
@@ -100,7 +95,6 @@ class WSProtocol(asyncio.Protocol):
                 self.handle_no_connect(event)
             elif isinstance(event, events.CloseConnection):
                 self.handle_close(event)
-                break  # todo: right?
             elif isinstance(event, events.Ping):
                 self.handle_ping(event)
 
@@ -129,8 +123,8 @@ class WSProtocol(asyncio.Protocol):
 
     def handle_connect(self, event):
         self.connect_event = event
-        headers = [(key.lower(), value) for key, value in event.extra_headers]
-        # todo: Hypercorn adds (b"host", event.host.encode()), should Uvicorn do too?
+        headers = [b"host", event.host.encode()]
+        headers += [(key.lower(), value) for key, value in event.extra_headers]
         path, _, query_string = event.target.partition("?")
         self.scope = {
             "type": "websocket",
@@ -174,7 +168,7 @@ class WSProtocol(asyncio.Protocol):
 
     def handle_bytes(self, event):
         self.bytes += event.data
-        # todo: question (AK): should we guard the size of this (hypercorn does)
+        # todo: we may want to guard the size of self.bytes and self.text
         if event.message_finished:
             self.queue.put_nowait({"type": "websocket.receive", "bytes": self.bytes})
             self.bytes = b""
