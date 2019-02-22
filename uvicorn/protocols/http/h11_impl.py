@@ -436,7 +436,7 @@ class RequestResponseCycle:
                     '%s - "%s %s HTTP/%s" %d',
                     self.scope["client"],
                     self.scope["method"],
-                    self.scope["root_path"] + self.scope["path"],
+                    self.scope.get("root_path", "") + self.scope["path"],
                     self.scope["http_version"],
                     status_code,
                 )
