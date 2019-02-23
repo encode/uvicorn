@@ -1,4 +1,4 @@
-import uvloop
+import asyncio
 from gunicorn.workers.base import Worker
 
 from uvicorn.config import Config
@@ -13,10 +13,11 @@ class UvicornWorker(Worker):
 
     CONFIG_KWARGS = {"loop": "uvloop", "http": "httptools"}
 
-    def run(self):
+    def __init__(self, *args, **kwargs):
+        super(UvicornWorker, self).__init__(*args, **kwargs)
         self.log.level = self.log.loglevel
         kwargs = {
-            "app": self.wsgi,
+            "app": None,
             "sockets": self.sockets,
             "logger": self.log,
             "timeout_keep_alive": self.cfg.keepalive,
@@ -36,8 +37,24 @@ class UvicornWorker(Worker):
             kwargs.update(_ssl_opt)
         kwargs.update(self.CONFIG_KWARGS)
         self.config = Config(**kwargs)
+        self.loop = None
         self.server = Server(config=self.config)
-        self.server.run()
+
+    def init_process(self):
+        self.config.setup_event_loop()
+
+        asyncio.get_event_loop().close()
+
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+        super(UvicornWorker, self).init_process()
+
+    def run(self):
+        self.config.app = self.wsgi
+        
+        self.loop.run_until_complete(self.server.serve())
+        self.loop.close()
 
     def init_signals(self):
         pass
