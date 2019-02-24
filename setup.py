@@ -34,26 +34,19 @@ def get_packages(package):
             if os.path.exists(os.path.join(dirpath, '__init__.py'))]
 
 
-if platform.python_implementation() == 'PyPy':
-    requirements = [
-        'click',
-        'h11',
-        'websockets>=6.0'
-    ]
-elif platform.system() == 'Windows' or platform.system().startswith('CYGWIN'):
-    requirements = [
-        'click',
-        'h11',
-        'websockets>=6.0'
-    ]
-else:
-    requirements = [
-        'click',
-        'h11',
-        'httptools',
-        'uvloop',
-        'websockets>=6.0'
-    ]
+env_marker = (
+    "sys_platform != 'win32'"
+    " and sys_platform != 'cygwin'"
+    " and platform_python_implementation != 'pypy'"
+)
+
+requirements = [
+    "click",
+    "h11",
+    "websockets>=6.0",
+    "httptools;" + env_marker,
+    "uvloop;" + env_marker,
+]
 
 
 setup(
