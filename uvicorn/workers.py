@@ -1,4 +1,5 @@
-import uvloop
+import asyncio
+
 from gunicorn.workers.base import Worker
 
 from uvicorn.config import Config
@@ -13,10 +14,13 @@ class UvicornWorker(Worker):
 
     CONFIG_KWARGS = {"loop": "uvloop", "http": "httptools"}
 
-    def run(self):
+    def __init__(self, *args, **kwargs):
+        super(UvicornWorker, self).__init__(*args, **kwargs)
+
         self.log.level = self.log.loglevel
-        kwargs = {
-            "app": self.wsgi,
+
+        config_kwargs = {
+            "app": None,
             "sockets": self.sockets,
             "logger": self.log,
             "timeout_keep_alive": self.cfg.keepalive,
@@ -25,7 +29,7 @@ class UvicornWorker(Worker):
         }
 
         if self.cfg.is_ssl:
-            _ssl_opt = {
+            ssl_kwargs = {
                 "ssl_keyfile": self.cfg.ssl_options.get("keyfile"),
                 "ssl_certfile": self.cfg.ssl_options.get("certfile"),
                 "ssl_version": self.cfg.ssl_options.get("ssl_version"),
@@ -33,14 +37,24 @@ class UvicornWorker(Worker):
                 "ssl_ca_certs": self.cfg.ssl_options.get("ca_certs"),
                 "ssl_ciphers": self.cfg.ssl_options.get("ciphers"),
             }
-            kwargs.update(_ssl_opt)
-        kwargs.update(self.CONFIG_KWARGS)
-        self.config = Config(**kwargs)
-        self.server = Server(config=self.config)
-        self.server.run()
+            config_kwargs.update(ssl_kwargs)
+
+        config_kwargs.update(self.CONFIG_KWARGS)
+
+        self.config = Config(**config_kwargs)
+
+    def init_process(self):
+        self.config.setup_event_loop()
+        super(UvicornWorker, self).init_process()
 
     def init_signals(self):
         pass
+
+    def run(self):
+        self.config.app = self.wsgi
+        server = Server(config=self.config)
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(server.serve())
 
     async def callback_notify(self):
         self.notify()

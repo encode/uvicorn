@@ -260,7 +260,6 @@ class Server:
         self.config.setup_event_loop()
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.serve())
-        loop.stop()
 
     async def serve(self):
         process_id = os.getpid()
