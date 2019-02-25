@@ -3,13 +3,12 @@ from urllib.parse import unquote
 
 import h11
 import wsproto
-from wsproto import events, ConnectionType
+from wsproto import ConnectionType, events
+from wsproto.connection import ConnectionState
 from wsproto.extensions import PerMessageDeflate
 from wsproto.utilities import RemoteProtocolError
-from wsproto.connection import ConnectionState
 
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
-
 
 # Check wsproto version. We've build against 0.13. We don't know about 0.14 yet.
 assert wsproto.__version__ > "0.13", "Need wsproto version 0.13"
