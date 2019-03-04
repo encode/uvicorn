@@ -16,7 +16,7 @@ def test_multiprocess():
     reloader.run(no_op)
 
 
-def test_exit_signal(tmpdir):
+def test_exit_signal():
     config = Config(app=None, workers=2)
     reloader = Multiprocess(config)
     reloader.run(mock_signal, reloader=reloader)

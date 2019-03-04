@@ -28,7 +28,7 @@ def test_statreload():
 
 
 def test_reload_dirs(tmpdir):
-    update_file = os.path.join(tmpdir, "example.py")
+    update_file = os.path.join(str(tmpdir), "example.py")
     config = Config(app=None, reload_dirs=[str(tmpdir)])
     reloader = StatReload(config)
     reloader.run(wait_for_reload, reloader=reloader, until=1, update_file=update_file)
