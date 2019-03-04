@@ -12,7 +12,9 @@ HANDLED_SIGNALS = (
 class StatReload:
     def __init__(self, config):
         self.logger = config.logger_instance
+        self.reload_dirs = config.reload_dirs
         self.should_exit = False
+        self.reload_count = 0
         self.mtimes = {}
 
     def handle_exit(self, sig, frame):
@@ -38,6 +40,7 @@ class StatReload:
                 process.join()
                 process = spawn.Process(target=target, args=args, kwargs=kwargs)
                 process.start()
+                self.reload_count += 1
 
         self.logger.info("Stopping reloader process [{}]".format(pid))
 
@@ -48,7 +51,7 @@ class StatReload:
         for filename in self.iter_py_files():
             try:
                 mtime = os.stat(filename).st_mtime
-            except OSError as exc:
+            except OSError as exc:  # pragma: nocover
                 continue
 
             old_time = self.mtimes.get(filename)
@@ -62,8 +65,9 @@ class StatReload:
         return False
 
     def iter_py_files(self):
-        for subdir, dirs, files in os.walk("."):
-            for file in files:
-                filepath = subdir + os.sep + file
-                if filepath.endswith(".py"):
-                    yield filepath
+        for reload_dir in self.reload_dirs:
+            for subdir, dirs, files in os.walk(reload_dir):
+                for file in files:
+                    filepath = subdir + os.sep + file
+                    if filepath.endswith(".py"):
+                        yield filepath

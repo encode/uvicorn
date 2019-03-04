@@ -5,6 +5,7 @@ import signal
 import ssl
 import sys
 import time
+import typing
 from email.utils import formatdate
 
 import click
@@ -90,6 +91,13 @@ HANDLED_SIGNALS = (
     "--debug", is_flag=True, default=False, help="Enable debug mode.", hidden=True
 )
 @click.option("--reload", is_flag=True, default=False, help="Enable auto-reload.")
+@click.option(
+    "--reload-dir",
+    "reload_dirs",
+    default=None,
+    multiple=True,
+    help="Set reload directories explicitly, instead of using 'sys.path'.",
+)
 @click.option(
     "--log-level",
     type=LEVEL_CHOICES,
@@ -182,6 +190,7 @@ def main(
     wsgi: bool,
     debug: bool,
     reload: bool,
+    reload_dirs: typing.Optional[typing.List[str]],
     log_level: str,
     no_access_log: bool,
     proxy_headers: bool,
@@ -213,6 +222,7 @@ def main(
         "wsgi": wsgi,
         "debug": debug,
         "reload": reload,
+        "reload_dir": reload_dir,
         "proxy_headers": proxy_headers,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,

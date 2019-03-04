@@ -77,6 +77,7 @@ class Config:
         wsgi=False,
         debug=False,
         reload=False,
+        reload_dirs=None,
         proxy_headers=False,
         root_path="",
         limit_concurrency=None,
@@ -137,6 +138,11 @@ class Config:
             )
         else:
             self.ssl = None
+
+        if reload_dirs is None:
+            self.reload_dirs = sys.path
+        else:
+            self.reload_dirs = reload_dirs
 
         self.loaded = False
 

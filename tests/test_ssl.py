@@ -104,11 +104,10 @@ def create_certfile_and_keyfile(request):
     return certfile, keyfile
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("win"), reason="Skipping SSL test on Windows"
+)
 def test_run(create_certfile_and_keyfile):
-
-    if sys.platform.startswith("win"):
-        pytest.skip("Skipping SSL test on Windows for now :(")
-
     certfile, keyfile = create_certfile_and_keyfile
 
     class App:
