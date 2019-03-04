@@ -1,4 +1,5 @@
 import logging
+import socket
 import ssl
 import sys
 
@@ -66,7 +67,6 @@ class Config:
         port=8000,
         uds=None,
         fd=None,
-        sockets=None,
         loop="auto",
         http="auto",
         ws="auto",
@@ -78,6 +78,7 @@ class Config:
         debug=False,
         reload=False,
         reload_dirs=None,
+        workers=1,
         proxy_headers=False,
         root_path="",
         limit_concurrency=None,
@@ -97,7 +98,6 @@ class Config:
         self.port = port
         self.uds = uds
         self.fd = fd
-        self.sockets = sockets
         self.loop = loop
         self.http = http
         self.ws = ws
@@ -108,6 +108,7 @@ class Config:
         self.wsgi = wsgi
         self.debug = debug
         self.reload = reload
+        self.workers = workers
         self.proxy_headers = proxy_headers
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
@@ -149,6 +150,11 @@ class Config:
     def load(self):
         assert not self.loaded
 
+        if self.logger is None:
+            # We re-apply this, in order to ensure that subprocesses get
+            # the correct basicConfig setup too.
+            get_logger(self.log_level)
+
         if isinstance(self.http, str):
             self.http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
         else:
@@ -182,3 +188,13 @@ class Config:
     def setup_event_loop(self):
         loop_setup = import_from_string(LOOP_SETUPS[self.loop])
         loop_setup()
+
+    def bind_socket(self):
+        sock = socket.socket()
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind((self.host, self.port))
+        sock.set_inheritable(True)
+        message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
+        protocol_name = "https" if self.ssl else "http"
+        self.logger_instance.info(message % (protocol_name, self.host, self.port))
+        return sock

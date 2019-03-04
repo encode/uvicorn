@@ -2,6 +2,7 @@ import multiprocessing
 import os
 import signal
 import time
+from pathlib import Path
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -33,7 +34,7 @@ class StatReload:
         process.start()
 
         while process.is_alive() and not self.should_exit:
-            time.sleep(0.2)
+            time.sleep(0.1)
             if self.should_restart():
                 self.clear()
                 os.kill(process.pid, signal.SIGTERM)
@@ -59,8 +60,11 @@ class StatReload:
                 self.mtimes[filename] = mtime
                 continue
             elif mtime > old_time:
+                display_path = os.path.normpath(filename)
+                if Path.cwd() in Path(filename).parents:
+                    display_path = os.path.normpath(os.path.relpath(filename))
                 message = "Detected file change in '%s'. Reloading..."
-                self.logger.warning(message, filename)
+                self.logger.warning(message, display_path)
                 return True
         return False
 

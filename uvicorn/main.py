@@ -19,7 +19,7 @@ from uvicorn.config import (
     Config,
     get_logger,
 )
-from uvicorn.reloaders.statreload import StatReload
+from uvicorn.supervisors import Multiprocess, StatReload
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
@@ -94,9 +94,14 @@ HANDLED_SIGNALS = (
 @click.option(
     "--reload-dir",
     "reload_dirs",
-    default=None,
     multiple=True,
     help="Set reload directories explicitly, instead of using 'sys.path'.",
+)
+@click.option(
+    "--workers",
+    default=1,
+    type=int,
+    help="Number of worker processes. Not valid with --reload.",
 )
 @click.option(
     "--log-level",
@@ -190,7 +195,8 @@ def main(
     wsgi: bool,
     debug: bool,
     reload: bool,
-    reload_dirs: typing.Optional[typing.List[str]],
+    reload_dirs: typing.List[str],
+    workers: int,
     log_level: str,
     no_access_log: bool,
     proxy_headers: bool,
@@ -222,7 +228,8 @@ def main(
         "wsgi": wsgi,
         "debug": debug,
         "reload": reload,
-        "reload_dir": reload_dir,
+        "reload_dirs": reload_dirs if reload_dirs else None,
+        "workers": workers,
         "proxy_headers": proxy_headers,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
@@ -241,13 +248,19 @@ def main(
 def run(app, **kwargs):
     config = Config(app, **kwargs)
     server = Server(config=config)
+
+    if config.debug:
+        MESSAGE = "The 'debug' option is due to be deprecated. Use 'reload' instead."
+        config.logger_instance.warn(MESSAGE)
+
     if config.debug or config.reload:
-        if config.debug:
-            config.logger_instance.warn(
-                "The 'debug' option is due to be deprecated. Use 'reload' instead."
-            )
-        reloader = StatReload(config)
-        reloader.run(server.run)
+        socket = config.bind_socket()
+        supervisor = StatReload(config)
+        supervisor.run(server.run, sockets=[socket])
+    elif config.workers > 1:
+        socket = config.bind_socket()
+        supervisor = Multiprocess(config)
+        supervisor.run(server.run, sockets=[socket])
     else:
         server.run()
 
@@ -273,12 +286,12 @@ class Server:
         self.should_exit = False
         self.force_exit = False
 
-    def run(self):
+    def run(self, sockets=None, shutdown_servers=True):
         self.config.setup_event_loop()
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.serve())
+        loop.run_until_complete(self.serve(sockets=sockets))
 
-    async def serve(self):
+    async def serve(self, sockets=None, shutdown_servers=True):
         process_id = os.getpid()
 
         config = self.config
@@ -291,12 +304,12 @@ class Server:
         self.install_signal_handlers()
 
         self.logger.info("Started server process [{}]".format(process_id))
-        await self.startup()
+        await self.startup(sockets=sockets)
         await self.main_loop()
-        await self.shutdown()
+        await self.shutdown(shutdown_servers=shutdown_servers)
         self.logger.info("Finished server process [{}]".format(process_id))
 
-    async def startup(self):
+    async def startup(self, sockets=None):
         config = self.config
 
         await self.lifespan.startup()
@@ -307,11 +320,11 @@ class Server:
 
         loop = asyncio.get_event_loop()
 
-        if config.sockets is not None:
+        if sockets is not None:
             # Explicitly passed a list of open sockets.
             # We use this when the server is run from a Gunicorn worker.
             self.servers = []
-            for socket in config.sockets:
+            for socket in sockets:
                 server = await loop.create_server(
                     create_protocol, sock=socket, ssl=config.ssl
                 )
@@ -377,11 +390,11 @@ class Server:
             return self.server_state.total_requests >= self.config.limit_max_requests
         return False
 
-    async def shutdown(self):
+    async def shutdown(self, shutdown_servers=True):
         self.logger.info("Shutting down")
 
         # Stop accepting new connections.
-        if not self.config.sockets:
+        if shutdown_servers:
             for server in self.servers:
                 server.close()
             for server in self.servers:

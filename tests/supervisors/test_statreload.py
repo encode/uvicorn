@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 
 from uvicorn.config import Config
-from uvicorn.reloaders.statreload import StatReload
+from uvicorn.supervisors import StatReload
 
 
 def no_op():
