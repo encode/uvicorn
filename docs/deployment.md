@@ -88,23 +88,18 @@ class App:
     ...
 
 if __name__ == "__main__":
-    uvicorn.run(App, host="127.0.0.1", port=5000, log_level="info", debug=True)
+    uvicorn.run(App, host="127.0.0.1", port=5000, log_level="info", reload=True)
 ```
 
 The set of configuration options is the same as for the command line tool.
 
-There are a couple of extra things to be aware of:
-
-* The reloader is not enabled when running programmatically.
-* Running programatically always just uses a single process.
-
 ## Using a process manager
 
-Running Uvicorn using a process manager ensures that you can run multiple processes in a resiliant manner, and allows you to perform server upgrades without dropping requests.
+Running Uvicorn using a process manager ensures that you can run multiple processes in a resilient manner, and allows you to perform server upgrades without dropping requests.
 
 A process manager will handle the socket setup, start-up multiple server processes, monitor process aliveness, and listen for signals to provide for processes restarts, shutdowns, or dialing up and down the number of running processes.
 
-It is possible that a future version of Uvicorn might build in multiple-worker support and process management, but it is currently being treated as out-of-scope, given the existing tools that already deal with this comprehensivly.
+Uvicorn provides a lightweight way to run multiple worker processes, for example `--workers 4`, but does not provide any process monitoring.
 
 ### Gunicorn
 
