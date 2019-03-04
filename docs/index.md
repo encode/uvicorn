@@ -81,13 +81,15 @@ Options:
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
   --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
-  --http [auto|h11|httptools]     HTTP parser implementation.  [default: auto]
+  --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
+                                  auto]
   --ws [none|auto|websockets|wsproto]
                                   WebSocket protocol implementation.
                                   [default: auto]
+  --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --wsgi                          Use WSGI as the application interface,
                                   instead of ASGI.
-  --debug                         Enable debug mode.
+  --reload                        Enable auto-reload.
   --log-level [critical|error|warning|info|debug]
                                   Log level.  [default: info]
   --no-access-log                 Disable access log.
@@ -104,6 +106,15 @@ Options:
   --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
                                   is received within this timeout.  [default:
                                   5]
+  --ssl-keyfile TEXT              SSL key file
+  --ssl-certfile TEXT             SSL certificate file
+  --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
+                                  [default: 2]
+  --ssl-cert-reqs INTEGER         Whether client certificate is required (see
+                                  stdlib ssl module's)  [default: 0]
+  --ssl-ca-certs TEXT             CA certificates file
+  --ssl-ciphers TEXT              Ciphers to use (see stdlib ssl module's)
+                                  [default: TLSv1]
   --help                          Show this message and exit.
 ```
 

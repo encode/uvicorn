@@ -83,8 +83,6 @@ Server errors will be logged at the `error` log level. All logging defaults to b
 
 If an exception is raised by an ASGI application, and a response has not yet been sent on the connection, then a `500 Server Error` HTTP response will be sent.
 
-If running with `--debug` then the response will include an error traceback, in either HTML or plaintext, depending on the request `Accept` header.
-
 ### Invalid responses
 
 Uvicorn will ensure that ASGI applications send the correct sequence of messages, and will raise errors otherwise. This includes checking for no response sent, partial response sent, or invalid message sequences being sent.
