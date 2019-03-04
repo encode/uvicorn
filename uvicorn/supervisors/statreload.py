@@ -12,8 +12,7 @@ HANDLED_SIGNALS = (
 
 class StatReload:
     def __init__(self, config):
-        self.logger = config.logger_instance
-        self.reload_dirs = config.reload_dirs
+        self.config = config
         self.should_exit = False
         self.reload_count = 0
         self.mtimes = {}
@@ -23,8 +22,9 @@ class StatReload:
 
     def run(self, target, *args, **kwargs):
         pid = os.getpid()
+        logger = self.config.logger_instance
 
-        self.logger.info("Started reloader process [{}]".format(pid))
+        logger.info("Started reloader process [{}]".format(pid))
 
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.handle_exit)
@@ -43,7 +43,7 @@ class StatReload:
                 process.start()
                 self.reload_count += 1
 
-        self.logger.info("Stopping reloader process [{}]".format(pid))
+        logger.info("Stopping reloader process [{}]".format(pid))
 
     def clear(self):
         self.mtimes = {}
@@ -64,12 +64,12 @@ class StatReload:
                 if Path.cwd() in Path(filename).parents:
                     display_path = os.path.normpath(os.path.relpath(filename))
                 message = "Detected file change in '%s'. Reloading..."
-                self.logger.warning(message, display_path)
+                self.config.logger_instance.warning(message, display_path)
                 return True
         return False
 
     def iter_py_files(self):
-        for reload_dir in self.reload_dirs:
+        for reload_dir in self.config.reload_dirs:
             for subdir, dirs, files in os.walk(reload_dir):
                 for file in files:
                     filepath = subdir + os.sep + file

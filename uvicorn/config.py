@@ -123,11 +123,6 @@ class Config:
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
 
-        if self.logger is None:
-            self.logger_instance = get_logger(self.log_level)
-        else:
-            self.logger_instance = self.logger
-
         if self.ssl_keyfile or self.ssl_certfile:
             self.ssl = create_ssl_context(
                 keyfile=self.ssl_keyfile,
@@ -149,11 +144,6 @@ class Config:
 
     def load(self):
         assert not self.loaded
-
-        if self.logger is None:
-            # We re-apply this, in order to ensure that subprocesses get
-            # the correct basicConfig setup too.
-            get_logger(self.log_level)
 
         if isinstance(self.http, str):
             self.http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
@@ -198,3 +188,9 @@ class Config:
         protocol_name = "https" if self.ssl else "http"
         self.logger_instance.info(message % (protocol_name, self.host, self.port))
         return sock
+
+    @property
+    def logger_instance(self):
+        if self.logger is not None:
+            return self.logger
+        return get_logger(self.log_level)

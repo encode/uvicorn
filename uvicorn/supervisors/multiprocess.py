@@ -11,7 +11,7 @@ HANDLED_SIGNALS = (
 
 class Multiprocess:
     def __init__(self, config):
-        self.logger = config.logger_instance
+        self.config = config
         self.workers = config.workers
         self.should_exit = False
 
@@ -20,8 +20,9 @@ class Multiprocess:
 
     def run(self, target, *args, **kwargs):
         pid = os.getpid()
+        logger = self.config.logger_instance
 
-        self.logger.info("Started parent process [{}]".format(pid))
+        logger.info("Started parent process [{}]".format(pid))
 
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.handle_exit)
@@ -38,4 +39,4 @@ class Multiprocess:
         ):
             time.sleep(0.1)
 
-        self.logger.info("Stopping parent process [{}]".format(pid))
+        logger.info("Stopping parent process [{}]".format(pid))
