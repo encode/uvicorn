@@ -249,10 +249,6 @@ def run(app, **kwargs):
     config = Config(app, **kwargs)
     server = Server(config=config)
 
-    if config.debug:
-        MESSAGE = "The 'debug' option is due to be deprecated. Use 'reload' instead."
-        config.logger_instance.warn(MESSAGE)
-
     if config.debug or config.reload:
         socket = config.bind_socket()
         supervisor = StatReload(config)
