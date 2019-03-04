@@ -1,7 +1,6 @@
 import multiprocessing
 import os
 import signal
-import sys
 import time
 
 HANDLED_SIGNALS = (
@@ -41,8 +40,6 @@ class StatReload:
                 process.start()
 
         self.logger.info("Stopping reloader process [{}]".format(pid))
-
-        sys.exit(process.exitcode)
 
     def clear(self):
         self.mtimes = {}
