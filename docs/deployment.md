@@ -33,6 +33,11 @@ Options:
   --port INTEGER                  Bind socket to this port.  [default: 8000]
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
+  --reload                        Enable auto-reload.
+  --reload-dir TEXT               Set reload directories explicitly, instead
+                                  of using 'sys.path'.
+  --workers INTEGER               Number of worker processes. Not valid with
+                                  --reload.
   --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
                                   auto]
@@ -42,7 +47,6 @@ Options:
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --wsgi                          Use WSGI as the application interface,
                                   instead of ASGI.
-  --reload                        Enable auto-reload.
   --log-level [critical|error|warning|info|debug]
                                   Log level.  [default: info]
   --no-access-log                 Disable access log.

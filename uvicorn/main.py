@@ -54,6 +54,22 @@ HANDLED_SIGNALS = (
     "--fd", type=int, default=None, help="Bind to socket from this file descriptor."
 )
 @click.option(
+    "--debug", is_flag=True, default=False, help="Enable debug mode.", hidden=True
+)
+@click.option("--reload", is_flag=True, default=False, help="Enable auto-reload.")
+@click.option(
+    "--reload-dir",
+    "reload_dirs",
+    multiple=True,
+    help="Set reload directories explicitly, instead of using 'sys.path'.",
+)
+@click.option(
+    "--workers",
+    default=1,
+    type=int,
+    help="Number of worker processes. Not valid with --reload.",
+)
+@click.option(
     "--loop",
     type=LOOP_CHOICES,
     default="auto",
@@ -86,22 +102,6 @@ HANDLED_SIGNALS = (
     is_flag=True,
     default=False,
     help="Use WSGI as the application interface, instead of ASGI.",
-)
-@click.option(
-    "--debug", is_flag=True, default=False, help="Enable debug mode.", hidden=True
-)
-@click.option("--reload", is_flag=True, default=False, help="Enable auto-reload.")
-@click.option(
-    "--reload-dir",
-    "reload_dirs",
-    multiple=True,
-    help="Set reload directories explicitly, instead of using 'sys.path'.",
-)
-@click.option(
-    "--workers",
-    default=1,
-    type=int,
-    help="Number of worker processes. Not valid with --reload.",
 )
 @click.option(
     "--log-level",
