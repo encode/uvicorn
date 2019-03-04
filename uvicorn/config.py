@@ -76,6 +76,7 @@ class Config:
         access_log=True,
         wsgi=False,
         debug=False,
+        reload=False,
         proxy_headers=False,
         root_path="",
         limit_concurrency=None,
@@ -105,6 +106,7 @@ class Config:
         self.access_log = access_log
         self.wsgi = wsgi
         self.debug = debug
+        self.reload = reload
         self.proxy_headers = proxy_headers
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
@@ -119,15 +121,27 @@ class Config:
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
 
-        self.loaded = False
-
-    def load(self):
-        assert not self.loaded
-
         if self.logger is None:
             self.logger_instance = get_logger(self.log_level)
         else:
             self.logger_instance = self.logger
+
+        if self.ssl_keyfile or self.ssl_certfile:
+            self.ssl = create_ssl_context(
+                keyfile=self.ssl_keyfile,
+                certfile=self.ssl_certfile,
+                ssl_version=self.ssl_version,
+                cert_reqs=self.ssl_cert_reqs,
+                ca_certs=self.ssl_ca_certs,
+                ciphers=self.ssl_ciphers,
+            )
+        else:
+            self.ssl = None
+
+        self.loaded = False
+
+    def load(self):
+        assert not self.loaded
 
         if isinstance(self.http, str):
             self.http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
@@ -156,18 +170,6 @@ class Config:
             self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
             self.loaded_app = ProxyHeadersMiddleware(self.loaded_app)
-
-        if self.ssl_keyfile or self.ssl_certfile:
-            self.ssl = create_ssl_context(
-                keyfile=self.ssl_keyfile,
-                certfile=self.ssl_certfile,
-                ssl_version=self.ssl_version,
-                cert_reqs=self.ssl_cert_reqs,
-                ca_certs=self.ssl_ca_certs,
-                ciphers=self.ssl_ciphers,
-            )
-        else:
-            self.ssl = None
 
         self.loaded = True
 

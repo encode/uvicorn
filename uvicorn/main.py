@@ -86,7 +86,10 @@ HANDLED_SIGNALS = (
     default=False,
     help="Use WSGI as the application interface, instead of ASGI.",
 )
-@click.option("--debug", is_flag=True, default=False, help="Enable debug mode.")
+@click.option(
+    "--debug", is_flag=True, default=False, help="Enable debug mode.", hidden=True
+)
+@click.option("--reload", is_flag=True, default=False, help="Enable auto-reload.")
 @click.option(
     "--log-level",
     type=LEVEL_CHOICES,
@@ -178,6 +181,7 @@ def main(
     lifespan: str,
     wsgi: bool,
     debug: bool,
+    reload: bool,
     log_level: str,
     no_access_log: bool,
     proxy_headers: bool,
@@ -208,6 +212,7 @@ def main(
         "access_log": not no_access_log,
         "wsgi": wsgi,
         "debug": debug,
+        "reload": reload,
         "proxy_headers": proxy_headers,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
@@ -220,19 +225,21 @@ def main(
         "ssl_ca_certs": ssl_ca_certs,
         "ssl_ciphers": ssl_ciphers,
     }
-
-    if debug:
-        logger = get_logger(log_level)
-        reloader = StatReload(logger)
-        reloader.run(run, kwargs)
-    else:
-        run(**kwargs)
+    run(**kwargs)
 
 
 def run(app, **kwargs):
     config = Config(app, **kwargs)
     server = Server(config=config)
-    server.run()
+    if config.debug or config.reload:
+        if config.debug:
+            config.logger_instance.warn(
+                "The 'debug' option is due to be deprecated. Use 'reload' instead."
+            )
+        reloader = StatReload(config)
+        reloader.run(server.run)
+    else:
+        server.run()
 
 
 class ServerState:
