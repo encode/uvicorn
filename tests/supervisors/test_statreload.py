@@ -17,8 +17,8 @@ def wait_for_reload(reloader, until, update_file):
         Path(update_file).touch()
 
 
-def mock_signal(reloader):
-    reloader.handle_exit(None, None)
+def mock_signal(handle_exit):
+    handle_exit(None, None)
 
 
 def test_statreload():
@@ -37,4 +37,4 @@ def test_reload_dirs(tmpdir):
 def test_exit_signal(tmpdir):
     config = Config(app=None)
     reloader = StatReload(config)
-    reloader.run(mock_signal, reloader=reloader)
+    reloader.run(mock_signal, handle_exit=reloader.handle_exit)
