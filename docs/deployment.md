@@ -4,7 +4,7 @@ Server deployment is a complex area, that will depend on what kind of service yo
 
 As a general rule, you probably want to:
 
-* Run `uvicorn --debug` from the command line for local development.
+* Run `uvicorn --reload` from the command line for local development.
 * Run `gunicorn -k uvicorn.workers.UvicornWorker` for production.
 * Additionally run behind Nginx for self-hosted deployments.
 * Finally, run everything behind a CDN for caching support, and serious DDOS protection.
@@ -14,12 +14,12 @@ As a general rule, you probably want to:
 Typically you'll run `uvicorn` from the command line.
 
 ```bash
-$ uvicorn app:App --debug --port 5000
+$ uvicorn app:App --reload --port 5000
 ```
 
 The ASGI application should be specified in the form `path.to.module:instance.path`.
 
-When running locally, use `--debug` to turn on auto-reloading, and display error tracebacks in the browser.
+When running locally, use `--reload` to turn on auto-reloading.
 
 To see the complete set of available options, use `uvicorn --help`:
 
@@ -33,15 +33,20 @@ Options:
   --port INTEGER                  Bind socket to this port.  [default: 8000]
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
+  --reload                        Enable auto-reload.
+  --reload-dir TEXT               Set reload directories explicitly, instead
+                                  of using 'sys.path'.
+  --workers INTEGER               Number of worker processes. Not valid with
+                                  --reload.
   --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
-  --http [auto|h11|httptools]     HTTP protocol implementation.  [default: auto]
+  --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
+                                  auto]
   --ws [none|auto|websockets|wsproto]
                                   WebSocket protocol implementation.
                                   [default: auto]
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --wsgi                          Use WSGI as the application interface,
                                   instead of ASGI.
-  --debug                         Enable debug mode.
   --log-level [critical|error|warning|info|debug]
                                   Log level.  [default: info]
   --no-access-log                 Disable access log.

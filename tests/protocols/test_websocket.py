@@ -15,7 +15,7 @@ from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 try:
     import websockets
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
-except ImportError:
+except ImportError:  # pragma: nocover
     websockets = None
     WebSocketProtocol = None
 

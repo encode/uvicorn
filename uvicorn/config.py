@@ -1,4 +1,5 @@
 import logging
+import socket
 import ssl
 import sys
 
@@ -66,7 +67,6 @@ class Config:
         port=8000,
         uds=None,
         fd=None,
-        sockets=None,
         loop="auto",
         http="auto",
         ws="auto",
@@ -76,6 +76,9 @@ class Config:
         access_log=True,
         wsgi=False,
         debug=False,
+        reload=False,
+        reload_dirs=None,
+        workers=1,
         proxy_headers=False,
         root_path="",
         limit_concurrency=None,
@@ -95,7 +98,6 @@ class Config:
         self.port = port
         self.uds = uds
         self.fd = fd
-        self.sockets = sockets
         self.loop = loop
         self.http = http
         self.ws = ws
@@ -105,6 +107,8 @@ class Config:
         self.access_log = access_log
         self.wsgi = wsgi
         self.debug = debug
+        self.reload = reload
+        self.workers = workers
         self.proxy_headers = proxy_headers
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
@@ -119,15 +123,27 @@ class Config:
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
 
+        if self.ssl_keyfile or self.ssl_certfile:
+            self.ssl = create_ssl_context(
+                keyfile=self.ssl_keyfile,
+                certfile=self.ssl_certfile,
+                ssl_version=self.ssl_version,
+                cert_reqs=self.ssl_cert_reqs,
+                ca_certs=self.ssl_ca_certs,
+                ciphers=self.ssl_ciphers,
+            )
+        else:
+            self.ssl = None
+
+        if reload_dirs is None:
+            self.reload_dirs = sys.path
+        else:
+            self.reload_dirs = reload_dirs
+
         self.loaded = False
 
     def load(self):
         assert not self.loaded
-
-        if self.logger is None:
-            self.logger_instance = get_logger(self.log_level)
-        else:
-            self.logger_instance = self.logger
 
         if isinstance(self.http, str):
             self.http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
@@ -157,20 +173,24 @@ class Config:
         if self.proxy_headers:
             self.loaded_app = ProxyHeadersMiddleware(self.loaded_app)
 
-        if self.ssl_keyfile or self.ssl_certfile:
-            self.ssl = create_ssl_context(
-                keyfile=self.ssl_keyfile,
-                certfile=self.ssl_certfile,
-                ssl_version=self.ssl_version,
-                cert_reqs=self.ssl_cert_reqs,
-                ca_certs=self.ssl_ca_certs,
-                ciphers=self.ssl_ciphers,
-            )
-        else:
-            self.ssl = None
-
         self.loaded = True
 
     def setup_event_loop(self):
         loop_setup = import_from_string(LOOP_SETUPS[self.loop])
         loop_setup()
+
+    def bind_socket(self):
+        sock = socket.socket()
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind((self.host, self.port))
+        sock.set_inheritable(True)
+        message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
+        protocol_name = "https" if self.ssl else "http"
+        self.logger_instance.info(message % (protocol_name, self.host, self.port))
+        return sock
+
+    @property
+    def logger_instance(self):
+        if self.logger is not None:
+            return self.logger
+        return get_logger(self.log_level)
