@@ -250,7 +250,9 @@ def run(app, **kwargs):
     server = Server(config=config)
 
     if config.reload and not isinstance(app, str):
-        config.logger_instance.warn('auto-reload only works when app is passed as an import string.')
+        config.logger_instance.warn(
+            "auto-reload only works when app is passed as an import string."
+        )
 
     if isinstance(app, str) and (config.debug or config.reload):
         socket = config.bind_socket()
