@@ -131,6 +131,26 @@ def test_close_connection(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
+def test_headers(protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            headers = self.scope.get("headers")
+            headers = dict(headers)
+            assert headers[b"host"].startswith(b"127.0.0.1")
+            await self.send({"type": "websocket.accept"})
+
+    async def open_connection(url):
+        async with websockets.connect(url) as websocket:
+            return websocket.open
+
+    with run_server(App, protocol_cls=protocol_cls) as url:
+        loop = asyncio.new_event_loop()
+        is_open = loop.run_until_complete(open_connection(url))
+        assert is_open
+        loop.close()
+
+
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_send_text_data_to_client(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):

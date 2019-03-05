@@ -122,7 +122,7 @@ class WSProtocol(asyncio.Protocol):
 
     def handle_connect(self, event):
         self.connect_event = event
-        headers = [b"host", event.host.encode()]
+        headers = [(b"host", event.host.encode())]
         headers += [(key.lower(), value) for key, value in event.extra_headers]
         path, _, query_string = event.target.partition("?")
         self.scope = {
