@@ -27,10 +27,9 @@ class Multiprocess:
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.handle_exit)
 
-        spawn = multiprocessing.get_context("spawn")
         processes = []
         for idx in range(self.workers):
-            process = spawn.Process(target=target, args=args, kwargs=kwargs)
+            process = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
             process.start()
             processes.append(process)
 
