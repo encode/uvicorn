@@ -182,6 +182,12 @@ HANDLED_SIGNALS = (
     help="Ciphers to use (see stdlib ssl module's)",
     show_default=True,
 )
+@click.option(
+    "--default-header",
+    "custom_headers",
+    multiple=True,
+    help="Specify custom default HTTP response headers as a Name:Value pair",
+)
 def main(
     app,
     host: str,
@@ -210,6 +216,7 @@ def main(
     ssl_cert_reqs: int,
     ssl_ca_certs: str,
     ssl_ciphers: str,
+    custom_headers: typing.List[str],
 ):
     sys.path.insert(0, ".")
 
@@ -241,6 +248,8 @@ def main(
         "ssl_cert_reqs": ssl_cert_reqs,
         "ssl_ca_certs": ssl_ca_certs,
         "ssl_ciphers": ssl_ciphers,
+        "custom_headers": list(
+            [custom_header.split(':') for custom_header in custom_headers])
     }
     run(**kwargs)
 
