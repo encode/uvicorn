@@ -2,7 +2,7 @@
 
 Use the following options to configure Uvicorn, when running from the command line.
 
-If you're running using programmatically, using `uvicorn.run(...)`, then use
+If you're running programmatically, using `uvicorn.run(...)`, then use
 equivalent keyword arguments, eg. `uvicorn.run(app, port=5000, debug=True, access_log=False)`.
 
 ## Application
@@ -65,3 +65,7 @@ Note that WSGI mode always disables WebSocket support, as it is not supported by
 ## Timeouts
 
 * `--timeout-keep-alive <int>` - Close Keep-Alive connections if no new data is received within this timeout. **Default:** *5*.
+
+## Other
+
+* `--config <path>` - Read configuration from a Python script. The script should declare an instance of `uvicorn.Config` as `config`, which will be used to pre-populate command line arguments.

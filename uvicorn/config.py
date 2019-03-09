@@ -104,7 +104,7 @@ def create_ssl_context(certfile, keyfile, ssl_version, cert_reqs, ca_certs, ciph
 class Config:
     def __init__(
         self,
-        app,
+        app=None,
         host="127.0.0.1",
         port=8000,
         uds=None,

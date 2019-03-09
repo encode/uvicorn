@@ -2,6 +2,7 @@ import asyncio
 import functools
 import logging
 import os
+import runpy
 import signal
 import socket
 import ssl
@@ -40,8 +41,47 @@ HANDLED_SIGNALS = (
 logger = logging.getLogger("uvicorn.error")
 
 
+def _setup_defaults_from_config_script(
+    ctx: click.Context, param: click.Parameter, value: typing.Optional[str]
+):
+    if value is None:
+        return
+
+    members: dict = runpy.run_path(value)
+
+    try:
+        config: Config = members["config"]
+    except KeyError:
+        raise click.BadParameter(f"no 'config' object declared in {value}")
+
+    if not isinstance(config, Config):
+        raise click.BadParameter(
+            f"'config' must be a 'uvicorn.Config' object (got {type(config)})"
+        )
+
+    # Read parameter defaults from the config object.
+    # Values may still be overridden using command line arguments.
+    ctx.default_map = {
+        param.name: getattr(config, param.name)
+        for param in ctx.command.params
+        if hasattr(config, param.name)
+    }
+
+    return value
+
+
+def _require_app_if_not_set_in_config_script(
+    ctx: click.Context, param: click.Parameter, value: typing.Optional[str]
+):
+    if value is None:
+        raise click.MissingParameter()
+    return value
+
+
 @click.command()
-@click.argument("app")
+@click.argument(
+    "app", required=False, callback=_require_app_if_not_set_in_config_script
+)
 @click.option(
     "--host",
     type=str,
@@ -219,6 +259,13 @@ logger = logging.getLogger("uvicorn.error")
     multiple=True,
     help="Specify custom default HTTP response headers as a Name:Value pair",
 )
+@click.option(
+    "--config",
+    type=click.Path(exists=True, dir_okay=False),
+    is_eager=True,  # Ensures 'callback' is called before processing other parameters.
+    callback=_setup_defaults_from_config_script,
+    help="Read configuration from a Python script.",
+)
 def main(
     app,
     host: str,
@@ -251,6 +298,7 @@ def main(
     ssl_ca_certs: str,
     ssl_ciphers: str,
     headers: typing.List[str],
+    config: str,
 ):
     sys.path.insert(0, ".")
 
