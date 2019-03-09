@@ -92,6 +92,7 @@ class Config:
         ssl_cert_reqs=ssl.CERT_NONE,
         ssl_ca_certs=None,
         ssl_ciphers="TLSv1",
+        custom_headers=None,
     ):
         self.app = app
         self.host = host
@@ -139,6 +140,11 @@ class Config:
             self.reload_dirs = sys.path
         else:
             self.reload_dirs = reload_dirs
+
+        if custom_headers is None:
+            self.custom_headers = []
+        else:
+            self.custom_headers = custom_headers
 
         self.loaded = False
 

@@ -372,12 +372,7 @@ class Server:
     async def on_tick(self, counter) -> bool:
         # Update the default headers, once per second.
         if counter % 10 == 0:
-            current_time = time.time()
-            current_date = formatdate(current_time, usegmt=True).encode()
-            self.server_state.default_headers = [
-                (b"server", b"uvicorn"),
-                (b"date", current_date),
-            ]
+            self.server_state.default_headers = default_headers(self.config)
 
         # Callback to `callback_notify` once every `timeout_notify` seconds.
         if self.config.callback_notify is not None:
@@ -440,6 +435,34 @@ class Server:
             self.force_exit = True
         else:
             self.should_exit = True
+
+
+def default_headers(config: Config) -> typing.List[typing.Tuple[bytes, bytes]]:
+    current_time = time.time()
+    current_date = formatdate(current_time, usegmt=True).encode()
+    other_headers, other_servers = [], []
+
+    for header in config.custom_headers:
+        name, value = header[0], header[1]
+
+        if name.lower() == 'server':
+            other_servers.append(value.encode())
+
+        elif name.lower() == 'date':
+            current_date = value.encode()
+
+        else:
+            other_headers.append((name.lower().encode(), value.encode()))
+
+    server_headers = (
+        list([(b'server', value) for value in other_servers])
+        if other_servers else [(b'server', b'uvicorn')])
+
+    return [
+        *server_headers,
+        (b'date', bytes(current_date)),
+        *other_headers,
+    ]
 
 
 if __name__ == "__main__":
