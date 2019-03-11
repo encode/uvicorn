@@ -41,11 +41,11 @@ env_marker = (
 )
 
 requirements = [
-    "click",
-    "h11",
-    "websockets>=6.0",
-    "httptools;" + env_marker,
-    "uvloop;" + env_marker,
+    "click==7.*",
+    "h11==0.8.*",
+    "websockets==7.*",
+    "httptools==0.0.13 ;" + env_marker,
+    "uvloop==0.12.* ;" + env_marker,
 ]
 
 
