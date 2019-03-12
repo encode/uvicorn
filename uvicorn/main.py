@@ -12,6 +12,7 @@ import click
 
 from uvicorn.config import (
     HTTP_PROTOCOLS,
+    INTERFACES,
     LIFESPAN,
     LOG_LEVELS,
     LOOP_SETUPS,
@@ -26,6 +27,7 @@ HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
 WS_CHOICES = click.Choice(WS_PROTOCOLS.keys())
 LIFESPAN_CHOICES = click.Choice(LIFESPAN.keys())
 LOOP_CHOICES = click.Choice(LOOP_SETUPS.keys())
+INTERFACE_CHOICES = click.Choice(INTERFACES)
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -98,10 +100,10 @@ HANDLED_SIGNALS = (
     show_default=True,
 )
 @click.option(
-    "--wsgi",
-    is_flag=True,
-    default=False,
-    help="Use WSGI as the application interface, instead of ASGI.",
+    "--interface",
+    type=INTERFACE_CHOICES,
+    default="auto",
+    help="Select ASGI3, ASGI2, or WSGI as the application interface.",
 )
 @click.option(
     "--log-level",
@@ -192,7 +194,7 @@ def main(
     http: str,
     ws: str,
     lifespan: str,
-    wsgi: bool,
+    interface: str,
     debug: bool,
     reload: bool,
     reload_dirs: typing.List[str],
@@ -225,7 +227,7 @@ def main(
         "lifespan": lifespan,
         "log_level": log_level,
         "access_log": not no_access_log,
-        "wsgi": wsgi,
+        "interface": interface,
         "debug": debug,
         "reload": reload,
         "reload_dirs": reload_dirs if reload_dirs else None,

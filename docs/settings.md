@@ -39,7 +39,9 @@ equivalent keyword arguments, eg. `uvicorn.run(App, port=5000, debug=True, acces
 
 ## Application Interface
 
-* `--wsgi` - Use WSGI as the application interface rather than ASGI. Note that WSGI mode always disables WebSocket support, as it is not supported by the WSGI interface.
+* `--interface` - Select ASGI3, ASGI2, or WSGI as the application interface.
+Note that WSGI mode always disables WebSocket support, as it is not supported by the WSGI interface.
+**Options:** *'auto', 'asgi3', 'asgi2', 'wsgi'.* **Default:** *'auto'*.
 
 ## HTTP
 

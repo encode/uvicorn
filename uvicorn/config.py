@@ -1,9 +1,12 @@
+import asyncio
+import inspect
 import logging
 import socket
 import ssl
 import sys
 
 from uvicorn.importer import ImportFromStringError, import_from_string
+from uvicorn.middleware.asgi3 import ASGI3Middleware
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -37,6 +40,7 @@ LOOP_SETUPS = {
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
 }
+INTERFACES = set(["auto", "asgi3", "asgi2", "wsgi"])
 
 
 def get_logger(log_level):
@@ -74,7 +78,7 @@ class Config:
         log_level="info",
         logger=None,
         access_log=True,
-        wsgi=False,
+        interface="auto",
         debug=False,
         reload=False,
         reload_dirs=None,
@@ -105,7 +109,7 @@ class Config:
         self.log_level = log_level
         self.logger = logger
         self.access_log = access_log
-        self.wsgi = wsgi
+        self.interface = interface
         self.debug = debug
         self.reload = reload
         self.workers = workers
@@ -163,9 +167,22 @@ class Config:
             self.logger_instance.error("Error loading ASGI app. %s" % exc)
             sys.exit(1)
 
-        if self.wsgi:
+        if self.interface == "auto":
+            if inspect.isclass(self.loaded_app):
+                use_asgi_3 = hasattr(self.loaded_app, "__await__")
+            elif inspect.isfunction(self.loaded_app):
+                use_asgi_3 = asyncio.iscoroutinefunction(self.loaded_app)
+            else:
+                call = getattr(self.loaded_app, "__call__", None)
+                use_asgi_3 = asyncio.iscoroutinefunction(call)
+            self.interface = "asgi3" if use_asgi_3 else "asgi2"
+
+        if self.interface == "wsgi":
             self.loaded_app = WSGIMiddleware(self.loaded_app)
             self.ws_protocol_class = None
+        elif self.interface == "asgi3":
+            self.loaded_app = ASGI3Middleware(self.loaded_app)
+
         if self.debug:
             self.loaded_app = DebugMiddleware(self.loaded_app)
         if self.logger_instance.level <= logging.DEBUG:
