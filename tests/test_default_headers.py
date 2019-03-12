@@ -76,28 +76,6 @@ def test_override_server_header_multiple_times():
     thread.join()
 
 
-def test_override_date_header():
-    config = Config(
-        app=App,
-        loop="asyncio",
-        limit_max_requests=1,
-        custom_headers=[("Date", "over-ridden")],
-    )
-    server = CustomServer(config=config)
-    thread = threading.Thread(target=server.run)
-    thread.start()
-    while not server.started:
-        time.sleep(0.01)
-    response = requests.get("http://127.0.0.1:8000")
-
-    assert (
-        response.headers["server"] == "uvicorn"
-        and response.headers["date"] == "over-ridden"
-    )
-
-    thread.join()
-
-
 def test_add_additional_header():
     config = Config(
         app=App,
