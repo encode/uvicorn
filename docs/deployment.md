@@ -45,8 +45,9 @@ Options:
                                   WebSocket protocol implementation.
                                   [default: auto]
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
-  --wsgi                          Use WSGI as the application interface,
-                                  instead of ASGI.
+  --interface [auto|asgi3|agsi2|wsgi]
+                                  Select ASGI3, ASGI2, or WSGI as the
+                                  application interface.
   --log-level [critical|error|warning|info|debug]
                                   Log level.  [default: info]
   --no-access-log                 Disable access log.
