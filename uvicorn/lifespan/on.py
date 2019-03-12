@@ -26,10 +26,13 @@ class LifespanOn:
         await self.startup_event.wait()
 
         if self.error_occured:
-            self.logger.error("Application startup failed. Exiting.")
-            sys.exit(1)
+            if self.config.interface == "asgi2":
+                self.logger.error("Application startup failed. Exiting.")
+                sys.exit(1)
 
     async def shutdown(self):
+        if self.error_occured:
+            return
         self.logger.info("Waiting for application shutdown.")
         await self.receive_queue.put({"type": "lifespan.shutdown"})
         await self.shutdown_event.wait()
@@ -39,8 +42,12 @@ class LifespanOn:
             app_instance = self.config.loaded_app({"type": "lifespan"})
             await app_instance(self.receive, self.send)
         except BaseException as exc:
-            msg = "Exception in 'lifespan' protocol\n"
-            self.logger.error(msg, exc_info=exc)
+            if self.config.interface == "asgi2":
+                msg = "Exception in 'lifespan' protocol\n"
+                self.logger.error(msg, exc_info=exc)
+            else:
+                msg = "ASGI 'lifespan' protocol appears unsupported."
+                self.logger.info(msg)
             self.asgi = None
             self.error_occured = True
         finally:

@@ -4,6 +4,7 @@ import ssl
 import sys
 
 from uvicorn.importer import ImportFromStringError, import_from_string
+from uvicorn.middleware.asgi3 import ASGI3Middleware
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -37,7 +38,7 @@ LOOP_SETUPS = {
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
 }
-INTERFACES = set(["asgi", "wsgi"])
+INTERFACES = set(["asgi3", "asgi2", "wsgi"])
 
 
 def get_logger(log_level):
@@ -167,6 +168,9 @@ class Config:
         if self.interface == "wsgi":
             self.loaded_app = WSGIMiddleware(self.loaded_app)
             self.ws_protocol_class = None
+        elif self.interface == "asgi3":
+            self.loaded_app = ASGI3Middleware(self.loaded_app)
+
         if self.debug:
             self.loaded_app = DebugMiddleware(self.loaded_app)
         if self.logger_instance.level <= logging.DEBUG:
