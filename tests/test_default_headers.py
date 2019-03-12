@@ -28,80 +28,94 @@ def test_default_default_headers():
     thread.start()
     while not server.started:
         time.sleep(0.01)
-    response = requests.get('http://127.0.0.1:8000')
+    response = requests.get("http://127.0.0.1:8000")
 
-    assert (response.headers['server'] == 'uvicorn'
-            and response.headers['date'])
+    assert response.headers["server"] == "uvicorn" and response.headers["date"]
 
     thread.join()
 
 
 def test_override_server_header():
     config = Config(
-        app=App, loop="asyncio", limit_max_requests=1,
-        custom_headers=[('Server', 'over-ridden')])
+        app=App,
+        loop="asyncio",
+        limit_max_requests=1,
+        custom_headers=[("Server", "over-ridden")],
+    )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
-    response = requests.get('http://127.0.0.1:8000')
+    response = requests.get("http://127.0.0.1:8000")
 
-    assert (response.headers['server'] == 'over-ridden' and
-            response.headers['date'])
+    assert response.headers["server"] == "over-ridden" and response.headers["date"]
 
     thread.join()
 
 
 def test_override_server_header_multiple_times():
     config = Config(
-        app=App, loop="asyncio", limit_max_requests=1,
-        custom_headers=[
-            ('Server', 'over-ridden'),
-            ('Server', 'another-value')])
+        app=App,
+        loop="asyncio",
+        limit_max_requests=1,
+        custom_headers=[("Server", "over-ridden"), ("Server", "another-value")],
+    )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
-    response = requests.get('http://127.0.0.1:8000')
+    response = requests.get("http://127.0.0.1:8000")
 
-    assert (response.headers['server'] == 'over-ridden, another-value' and
-            response.headers['date'])
+    assert (
+        response.headers["server"] == "over-ridden, another-value"
+        and response.headers["date"]
+    )
 
     thread.join()
 
 
 def test_override_date_header():
     config = Config(
-        app=App, loop="asyncio", limit_max_requests=1,
-        custom_headers=[('Date', 'over-ridden')])
+        app=App,
+        loop="asyncio",
+        limit_max_requests=1,
+        custom_headers=[("Date", "over-ridden")],
+    )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
-    response = requests.get('http://127.0.0.1:8000')
+    response = requests.get("http://127.0.0.1:8000")
 
-    assert (response.headers['server'] == 'uvicorn' and
-            response.headers['date'] == 'over-ridden')
+    assert (
+        response.headers["server"] == "uvicorn"
+        and response.headers["date"] == "over-ridden"
+    )
 
     thread.join()
 
 
 def test_add_additional_header():
     config = Config(
-        app=App, loop="asyncio", limit_max_requests=1,
-        custom_headers=[('X-Additional', 'new-value')])
+        app=App,
+        loop="asyncio",
+        limit_max_requests=1,
+        custom_headers=[("X-Additional", "new-value")],
+    )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
-    response = requests.get('http://127.0.0.1:8000')
+    response = requests.get("http://127.0.0.1:8000")
 
-    assert (response.headers['x-additional'] == 'new-value' and
-            response.headers['server'] == 'uvicorn' and
-            response.headers['date'])
+    assert (
+        response.headers["x-additional"] == "new-value"
+        and response.headers["server"] == "uvicorn"
+        and response.headers["date"]
+    )
 
     thread.join()

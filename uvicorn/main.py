@@ -249,7 +249,8 @@ def main(
         "ssl_ca_certs": ssl_ca_certs,
         "ssl_ciphers": ssl_ciphers,
         "custom_headers": list(
-            [custom_header.split(':') for custom_header in custom_headers])
+            [custom_header.split(":") for custom_header in custom_headers]
+        ),
     }
     run(**kwargs)
 
@@ -454,24 +455,22 @@ def default_headers(config: Config) -> typing.List[typing.Tuple[bytes, bytes]]:
     for header in config.custom_headers:
         name, value = header[0], header[1]
 
-        if name.lower() == 'server':
+        if name.lower() == "server":
             other_servers.append(value.encode())
 
-        elif name.lower() == 'date':
+        elif name.lower() == "date":
             current_date = value.encode()
 
         else:
             other_headers.append((name.lower().encode(), value.encode()))
 
     server_headers = (
-        list([(b'server', value) for value in other_servers])
-        if other_servers else [(b'server', b'uvicorn')])
+        list([(b"server", value) for value in other_servers])
+        if other_servers
+        else [(b"server", b"uvicorn")]
+    )
 
-    return [
-        *server_headers,
-        (b'date', bytes(current_date)),
-        *other_headers,
-    ]
+    return [*server_headers, (b"date", bytes(current_date)), *other_headers]
 
 
 if __name__ == "__main__":
