@@ -173,7 +173,8 @@ class Config:
             elif inspect.isfunction(self.loaded_app):
                 use_asgi_3 = asyncio.iscoroutinefunction(self.loaded_app)
             else:
-                use_asgi_3 = asyncio.iscoroutinefunction(self.loaded_app.__call__)
+                call = getattr(self.loaded_app, '__call__', None)
+                use_asgi_3 = asyncio.iscoroutinefunction(call)
             self.interface = "asgi3" if use_asgi_3 else "asgi2"
 
         if self.interface == "wsgi":
