@@ -40,7 +40,7 @@ def test_override_server_header():
         app=App,
         loop="asyncio",
         limit_max_requests=1,
-        custom_headers=[("Server", "over-ridden")],
+        headers=[("Server", "over-ridden")],
     )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
@@ -59,7 +59,7 @@ def test_override_server_header_multiple_times():
         app=App,
         loop="asyncio",
         limit_max_requests=1,
-        custom_headers=[("Server", "over-ridden"), ("Server", "another-value")],
+        headers=[("Server", "over-ridden"), ("Server", "another-value")],
     )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
@@ -81,7 +81,7 @@ def test_add_additional_header():
         app=App,
         loop="asyncio",
         limit_max_requests=1,
-        custom_headers=[("X-Additional", "new-value")],
+        headers=[("X-Additional", "new-value")],
     )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)

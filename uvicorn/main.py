@@ -183,8 +183,8 @@ HANDLED_SIGNALS = (
     show_default=True,
 )
 @click.option(
-    "--default-header",
-    "custom_headers",
+    "--header",
+    "headers",
     multiple=True,
     help="Specify custom default HTTP response headers as a Name:Value pair",
 )
@@ -216,7 +216,7 @@ def main(
     ssl_cert_reqs: int,
     ssl_ca_certs: str,
     ssl_ciphers: str,
-    custom_headers: typing.List[str],
+    headers: typing.List[str],
 ):
     sys.path.insert(0, ".")
 
@@ -248,9 +248,7 @@ def main(
         "ssl_cert_reqs": ssl_cert_reqs,
         "ssl_ca_certs": ssl_ca_certs,
         "ssl_ciphers": ssl_ciphers,
-        "custom_headers": list(
-            [custom_header.split(":") for custom_header in custom_headers]
-        ),
+        "headers": list([header.split(":") for header in headers]),
     }
     run(**kwargs)
 
@@ -382,7 +380,11 @@ class Server:
     async def on_tick(self, counter) -> bool:
         # Update the default headers, once per second.
         if counter % 10 == 0:
-            self.server_state.default_headers = default_headers(self.config)
+            current_time = time.time()
+            current_date = formatdate(current_time, usegmt=True)
+            self.server_state.default_headers = [
+                (b"date", current_date.encode("latin1"))
+            ] + self.config.headers
 
         # Callback to `callback_notify` once every `timeout_notify` seconds.
         if self.config.callback_notify is not None:
@@ -445,32 +447,6 @@ class Server:
             self.force_exit = True
         else:
             self.should_exit = True
-
-
-def default_headers(config: Config) -> typing.List[typing.Tuple[bytes, bytes]]:
-    current_time = time.time()
-    current_date = formatdate(current_time, usegmt=True).encode()
-    other_headers, other_servers = [], []
-
-    for header in config.custom_headers:
-        name, value = header[0], header[1]
-
-        if name.lower() == "server":
-            other_servers.append(value.encode())
-
-        elif name.lower() == "date":
-            current_date = value.encode()
-
-        else:
-            other_headers.append((name.lower().encode(), value.encode()))
-
-    server_headers = (
-        list([(b"server", value) for value in other_servers])
-        if other_servers
-        else [(b"server", b"uvicorn")]
-    )
-
-    return [*server_headers, (b"date", bytes(current_date)), *other_headers]
 
 
 if __name__ == "__main__":
