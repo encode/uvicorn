@@ -169,7 +169,7 @@ class Config:
 
         if self.interface == "auto":
             if inspect.isclass(self.loaded_app):
-                use_asgi_3 = hasattr(self.loaded_app, '__await__')
+                use_asgi_3 = hasattr(self.loaded_app, "__await__")
             elif inspect.isfunction(self.loaded_app):
                 use_asgi_3 = asyncio.iscoroutinefunction(self.loaded_app)
             else:

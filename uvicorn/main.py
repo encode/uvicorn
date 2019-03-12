@@ -12,11 +12,11 @@ import click
 
 from uvicorn.config import (
     HTTP_PROTOCOLS,
+    INTERFACES,
     LIFESPAN,
     LOG_LEVELS,
     LOOP_SETUPS,
     WS_PROTOCOLS,
-    INTERFACES,
     Config,
     get_logger,
 )
