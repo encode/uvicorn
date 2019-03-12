@@ -1,3 +1,5 @@
+import asyncio
+import inspect
 import logging
 import socket
 import ssl
@@ -38,7 +40,7 @@ LOOP_SETUPS = {
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
 }
-INTERFACES = set(["asgi3", "asgi2", "wsgi"])
+INTERFACES = set(["auto", "asgi3", "asgi2", "wsgi"])
 
 
 def get_logger(log_level):
@@ -76,7 +78,7 @@ class Config:
         log_level="info",
         logger=None,
         access_log=True,
-        interface="asgi",
+        interface="auto",
         debug=False,
         reload=False,
         reload_dirs=None,
@@ -164,6 +166,15 @@ class Config:
         except ImportFromStringError as exc:
             self.logger_instance.error("Error loading ASGI app. %s" % exc)
             sys.exit(1)
+
+        if self.interface == "auto":
+            if inspect.isclass(self.loaded_app):
+                use_asgi_3 = hasattr(self.loaded_app, '__await__')
+            elif inspect.isfunction(self.loaded_app):
+                use_asgi_3 = asyncio.iscoroutinefunction(self.loaded_app)
+            else:
+                use_asgi_3 = asyncio.iscoroutinefunction(self.loaded_app.__call__)
+            self.interface = "asgi3" if use_asgi_3 else "asgi2"
 
         if self.interface == "wsgi":
             self.loaded_app = WSGIMiddleware(self.loaded_app)
