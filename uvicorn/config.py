@@ -37,6 +37,7 @@ LOOP_SETUPS = {
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
 }
+INTERFACES = set(["asgi", "wsgi"])
 
 
 def get_logger(log_level):
@@ -74,7 +75,7 @@ class Config:
         log_level="info",
         logger=None,
         access_log=True,
-        wsgi=False,
+        interface="asgi",
         debug=False,
         reload=False,
         reload_dirs=None,
@@ -105,7 +106,7 @@ class Config:
         self.log_level = log_level
         self.logger = logger
         self.access_log = access_log
-        self.wsgi = wsgi
+        self.interface = interface
         self.debug = debug
         self.reload = reload
         self.workers = workers
@@ -163,7 +164,7 @@ class Config:
             self.logger_instance.error("Error loading ASGI app. %s" % exc)
             sys.exit(1)
 
-        if self.wsgi:
+        if self.interface == "wsgi":
             self.loaded_app = WSGIMiddleware(self.loaded_app)
             self.ws_protocol_class = None
         if self.debug:
