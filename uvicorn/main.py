@@ -381,10 +381,10 @@ class Server:
         # Update the default headers, once per second.
         if counter % 10 == 0:
             current_time = time.time()
-            current_date = formatdate(current_time, usegmt=True)
+            current_date = formatdate(current_time, usegmt=True).encode()
             self.server_state.default_headers = [
-                (b"date", current_date.encode("latin1"))
-            ] + self.config.headers
+                (b"date", current_date)
+            ] + self.config.encoded_headers
 
         # Callback to `callback_notify` once every `timeout_notify` seconds.
         if self.config.callback_notify is not None:

@@ -124,8 +124,8 @@ class Config:
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
-        self._headers = headers if headers else []
-        self.headers = None  # type: List[Tuple[bytes, bytes]]
+        self.headers = headers if headers else []  # type: List[str]
+        self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
 
         if self.ssl_keyfile or self.ssl_certfile:
             self.ssl = create_ssl_context(
@@ -151,9 +151,9 @@ class Config:
 
         encoded_headers = [
             (key.lower().encode("latin1"), value.encode("latin1"))
-            for key, value in self._headers
+            for key, value in self.headers
         ]
-        self.headers = (
+        self.encoded_headers = (
             encoded_headers
             if b"server" in dict(encoded_headers)
             else [(b"server", b"uvicorn")] + encoded_headers
