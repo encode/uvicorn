@@ -4,6 +4,7 @@ import logging
 import socket
 import ssl
 import sys
+from typing import List, Tuple
 
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi3 import ASGI3Middleware
@@ -96,6 +97,7 @@ class Config:
         ssl_cert_reqs=ssl.CERT_NONE,
         ssl_ca_certs=None,
         ssl_ciphers="TLSv1",
+        headers=None,
     ):
         self.app = app
         self.host = host
@@ -126,6 +128,8 @@ class Config:
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
+        self.headers = headers if headers else []  # type: List[str]
+        self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
 
         if self.ssl_keyfile or self.ssl_certfile:
             self.ssl = create_ssl_context(
@@ -148,6 +152,16 @@ class Config:
 
     def load(self):
         assert not self.loaded
+
+        encoded_headers = [
+            (key.lower().encode("latin1"), value.encode("latin1"))
+            for key, value in self.headers
+        ]
+        self.encoded_headers = (
+            encoded_headers
+            if b"server" in dict(encoded_headers)
+            else [(b"server", b"uvicorn")] + encoded_headers
+        )  # type: List[Tuple[bytes, bytes]]
 
         if isinstance(self.http, str):
             self.http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])

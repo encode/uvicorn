@@ -184,6 +184,12 @@ HANDLED_SIGNALS = (
     help="Ciphers to use (see stdlib ssl module's)",
     show_default=True,
 )
+@click.option(
+    "--header",
+    "headers",
+    multiple=True,
+    help="Specify custom default HTTP response headers as a Name:Value pair",
+)
 def main(
     app,
     host: str,
@@ -212,6 +218,7 @@ def main(
     ssl_cert_reqs: int,
     ssl_ca_certs: str,
     ssl_ciphers: str,
+    headers: typing.List[str],
 ):
     sys.path.insert(0, ".")
 
@@ -243,6 +250,7 @@ def main(
         "ssl_cert_reqs": ssl_cert_reqs,
         "ssl_ca_certs": ssl_ca_certs,
         "ssl_ciphers": ssl_ciphers,
+        "headers": list([header.split(":") for header in headers]),
     }
     run(**kwargs)
 
@@ -377,9 +385,8 @@ class Server:
             current_time = time.time()
             current_date = formatdate(current_time, usegmt=True).encode()
             self.server_state.default_headers = [
-                (b"server", b"uvicorn"),
-                (b"date", current_date),
-            ]
+                (b"date", current_date)
+            ] + self.config.encoded_headers
 
         # Callback to `callback_notify` once every `timeout_notify` seconds.
         if self.config.callback_notify is not None:
