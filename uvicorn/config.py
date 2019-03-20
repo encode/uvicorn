@@ -41,7 +41,7 @@ LOOP_SETUPS = {
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
 }
-INTERFACES = set(["auto", "asgi3", "asgi2", "wsgi"])
+INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
 
 
 def get_logger(log_level):

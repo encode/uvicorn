@@ -104,6 +104,7 @@ HANDLED_SIGNALS = (
     type=INTERFACE_CHOICES,
     default="auto",
     help="Select ASGI3, ASGI2, or WSGI as the application interface.",
+    show_default=True,
 )
 @click.option(
     "--log-level",
