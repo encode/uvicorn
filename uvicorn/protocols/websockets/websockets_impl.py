@@ -143,8 +143,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         termination states.
         """
         try:
-            asgi = self.app(self.scope)
-            result = await asgi(self.asgi_receive, self.asgi_send)
+            result = await self.app(self.scope, self.asgi_receive, self.asgi_send)
         except BaseException as exc:
             self.closed_event.set()
             msg = "Exception in ASGI application\n"

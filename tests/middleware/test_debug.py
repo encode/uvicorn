@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from tests.client import TestClient
@@ -5,11 +7,8 @@ from uvicorn.middleware.debug import DebugMiddleware
 
 
 def test_debug_text():
-    def app(scope):
-        async def asgi(receive, send):
-            raise RuntimeError("Something went wrong")
-
-        return asgi
+    async def app(scope, receive, send):
+        raise RuntimeError("Something went wrong")
 
     app = DebugMiddleware(app)
     client = TestClient(app, raise_server_exceptions=False)
@@ -20,11 +19,8 @@ def test_debug_text():
 
 
 def test_debug_html():
-    def app(scope):
-        async def asgi(receive, send):
-            raise RuntimeError("Something went wrong")
-
-        return asgi
+    async def app(scope, receive, send):
+        raise RuntimeError("Something went wrong")
 
     app = DebugMiddleware(app)
     client = TestClient(app, raise_server_exceptions=False)
@@ -35,13 +31,10 @@ def test_debug_html():
 
 
 def test_debug_after_response_sent():
-    def app(scope):
-        async def asgi(receive, send):
-            await send({"type": "http.response.start", "status": 204, "headers": []})
-            await send({"type": "http.response.body", "body": b"", "more_body": False})
-            raise RuntimeError("Something went wrong")
-
-        return asgi
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 204, "headers": []})
+        await send({"type": "http.response.body", "body": b"", "more_body": False})
+        raise RuntimeError("Something went wrong")
 
     app = DebugMiddleware(app)
     client = TestClient(app, raise_server_exceptions=False)
@@ -50,23 +43,12 @@ def test_debug_after_response_sent():
     assert response.content == b""
 
 
-def test_debug_error_during_scope():
-    def app(scope):
-        raise RuntimeError("Something went wrong")
-
-    app = DebugMiddleware(app)
-    client = TestClient(app, raise_server_exceptions=False)
-    response = client.get("/", headers={"Accept": "text/html, */*"})
-    assert response.status_code == 500
-    assert response.headers["content-type"].startswith("text/html")
-    assert "RuntimeError" in response.text
-
-
 def test_debug_not_http():
-    def app(scope):
+    async def app(scope, send, receive):
         raise RuntimeError("Something went wrong")
 
     app = DebugMiddleware(app)
 
     with pytest.raises(RuntimeError):
-        app({"type": "websocket"})
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(app({"type": "websocket"}, None, None))

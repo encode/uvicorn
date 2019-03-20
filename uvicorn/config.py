@@ -7,7 +7,7 @@ import sys
 from typing import List, Tuple
 
 from uvicorn.importer import ImportFromStringError, import_from_string
-from uvicorn.middleware.asgi3 import ASGI3Middleware
+from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -32,7 +32,7 @@ WS_PROTOCOLS = {
     "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
 }
 LIFESPAN = {
-    "auto": "uvicorn.lifespan.auto:LifespanAuto",
+    "auto": "uvicorn.lifespan.on:LifespanOn",
     "on": "uvicorn.lifespan.on:LifespanOn",
     "off": "uvicorn.lifespan.off:LifespanOff",
 }
@@ -194,8 +194,8 @@ class Config:
         if self.interface == "wsgi":
             self.loaded_app = WSGIMiddleware(self.loaded_app)
             self.ws_protocol_class = None
-        elif self.interface == "asgi3":
-            self.loaded_app = ASGI3Middleware(self.loaded_app)
+        elif self.interface == "asgi2":
+            self.loaded_app = ASGI2Middleware(self.loaded_app)
 
         if self.debug:
             self.loaded_app = DebugMiddleware(self.loaded_app)

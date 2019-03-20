@@ -55,22 +55,18 @@ class FlowControl:
             self._is_writable_event.set()
 
 
-class ServiceUnavailable:
-    def __init__(self, scope):
-        pass
-
-    async def __call__(self, receive, send):
-        await send(
-            {
-                "type": "http.response.start",
-                "status": 503,
-                "headers": [
-                    (b"content-type", b"text/plain; charset=utf-8"),
-                    (b"connection", b"close"),
-                ],
-            }
-        )
-        await send({"type": "http.response.body", "body": b"Service Unavailable"})
+async def service_unavailable(scope, receive, send):
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 503,
+            "headers": [
+                (b"content-type", b"text/plain; charset=utf-8"),
+                (b"connection", b"close"),
+            ],
+        }
+    )
+    await send({"type": "http.response.body", "body": b"Service Unavailable"})
 
 
 class HttpToolsProtocol(asyncio.Protocol):
@@ -233,7 +229,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             len(self.connections) >= self.limit_concurrency
             or len(self.tasks) >= self.limit_concurrency
         ):
-            app = ServiceUnavailable
+            app = service_unavailable
             message = "Exceeded concurrency limit."
             self.logger.warning(message)
         else:
@@ -368,8 +364,7 @@ class RequestResponseCycle:
     # ASGI exception wrapper
     async def run_asgi(self, app):
         try:
-            asgi = app(self.scope)
-            result = await asgi(self.receive, self.send)
+            result = await app(self.scope, self.receive, self.send)
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)

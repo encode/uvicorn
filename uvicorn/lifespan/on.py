@@ -1,5 +1,4 @@
 import asyncio
-import sys
 
 STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
 
@@ -15,6 +14,7 @@ class LifespanOn:
         self.shutdown_event = asyncio.Event()
         self.receive_queue = asyncio.Queue()
         self.error_occured = False
+        self.should_exit = False
 
     async def startup(self):
         self.logger.info("Waiting for application startup.")
@@ -26,9 +26,9 @@ class LifespanOn:
         await self.startup_event.wait()
 
         if self.error_occured:
-            if self.config.interface == "asgi2":
+            if self.config.lifespan == "on":
                 self.logger.error("Application startup failed. Exiting.")
-                sys.exit(1)
+                self.should_exit = True
 
     async def shutdown(self):
         if self.error_occured:
@@ -39,15 +39,16 @@ class LifespanOn:
 
     async def main(self):
         try:
-            app_instance = self.config.loaded_app({"type": "lifespan"})
-            await app_instance(self.receive, self.send)
+            app = self.config.loaded_app
+            scope = {"type": "lifespan"}
+            await app(scope, self.receive, self.send)
         except BaseException as exc:
-            if self.config.interface == "asgi2":
-                msg = "Exception in 'lifespan' protocol\n"
-                self.logger.error(msg, exc_info=exc)
-            else:
+            if self.config.lifespan == "auto":
                 msg = "ASGI 'lifespan' protocol appears unsupported."
                 self.logger.info(msg)
+            else:
+                msg = "Exception in 'lifespan' protocol\n"
+                self.logger.error(msg, exc_info=exc)
             self.asgi = None
             self.error_occured = True
         finally:

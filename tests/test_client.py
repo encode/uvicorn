@@ -3,20 +3,17 @@ import pytest
 from tests.client import TestClient
 
 
-def hello_world(scope):
-    async def asgi(receive, send):
-        await send(
-            {
-                "type": "http.response.start",
-                "status": 200,
-                "headers": [(b"content-type", b"text/plain")],
-            }
-        )
-        await send(
-            {"type": "http.response.body", "body": b"hello, world", "more_body": False}
-        )
-
-    return asgi
+async def hello_world(scope, receive, send):
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [(b"content-type", b"text/plain")],
+        }
+    )
+    await send(
+        {"type": "http.response.body", "body": b"hello, world", "more_body": False}
+    )
 
 
 def test_explicit_base_url():

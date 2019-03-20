@@ -316,6 +316,8 @@ class Server:
 
         self.logger.info("Started server process [{}]".format(process_id))
         await self.startup(sockets=sockets)
+        if self.should_exit:
+            return
         await self.main_loop()
         await self.shutdown(shutdown_servers=shutdown_servers)
         self.logger.info("Finished server process [{}]".format(process_id))
@@ -324,6 +326,9 @@ class Server:
         config = self.config
 
         await self.lifespan.startup()
+        if self.lifespan.should_exit:
+            self.should_exit = True
+            return
 
         create_protocol = functools.partial(
             config.http_protocol_class, config=config, server_state=self.server_state

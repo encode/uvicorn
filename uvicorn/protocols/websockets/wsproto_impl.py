@@ -204,8 +204,7 @@ class WSProtocol(asyncio.Protocol):
 
     async def run_asgi(self):
         try:
-            asgi = self.app(self.scope)
-            result = await asgi(self.receive, self.send)
+            result = await self.app(self.scope, self.receive, self.send)
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)

@@ -27,13 +27,17 @@ pytestmark = pytest.mark.skipif(
 
 
 class WebSocketResponse:
-    def __init__(self, scope):
+    def __init__(self, scope, receive, send):
         self.scope = scope
-
-    async def __call__(self, receive, send):
+        self.receive = receive
         self.send = send
+
+    def __await__(self):
+        return self.asgi().__await__()
+
+    async def asgi(self):
         while True:
-            message = await receive()
+            message = await self.receive()
             message_type = message["type"].replace(".", "_")
             handler = getattr(self, message_type, None)
             if handler is not None:
@@ -353,19 +357,15 @@ def test_asgi_return_value(protocol_cls):
     the connection is closed with an error condition.
     """
 
-    class App:
-        def __init__(self, scope):
-            pass
-
-        async def __call__(self, receive, send):
-            await send({"type": "websocket.accept"})
-            return 123
+    async def app(scope, receive, send):
+        await send({"type": "websocket.accept"})
+        return 123
 
     async def connect(url):
         async with websockets.connect(url) as websocket:
             data = await websocket.recv()
 
-    with run_server(App, protocol_cls=protocol_cls) as url:
+    with run_server(app, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc:
             loop.run_until_complete(connect(url))
@@ -375,19 +375,15 @@ def test_asgi_return_value(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_app_close(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            pass
-
-        async def __call__(self, receive, send):
-            while True:
-                message = await receive()
-                if message["type"] == "websocket.connect":
-                    await send({"type": "websocket.accept"})
-                elif message["type"] == "websocket.receive":
-                    await send({"type": "websocket.close"})
-                elif message["type"] == "websocket.disconnect":
-                    break
+    async def app(scope, receive, send):
+        while True:
+            message = await receive()
+            if message["type"] == "websocket.connect":
+                await send({"type": "websocket.accept"})
+            elif message["type"] == "websocket.receive":
+                await send({"type": "websocket.close"})
+            elif message["type"] == "websocket.disconnect":
+                break
 
     async def websocket_session(url):
         async with websockets.connect(url) as websocket:
@@ -395,7 +391,7 @@ def test_app_close(protocol_cls):
             await websocket.send("abc")
             await websocket.recv()
 
-    with run_server(App, protocol_cls=protocol_cls) as url:
+    with run_server(app, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc:
             loop.run_until_complete(websocket_session(url))
@@ -405,26 +401,22 @@ def test_app_close(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_client_close(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            pass
-
-        async def __call__(self, receive, send):
-            while True:
-                message = await receive()
-                if message["type"] == "websocket.connect":
-                    await send({"type": "websocket.accept"})
-                elif message["type"] == "websocket.receive":
-                    pass
-                elif message["type"] == "websocket.disconnect":
-                    break
+    async def app(scope, receive, send):
+        while True:
+            message = await receive()
+            if message["type"] == "websocket.connect":
+                await send({"type": "websocket.accept"})
+            elif message["type"] == "websocket.receive":
+                pass
+            elif message["type"] == "websocket.disconnect":
+                break
 
     async def websocket_session(url):
         async with websockets.connect(url) as websocket:
             await websocket.ping()
             await websocket.send("abc")
 
-    with run_server(App, protocol_cls=protocol_cls) as url:
+    with run_server(app, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         loop.run_until_complete(websocket_session(url))
         loop.close()
