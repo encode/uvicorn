@@ -32,32 +32,29 @@ Install using `pip`:
 $ pip install uvicorn
 ```
 
-Create an application, in `app.py`:
+Create an application, in `example.py`:
 
 ```python
-class App():
-    def __init__(self, scope):
-        assert scope['type'] == 'http'
-        self.scope = scope
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
 
-    async def __call__(self, receive, send):
-        await send({
-            'type': 'http.response.start',
-            'status': 200,
-            'headers': [
-                [b'content-type', b'text/plain'],
-            ],
-        })
-        await send({
-            'type': 'http.response.body',
-            'body': b'Hello, world!',
-        })
+    await send({
+        'type': 'http.response.start',
+        'status': 200,
+        'headers': [
+            [b'content-type', b'text/plain'],
+        ],
+    })
+    await send({
+        'type': 'http.response.body',
+        'body': b'Hello, world!',
+    })
 ```
 
 Run the server:
 
 ```shell
-$ uvicorn app:App
+$ uvicorn example:app
 ```
 
 ---

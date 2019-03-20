@@ -14,7 +14,7 @@ As a general rule, you probably want to:
 Typically you'll run `uvicorn` from the command line.
 
 ```bash
-$ uvicorn app:App --reload --port 5000
+$ uvicorn example:app --reload --port 5000
 ```
 
 The ASGI application should be specified in the form `path.to.module:instance.path`.
@@ -88,8 +88,10 @@ import uvicorn
 class App:
     ...
 
+app = App()
+
 if __name__ == "__main__":
-    uvicorn.run(App, host="127.0.0.1", port=5000, log_level="info", reload=True)
+    uvicorn.run(app, host="127.0.0.1", port=5000, log_level="info", reload=True)
 ```
 
 The set of configuration options is the same as for the command line tool.
@@ -230,7 +232,7 @@ For local development with https, it's possible to use [mkcert][mkcert]
 to generate a valid certificat and private key.
 
 ```bash
-$ uvicorn app:App --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.pem
+$ uvicorn example:app --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.pem
 ```
 
 ### Running gunicorn worker
@@ -238,7 +240,7 @@ $ uvicorn app:App --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.pem
 It also possible to use certificates with uvicorn's worker for gunicorn
 
 ```bash
-$ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornWorker app:App
+$ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornWorker example:app
 ```
 
 [letsencrypt]: https://letsencrypt.org/

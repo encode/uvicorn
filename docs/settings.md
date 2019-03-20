@@ -3,7 +3,7 @@
 Use the following options to configure Uvicorn, when running from the command line.
 
 If you're running using programmatically, using `uvicorn.run(...)`, then use
-equivalent keyword arguments, eg. `uvicorn.run(App, port=5000, debug=True, access_log=False)`.
+equivalent keyword arguments, eg. `uvicorn.run(app, port=5000, debug=True, access_log=False)`.
 
 ## Application
 
