@@ -3,11 +3,12 @@ from tests.response import Response
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 
-def app(scope):
+async def app(scope, receive, send):
     scheme = scope["scheme"]
     host, port = scope["client"]
     addr = "%s://%s:%d" % (scheme, host, port)
-    return Response("Remote: " + addr, media_type="text/plain")
+    response = Response("Remote: " + addr, media_type="text/plain")
+    await response(scope, receive, send)
 
 
 app = ProxyHeadersMiddleware(app)

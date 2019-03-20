@@ -15,7 +15,7 @@ class ProxyHeadersMiddleware:
         self.app = app
         self.num_proxies = num_proxies
 
-    def __call__(self, scope):
+    async def __call__(self, scope, receive, send):
         if scope["type"] in ("http", "websocket"):
             headers = dict(scope["headers"])
 
@@ -34,4 +34,4 @@ class ProxyHeadersMiddleware:
                 port = 0
                 scope["client"] = (host, port)
 
-        return self.app(scope)
+        await self.app(scope, receive, send)

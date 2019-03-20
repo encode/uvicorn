@@ -153,71 +153,65 @@ def get_connected_protocol(app, protocol_cls, **kwargs):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_get_request(protocol_cls):
-    def app(scope):
-        return Response("Hello, world", media_type="text/plain")
+    app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_head_request(protocol_cls):
-    def app(scope):
-        return Response("Hello, world", media_type="text/plain")
+    app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_HEAD_REQUEST)
     protocol.loop.run_one()
+
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" not in protocol.transport.buffer
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_post_request(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            self.scope = scope
+    async def app(scope, receive, send):
+        body = b""
+        more_body = True
+        while more_body:
+            message = await receive()
+            body += message.get("body", b"")
+            more_body = message.get("more_body", False)
+        response = Response(b"Body: " + body, media_type="text/plain")
+        await response(scope, receive, send)
 
-        async def __call__(self, receive, send):
-            body = b""
-            more_body = True
-            while more_body:
-                message = await receive()
-                body += message.get("body", b"")
-                more_body = message.get("more_body", False)
-            response = Response(b"Body: " + body, media_type="text/plain")
-            await response(receive, send)
-
-    protocol = get_connected_protocol(App, protocol_cls)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_POST_REQUEST)
     protocol.loop.run_one()
+
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b'Body: {"hello": "world"}' in protocol.transport.buffer
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_keepalive(protocol_cls):
-    def app(scope):
-        return Response(b"", status_code=204)
+    app = Response(b"", status_code=204)
 
     protocol = get_connected_protocol(app, protocol_cls)
-
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
     assert not protocol.transport.is_closing()
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_keepalive_timeout(protocol_cls):
-    def app(scope):
-        return Response(b"", status_code=204)
+    app = Response(b"", status_code=204)
 
     protocol = get_connected_protocol(app, protocol_cls)
-
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
@@ -232,8 +226,7 @@ def test_keepalive_timeout(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_close(protocol_cls):
-    def app(scope):
-        return Response(b"", status_code=204, headers={"connection": "close"})
+    app = Response(b"", status_code=204, headers={"connection": "close"})
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -244,10 +237,9 @@ def test_close(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_chunked_encoding(protocol_cls):
-    def app(scope):
-        return Response(
-            b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
-        )
+    app = Response(
+        b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
+    )
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -259,10 +251,9 @@ def test_chunked_encoding(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_chunked_encoding_empty_body(protocol_cls):
-    def app(scope):
-        return Response(
-            b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
-        )
+    app = Response(
+        b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
+    )
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -274,10 +265,9 @@ def test_chunked_encoding_empty_body(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_chunked_encoding_head_request(protocol_cls):
-    def app(scope):
-        return Response(
-            b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
-        )
+    app = Response(
+        b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
+    )
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_HEAD_REQUEST)
@@ -288,8 +278,7 @@ def test_chunked_encoding_head_request(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_pipelined_requests(protocol_cls):
-    def app(scope):
-        return Response("Hello, world", media_type="text/plain")
+    app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -314,8 +303,7 @@ def test_pipelined_requests(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_undersized_request(protocol_cls):
-    def app(scope):
-        return Response(b"xxx", headers={"content-length": "10"})
+    app = Response(b"xxx", headers={"content-length": "10"})
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -325,8 +313,7 @@ def test_undersized_request(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_oversized_request(protocol_cls):
-    def app(scope):
-        return Response(b"xxx" * 20, headers={"content-length": "10"})
+    app = Response(b"xxx" * 20, headers={"content-length": "10"})
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -336,8 +323,7 @@ def test_oversized_request(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_large_post_request(protocol_cls):
-    def app(scope):
-        return Response("Hello, world", media_type="text/plain")
+    app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(LARGE_POST_REQUEST)
@@ -348,31 +334,17 @@ def test_large_post_request(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_invalid_http(protocol_cls):
-    app = lambda scope: None
+    app = Response("Hello, world", media_type="text/plain")
+
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(b"x" * 100000)
+
     assert protocol.transport.is_closing()
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_app_exception(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            self.scope = scope
-
-        async def __call__(self, receive, send):
-            raise Exception()
-
-    protocol = get_connected_protocol(App, protocol_cls)
-    protocol.data_received(SIMPLE_GET_REQUEST)
-    protocol.loop.run_one()
-    assert b"HTTP/1.1 500 Internal Server Error" in protocol.transport.buffer
-    assert protocol.transport.is_closing()
-
-
-@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-def test_app_init_exception(protocol_cls):
-    def app(scope):
+    async def app(scope, receive, send):
         raise Exception()
 
     protocol = get_connected_protocol(app, protocol_cls)
@@ -384,16 +356,12 @@ def test_app_init_exception(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_exception_during_response(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            pass
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200})
+        await send({"type": "http.response.body", "body": b"1", "more_body": True})
+        raise Exception()
 
-        async def __call__(self, receive, send):
-            await send({"type": "http.response.start", "status": 200})
-            await send({"type": "http.response.body", "body": b"1", "more_body": True})
-            raise Exception()
-
-    protocol = get_connected_protocol(App, protocol_cls)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 500 Internal Server Error" not in protocol.transport.buffer
@@ -402,14 +370,10 @@ def test_exception_during_response(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_no_response_returned(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            pass
+    async def app(scope, receive, send):
+        pass
 
-        async def __call__(self, receive, send):
-            pass
-
-    protocol = get_connected_protocol(App, protocol_cls)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 500 Internal Server Error" in protocol.transport.buffer
@@ -418,31 +382,24 @@ def test_no_response_returned(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_partial_response_returned(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            pass
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200})
 
-        async def __call__(self, receive, send):
-            await send({"type": "http.response.start", "status": 200})
-
-    protocol = get_connected_protocol(App, protocol_cls)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+
     assert b"HTTP/1.1 500 Internal Server Error" not in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_duplicate_start_message(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            pass
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200})
+        await send({"type": "http.response.start", "status": 200})
 
-        async def __call__(self, receive, send):
-            await send({"type": "http.response.start", "status": 200})
-            await send({"type": "http.response.start", "status": 200})
-
-    protocol = get_connected_protocol(App, protocol_cls)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 500 Internal Server Error" not in protocol.transport.buffer
@@ -451,14 +408,10 @@ def test_duplicate_start_message(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_missing_start_message(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            pass
+    async def app(scope, receive, send):
+        await send({"type": "http.response.body", "body": b""})
 
-        async def __call__(self, receive, send):
-            await send({"type": "http.response.body", "body": b""})
-
-    protocol = get_connected_protocol(App, protocol_cls)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 500 Internal Server Error" in protocol.transport.buffer
@@ -467,16 +420,12 @@ def test_missing_start_message(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_message_after_body_complete(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            pass
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200})
+        await send({"type": "http.response.body", "body": b""})
+        await send({"type": "http.response.body", "body": b""})
 
-        async def __call__(self, receive, send):
-            await send({"type": "http.response.start", "status": 200})
-            await send({"type": "http.response.body", "body": b""})
-            await send({"type": "http.response.body", "body": b""})
-
-    protocol = get_connected_protocol(App, protocol_cls)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
@@ -485,16 +434,12 @@ def test_message_after_body_complete(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_value_returned(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            pass
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200})
+        await send({"type": "http.response.body", "body": b""})
+        return 123
 
-        async def __call__(self, receive, send):
-            await send({"type": "http.response.start", "status": 200})
-            await send({"type": "http.response.body", "body": b""})
-            return 123
-
-    protocol = get_connected_protocol(App, protocol_cls)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
@@ -505,21 +450,17 @@ def test_value_returned(protocol_cls):
 def test_early_disconnect(protocol_cls):
     got_disconnect_event = False
 
-    class App:
-        def __init__(self, scope):
-            pass
+    async def app(scope, receive, send):
+        nonlocal got_disconnect_event
 
-        async def __call__(self, receive, send):
-            nonlocal got_disconnect_event
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                break
 
-            while True:
-                message = await receive()
-                if message["type"] == "http.disconnect":
-                    break
+        got_disconnect_event = True
 
-            got_disconnect_event = True
-
-    protocol = get_connected_protocol(App, protocol_cls)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_POST_REQUEST)
     protocol.eof_received()
     protocol.connection_lost(None)
@@ -529,8 +470,7 @@ def test_early_disconnect(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_early_response(protocol_cls):
-    def app(scope):
-        return Response("Hello, world", media_type="text/plain")
+    app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(START_POST_REQUEST)
@@ -544,18 +484,14 @@ def test_early_response(protocol_cls):
 def test_read_after_response(protocol_cls):
     message_after_response = None
 
-    class App:
-        def __init__(self, scope):
-            pass
+    async def app(scope, receive, send):
+        nonlocal message_after_response
 
-        async def __call__(self, receive, send):
-            nonlocal message_after_response
+        response = Response("Hello, world", media_type="text/plain")
+        await response(scope, receive, send)
+        message_after_response = await receive()
 
-            response = Response("Hello, world", media_type="text/plain")
-            await response(receive, send)
-            message_after_response = await receive()
-
-    protocol = get_connected_protocol(App, protocol_cls)
+    protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_POST_REQUEST)
     protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
@@ -564,9 +500,10 @@ def test_read_after_response(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_http10_request(protocol_cls):
-    def app(scope):
+    async def app(scope, receive, send):
         content = "Version: %s" % scope["http_version"]
-        return Response(content, media_type="text/plain")
+        response = Response(content, media_type="text/plain")
+        await response(scope, receive, send)
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(HTTP10_GET_REQUEST)
@@ -577,65 +514,67 @@ def test_http10_request(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_root_path(protocol_cls):
-    def app(scope):
+    async def app(scope, receive, send):
         path = scope.get("root_path", "") + scope["path"]
-        return Response("Path: " + path, media_type="text/plain")
+        response = Response("Path: " + path, media_type="text/plain")
+        await response(scope, receive, send)
 
     protocol = get_connected_protocol(app, protocol_cls, root_path="/app")
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Path: /app/" in protocol.transport.buffer
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_max_concurrency(protocol_cls):
-    app = lambda scope: None
+    app = Response("Hello, world", media_type="text/plain")
+
     protocol = get_connected_protocol(app, protocol_cls, limit_concurrency=1)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+
     assert b"HTTP/1.1 503 Service Unavailable" in protocol.transport.buffer
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_shutdown_during_request(protocol_cls):
-    def app(scope):
-        return Response(b"", status_code=204)
+    app = Response(b"", status_code=204)
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.shutdown()
     protocol.loop.run_one()
+
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_shutdown_during_idle(protocol_cls):
-    app = lambda scope: None
+    app = Response("Hello, world", media_type="text/plain")
+
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.shutdown()
+
     assert protocol.transport.buffer == b""
     assert protocol.transport.is_closing()
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_100_continue_sent_when_body_consumed(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            self.scope = scope
+    async def app(scope, receive, send):
+        body = b""
+        more_body = True
+        while more_body:
+            message = await receive()
+            body += message.get("body", b"")
+            more_body = message.get("more_body", False)
+        response = Response(b"Body: " + body, media_type="text/plain")
+        await response(scope, receive, send)
 
-        async def __call__(self, receive, send):
-            body = b""
-            more_body = True
-            while more_body:
-                message = await receive()
-                body += message.get("body", b"")
-                more_body = message.get("more_body", False)
-            response = Response(b"Body: " + body, media_type="text/plain")
-            await response(receive, send)
-
-    protocol = get_connected_protocol(App, protocol_cls)
+    protocol = get_connected_protocol(app, protocol_cls)
     EXPECT_100_REQUEST = b"\r\n".join(
         [
             b"POST / HTTP/1.1",
@@ -649,6 +588,7 @@ def test_100_continue_sent_when_body_consumed(protocol_cls):
     )
     protocol.data_received(EXPECT_100_REQUEST)
     protocol.loop.run_one()
+
     assert b"HTTP/1.1 100 Continue" in protocol.transport.buffer
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b'Body: {"hello": "world"}' in protocol.transport.buffer
@@ -656,8 +596,7 @@ def test_100_continue_sent_when_body_consumed(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
-    def app(scope):
-        return Response(b"", status_code=204)
+    app = Response(b"", status_code=204)
 
     protocol = get_connected_protocol(app, protocol_cls)
     EXPECT_100_REQUEST = b"\r\n".join(
@@ -673,26 +612,27 @@ def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
     )
     protocol.data_received(EXPECT_100_REQUEST)
     protocol.loop.run_one()
+
     assert b"HTTP/1.1 100 Continue" not in protocol.transport.buffer
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_unsupported_upgrade_request(protocol_cls):
-    def app(scope):
-        pass  # pragma: no cover
+    app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls, ws="none")
     protocol.data_received(UPGRADE_REQUEST)
+
     assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
     assert b"Unsupported upgrade request." in protocol.transport.buffer
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_supported_upgrade_request(protocol_cls):
-    def app(scope):
-        pass  # pragma: no cover
+    app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls, ws="wsproto")
     protocol.data_received(UPGRADE_REQUEST)
+
     assert b"HTTP/1.1 426 " in protocol.transport.buffer
