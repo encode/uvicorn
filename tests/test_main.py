@@ -4,11 +4,15 @@ import time
 
 import pytest
 import requests
-import websockets
 
 from uvicorn.config import Config
 from uvicorn.main import Server
 from uvicorn.util import WSCloseCode
+
+try:
+    import websockets
+except ImportError:  # pragma: nocover
+    websockets = None
 
 
 def test_run():
@@ -36,6 +40,7 @@ def test_run():
     thread.join()
 
 
+@pytest.mark.skipif(websockets is None, reason="This test needs the websockets module")
 @pytest.mark.parametrize("ws", ("auto", "websockets", "wsproto"))
 def test_run_websocket(ws):
     class App:
