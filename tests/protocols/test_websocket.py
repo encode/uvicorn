@@ -11,6 +11,7 @@ from uvicorn.config import Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
+from uvicorn.util import WSCloseCode
 
 try:
     import websockets
@@ -152,7 +153,7 @@ def test_send_after_close(protocol_cls, loop):
     with run_server(App, protocol_cls=protocol_cls) as url:
         message, exc = loop.run_until_complete(open_connection(url))
         assert message == "before_close"
-        assert exc.code == 1000
+        assert exc.code == WSCloseCode.OK
 
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
@@ -194,7 +195,7 @@ def test_receive_after_client_disconnects(protocol_cls, loop):
         loop.run_until_complete(open_connection(url))
 
     assert len(disconnects) == 1
-    assert disconnects[0]["code"] == 1006
+    assert disconnects[0]["code"] == WSCloseCode.ABNORMAL_CLOSURE
 
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
@@ -216,7 +217,7 @@ def test_receive_client_closes(protocol_cls, loop):
         loop.run_until_complete(open_connection(url))
 
     assert len(disconnects) == 1
-    assert disconnects[0]["code"] == 1000
+    assert disconnects[0]["code"] == WSCloseCode.OK
 
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
@@ -228,7 +229,7 @@ def test_close_after_client_closes(protocol_cls, loop):
             await self.send({"type": "websocket.accept"})
 
         async def websocket_disconnect(self, message):
-            await self.send({"type": "websocket.close", "code": 1000})
+            await self.send({"type": "websocket.close", "code": WSCloseCode.OK})
 
         async def asgi(self):
             await super().asgi()
@@ -247,7 +248,7 @@ def test_close_after_client_closes(protocol_cls, loop):
     with run_server(App, protocol_cls=protocol_cls) as url:
         loop.run_until_complete(open_connection(url))
 
-    assert messages == [{"type": "websocket.disconnect", "code": 1006}]
+    assert messages == [{"type": "websocket.disconnect", "code": WSCloseCode.ABNORMAL_CLOSURE}]
 
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
@@ -456,12 +457,12 @@ def test_duplicate_handshake(protocol_cls, loop):
 
     async def connect(url):
         async with websockets.connect(url) as websocket:
-            data = await websocket.recv()
+            await websocket.recv()
 
     with run_server(App, protocol_cls=protocol_cls) as url:
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc:
             loop.run_until_complete(connect(url))
-        assert exc.value.code == 1006
+        assert exc.value.code == WSCloseCode.ABNORMAL_CLOSURE
 
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
@@ -477,12 +478,12 @@ def test_asgi_return_value(protocol_cls, loop):
 
     async def connect(url):
         async with websockets.connect(url) as websocket:
-            data = await websocket.recv()
+            await websocket.recv()
 
     with run_server(app, protocol_cls=protocol_cls) as url:
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc:
             loop.run_until_complete(connect(url))
-        assert exc.value.code == 1006
+        assert exc.value.code == WSCloseCode.ABNORMAL_CLOSURE
 
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
@@ -506,7 +507,8 @@ def test_app_close(protocol_cls, loop):
     with run_server(app, protocol_cls=protocol_cls) as url:
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc:
             loop.run_until_complete(websocket_session(url))
-        assert exc.value.code == 1000
+
+    assert exc.value.code == WSCloseCode.OK
 
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)

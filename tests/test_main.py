@@ -8,6 +8,7 @@ import websockets
 
 from uvicorn.config import Config
 from uvicorn.main import Server
+from uvicorn.util import WSCloseCode
 
 
 def test_run():
@@ -82,5 +83,5 @@ def test_run_websocket(ws):
     message, close_exc = loop.run_until_complete(client())
 
     assert message == "123"
-    assert close_exc.code == 1001
+    assert close_exc.code == WSCloseCode.GOING_AWAY
     thread.join()

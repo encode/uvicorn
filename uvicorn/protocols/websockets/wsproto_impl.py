@@ -9,6 +9,7 @@ from wsproto.extensions import PerMessageDeflate
 from wsproto.utilities import RemoteProtocolError
 
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+from uvicorn.util import WSCloseCode
 
 # Check wsproto version. We've build against 0.13. We don't know about 0.14 yet.
 assert wsproto.__version__ > "0.13", "Need wsproto version 0.13"
@@ -126,9 +127,8 @@ class WSProtocol(asyncio.Protocol):
         self.writable.set()
 
     def shutdown(self):
-        code = 1001  # Going awway, rfc6455 - 7.4.1
-        self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
-        output = self.conn.send(wsproto.events.CloseConnection(code=code))
+        self.queue.put_nowait({"type": "websocket.disconnect", "code": WSCloseCode.GOING_AWAY})
+        output = self.conn.send(wsproto.events.CloseConnection(code=WSCloseCode.GOING_AWAY))
         if not self.transport.is_closing():
             self.transport.write(output)
         self.transport.close()
@@ -299,7 +299,7 @@ class WSProtocol(asyncio.Protocol):
 
             elif message_type == "websocket.close":
                 self.close_sent = True
-                code = message.get("code", 1000)
+                code = message.get("code", WSCloseCode.OK)
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
                 output = self.conn.send(wsproto.events.CloseConnection(code=code))
                 if not self.transport.is_closing():

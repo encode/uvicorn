@@ -5,6 +5,7 @@ from urllib.parse import unquote
 import websockets
 
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+from uvicorn.util import WSCloseCode
 
 
 class Server:
@@ -83,10 +84,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         super().connection_lost(exc)
 
     def shutdown(self):
-        code = 1001  # Going awway, rfc6455 - 7.4.1
-
         async def close():
-            await self.close(code)
+            await self.close(WSCloseCode.GOING_AWAY)
 
         self.create_task(close())
 
@@ -234,7 +233,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 await self.send(data)
 
             elif message_type == "websocket.close":
-                code = message.get("code", 1000)
+                code = message.get("code", WSCloseCode.OK)
                 await self.close(code)
                 self.closed_event.set()
 
