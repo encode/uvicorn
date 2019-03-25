@@ -127,8 +127,12 @@ class WSProtocol(asyncio.Protocol):
         self.writable.set()
 
     def shutdown(self):
-        self.queue.put_nowait({"type": "websocket.disconnect", "code": WSCloseCode.GOING_AWAY})
-        output = self.conn.send(wsproto.events.CloseConnection(code=WSCloseCode.GOING_AWAY))
+        self.queue.put_nowait(
+            {"type": "websocket.disconnect", "code": WSCloseCode.GOING_AWAY}
+        )
+        output = self.conn.send(
+            wsproto.events.CloseConnection(code=WSCloseCode.GOING_AWAY)
+        )
         if not self.transport.is_closing():
             self.transport.write(output)
         self.transport.close()

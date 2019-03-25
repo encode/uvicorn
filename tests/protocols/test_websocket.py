@@ -248,7 +248,9 @@ def test_close_after_client_closes(protocol_cls, loop):
     with run_server(App, protocol_cls=protocol_cls) as url:
         loop.run_until_complete(open_connection(url))
 
-    assert messages == [{"type": "websocket.disconnect", "code": WSCloseCode.ABNORMAL_CLOSURE}]
+    assert messages == [
+        {"type": "websocket.disconnect", "code": WSCloseCode.ABNORMAL_CLOSURE}
+    ]
 
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
