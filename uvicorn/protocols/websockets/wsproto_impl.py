@@ -26,6 +26,7 @@ class WSProtocol(asyncio.Protocol):
         self.root_path = config.root_path
 
         # Shared server state
+        self.server_state = server_state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
 
@@ -34,6 +35,7 @@ class WSProtocol(asyncio.Protocol):
         self.server = None
         self.client = None
         self.scheme = None
+        self.task = None
 
         # WebSocket state
         self.connect_event = None
@@ -60,10 +62,24 @@ class WSProtocol(asyncio.Protocol):
         self.client = get_remote_addr(transport)
         self.scheme = "wss" if is_ssl(transport) else "ws"
 
+    async def cancel_task(self, delay=0):
+        await asyncio.sleep(delay)
+
+        if self.task is not None:
+            self.task.cancel()
+
+    def create_task(self, coro):
+        task = self.loop.create_task(coro)
+        task.add_done_callback(self.on_task_complete)
+        self.tasks.add(task)
+        return task
+
     def connection_lost(self, exc):
-        if exc is not None:
-            self.queue.put_nowait({"type": "websocket.disconnect"})
+        code = 1006  # Connection abnormally closed, rfc6455 - 7.4.1
+        self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
         self.connections.remove(self)
+        self.server_state.total_requests += 1
+        self.create_task(self.cancel_task(delay=0.01))
 
     def eof_received(self):
         pass
@@ -110,12 +126,18 @@ class WSProtocol(asyncio.Protocol):
         self.writable.set()
 
     def shutdown(self):
-        self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
+        code = 1001  # Going awway, rfc6455 - 7.4.1
+        self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
         output = self.conn.send(wsproto.events.CloseConnection(code=code))
-        self.transport.write(output)
+        if not self.transport.is_closing():
+            self.transport.write(output)
         self.transport.close()
 
     def on_task_complete(self, task):
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            pass
         self.tasks.discard(task)
 
     # Event handlers
@@ -138,9 +160,7 @@ class WSProtocol(asyncio.Protocol):
             "subprotocols": event.subprotocols,
         }
         self.queue.put_nowait({"type": "websocket.connect"})
-        task = self.loop.create_task(self.run_asgi())
-        task.add_done_callback(self.on_task_complete)
-        self.tasks.add(task)
+        self.task = self.create_task(self.run_asgi())
 
     def handle_no_connect(self, event):
         headers = [
@@ -205,6 +225,8 @@ class WSProtocol(asyncio.Protocol):
     async def run_asgi(self):
         try:
             result = await self.app(self.scope, self.receive, self.send)
+        except asyncio.CancelledError:
+            pass
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
@@ -223,6 +245,9 @@ class WSProtocol(asyncio.Protocol):
                 self.transport.close()
 
     async def send(self, message):
+        if self.transport.is_closing():
+            return
+
         await self.writable.wait()
 
         message_type = message["type"]

@@ -29,6 +29,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.root_path = config.root_path
 
         # Shared server state
+        self.server_state = server_state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
 
@@ -37,6 +38,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.server = None
         self.client = None
         self.scheme = None
+        self.task = None
 
         # Connection events
         self.scope = None
@@ -49,7 +51,9 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         server = Server()
 
-        super().__init__(ws_handler=self.ws_handler, ws_server=server)
+        super().__init__(
+            ws_handler=self.ws_handler, ws_server=server, close_timeout=0.1
+        )
 
     def connection_made(self, transport):
         self.connections.add(self)
@@ -59,15 +63,38 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.scheme = "wss" if is_ssl(transport) else "ws"
         super().connection_made(transport)
 
+    async def cancel_task(self, delay=0):
+        await asyncio.sleep(delay)
+
+        if self.task is not None:
+            self.task.cancel()
+
+    def create_task(self, coro):
+        task = self.loop.create_task(coro)
+        task.add_done_callback(self.on_task_complete)
+        self.tasks.add(task)
+        return task
+
     def connection_lost(self, exc):
         self.connections.remove(self)
         self.handshake_completed_event.set()
+        self.server_state.total_requests += 1
+        self.create_task(self.cancel_task(delay=0.01))
         super().connection_lost(exc)
 
     def shutdown(self):
-        self.transport.close()
+        code = 1001  # Going awway, rfc6455 - 7.4.1
+
+        async def close():
+            await self.close(code)
+
+        self.create_task(close())
 
     def on_task_complete(self, task):
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            pass
         self.tasks.discard(task)
 
     async def process_request(self, path, headers):
@@ -103,9 +130,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             "headers": asgi_headers,
             "subprotocols": subprotocols,
         }
-        task = self.loop.create_task(self.run_asgi())
-        task.add_done_callback(self.on_task_complete)
-        self.tasks.add(task)
+        self.task = self.create_task(self.run_asgi())
         await self.handshake_started_event.wait()
         return self.initial_response
 
@@ -144,8 +169,9 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         """
         try:
             result = await self.app(self.scope, self.asgi_receive, self.asgi_send)
+        except asyncio.CancelledError:
+            pass
         except BaseException as exc:
-            self.closed_event.set()
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
             if not self.handshake_started_event.is_set():
@@ -153,18 +179,22 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             else:
                 await self.handshake_completed_event.wait()
             self.transport.close()
+            self.handler_task.cancel()
         else:
-            self.closed_event.set()
             if not self.handshake_started_event.is_set():
                 msg = "ASGI callable returned without sending handshake."
                 self.logger.error(msg)
                 self.send_500_response()
                 self.transport.close()
+                self.handler_task.cancel()
             elif result is not None:
                 msg = "ASGI callable should return None, but returned '%s'."
                 self.logger.error(msg, result)
                 await self.handshake_completed_event.wait()
                 self.transport.close()
+                self.handler_task.cancel()
+        finally:
+            self.closed_event.set()
 
     async def asgi_send(self, message):
         message_type = message["type"]
@@ -220,6 +250,10 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         if not self.connect_sent:
             self.connect_sent = True
             return {"type": "websocket.connect"}
+
+        if self.transport.is_closing() or self.closed_event.is_set():
+            code = 1006
+            return {"type": "websocket.disconnect", "code": code}
 
         await self.handshake_completed_event.wait()
         try:
