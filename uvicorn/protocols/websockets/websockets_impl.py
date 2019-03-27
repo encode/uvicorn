@@ -80,7 +80,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.connections.remove(self)
         self.handshake_completed_event.set()
         self.server_state.total_requests += 1
-        self.create_task(self.cancel_task(delay=0.01))
+        self.create_task(self.cancel_task(delay=0.1))
         super().connection_lost(exc)
 
     def shutdown(self):
