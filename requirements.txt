@@ -15,3 +15,7 @@ isort
 pytest
 pytest-cov
 requests
+
+# Documentation
+mkdocs
+mkdocs-material

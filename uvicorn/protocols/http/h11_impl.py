@@ -136,6 +136,7 @@ class H11Protocol(asyncio.Protocol):
                 pass
 
         self.message_event.set()
+        self.flow.resume_writing()
 
     def eof_received(self):
         pass
@@ -408,11 +409,11 @@ class RequestResponseCycle:
     async def send(self, message):
         message_type = message["type"]
 
+        if self.flow.write_paused and not self.disconnected:
+            await self.flow.drain()
+
         if self.disconnected:
             return
-
-        if self.flow.write_paused:
-            await self.flow.drain()
 
         if not self.response_started:
             # Sending response status line and headers
