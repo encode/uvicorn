@@ -34,7 +34,7 @@ class StatReload:
         process.start()
 
         while process.is_alive() and not self.should_exit:
-            time.sleep(0.1)
+            time.sleep(0.3)
             if self.should_restart():
                 self.clear()
                 os.kill(process.pid, signal.SIGTERM)
