@@ -88,7 +88,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.scope = {
             'type': 'websocket',
             'scheme': self.scheme,
-            'server': self.server or ('unknown', 0),
+            'server': self.server,
             'client': self.client,
             'root_path': self.root_path,
             'path': unquote(path_portion),
