@@ -227,9 +227,11 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         except websockets.ConnectionClosed as exc:
             return {"type": "websocket.disconnect", "code": exc.code}
 
-        is_text = isinstance(data, str)
-        return {
-            "type": "websocket.receive",
-            "text": data if is_text else None,
-            "bytes": None if is_text else data,
-        }
+        msg = {"type": "websocket.receive"}
+
+        if isinstance(data, str):
+            msg["text"] = data
+        else:
+            msg["bytes"] = data
+
+        return msg
