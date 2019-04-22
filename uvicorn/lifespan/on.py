@@ -58,6 +58,7 @@ class LifespanOn:
     async def send(self, message):
         assert message["type"] in (
             "lifespan.startup.complete",
+            "lifespan.startup.failed",
             "lifespan.shutdown.complete",
         )
 
@@ -65,6 +66,17 @@ class LifespanOn:
             assert not self.startup_event.is_set(), STATE_TRANSITION_ERROR
             assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR
             self.startup_event.set()
+
+        elif message["type"] == "lifespan.startup.failed":
+            assert not self.startup_event.is_set(), STATE_TRANSITION_ERROR
+            assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR
+            self.startup_event.set()
+
+            if message["message"]:
+                self.logger.error(message["message"])
+            self.logger.error("Application startup failed. Exiting.")
+            self.should_exit = True
+
         elif message["type"] == "lifespan.shutdown.complete":
             assert self.startup_event.is_set(), STATE_TRANSITION_ERROR
             assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR

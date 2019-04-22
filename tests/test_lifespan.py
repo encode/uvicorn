@@ -1,5 +1,7 @@
 import asyncio
 
+import pytest
+
 from uvicorn.config import Config
 from uvicorn.lifespan.off import LifespanOff
 from uvicorn.lifespan.on import LifespanOn
@@ -112,6 +114,25 @@ def test_lifespan_on_with_error():
 
         await lifespan.startup()
         assert lifespan.error_occured
+        assert lifespan.should_exit
+        await lifespan.shutdown()
+
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(test())
+
+
+@pytest.mark.parametrize("mode", ("auto", "on"))
+def test_lifespan_with_failed_startup(mode):
+    async def app(scope, receive, send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await send({"type": "lifespan.startup.failed", "message": "Failed"})
+
+    async def test():
+        config = Config(app=app, lifespan=mode)
+        lifespan = LifespanOn(config)
+
+        await lifespan.startup()
         assert lifespan.should_exit
         await lifespan.shutdown()
 
