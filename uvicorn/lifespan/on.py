@@ -26,7 +26,7 @@ class LifespanOn:
         await self.startup_event.wait()
 
         if self.error_occured:
-            if self.config.lifespan == "on":
+            if self.should_exit or self.config.lifespan == "on":
                 self.logger.error("Application startup failed. Exiting.")
                 self.should_exit = True
 
@@ -43,6 +43,8 @@ class LifespanOn:
             scope = {"type": "lifespan"}
             await app(scope, self.receive, self.send)
         except BaseException as exc:
+            if self.should_exit:
+                return
             if self.config.lifespan == "auto":
                 msg = "ASGI 'lifespan' protocol appears unsupported."
                 self.logger.info(msg)
@@ -74,7 +76,7 @@ class LifespanOn:
 
             if message["message"]:
                 self.logger.error(message["message"])
-            self.logger.error("Application startup failed. Exiting.")
+            self.error_occured = True
             self.should_exit = True
 
         elif message["type"] == "lifespan.shutdown.complete":

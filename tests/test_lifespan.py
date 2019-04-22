@@ -126,13 +126,16 @@ def test_lifespan_with_failed_startup(mode):
     async def app(scope, receive, send):
         message = await receive()
         assert message["type"] == "lifespan.startup"
-        await send({"type": "lifespan.startup.failed", "message": "Failed"})
+        exc = RuntimeError("Failed")
+        await send({"type": "lifespan.startup.failed", "message": str(exc)})
+        raise exc
 
     async def test():
         config = Config(app=app, lifespan=mode)
         lifespan = LifespanOn(config)
 
         await lifespan.startup()
+        assert lifespan.error_occured
         assert lifespan.should_exit
         await lifespan.shutdown()
 
