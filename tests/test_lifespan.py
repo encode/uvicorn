@@ -126,9 +126,9 @@ def test_lifespan_with_failed_startup(mode):
     async def app(scope, receive, send):
         message = await receive()
         assert message["type"] == "lifespan.startup"
-        exc = RuntimeError("Failed")
-        await send({"type": "lifespan.startup.failed", "message": str(exc)})
-        raise exc
+        await send({"type": "lifespan.startup.failed"})
+        # App should be able to re-raise an exception if startup failed.
+        raise RuntimeError()
 
     async def test():
         config = Config(app=app, lifespan=mode)

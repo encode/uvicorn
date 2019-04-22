@@ -74,7 +74,7 @@ class LifespanOn:
             assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR
             self.startup_event.set()
 
-            if message["message"]:
+            if message.get("message", ""):
                 self.logger.error(message["message"])
             self.error_occured = True
             self.should_exit = True
