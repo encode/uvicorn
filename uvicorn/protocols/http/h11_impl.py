@@ -435,6 +435,7 @@ class RequestResponseCycle:
                     self.scope.get("root_path", "") + self.scope["path"],
                     self.scope["http_version"],
                     status_code,
+                    extra={"status_code": status_code, "scope": self.scope},
                 )
 
             # Write response status line and headers
