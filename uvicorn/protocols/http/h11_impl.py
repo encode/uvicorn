@@ -1,7 +1,6 @@
 import asyncio
 import http
 import logging
-from urllib.parse import unquote
 
 import h11
 
@@ -182,7 +181,7 @@ class H11Protocol(asyncio.Protocol):
                     "scheme": self.scheme,
                     "method": event.method.decode("ascii"),
                     "root_path": self.root_path,
-                    "path": unquote(path.decode("ascii")),
+                    "path": path.decode("ascii"),
                     "query_string": query_string,
                     "headers": self.headers,
                 }

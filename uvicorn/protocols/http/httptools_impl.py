@@ -1,7 +1,6 @@
 import asyncio
 import http
 import logging
-import urllib
 
 import httptools
 
@@ -194,8 +193,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         method = self.parser.get_method()
         parsed_url = httptools.parse_url(url)
         path = parsed_url.path.decode("ascii")
-        if "%" in path:
-            path = urllib.parse.unquote(path)
         self.url = url
         self.expect_100_continue = False
         self.headers = []
