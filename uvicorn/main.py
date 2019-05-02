@@ -16,6 +16,7 @@ from uvicorn.config import (
     LIFESPAN,
     LOG_LEVELS,
     LOOP_SETUPS,
+    SSL_PROTOCOL_VERSION,
     WS_PROTOCOLS,
     Config,
     get_logger,
@@ -160,7 +161,7 @@ HANDLED_SIGNALS = (
 @click.option(
     "--ssl-version",
     type=int,
-    default=ssl.PROTOCOL_TLS,
+    default=SSL_PROTOCOL_VERSION,
     help="SSL version to use (see stdlib ssl module's)",
     show_default=True,
 )
