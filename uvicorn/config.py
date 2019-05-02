@@ -96,7 +96,7 @@ class Config:
         callback_notify=None,
         ssl_keyfile=None,
         ssl_certfile=None,
-        ssl_version=SSL_PROTOCOL,
+        ssl_version=SSL_PROTOCOL_VERSION,
         ssl_cert_reqs=ssl.CERT_NONE,
         ssl_ca_certs=None,
         ssl_ciphers="TLSv1",
