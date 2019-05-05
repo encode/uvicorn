@@ -114,8 +114,10 @@ class Config:
 
                 if getLogger(obj.name) is not obj:
                     import pickle
-                    raise pickle.PicklingError('logger cannot be pickled')
+
+                    raise pickle.PicklingError("logger cannot be pickled")
                 return getLogger, (obj.name,)
+
             type(logger).__reduce__ = types.MethodType(__reduce__, logger)
 
         self.app = app
