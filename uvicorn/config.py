@@ -4,6 +4,7 @@ import logging
 import socket
 import ssl
 import sys
+import types
 from typing import List, Tuple
 
 from uvicorn.importer import ImportFromStringError, import_from_string
@@ -102,6 +103,21 @@ class Config:
         ssl_ciphers="TLSv1",
         headers=None,
     ):
+        if logger is not None and sys.version_info < (3, 7):
+            # bpo-30520 and issue:328
+            def __reduce__(obj):
+                from logging import getLogger
+                from logging import RootLogger
+
+                if isinstance(obj, RootLogger):
+                    return getLogger, ()
+
+                if getLogger(obj.name) is not obj:
+                    import pickle
+                    raise pickle.PicklingError('logger cannot be pickled')
+                return getLogger, (obj.name,)
+            type(logger).__reduce__ = types.MethodType(__reduce__, logger)
+
         self.app = app
         self.host = host
         self.port = port
