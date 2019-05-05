@@ -1,13 +1,11 @@
 import os
 import time
+import logging
 from pathlib import Path
 
 from uvicorn.config import Config
+from uvicorn.main import Server
 from uvicorn.supervisors import StatReload
-
-
-def no_op():
-    pass
 
 
 def wait_for_reload(reloader, until, update_file):
@@ -22,9 +20,12 @@ def mock_signal(handle_exit):
 
 
 def test_statreload():
-    config = Config(app=None)
+    config = Config(app=None, logger=logging.getLogger())
+    server = Server(config)
+    type(server).run = lambda self: None
+
     reloader = StatReload(config)
-    reloader.run(no_op)
+    reloader.run(server.run)
 
 
 def test_reload_dirs(tmpdir):
