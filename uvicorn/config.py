@@ -225,6 +225,6 @@ class Config:
 
     @property
     def logger_instance(self):
-        if self.logger is not None:
-            return self.logger
-        return get_logger(self.log_level)
+        if self.logger is None:
+            self.logger = get_logger(self.log_level)
+        return self.logger
