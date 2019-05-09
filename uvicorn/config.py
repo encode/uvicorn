@@ -47,6 +47,21 @@ INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
 SSL_PROTOCOL_VERSION = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
 
 
+if sys.version_info < (3, 7):
+    # https://bugs.python.org/issue30520
+    import pickle
+
+    def __reduce__(self):
+        if isinstance(self, logging.RootLogger):
+            return logging.getLogger, ()
+
+        if logging.getLogger(self.name) is not self:
+            raise pickle.PicklingError("logger cannot be pickled")
+        return logging.getLogger, (self.name,)
+
+    logging.Logger.__reduce__ = __reduce__
+
+
 def get_logger(log_level):
     if isinstance(log_level, str):
         log_level = LOG_LEVELS[log_level]
