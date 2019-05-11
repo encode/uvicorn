@@ -298,6 +298,7 @@ class Server:
         self.started = False
         self.should_exit = False
         self.force_exit = False
+        self.last_notified = 0
 
     def run(self, sockets=None, shutdown_servers=True):
         self.config.setup_event_loop()
@@ -399,10 +400,11 @@ class Server:
                 (b"date", current_date)
             ] + self.config.encoded_headers
 
-        # Callback to `callback_notify` once every `timeout_notify` seconds.
-        if self.config.callback_notify is not None:
-            if counter % (10 * self.config.timeout_notify) == 0:
-                await self.config.callback_notify()
+            # Callback to `callback_notify` once every `timeout_notify` seconds.
+            if self.config.callback_notify is not None:
+                if current_time - self.last_notified > self.config.timeout_notify:
+                    self.last_notified = current_time
+                    await self.config.callback_notify()
 
         # Determine if we should exit.
         if self.should_exit:
