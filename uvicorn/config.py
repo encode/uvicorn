@@ -134,6 +134,16 @@ class Config:
         self.headers = headers if headers else []  # type: List[str]
         self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
 
+        if reload_dirs is None:
+            self.reload_dirs = sys.path
+        else:
+            self.reload_dirs = reload_dirs
+
+        self.loaded = False
+
+    def load(self):
+        assert not self.loaded
+
         if self.ssl_keyfile or self.ssl_certfile:
             self.ssl = create_ssl_context(
                 keyfile=self.ssl_keyfile,
@@ -145,16 +155,6 @@ class Config:
             )
         else:
             self.ssl = None
-
-        if reload_dirs is None:
-            self.reload_dirs = sys.path
-        else:
-            self.reload_dirs = reload_dirs
-
-        self.loaded = False
-
-    def load(self):
-        assert not self.loaded
 
         encoded_headers = [
             (key.lower().encode("latin1"), value.encode("latin1"))
