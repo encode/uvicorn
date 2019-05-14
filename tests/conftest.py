@@ -62,7 +62,7 @@ Sflxx+6bI4XMh0AsZhgtdW4=
 
 
 @pytest.fixture(scope="function")
-def create_certfile_and_keyfile(request):
+def certfile_and_keyfile():
 
     certfile = tempfile.NamedTemporaryFile(suffix=".pem")
     certfile.write(CERTIFICATE)
@@ -72,10 +72,7 @@ def create_certfile_and_keyfile(request):
     keyfile.write(PRIVATE_KEY)
     keyfile.seek(0)
 
-    def remove_files():
-        certfile.close()
-        keyfile.close()
+    yield certfile, keyfile
 
-    request.addfinalizer(remove_files)
-
-    return certfile, keyfile
+    certfile.close()
+    keyfile.close()

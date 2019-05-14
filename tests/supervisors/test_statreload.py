@@ -18,8 +18,8 @@ def mock_signal(handle_exit):
     handle_exit(None, None)
 
 
-def test_statreload(create_certfile_and_keyfile):
-    certfile, keyfile = create_certfile_and_keyfile
+def test_statreload(certfile_and_keyfile):
+    certfile, keyfile = certfile_and_keyfile
     config = Config(app=None, ssl_certfile=certfile.name, ssl_keyfile=keyfile.name)
 
     server = Server(config)

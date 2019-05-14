@@ -28,8 +28,8 @@ def no_ssl_verification(session=requests.Session):
 @pytest.mark.skipif(
     sys.platform.startswith("win"), reason="Skipping SSL test on Windows"
 )
-def test_run(create_certfile_and_keyfile):
-    certfile, keyfile = create_certfile_and_keyfile
+def test_run(certfile_and_keyfile):
+    certfile, keyfile = certfile_and_keyfile
 
     class App:
         def __init__(self, scope):
