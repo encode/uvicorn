@@ -424,7 +424,7 @@ class RequestResponseCycle:
             self.waiting_for_100_continue = False
 
             status_code = message["status"]
-            headers = self.default_headers + message.get("headers", [])
+            headers = self.default_headers + list(message.get("headers", []))
 
             if self.access_log:
                 self.logger.info(
