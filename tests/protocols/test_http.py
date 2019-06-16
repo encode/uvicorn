@@ -528,6 +528,28 @@ def test_root_path(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+def test_raw_path(protocol_cls):
+    async def app(scope, receive, send):
+        path = scope["path"]
+        raw_path = scope.get("raw_path", None)
+        response = Response(
+            "Path: {}\nraw_path: {}".format(path, repr(raw_path)),
+            media_type="text/plain",
+        )
+        await response(scope, receive, send)
+
+    protocol = get_connected_protocol(app, protocol_cls, root_path="/app")
+    protocol.data_received(
+        b"\r\n".join([b"GET /one%2Ftwo HTTP/1.1", b"Host: example.org", b"", b""])
+    )
+    protocol.loop.run_one()
+
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Path: /one/two" in protocol.transport.buffer
+    assert b"raw_path: b'/one%2Ftwo'" in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_max_concurrency(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
