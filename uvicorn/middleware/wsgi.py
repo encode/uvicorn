@@ -24,13 +24,16 @@ def build_environ(scope, message, body):
     }
 
     # Get server name and port - required in WSGI, not in ASGI
-    server = scope.get("server", ("localhost", 80))
+    server = scope.get("server")
+    if server is None:
+        server = ("localhost", 80)
     environ["SERVER_NAME"] = server[0]
     environ["SERVER_PORT"] = server[1]
 
     # Get client IP address
-    if "client" in scope:
-        environ["REMOTE_ADDR"] = scope["client"][0]
+    client = scope.get("client")
+    if client is not None:
+        environ["REMOTE_ADDR"] = client[0]
 
     # Go through headers and make them into environ entries
     for name, value in scope.get("headers", []):
