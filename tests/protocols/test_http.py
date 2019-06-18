@@ -58,6 +58,10 @@ FINISH_POST_REQUEST = b'{"hello": "world"}'
 
 HTTP10_GET_REQUEST = b"\r\n".join([b"GET / HTTP/1.0", b"Host: example.org", b"", b""])
 
+GET_REQUEST_WITH_RAW_PATH = b"\r\n".join(
+    [b"GET /one%2Ftwo HTTP/1.1", b"Host: example.org", b"", b""]
+)
+
 UPGRADE_REQUEST = b"\r\n".join(
     [
         b"GET / HTTP/1.1",
@@ -539,9 +543,7 @@ def test_raw_path(protocol_cls):
         await response(scope, receive, send)
 
     protocol = get_connected_protocol(app, protocol_cls, root_path="/app")
-    protocol.data_received(
-        b"\r\n".join([b"GET /one%2Ftwo HTTP/1.1", b"Host: example.org", b"", b""])
-    )
+    protocol.data_received(GET_REQUEST_WITH_RAW_PATH)
     protocol.loop.run_one()
     assert b"Done" in protocol.transport.buffer
 
