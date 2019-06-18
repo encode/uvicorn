@@ -173,7 +173,7 @@ class H11Protocol(asyncio.Protocol):
 
             elif event_type is h11.Request:
                 self.headers = [(key.lower(), value) for key, value in event.headers]
-                path, _, query_string = event.target.partition(b"?")
+                raw_path, _, query_string = event.target.partition(b"?")
                 self.scope = {
                     "type": "http",
                     "http_version": event.http_version.decode("ascii"),
@@ -182,7 +182,8 @@ class H11Protocol(asyncio.Protocol):
                     "scheme": self.scheme,
                     "method": event.method.decode("ascii"),
                     "root_path": self.root_path,
-                    "path": unquote(path.decode("ascii")),
+                    "path": unquote(raw_path.decode("ascii")),
+                    "raw_path": raw_path,
                     "query_string": query_string,
                     "headers": self.headers,
                 }

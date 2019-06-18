@@ -52,7 +52,7 @@ def run_loop(loop):
 
 
 @contextmanager
-def run_server(app, protocol_cls):
+def run_server(app, protocol_cls, path="/"):
     asyncio.set_event_loop(None)
     loop = asyncio.new_event_loop()
     config = Config(app=app, ws=protocol_cls)
@@ -60,7 +60,8 @@ def run_server(app, protocol_cls):
     protocol = functools.partial(H11Protocol, config=config, server_state=server_state)
     create_server_task = loop.create_server(protocol, host="127.0.0.1")
     server = loop.run_until_complete(create_server_task)
-    url = "ws://127.0.0.1:%d/" % server.sockets[0].getsockname()[1]
+    port = server.sockets[0].getsockname()[1]
+    url = "ws://127.0.0.1:{port}{path}".format(port=port, path=path)
     try:
         # Run the event loop in a new thread.
         thread = threading.Thread(target=run_loop, args=[loop])
@@ -151,6 +152,26 @@ def test_headers(protocol_cls):
         loop = asyncio.new_event_loop()
         is_open = loop.run_until_complete(open_connection(url))
         assert is_open
+        loop.close()
+
+
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
+def test_path_and_raw_path(protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            path = self.scope.get("path")
+            raw_path = self.scope.get("raw_path")
+            assert path == "/one/two"
+            assert raw_path == "/one%2Ftwo"
+            await self.send({"type": "websocket.accept"})
+
+    async def open_connection(url):
+        async with websockets.connect(url) as websocket:
+            return websocket.open
+
+    with run_server(App, protocol_cls=protocol_cls, path="/one%2Ftwo") as url:
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(open_connection(url))
         loop.close()
 
 

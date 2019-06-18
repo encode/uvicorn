@@ -193,7 +193,8 @@ class HttpToolsProtocol(asyncio.Protocol):
     def on_url(self, url):
         method = self.parser.get_method()
         parsed_url = httptools.parse_url(url)
-        path = parsed_url.path.decode("ascii")
+        raw_path = parsed_url.path
+        path = raw_path.decode("ascii")
         if "%" in path:
             path = urllib.parse.unquote(path)
         self.url = url
@@ -208,6 +209,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             "method": method.decode("ascii"),
             "root_path": self.root_path,
             "path": path,
+            "raw_path": raw_path,
             "query_string": parsed_url.query if parsed_url.query else b"",
             "headers": self.headers,
         }
