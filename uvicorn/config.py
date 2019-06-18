@@ -141,10 +141,14 @@ class Config:
 
         self.loaded = False
 
+    @property
+    def is_ssl(self) -> bool:
+        return self.ssl_keyfile or self.ssl_certfile
+
     def load(self):
         assert not self.loaded
 
-        if self.ssl_keyfile or self.ssl_certfile:
+        if self.is_ssl:
             self.ssl = create_ssl_context(
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
@@ -219,7 +223,7 @@ class Config:
         sock.bind((self.host, self.port))
         sock.set_inheritable(True)
         message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
-        protocol_name = "https" if self.ssl else "http"
+        protocol_name = "https" if self.is_ssl else "http"
         self.logger_instance.info(message % (protocol_name, self.host, self.port))
         return sock
 
