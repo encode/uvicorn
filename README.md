@@ -65,4 +65,4 @@ $ uvicorn example:app
 
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
-[asgi]: https://github.com/django/asgiref/blob/master/specs/asgi.rst
+[asgi]: https://asgi.readthedocs.io/en/latest/
