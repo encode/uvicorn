@@ -34,6 +34,7 @@ class WSProtocol(asyncio.Protocol):
         self.server = None
         self.client = None
         self.scheme = None
+        self.task = None
 
         # WebSocket state
         self.connect_event = None
@@ -64,6 +65,9 @@ class WSProtocol(asyncio.Protocol):
         if exc is not None:
             self.queue.put_nowait({"type": "websocket.disconnect"})
         self.connections.remove(self)
+
+        if self.task is not None:
+            self.task.cancel()
 
     def eof_received(self):
         pass
@@ -139,9 +143,9 @@ class WSProtocol(asyncio.Protocol):
             "subprotocols": event.subprotocols,
         }
         self.queue.put_nowait({"type": "websocket.connect"})
-        task = self.loop.create_task(self.run_asgi())
-        task.add_done_callback(self.on_task_complete)
-        self.tasks.add(task)
+        self.task = self.loop.create_task(self.run_asgi())
+        self.task.add_done_callback(self.on_task_complete)
+        self.tasks.add(self.task)
 
     def handle_no_connect(self, event):
         headers = [
@@ -206,6 +210,8 @@ class WSProtocol(asyncio.Protocol):
     async def run_asgi(self):
         try:
             result = await self.app(self.scope, self.receive, self.send)
+        except asyncio.CancelledError:
+            pass
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)

@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import logging
 import threading
 import time
 from contextlib import contextmanager
@@ -135,6 +136,34 @@ def test_close_connection(protocol_cls):
         is_open = loop.run_until_complete(open_connection(url))
         assert not is_open
         loop.close()
+
+
+def error_messages(caplog):
+    return [
+        record.message for record in caplog.records if record.levelno >= logging.ERROR
+    ]
+
+
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
+def test_send_after_client_closes(protocol_cls, caplog):
+    async def app(context, receive, send):
+        await send({"type": "websocket.accept"})
+        while True:
+            await send({"type": "websocket.send", "text": "123"})
+            await asyncio.sleep(0.1)
+
+    async def open_connection(url):
+        async with websockets.connect(url):
+            pass
+
+    with run_server(app, protocol_cls=protocol_cls) as url:
+        caplog.set_level(logging.ERROR, logger="uvicorn")
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(open_connection(url))
+
+    loop.close()
+
+    assert error_messages(caplog) == []
 
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)

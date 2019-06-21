@@ -40,6 +40,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.server = None
         self.client = None
         self.scheme = None
+        self.task = None
 
         # Connection events
         self.scope = None
@@ -66,6 +67,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
     def connection_lost(self, exc):
         self.connections.remove(self)
         self.handshake_completed_event.set()
+        if self.task is not None:
+            self.task.cancel()
         super().connection_lost(exc)
 
     def shutdown(self):
@@ -109,9 +112,9 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             "headers": asgi_headers,
             "subprotocols": subprotocols,
         }
-        task = self.loop.create_task(self.run_asgi())
-        task.add_done_callback(self.on_task_complete)
-        self.tasks.add(task)
+        self.task = self.loop.create_task(self.run_asgi())
+        self.task.add_done_callback(self.on_task_complete)
+        self.tasks.add(self.task)
         await self.handshake_started_event.wait()
         return self.initial_response
 
@@ -150,8 +153,9 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         """
         try:
             result = await self.app(self.scope, self.asgi_receive, self.asgi_send)
-        except BaseException as exc:
+        except asyncio.CancelledError:
             self.closed_event.set()
+        except BaseException as exc:
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
             if not self.handshake_started_event.is_set():
