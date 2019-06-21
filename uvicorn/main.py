@@ -2,6 +2,7 @@ import asyncio
 import functools
 import os
 import signal
+import socket
 import ssl
 import sys
 import time
@@ -267,13 +268,13 @@ def run(app, **kwargs):
         )
 
     if isinstance(app, str) and (config.debug or config.reload):
-        socket = config.bind_socket()
+        sock = config.bind_socket()
         supervisor = StatReload(config)
-        supervisor.run(server.run, sockets=[socket])
+        supervisor.run(server.run, sockets=[sock])
     elif config.workers > 1:
-        socket = config.bind_socket()
+        sock = config.bind_socket()
         supervisor = Multiprocess(config)
-        supervisor.run(server.run, sockets=[socket])
+        supervisor.run(server.run, sockets=[sock])
     else:
         server.run()
 
@@ -343,9 +344,9 @@ class Server:
             # Explicitly passed a list of open sockets.
             # We use this when the server is run from a Gunicorn worker.
             self.servers = []
-            for socket in sockets:
+            for sock in sockets:
                 server = await loop.create_server(
-                    create_protocol, sock=socket, ssl=config.ssl
+                    create_protocol, sock=sock, ssl=config.ssl
                 )
                 self.servers.append(server)
 
