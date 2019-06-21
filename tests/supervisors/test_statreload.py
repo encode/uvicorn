@@ -3,11 +3,8 @@ import time
 from pathlib import Path
 
 from uvicorn.config import Config
+from uvicorn.main import Server
 from uvicorn.supervisors import StatReload
-
-
-def no_op():
-    pass
 
 
 def wait_for_reload(reloader, until, update_file):
@@ -21,10 +18,15 @@ def mock_signal(handle_exit):
     handle_exit(None, None)
 
 
-def test_statreload():
-    config = Config(app=None)
+def test_statreload(certfile_and_keyfile):
+    certfile, keyfile = certfile_and_keyfile
+    config = Config(app=None, ssl_certfile=certfile.name, ssl_keyfile=keyfile.name)
+
+    server = Server(config)
+    type(server).run = lambda self: None
+
     reloader = StatReload(config)
-    reloader.run(no_op)
+    reloader.run(server.run)
 
 
 def test_reload_dirs(tmpdir):

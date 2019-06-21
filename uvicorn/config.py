@@ -134,7 +134,21 @@ class Config:
         self.headers = headers if headers else []  # type: List[str]
         self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
 
-        if self.ssl_keyfile or self.ssl_certfile:
+        if reload_dirs is None:
+            self.reload_dirs = sys.path
+        else:
+            self.reload_dirs = reload_dirs
+
+        self.loaded = False
+
+    @property
+    def is_ssl(self) -> bool:
+        return self.ssl_keyfile or self.ssl_certfile
+
+    def load(self):
+        assert not self.loaded
+
+        if self.is_ssl:
             self.ssl = create_ssl_context(
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
@@ -145,16 +159,6 @@ class Config:
             )
         else:
             self.ssl = None
-
-        if reload_dirs is None:
-            self.reload_dirs = sys.path
-        else:
-            self.reload_dirs = reload_dirs
-
-        self.loaded = False
-
-    def load(self):
-        assert not self.loaded
 
         encoded_headers = [
             (key.lower().encode("latin1"), value.encode("latin1"))
@@ -219,7 +223,7 @@ class Config:
         sock.bind((self.host, self.port))
         sock.set_inheritable(True)
         message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
-        protocol_name = "https" if self.ssl else "http"
+        protocol_name = "https" if self.is_ssl else "http"
         self.logger_instance.info(message % (protocol_name, self.host, self.port))
         return sock
 
