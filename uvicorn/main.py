@@ -351,6 +351,7 @@ class Server:
 
         elif config.fd is not None:
             # Use an existing socket, from a file descriptor.
+            import socket  # See https://github.com/encode/uvicorn/issues/295
             sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
             server = await loop.create_server(
                 create_protocol, sock=sock, ssl=config.ssl
