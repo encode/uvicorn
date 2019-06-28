@@ -88,7 +88,7 @@ class MockTransport:
             "sockname": self.sockname,
             "peername": self.peername,
             "sslcontext": self.sslcontext,
-        }[key]
+        }.get(key)
 
     def write(self, data):
         assert not self.closed
