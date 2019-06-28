@@ -2,7 +2,7 @@ import socket
 
 
 def get_remote_addr(transport):
-    socket_info = transport.get_extra_info("socket"). 
+    socket_info = transport.get_extra_info("socket")
     if socket_info is not None:
         info = socket_info.getpeername()
         family = socket_info.family
@@ -16,7 +16,7 @@ def get_remote_addr(transport):
 
 
 def get_local_addr(transport):
-    socket_info = transport.get_extra_info("socket"). 
+    socket_info = transport.get_extra_info("socket")
     if socket_info is not None:
         info = socket_info.getsockname()
         family = socket_info.family
