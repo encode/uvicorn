@@ -429,11 +429,19 @@ class RequestResponseCycle:
             headers = self.default_headers + message.get("headers", [])
 
             if self.access_log:
+                path_and_query_string = (
+                    self.scope.get("root_path", "") + self.scope["path"]
+                )
+                if self.scope["query_string"]:
+                    path_and_query_string = "{}?{}".format(
+                        path_and_query_string,
+                        self.scope["query_string"].decode("ascii"),
+                    )
                 self.logger.info(
                     '%s - "%s %s HTTP/%s" %d',
                     self.scope["client"],
                     self.scope["method"],
-                    self.scope.get("root_path", "") + self.scope["path"],
+                    path_and_query_string,
                     self.scope["http_version"],
                     status_code,
                 )
