@@ -185,21 +185,6 @@ def test_request_logging(protocol_cls, path, caplog):
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-def test_get_request_with_query_string(protocol_cls, caplog):
-    caplog.set_level(logging.INFO, logger="uvicorn")
-    app = Response("Hello, world", media_type="text/plain")
-
-    protocol = get_connected_protocol(app, protocol_cls)
-    protocol.data_received(GET_REQUEST_WITH_QUERY_STRING)
-    protocol.loop.run_one()
-
-    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-    assert b"Hello, world" in protocol.transport.buffer
-
-    assert '"GET /search?q=hello HTTP/1.1" 200' in caplog.records[0].message
-
-
-@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_head_request(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
