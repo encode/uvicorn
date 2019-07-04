@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import h11
 import pytest
@@ -60,6 +61,10 @@ HTTP10_GET_REQUEST = b"\r\n".join([b"GET / HTTP/1.0", b"Host: example.org", b"",
 
 GET_REQUEST_WITH_RAW_PATH = b"\r\n".join(
     [b"GET /one%2Ftwo HTTP/1.1", b"Host: example.org", b"", b""]
+)
+
+GET_REQUEST_WITH_QUERY_STRING = b"\r\n".join(
+    [b"GET /search?q=hello HTTP/1.1", b"Host: example.org", b"", b""]
 )
 
 UPGRADE_REQUEST = b"\r\n".join(
@@ -156,7 +161,8 @@ def get_connected_protocol(app, protocol_cls, **kwargs):
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-def test_get_request(protocol_cls):
+def test_get_request(protocol_cls, caplog):
+    caplog.set_level(logging.INFO, logger="uvicorn")
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls)
@@ -165,6 +171,23 @@ def test_get_request(protocol_cls):
 
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
+
+    assert '"GET / HTTP/1.1" 200' in caplog.records[0].message
+
+
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+def test_get_request_with_query_string(protocol_cls, caplog):
+    caplog.set_level(logging.INFO, logger="uvicorn")
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(GET_REQUEST_WITH_QUERY_STRING)
+    protocol.loop.run_one()
+
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
+
+    assert '"GET /search?q=hello HTTP/1.1" 200' in caplog.records[0].message
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
