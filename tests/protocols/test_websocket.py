@@ -323,9 +323,9 @@ def test_missing_handshake(protocol_cls):
 
     with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
-        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc:
+        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
             loop.run_until_complete(connect(url))
-        assert exc.value.status_code == 500
+        assert exc_info.value.status_code == 500
         loop.close()
 
 
@@ -343,9 +343,9 @@ def test_send_before_handshake(protocol_cls):
 
     with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
-        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc:
+        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
             loop.run_until_complete(connect(url))
-        assert exc.value.status_code == 500
+        assert exc_info.value.status_code == 500
         loop.close()
 
 
@@ -365,9 +365,9 @@ def test_duplicate_handshake(protocol_cls):
 
     with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
-        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc:
+        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
             loop.run_until_complete(connect(url))
-        assert exc.value.code == 1006
+        assert exc_info.value.code == 1006
         loop.close()
 
 
@@ -388,9 +388,9 @@ def test_asgi_return_value(protocol_cls):
 
     with run_server(app, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
-        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc:
+        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
             loop.run_until_complete(connect(url))
-        assert exc.value.code == 1006
+        assert exc_info.value.code == 1006
         loop.close()
 
 
@@ -414,9 +414,9 @@ def test_app_close(protocol_cls):
 
     with run_server(app, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
-        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc:
+        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
             loop.run_until_complete(websocket_session(url))
-        assert exc.value.code == 1000
+        assert exc_info.value.code == 1000
         loop.close()
 
 
