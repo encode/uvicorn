@@ -168,9 +168,9 @@ def test_get_request(protocol_cls):
     assert b"Hello, world" in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 @pytest.mark.parametrize("path", ["/", "/?foo", "/?foo=bar", "/?foo=bar&baz=1"])
-def test_request_logging(protocol_cls, path, caplog):
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+def test_request_logging(path, protocol_cls, caplog):
     get_request_with_query_string = b"\r\n".join(
         ["GET {} HTTP/1.1".format(path).encode("ascii"), b"Host: example.org", b"", b""]
     )
