@@ -9,6 +9,7 @@ matrix:
     # but it does have websockets (needed to run the websockets tests).
     - os: windows
       language: bash
+      name: Windows
     # The pypy3 job runs a fully pure Python setup, which triggers a part of the
     # auto-detect tests that the other tests don't. We cannot test websockets though.
     - os: linux
