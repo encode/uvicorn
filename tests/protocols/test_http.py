@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import h11
 import pytest
@@ -165,6 +166,22 @@ def test_get_request(protocol_cls):
 
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("path", ["/", "/?foo", "/?foo=bar", "/?foo=bar&baz=1"])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+def test_request_logging(path, protocol_cls, caplog):
+    get_request_with_query_string = b"\r\n".join(
+        ["GET {} HTTP/1.1".format(path).encode("ascii"), b"Host: example.org", b"", b""]
+    )
+    caplog.set_level(logging.INFO, logger="uvicorn")
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(get_request_with_query_string)
+    protocol.loop.run_one()
+
+    assert '"GET {} HTTP/1.1" 200'.format(path) in caplog.records[0].message
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)

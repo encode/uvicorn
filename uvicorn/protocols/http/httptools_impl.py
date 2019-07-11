@@ -5,7 +5,12 @@ import urllib
 
 import httptools
 
-from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+from uvicorn.protocols.utils import (
+    get_local_addr,
+    get_remote_addr,
+    is_ssl,
+    get_path_with_query_string,
+)
 
 
 def _get_status_line(status_code):
@@ -433,7 +438,7 @@ class RequestResponseCycle:
                     '%s - "%s %s HTTP/%s" %d',
                     self.scope["client"],
                     self.scope["method"],
-                    self.scope.get("root_path", "") + self.scope["path"],
+                    get_path_with_query_string(self.scope),
                     self.scope["http_version"],
                     status_code,
                 )

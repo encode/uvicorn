@@ -31,3 +31,12 @@ def get_local_addr(transport):
 
 def is_ssl(transport):
     return bool(transport.get_extra_info("sslcontext"))
+
+
+def get_path_with_query_string(scope):
+    path_with_query_string = scope.get("root_path", "") + scope["path"]
+    if scope["query_string"]:
+        path_with_query_string = "{}?{}".format(
+            path_with_query_string, scope["query_string"].decode("ascii")
+        )
+    return path_with_query_string
