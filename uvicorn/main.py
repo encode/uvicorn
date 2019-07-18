@@ -345,8 +345,16 @@ class Server:
             # We use this when the server is run from a Gunicorn worker.
             self.servers = []
             for sock in sockets:
+                family = sock.family
+                host, port = sock.getsockname()
+                sock.close()
                 server = await loop.create_server(
-                    create_protocol, sock=sock, ssl=config.ssl
+                    create_protocol, 
+                    host=host, 
+                    port=port, 
+                    family=family, 
+                    ssl=config.ssl,
+                    reuse_address=True
                 )
                 self.servers.append(server)
 
