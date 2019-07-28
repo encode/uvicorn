@@ -315,7 +315,7 @@ async def app(scope, receive, send):
             [b'content-type', b'text/plain'],
         ]
     })
-    for chunk in [b'Hello', b', ', b'world!']
+    for chunk in [b'Hello', b', ', b'world!']:
         await send({
             'type': 'http.response.body',
             'body': chunk,
