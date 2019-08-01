@@ -7,7 +7,7 @@ class HTMLResponse:
         self.content = content
         self.status_code = status_code
 
-    async def __call__(self, recieve, send):
+    async def __call__(self, scope, recieve, send):
         await send(
             {
                 "type": "http.response.start",
@@ -29,7 +29,7 @@ class PlainTextResponse:
         self.content = content
         self.status_code = status_code
 
-    async def __call__(self, recieve, send):
+    async def __call__(self, scope, recieve, send):
         await send(
             {
                 "type": "http.response.start",
@@ -61,27 +61,26 @@ class DebugMiddleware:
     def __init__(self, app):
         self.app = app
 
-    def __call__(self, scope):
+    async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
-            return self.app(scope)
-        return _DebugResponder(self.app, scope)
+            return await self.app(scope, receive, send)
 
+        response_started = False
 
-class _DebugResponder:
-    def __init__(self, app, scope):
-        self.app = app
-        self.scope = scope
-        self.response_started = False
+        async def inner_send(message):
+            nonlocal response_started, send
 
-    async def __call__(self, receive, send):
-        self.raw_send = send
+            if message["type"] == "http.response.start":
+                response_started = True
+            await send(message)
+
         try:
-            asgi = self.app(self.scope)
-            await asgi(receive, self.send)
+            await self.app(scope, receive, inner_send)
         except BaseException as exc:
-            if self.response_started:
+            if response_started:
                 raise exc from None
-            accept = get_accept_header(self.scope)
+
+            accept = get_accept_header(scope)
             if "text/html" in accept:
                 exc_html = html.escape(traceback.format_exc())
                 content = (
@@ -92,10 +91,6 @@ class _DebugResponder:
             else:
                 content = traceback.format_exc()
                 response = PlainTextResponse(content, status_code=500)
-            await response(receive, send)
-            raise exc from None
 
-    async def send(self, message):
-        if message["type"] == "http.response.start":
-            self.response_started = True
-        await self.raw_send(message)
+            await response(scope, receive, send)
+            raise exc from None

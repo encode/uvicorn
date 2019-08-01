@@ -1,7 +1,7 @@
 import asyncio
 import io
 import typing
-from urllib.parse import unquote, urlparse, urljoin
+from urllib.parse import unquote, urljoin, urlparse
 
 import requests
 
@@ -68,11 +68,10 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
 
         async def receive():
             body = request.body
-            if isinstance(body, str):
-                body_bytes = body.encode("utf-8")  # type: bytes
-            elif body is None:
+            if body is None:
                 body_bytes = b""
             else:
+                assert isinstance(body, bytes)
                 body_bytes = body
             return {"type": "http.request", "body": body_bytes}
 
@@ -103,8 +102,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         loop = asyncio.get_event_loop()
 
         try:
-            connection = self.app(scope)
-            loop.run_until_complete(connection(receive, send))
+            loop.run_until_complete(self.app(scope, receive, send))
         except BaseException as exc:
             if self.raise_server_exceptions:
                 raise exc from None
@@ -113,9 +111,10 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         return self.build_response(request, raw)
 
 
-
 class _TestClient(requests.Session):
-    def __init__(self, app: typing.Callable, base_url: str, raise_server_exceptions=True) -> None:
+    def __init__(
+        self, app: typing.Callable, base_url: str, raise_server_exceptions=True
+    ) -> None:
         super(_TestClient, self).__init__()
         adapter = _ASGIAdapter(app, raise_server_exceptions=raise_server_exceptions)
         self.mount("http://", adapter)
@@ -129,7 +128,9 @@ class _TestClient(requests.Session):
 
 
 def TestClient(
-    app: typing.Callable, base_url: str = "http://testserver", raise_server_exceptions=True
+    app: typing.Callable,
+    base_url: str = "http://testserver",
+    raise_server_exceptions=True,
 ) -> _TestClient:
     """
     We have to work around py.test discovery attempting to pick up

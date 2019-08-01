@@ -34,31 +34,28 @@ Install using `pip`:
 $ pip install uvicorn
 ```
 
-Create an application, in `app.py`:
+Create an application, in `example.py`:
 
 ```python
-class App():
-    def __init__(self, scope):
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        await send({
-            'type': 'http.response.start',
-            'status': 200,
-            'headers': [
-                [b'content-type', b'text/plain'],
-            ]
-        })
-        await send({
-            'type': 'http.response.body',
-            'body': b'Hello, world!',
-        })
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    await send({
+        'type': 'http.response.start',
+        'status': 200,
+        'headers': [
+            [b'content-type', b'text/plain'],
+        ]
+    })
+    await send({
+        'type': 'http.response.body',
+        'body': b'Hello, world!',
+    })
 ```
 
 Run the server:
 
 ```
-$ uvicorn app:App
+$ uvicorn example:app
 ```
 
 ---
@@ -79,14 +76,21 @@ Options:
   --port INTEGER                  Bind socket to this port.  [default: 8000]
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
+  --reload                        Enable auto-reload.
+  --reload-dir TEXT               Set reload directories explicitly, instead
+                                  of using 'sys.path'.
+  --workers INTEGER               Number of worker processes. Not valid with
+                                  --reload.
   --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
-  --http [auto|h11|httptools]     HTTP parser implementation.  [default: auto]
+  --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
+                                  auto]
   --ws [none|auto|websockets|wsproto]
                                   WebSocket protocol implementation.
                                   [default: auto]
-  --wsgi                          Use WSGI as the application interface,
-                                  instead of ASGI.
-  --debug                         Enable debug mode.
+  --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
+  --interface [auto|asgi3|agsi2|wsgi]
+                                  Select ASGI3, ASGI2, or WSGI as the
+                                  application interface.
   --log-level [critical|error|warning|info|debug]
                                   Log level.  [default: info]
   --no-access-log                 Disable access log.
@@ -103,6 +107,15 @@ Options:
   --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
                                   is received within this timeout.  [default:
                                   5]
+  --ssl-keyfile TEXT              SSL key file
+  --ssl-certfile TEXT             SSL certificate file
+  --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
+                                  [default: 2]
+  --ssl-cert-reqs INTEGER         Whether client certificate is required (see
+                                  stdlib ssl module's)  [default: 0]
+  --ssl-ca-certs TEXT             CA certificates file
+  --ssl-ciphers TEXT              Ciphers to use (see stdlib ssl module's)
+                                  [default: TLSv1]
   --help                          Show this message and exit.
 ```
 
@@ -115,11 +128,11 @@ To run uvicorn directly from your application...
 ```python
 import uvicorn
 
-class App:
+async def app(scope, receive, send):
     ...
 
 if __name__ == "__main__":
-    uvicorn.run(App, "127.0.0.1", 5000, log_level="info")
+    uvicorn.run(app, host="127.0.0.1", port=5000, log_level="info")
 ```
 
 ### Running with Gunicorn
@@ -136,7 +149,7 @@ fly, restart worker processes gracefully, or perform server upgrades without dow
 For production deployments we recommend using gunicorn with the uvicorn worker class.
 
 ```
-gunicorn app:App -w 4 -k uvicorn.workers.UvicornWorker
+gunicorn example:app -w 4 -k uvicorn.workers.UvicornWorker
 ```
 
 For a [PyPy][pypy] compatible configuration use `uvicorn.workers.UvicornH11Worker`.
@@ -147,33 +160,41 @@ For more information, see the [deployment documentation](deployment.md).
 
 Uvicorn uses the [ASGI specification][asgi] for interacting with an application.
 
-The application should expose a callable which takes one argument, `scope`.
-This callable is used to create a new instance of the application for each incoming connection.
-It must return a coroutine which the server can then call into.
+The application should expose an async callable which takes three arguments:
 
-The application instance coroutine takes two arguments, `(receive, send)`,
-which are the channels by which messages are sent between the web server and client application.
+* `scope` - A dictionary containing information about the incoming connection.
+* `receive` - A channel on which to receive incoming messages from the server.
+* `send` - A channel on which to send outgoing messages to the server.
 
-One style of implementation is to use a class with an `__init__()` method to handle
-application instantiation, and a `__call__()` coroutine to provide the application implementation.
+Two common patterns you might use are either function-based applications:
 
 ```python
-class App():
-    def __init__(self, scope):
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        ...
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    ...
 ```
 
-The content of the `scope` argument, and the messages expected by `receive` and `send` depend on
-the protocol being used.
+Or instance-based applications:
+
+```python
+class App:
+    async def __call__(self, scope, receive, send):
+        assert scope['type'] == 'http'
+        ...
+
+app = App()
+```
+
+It's good practice for applications to raise an exception on scope types
+that they do not handle.
+
+The content of the `scope` argument, and the messages expected by `receive` and `send` depend on the protocol being used.
 
 The format for HTTP messages is described in the [ASGI HTTP Message format][asgi-http].
 
 ### HTTP Scope
 
-An incoming HTTP request might instantiate an application with the following `scope`:
+An incoming HTTP request might have a connection `scope` like this:
 
 ```python
 {
@@ -215,23 +236,24 @@ await send({
 Here's an example that displays the method and path used in the incoming request:
 
 ```python
-class EchoMethodAndPath():
-    def __init__(self, scope):
-        self.scope = scope
+async def app(scope, receive, send):
+    """
+    Echo the method and path back in an HTTP response.
+    """
+    assert scope['type'] == 'http'
 
-    async def __call__(self, receive, send):
-        body = 'Received %s request to %s' % (self.scope['method'], self.scope['path'])
-        await send({
-            'type': 'http.response.start',
-            'status': 200,
-            'headers': [
-                [b'content-type', b'text/plain'],
-            ]
-        })
-        await send({
-            'type': 'http.response.body',
-            'body': body.encode('utf-8'),
-        })
+    body = f'Received {scope['method']} request to {scope['path']}'
+    await send({
+        'type': 'http.response.start',
+        'status': 200,
+        'headers': [
+            [b'content-type', b'text/plain'],
+        ]
+    })
+    await send({
+        'type': 'http.response.body',
+        'body': body.encode('utf-8'),
+    })
 ```
 
 ### Reading the request body
@@ -240,38 +262,37 @@ You can stream the request body without blocking the asyncio task pool,
 by fetching messages from the `receive` coroutine.
 
 ```python
-class EchoBody():
-    def __init__(self, scope):
-        self.scope = scope
+async def read_body(receive):
+    """
+    Read and return the entire body from an incoming ASGI message.
+    """
+    body = b''
+    more_body = True
 
-    async def read_body(self, receive):
-        """
-        Read and return the entire body from an incoming ASGI message.
-        """
-        body = b''
-        more_body = True
+    while more_body:
+        message = await receive()
+        body += message.get('body', b'')
+        more_body = message.get('more_body', False)
 
-        while more_body:
-            message = await receive()
-            body += message.get('body', b'')
-            more_body = message.get('more_body', False)
-
-        return body
+    return body
 
 
-    async def __call__(self, receive, send):
-        body = await self.read_body(receive)
-        await send({
-            'type': 'http.response.start',
-            'status': 200,
-            'headers': [
-                [b'content-type', b'text/plain'],
-            ]
-        })
-        await send({
-            'type': 'http.response.body',
-            'body': body,
-        })
+async def app(scope, receive, send):
+    """
+    Echo the request body back in an HTTP response.
+    """
+    body = await read_body(receive)
+    await send({
+        'type': 'http.response.start',
+        'status': 200,
+        'headers': [
+            [b'content-type', b'text/plain'],
+        ]
+    })
+    await send({
+        'type': 'http.response.body',
+        'body': body,
+    })
 ```
 
 ### Streaming responses
@@ -280,29 +301,31 @@ You can stream responses by sending multiple `http.response.body` messages to
 the `send` coroutine.
 
 ```python
-class StreamResponse():
-    def __init__(self, scope):
-        self.scope = scope
+import asyncio
 
-    async def __call__(self, receive, send):
-        body = await self.read_body(receive)
-        await send({
-            'type': 'http.response.start',
-            'status': 200,
-            'headers': [
-                [b'content-type', b'text/plain'],
-            ]
-        })
-        for chunk in [b'Hello', b', ', b'world!']
-            await send({
-                'type': 'http.response.body',
-                'body': chunk,
-                'more_body': True
-            })
+
+async def app(scope, receive, send):
+    """
+    Send a slowly streaming HTTP response back to the client.
+    """
+    await send({
+        'type': 'http.response.start',
+        'status': 200,
+        'headers': [
+            [b'content-type', b'text/plain'],
+        ]
+    })
+    for chunk in [b'Hello', b', ', b'world!']
         await send({
             'type': 'http.response.body',
-            'body': b'',
+            'body': chunk,
+            'more_body': True
         })
+        await asyncio.sleep(1)
+    await send({
+        'type': 'http.response.body',
+        'body': b'',
+    })
 ```
 
 ---
@@ -311,8 +334,7 @@ class StreamResponse():
 
 ### Daphne
 
-The first ASGI server implementation, originally developed to power Django Channels,
-is [the Daphne webserver][daphne].
+The first ASGI server implementation, originally developed to power Django Channels, is [the Daphne webserver][daphne].
 
 It is run widely in production, and supports HTTP/1.1, HTTP/2, and WebSockets.
 

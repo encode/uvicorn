@@ -9,7 +9,7 @@ class Response:
         self.set_content_type()
         self.set_content_length()
 
-    async def __call__(self, receive, send) -> None:
+    async def __call__(self, scope, receive, send) -> None:
         await send(
             {
                 "type": "http.response.start",

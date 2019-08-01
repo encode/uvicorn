@@ -14,6 +14,8 @@
 
 **Documentation**: [https://www.uvicorn.org](https://www.uvicorn.org)
 
+**Community**: [https://discuss.encode.io/c/uvicorn](https://discuss.encode.io/c/uvicorn)
+
 **Requirements**: Python 3.5, 3.6, 3.7
 
 Uvicorn is a lightning-fast ASGI server implementation, using [uvloop][uvloop] and [httptools][httptools].
@@ -32,31 +34,29 @@ Install using `pip`:
 $ pip install uvicorn
 ```
 
-Create an application, in `app.py`:
+Create an application, in `example.py`:
 
 ```python
-class App():
-    def __init__(self, scope):
-        self.scope = scope
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
 
-    async def __call__(self, receive, send):
-        await send({
-            'type': 'http.response.start',
-            'status': 200,
-            'headers': [
-                [b'content-type', b'text/plain'],
-            ],
-        })
-        await send({
-            'type': 'http.response.body',
-            'body': b'Hello, world!',
-        })
+    await send({
+        'type': 'http.response.start',
+        'status': 200,
+        'headers': [
+            [b'content-type', b'text/plain'],
+        ],
+    })
+    await send({
+        'type': 'http.response.body',
+        'body': b'Hello, world!',
+    })
 ```
 
 Run the server:
 
 ```shell
-$ uvicorn app:App
+$ uvicorn example:app
 ```
 
 ---
@@ -65,4 +65,4 @@ $ uvicorn app:App
 
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
-[asgi]: https://github.com/django/asgiref/blob/master/specs/asgi.rst
+[asgi]: https://asgi.readthedocs.io/en/latest/

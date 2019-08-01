@@ -34,26 +34,19 @@ def get_packages(package):
             if os.path.exists(os.path.join(dirpath, '__init__.py'))]
 
 
-if platform.python_implementation() == 'PyPy':
-    requirements = [
-        'click',
-        'h11',
-        'websockets>=6.0'
-    ]
-elif platform.system() == 'Windows' or platform.system().startswith('CYGWIN'):
-    requirements = [
-        'click',
-        'h11',
-        'websockets>=6.0'
-    ]
-else:
-    requirements = [
-        'click',
-        'h11',
-        'httptools',
-        'uvloop',
-        'websockets>=6.0'
-    ]
+env_marker = (
+    "sys_platform != 'win32'"
+    " and sys_platform != 'cygwin'"
+    " and platform_python_implementation != 'pypy'"
+)
+
+requirements = [
+    "click==7.*",
+    "h11==0.8.*",
+    "websockets==7.*",
+    "httptools==0.0.13 ;" + env_marker,
+    "uvloop==0.12.* ;" + env_marker,
+]
 
 
 setup(
@@ -68,6 +61,7 @@ setup(
     author_email='tom@tomchristie.com',
     packages=get_packages('uvicorn'),
     install_requires=requirements,
+    data_files = [("", ["LICENSE.md"])],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',

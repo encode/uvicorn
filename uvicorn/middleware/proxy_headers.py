@@ -9,12 +9,13 @@ the connecting client, rather that the connecting proxy.
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
 
+
 class ProxyHeadersMiddleware:
     def __init__(self, app, num_proxies=1):
         self.app = app
         self.num_proxies = num_proxies
 
-    def __call__(self, scope):
+    async def __call__(self, scope, receive, send):
         if scope["type"] in ("http", "websocket"):
             headers = dict(scope["headers"])
 
@@ -33,4 +34,4 @@ class ProxyHeadersMiddleware:
                 port = 0
                 scope["client"] = (host, port)
 
-        return self.app(scope)
+        await self.app(scope, receive, send)

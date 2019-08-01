@@ -5,10 +5,17 @@ h11
 httptools
 uvloop
 websockets>=6.0
-wsproto
+wsproto==0.13.*
 
 # Testing
+autoflake
+black; python_version >= '3.6'
+codecov
+isort
 pytest
 pytest-cov
 requests
-codecov
+
+# Documentation
+mkdocs
+mkdocs-material

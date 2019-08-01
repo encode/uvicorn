@@ -1,10 +1,10 @@
 import logging
 
 PLACEHOLDER_FORMAT = {
-    'body': '<{length} bytes>',
-    'bytes': '<{length} bytes>',
-    'text': '<{length} chars>',
-    'headers': '<...>',
+    "body": "<{length} bytes>",
+    "bytes": "<{length} bytes>",
+    "text": "<{length} chars>",
+    "headers": "<...>",
 }
 
 
@@ -28,52 +28,34 @@ class MessageLoggerMiddleware:
         self.app = app
         self.logger = logging.getLogger("uvicorn")
 
-    def __call__(self, scope):
+    async def __call__(self, scope, receive, send):
         self.task_counter += 1
-        return MessageLoggerResponder(scope, self.app, self.logger, self.task_counter)
 
+        task_counter = self.task_counter
+        client_addr = scope.get("client")
 
-class MessageLoggerResponder:
-    def __init__(self, scope, app, logger, task_counter):
-        self.scope = scope
-        self.logger = logger
-        self.task_counter = task_counter
-        self.client_addr = scope.get('client')
+        async def inner_receive():
+            nonlocal client_addr, receive, task_counter
+            message = await receive()
+            logged_message = message_with_placeholders(message)
+            log_text = "%s - ASGI [%d] Sent %s"
+            self.logger.debug(log_text, client_addr, task_counter, logged_message)
+            return message
 
-        logged_scope = message_with_placeholders(scope)
-        log_text = '%s - ASGI [%d] Initialized %s'
-        self.logger.debug(log_text, self.client_addr, self.task_counter, logged_scope)
+        async def inner_send(message):
+            logged_message = message_with_placeholders(message)
+            log_text = "%s - ASGI [%d] Received %s"
+            self.logger.debug(log_text, client_addr, task_counter, logged_message)
+            await send(message)
+
+        log_text = "%s - ASGI [%d] Started"
+        self.logger.debug(log_text, client_addr, task_counter)
         try:
-            self.inner = app(scope)
+            await self.app(scope, inner_receive, inner_send)
         except BaseException as exc:
-            log_text = '%s - ASGI [%d] Raised exception'
-            self.logger.debug(log_text, self.client_addr, self.task_counter)
-            raise exc from None
-
-    async def __call__(self, receive, send):
-        self._receive = receive
-        self._send = send
-        log_text = '%s - ASGI [%d] Started task'
-        self.logger.debug(log_text, self.client_addr, self.task_counter)
-        try:
-            await self.inner(self.receive, self.send)
-        except BaseException as exc:
-            log_text = '%s - ASGI [%d] Raised exception'
-            self.logger.debug(log_text, self.client_addr, self.task_counter)
+            log_text = "%s - ASGI [%d] Raised exception"
+            self.logger.debug(log_text, client_addr, task_counter)
             raise exc from None
         else:
-            log_text = '%s - ASGI [%d] Completed'
-            self.logger.debug(log_text, self.client_addr, self.task_counter)
-
-    async def receive(self):
-        message = await self._receive()
-        logged_message = message_with_placeholders(message)
-        log_text = '%s - ASGI [%d] Sent %s'
-        self.logger.debug(log_text, self.client_addr, self.task_counter, logged_message)
-        return message
-
-    async def send(self, message):
-        logged_message = message_with_placeholders(message)
-        log_text = '%s - ASGI [%d] Received %s'
-        self.logger.debug(log_text, self.client_addr, self.task_counter, logged_message)
-        await self._send(message)
+            log_text = "%s - ASGI [%d] Completed"
+            self.logger.debug(log_text, client_addr, task_counter)

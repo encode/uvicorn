@@ -1,63 +1,40 @@
-from uvicorn.importer import import_from_string, ImportFromStringError
-from uvicorn.lifespan import Lifespan
-from uvicorn.middleware.debug import DebugMiddleware
-from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-from uvicorn.middleware.message_logger import MessageLoggerMiddleware
-from uvicorn.middleware.wsgi import WSGIMiddleware
-from uvicorn.reloaders.statreload import StatReload
 import asyncio
-import click
-import signal
+import functools
 import os
-import logging
+import signal
 import socket
+import ssl
 import sys
 import time
-import multiprocessing
+import typing
+from email.utils import formatdate
 
+import click
 
-LOG_LEVELS = {
-    "critical": logging.CRITICAL,
-    "error": logging.ERROR,
-    "warning": logging.WARNING,
-    "info": logging.INFO,
-    "debug": logging.DEBUG,
-}
-HTTP_PROTOCOLS = {
-    "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
-    "h11": "uvicorn.protocols.http.h11_impl:H11Protocol",
-    "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
-}
-WS_PROTOCOLS = {
-    "none": None,
-    "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",
-    "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
-    "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
-}
-LOOP_SETUPS = {
-    "auto": "uvicorn.loops.auto:auto_loop_setup",
-    "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
-    "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
-}
+from uvicorn.config import (
+    HTTP_PROTOCOLS,
+    INTERFACES,
+    LIFESPAN,
+    LOG_LEVELS,
+    LOOP_SETUPS,
+    SSL_PROTOCOL_VERSION,
+    WS_PROTOCOLS,
+    Config,
+    get_logger,
+)
+from uvicorn.supervisors import Multiprocess, StatReload
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
 WS_CHOICES = click.Choice(WS_PROTOCOLS.keys())
+LIFESPAN_CHOICES = click.Choice(LIFESPAN.keys())
 LOOP_CHOICES = click.Choice(LOOP_SETUPS.keys())
+INTERFACE_CHOICES = click.Choice(INTERFACES)
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
 )
-
-
-def get_logger(log_level):
-    if isinstance(log_level, str):
-        log_level = LOG_LEVELS[log_level]
-    logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
-    logger = logging.getLogger("uvicorn")
-    logger.setLevel(log_level)
-    return logger
 
 
 @click.command()
@@ -81,6 +58,22 @@ def get_logger(log_level):
     "--fd", type=int, default=None, help="Bind to socket from this file descriptor."
 )
 @click.option(
+    "--debug", is_flag=True, default=False, help="Enable debug mode.", hidden=True
+)
+@click.option("--reload", is_flag=True, default=False, help="Enable auto-reload.")
+@click.option(
+    "--reload-dir",
+    "reload_dirs",
+    multiple=True,
+    help="Set reload directories explicitly, instead of using 'sys.path'.",
+)
+@click.option(
+    "--workers",
+    default=1,
+    type=int,
+    help="Number of worker processes. Not valid with --reload.",
+)
+@click.option(
     "--loop",
     type=LOOP_CHOICES,
     default="auto",
@@ -102,12 +95,19 @@ def get_logger(log_level):
     show_default=True,
 )
 @click.option(
-    "--wsgi",
-    is_flag=True,
-    default=False,
-    help="Use WSGI as the application interface, instead of ASGI.",
+    "--lifespan",
+    type=LIFESPAN_CHOICES,
+    default="auto",
+    help="Lifespan implementation.",
+    show_default=True,
 )
-@click.option("--debug", is_flag=True, default=False, help="Enable debug mode.")
+@click.option(
+    "--interface",
+    type=INTERFACE_CHOICES,
+    default="auto",
+    help="Select ASGI3, ASGI2, or WSGI as the application interface.",
+    show_default=True,
+)
 @click.option(
     "--log-level",
     type=LEVEL_CHOICES,
@@ -149,6 +149,50 @@ def get_logger(log_level):
     help="Close Keep-Alive connections if no new data is received within this timeout.",
     show_default=True,
 )
+@click.option(
+    "--ssl-keyfile", type=str, default=None, help="SSL key file", show_default=True
+)
+@click.option(
+    "--ssl-certfile",
+    type=str,
+    default=None,
+    help="SSL certificate file",
+    show_default=True,
+)
+@click.option(
+    "--ssl-version",
+    type=int,
+    default=SSL_PROTOCOL_VERSION,
+    help="SSL version to use (see stdlib ssl module's)",
+    show_default=True,
+)
+@click.option(
+    "--ssl-cert-reqs",
+    type=int,
+    default=ssl.CERT_NONE,
+    help="Whether client certificate is required (see stdlib ssl module's)",
+    show_default=True,
+)
+@click.option(
+    "--ssl-ca-certs",
+    type=str,
+    default=None,
+    help="CA certificates file",
+    show_default=True,
+)
+@click.option(
+    "--ssl-ciphers",
+    type=str,
+    default="TLSv1",
+    help="Ciphers to use (see stdlib ssl module's)",
+    show_default=True,
+)
+@click.option(
+    "--header",
+    "headers",
+    multiple=True,
+    help="Specify custom default HTTP response headers as a Name:Value pair",
+)
 def main(
     app,
     host: str,
@@ -158,8 +202,12 @@ def main(
     loop: str,
     http: str,
     ws: str,
-    wsgi: bool,
+    lifespan: str,
+    interface: str,
     debug: bool,
+    reload: bool,
+    reload_dirs: typing.List[str],
+    workers: int,
     log_level: str,
     no_access_log: bool,
     proxy_headers: bool,
@@ -167,6 +215,13 @@ def main(
     limit_concurrency: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
+    ssl_keyfile: str,
+    ssl_certfile: str,
+    ssl_version: int,
+    ssl_cert_reqs: int,
+    ssl_ca_certs: str,
+    ssl_ciphers: str,
+    headers: typing.List[str],
 ):
     sys.path.insert(0, ".")
 
@@ -179,250 +234,235 @@ def main(
         "loop": loop,
         "http": http,
         "ws": ws,
+        "lifespan": lifespan,
         "log_level": log_level,
         "access_log": not no_access_log,
-        "wsgi": wsgi,
+        "interface": interface,
         "debug": debug,
+        "reload": reload,
+        "reload_dirs": reload_dirs if reload_dirs else None,
+        "workers": workers,
         "proxy_headers": proxy_headers,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
         "limit_max_requests": limit_max_requests,
         "timeout_keep_alive": timeout_keep_alive,
+        "ssl_keyfile": ssl_keyfile,
+        "ssl_certfile": ssl_certfile,
+        "ssl_version": ssl_version,
+        "ssl_cert_reqs": ssl_cert_reqs,
+        "ssl_ca_certs": ssl_ca_certs,
+        "ssl_ciphers": ssl_ciphers,
+        "headers": list([header.split(":") for header in headers]),
     }
-
-    if debug:
-        logger = get_logger(log_level)
-        reloader = StatReload(logger)
-        reloader.run(run, kwargs)
-    else:
-        run(**kwargs)
+    run(**kwargs)
 
 
-def run(
-    app,
-    host="127.0.0.1",
-    port=8000,
-    uds=None,
-    fd=None,
-    loop="auto",
-    http="auto",
-    ws="auto",
-    log_level="info",
-    logger=None,
-    access_log=True,
-    wsgi=False,
-    debug=False,
-    proxy_headers=False,
-    root_path="",
-    limit_concurrency=None,
-    limit_max_requests=None,
-    timeout_keep_alive=5,
-    install_signal_handlers=True,
-    ready_event=None,
-):
+def run(app, **kwargs):
+    config = Config(app, **kwargs)
+    server = Server(config=config)
 
-    if fd is None:
-        sock = None
-    else:
-        host = None
-        port = None
-        sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
-
-    if logger is None:
-        logger = get_logger(log_level)
-    else:
-        assert log_level == "info", "Cannot set both 'logger' and 'log_level'"
-    http_protocol_class = import_from_string(HTTP_PROTOCOLS[http])
-    ws_protocol_class = import_from_string(WS_PROTOCOLS[ws])
-
-    if isinstance(loop, str):
-        loop_setup = import_from_string(LOOP_SETUPS[loop])
-        loop = loop_setup()
-
-    try:
-        app = import_from_string(app)
-    except ImportFromStringError as exc:
-        click.echo("Error loading ASGI app. %s" % exc)
-        sys.exit(1)
-
-    if wsgi:
-        app = WSGIMiddleware(app)
-        ws_protocol_class = None
-    if debug:
-        app = DebugMiddleware(app)
-    if logger.level <= logging.DEBUG:
-        app = MessageLoggerMiddleware(app)
-    if proxy_headers:
-        app = ProxyHeadersMiddleware(app)
-
-    connections = set()
-    tasks = set()
-    state = {"total_requests": 0}
-
-    def create_protocol():
-        return http_protocol_class(
-            app=app,
-            loop=loop,
-            logger=logger,
-            access_log=access_log,
-            connections=connections,
-            tasks=tasks,
-            state=state,
-            ws_protocol_class=ws_protocol_class,
-            root_path=root_path,
-            limit_concurrency=limit_concurrency,
-            timeout_keep_alive=timeout_keep_alive,
+    if config.reload and not isinstance(app, str):
+        config.logger_instance.warn(
+            "auto-reload only works when app is passed as an import string."
         )
 
-    server = Server(
-        app=app,
-        host=host,
-        port=port,
-        uds=uds,
-        sock=sock,
-        logger=logger,
-        loop=loop,
-        connections=connections,
-        tasks=tasks,
-        state=state,
-        limit_max_requests=limit_max_requests,
-        create_protocol=create_protocol,
-        on_tick=http_protocol_class.tick,
-        install_signal_handlers=install_signal_handlers,
-        ready_event=ready_event,
-    )
-    server.run()
+    if isinstance(app, str) and (config.debug or config.reload):
+        sock = config.bind_socket()
+        supervisor = StatReload(config)
+        supervisor.run(server.run, sockets=[sock])
+    elif config.workers > 1:
+        sock = config.bind_socket()
+        supervisor = Multiprocess(config)
+        supervisor.run(server.run, sockets=[sock])
+    else:
+        server.run()
+
+
+class ServerState:
+    """
+    Shared servers state that is available between all protocol instances.
+    """
+
+    def __init__(self):
+        self.total_requests = 0
+        self.connections = set()
+        self.tasks = set()
+        self.default_headers = []
 
 
 class Server:
-    def __init__(
-        self,
-        app,
-        host,
-        port,
-        uds,
-        sock,
-        logger,
-        loop,
-        connections,
-        tasks,
-        state,
-        limit_max_requests,
-        create_protocol,
-        on_tick,
-        install_signal_handlers,
-        ready_event,
-    ):
-        self.app = app
-        self.host = host
-        self.port = port
-        self.uds = uds
-        self.sock = sock
-        self.logger = logger
-        self.loop = loop
-        self.connections = connections
-        self.tasks = tasks
-        self.state = state
-        self.limit_max_requests = limit_max_requests
-        self.create_protocol = create_protocol
-        self.on_tick = on_tick
-        self.install_signal_handlers = install_signal_handlers
-        self.ready_event = ready_event
-        self.should_exit = False
-        self.pid = os.getpid()
+    def __init__(self, config):
+        self.config = config
+        self.server_state = ServerState()
 
-    def set_signal_handlers(self):
-        if not self.install_signal_handlers:
+        self.started = False
+        self.should_exit = False
+        self.force_exit = False
+        self.last_notified = 0
+
+    def run(self, sockets=None, shutdown_servers=True):
+        self.config.setup_event_loop()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.serve(sockets=sockets))
+
+    async def serve(self, sockets=None, shutdown_servers=True):
+        process_id = os.getpid()
+
+        config = self.config
+        if not config.loaded:
+            config.load()
+
+        self.logger = config.logger_instance
+        self.lifespan = config.lifespan_class(config)
+
+        self.install_signal_handlers()
+
+        self.logger.info("Started server process [{}]".format(process_id))
+        await self.startup(sockets=sockets)
+        if self.should_exit:
             return
+        await self.main_loop()
+        await self.shutdown(shutdown_servers=shutdown_servers)
+        self.logger.info("Finished server process [{}]".format(process_id))
+
+    async def startup(self, sockets=None):
+        config = self.config
+
+        await self.lifespan.startup()
+        if self.lifespan.should_exit:
+            self.should_exit = True
+            return
+
+        create_protocol = functools.partial(
+            config.http_protocol_class, config=config, server_state=self.server_state
+        )
+
+        loop = asyncio.get_event_loop()
+
+        if sockets is not None:
+            # Explicitly passed a list of open sockets.
+            # We use this when the server is run from a Gunicorn worker.
+            self.servers = []
+            for sock in sockets:
+                server = await loop.create_server(
+                    create_protocol, sock=sock, ssl=config.ssl
+                )
+                self.servers.append(server)
+
+        elif config.fd is not None:
+            # Use an existing socket, from a file descriptor.
+            sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
+            server = await loop.create_server(
+                create_protocol, sock=sock, ssl=config.ssl
+            )
+            message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
+            self.logger.info(message % str(sock.getsockname()))
+            self.servers = [server]
+
+        elif config.uds is not None:
+            # Create a socket using UNIX domain socket.
+            uds_perms = 0o666
+            if os.path.exists(config.uds):
+                uds_perms = os.stat(config.uds).st_mode
+            server = await loop.create_unix_server(create_protocol, path=config.uds)
+            os.chmod(config.uds, uds_perms)
+            message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
+            self.logger.info(message % config.uds)
+            self.servers = [server]
+
+        else:
+            # Standard case. Create a socket from a host/port pair.
+            server = await loop.create_server(
+                create_protocol, host=config.host, port=config.port, ssl=config.ssl
+            )
+            protocol_name = "https" if config.ssl else "http"
+            message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
+            self.logger.info(message % (protocol_name, config.host, config.port))
+            self.servers = [server]
+
+        self.started = True
+
+    async def main_loop(self):
+        counter = 0
+        should_exit = await self.on_tick(counter)
+        while not should_exit:
+            counter += 1
+            counter = counter % 864000
+            await asyncio.sleep(0.1)
+            should_exit = await self.on_tick(counter)
+
+    async def on_tick(self, counter) -> bool:
+        # Update the default headers, once per second.
+        if counter % 10 == 0:
+            current_time = time.time()
+            current_date = formatdate(current_time, usegmt=True).encode()
+            self.server_state.default_headers = [
+                (b"date", current_date)
+            ] + self.config.encoded_headers
+
+            # Callback to `callback_notify` once every `timeout_notify` seconds.
+            if self.config.callback_notify is not None:
+                if current_time - self.last_notified > self.config.timeout_notify:
+                    self.last_notified = current_time
+                    await self.config.callback_notify()
+
+        # Determine if we should exit.
+        if self.should_exit:
+            return True
+        if self.config.limit_max_requests is not None:
+            return self.server_state.total_requests >= self.config.limit_max_requests
+        return False
+
+    async def shutdown(self, shutdown_servers=True):
+        self.logger.info("Shutting down")
+
+        # Stop accepting new connections.
+        if shutdown_servers:
+            for server in self.servers:
+                server.close()
+            for server in self.servers:
+                await server.wait_closed()
+
+        # Request shutdown on all existing connections.
+        for connection in list(self.server_state.connections):
+            connection.shutdown()
+        await asyncio.sleep(0.1)
+
+        # Wait for existing connections to finish sending responses.
+        if self.server_state.connections and not self.force_exit:
+            msg = "Waiting for connections to close. (CTRL+C to force quit)"
+            self.logger.info(msg)
+            while self.server_state.connections and not self.force_exit:
+                await asyncio.sleep(0.1)
+
+        # Wait for existing tasks to complete.
+        if self.server_state.tasks and not self.force_exit:
+            msg = "Waiting for background tasks to complete. (CTRL+C to force quit)"
+            self.logger.info(msg)
+            while self.server_state.tasks and not self.force_exit:
+                await asyncio.sleep(0.1)
+
+        # Send the lifespan shutdown event, and wait for application shutdown.
+        if not self.force_exit:
+            await self.lifespan.shutdown()
+
+    def install_signal_handlers(self):
+        loop = asyncio.get_event_loop()
 
         try:
             for sig in HANDLED_SIGNALS:
-                self.loop.add_signal_handler(sig, self.handle_exit, sig, None)
+                loop.add_signal_handler(sig, self.handle_exit, sig, None)
         except NotImplementedError as exc:
             # Windows
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)
 
     def handle_exit(self, sig, frame):
-        self.should_exit = True
-
-    def run(self):
-        self.logger.info("Started server process [{}]".format(self.pid))
-        self.set_signal_handlers()
-        self.lifespan = Lifespan(self.app, self.logger)
-        if self.lifespan.is_enabled:
-            self.logger.info("Waiting for application startup.")
-            self.loop.create_task(self.lifespan.run())
-            self.loop.run_until_complete(self.lifespan.wait_startup())
-            if self.lifespan.error_occured:
-                self.logger.error("Application startup failed. Exiting.")
-                return
+        if self.should_exit:
+            self.force_exit = True
         else:
-            self.logger.debug("Lifespan protocol is not recognized by the application")
-        self.loop.run_until_complete(self.create_server())
-        self.loop.create_task(self.tick())
-        if self.ready_event is not None:
-            self.ready_event.set()
-        self.loop.run_forever()
-
-    async def create_server(self):
-        if self.sock is not None:
-            # Use an existing socket.
-            self.server = await self.loop.create_server(
-                self.create_protocol, sock=self.sock
-            )
-            message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
-            self.logger.info(message % str(self.sock.getsockname()))
-
-        elif self.uds is not None:
-            # Create a socket using UNIX domain socket.
-            self.server = await self.loop.create_unix_server(
-                self.create_protocol, path=self.uds
-            )
-            message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
-            self.logger.info(message % self.uds)
-
-        else:
-            # Standard case. Create a socket from a host/port pair.
-            self.server = await self.loop.create_server(
-                self.create_protocol, host=self.host, port=self.port
-            )
-            message = "Uvicorn running on http://%s:%d (Press CTRL+C to quit)"
-            self.logger.info(message % (self.host, self.port))
-
-    async def tick(self):
-        should_limit_requests = self.limit_max_requests is not None
-
-        while not self.should_exit:
-            if (
-                should_limit_requests
-                and self.state["total_requests"] >= self.limit_max_requests
-            ):
-                break
-            self.on_tick()
-            await asyncio.sleep(1)
-
-        self.logger.info("Stopping server process [{}]".format(self.pid))
-        self.server.close()
-        await self.server.wait_closed()
-        for connection in list(self.connections):
-            connection.shutdown()
-
-        await asyncio.sleep(0.1)
-        if self.connections:
-            self.logger.info("Waiting for connections to close.")
-            while self.connections:
-                await asyncio.sleep(0.1)
-        if self.tasks:
-            self.logger.info("Waiting for background tasks to complete.")
-            while self.tasks:
-                await asyncio.sleep(0.1)
-
-        if self.lifespan.is_enabled:
-            self.logger.info("Waiting for application shutdown.")
-            await self.lifespan.wait_shutdown()
-
-        self.loop.stop()
+            self.should_exit = True
 
 
 if __name__ == "__main__":

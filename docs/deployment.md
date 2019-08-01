@@ -4,7 +4,7 @@ Server deployment is a complex area, that will depend on what kind of service yo
 
 As a general rule, you probably want to:
 
-* Run `uvicorn --debug` from the command line for local development.
+* Run `uvicorn --reload` from the command line for local development.
 * Run `gunicorn -k uvicorn.workers.UvicornWorker` for production.
 * Additionally run behind Nginx for self-hosted deployments.
 * Finally, run everything behind a CDN for caching support, and serious DDOS protection.
@@ -13,13 +13,13 @@ As a general rule, you probably want to:
 
 Typically you'll run `uvicorn` from the command line.
 
-```
-$ uvicorn app:App --debug --port 5000
+```bash
+$ uvicorn example:app --reload --port 5000
 ```
 
 The ASGI application should be specified in the form `path.to.module:instance.path`.
 
-When running locally, use `--debug` to turn on auto-reloading, and display error tracebacks in the browser.
+When running locally, use `--reload` to turn on auto-reloading.
 
 To see the complete set of available options, use `uvicorn --help`:
 
@@ -33,16 +33,24 @@ Options:
   --port INTEGER                  Bind socket to this port.  [default: 8000]
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
+  --reload                        Enable auto-reload.
+  --reload-dir TEXT               Set reload directories explicitly, instead
+                                  of using 'sys.path'.
+  --workers INTEGER               Number of worker processes. Not valid with
+                                  --reload.
   --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
-  --http [auto|h11|httptools]     HTTP parser implementation.  [default: auto]
+  --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
+                                  auto]
   --ws [none|auto|websockets|wsproto]
                                   WebSocket protocol implementation.
                                   [default: auto]
-  --wsgi                          Use WSGI as the application interface,
-                                  instead of ASGI.
-  --debug                         Enable debug mode.
+  --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
+  --interface [auto|asgi3|agsi2|wsgi]
+                                  Select ASGI3, ASGI2, or WSGI as the
+                                  application interface.
   --log-level [critical|error|warning|info|debug]
                                   Log level.  [default: info]
+  --no-access-log                 Disable access log.
   --proxy-headers                 Use X-Forwarded-Proto, X-Forwarded-For,
                                   X-Forwarded-Port to populate remote address
                                   info.
@@ -56,6 +64,15 @@ Options:
   --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
                                   is received within this timeout.  [default:
                                   5]
+  --ssl-keyfile TEXT              SSL key file
+  --ssl-certfile TEXT             SSL certificate file
+  --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
+                                  [default: 2]
+  --ssl-cert-reqs INTEGER         Whether client certificate is required (see
+                                  stdlib ssl module's)  [default: 0]
+  --ssl-ca-certs TEXT             CA certificates file
+  --ssl-ciphers TEXT              Ciphers to use (see stdlib ssl module's)
+                                  [default: TLSv1]
   --help                          Show this message and exit.
 ```
 
@@ -71,24 +88,21 @@ import uvicorn
 class App:
     ...
 
+app = App()
+
 if __name__ == "__main__":
-    uvicorn.run(App, host="127.0.0.1", port=5000, log_level="info", debug=True)
+    uvicorn.run(app, host="127.0.0.1", port=5000, log_level="info", reload=True)
 ```
 
 The set of configuration options is the same as for the command line tool.
 
-There are a couple of extra things to be aware of:
-
-* The reloader is not enabled when running programmatically.
-* Running programatically always just uses a single process.
-
 ## Using a process manager
 
-Running Uvicorn using a process manager ensures that you can run multiple processes in a resiliant manner, and allows you to perform server upgrades without dropping requests.
+Running Uvicorn using a process manager ensures that you can run multiple processes in a resilient manner, and allows you to perform server upgrades without dropping requests.
 
 A process manager will handle the socket setup, start-up multiple server processes, monitor process aliveness, and listen for signals to provide for processes restarts, shutdowns, or dialing up and down the number of running processes.
 
-It is possible that a future version of Uvicorn might build in multiple-worker support and process management, but it is currently being treated as out-of-scope, given the existing tools that already deal with this comprehensivly.
+Uvicorn provides a lightweight way to run multiple worker processes, for example `--workers 4`, but does not provide any process monitoring.
 
 ### Gunicorn
 
@@ -115,7 +129,7 @@ A simple supervisor configuration might look something like this:
 
 **supervisord.conf**:
 
-```
+```ini
 [supervisord]
 
 [fcgi-program:uvicorn]
@@ -140,7 +154,7 @@ A simple circus configuration might look something like this:
 
 **circus.ini**:
 
-```
+```ini
 [watcher:web]
 cmd = venv/bin/uvicorn --fd $(circus.sockets.web) example:App
 use_sockets = True
@@ -167,7 +181,7 @@ You should ensure that the `X-Forwarded-For` and `X-Forwarded-Proto` headers are
 
 Here's how a simple Nginx configuration might look. This example includes setting proxy headers, and using a UNIX domain socket to communicate with the application server.
 
-```
+```conf
 http {
   server {
     listen 80;
@@ -208,3 +222,26 @@ Running behind a content delivery network, such as Cloudflare or Cloud Front, pr
 Proper usage of cache control headers can mean that a CDN is able to serve large amounts of data without always having to forward the request on to your server.
 
 Content Delivery Networks can also be a low-effort way to provide HTTPS termination.
+
+## Running with HTTPS
+
+To run uvicorn with https, a certificate and a private key are required.
+The recommended way to get them is using [Let's Encrypt][letsencrypt].
+
+For local development with https, it's possible to use [mkcert][mkcert]
+to generate a valid certificat and private key.
+
+```bash
+$ uvicorn example:app --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.pem
+```
+
+### Running gunicorn worker
+
+It also possible to use certificates with uvicorn's worker for gunicorn
+
+```bash
+$ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornWorker example:app
+```
+
+[letsencrypt]: https://letsencrypt.org/
+[mkcert]: https://github.com/FiloSottile/mkcert
