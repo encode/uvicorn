@@ -1,6 +1,7 @@
 import multiprocessing
 import os
 import signal
+import sys
 import time
 from pathlib import Path
 
@@ -20,6 +21,12 @@ class StatReload:
     def handle_exit(self, sig, frame):
         self.should_exit = True
 
+    @staticmethod
+    def handle_fds(target, fd_stdin, **kwargs):
+        """Handle stdin in subprocess for pdb."""
+        sys.stdin = os.fdopen(fd_stdin)
+        target(**kwargs)
+
     def run(self, target, *args, **kwargs):
         pid = os.getpid()
         logger = self.config.logger_instance
@@ -29,8 +36,13 @@ class StatReload:
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.handle_exit)
 
-        spawn = multiprocessing.get_context("spawn")
-        process = spawn.Process(target=target, args=args, kwargs=kwargs)
+        def get_subprocess():
+            spawn = multiprocessing.get_context("spawn")
+            return spawn.Process(
+                target=self.handle_fds, args=(target, sys.stdin.fileno()), kwargs=kwargs
+            )
+
+        process = get_subprocess()
         process.start()
 
         while process.is_alive() and not self.should_exit:
@@ -39,7 +51,8 @@ class StatReload:
                 self.clear()
                 os.kill(process.pid, signal.SIGTERM)
                 process.join()
-                process = spawn.Process(target=target, args=args, kwargs=kwargs)
+
+                process = get_subprocess()
                 process.start()
                 self.reload_count += 1
 
