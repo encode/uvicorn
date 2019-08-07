@@ -65,3 +65,11 @@ def test_socket_bind():
     config.load()
 
     assert isinstance(config.bind_socket(), socket.socket)
+
+
+def test_ssl_config(certfile_and_keyfile):
+    certfile, keyfile = certfile_and_keyfile
+    config = Config(app=asgi_app, ssl_certfile=certfile.name, ssl_keyfile=keyfile.name)
+    config.load()
+
+    assert bool(config.is_ssl) is True
