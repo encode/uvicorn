@@ -279,6 +279,33 @@ def run(app, **kwargs):
         server.run()
 
 
+class Uvicorn:
+    def __init__(self, app, **kwargs):
+        self.app = app
+        self.config = Config(app, **kwargs)
+        self.server = Server(config=self.config)
+
+        if self.config.reload and not isinstance(app, str):
+            self.config.logger_instance.warn(
+                "auto-reload only works when app is passed as an import string."
+            )
+    
+    def get_event_loop(self):
+        return self.server.get_event_loop()
+    
+    def run(self):
+        if isinstance(self.app, str) and (self.config.debug or self.config.reload):
+            sock = config.bind_socket()
+            supervisor = StatReload(self.config)
+            supervisor.run(self.server.run, sockets=[sock])
+        elif self.config.workers > 1:
+            sock = self.config.bind_socket()
+            supervisor = Multiprocess(config)
+            supervisor.run(self.server.run, sockets=[sock])
+        else:
+            self.server.run()
+
+
 class ServerState:
     """
     Shared servers state that is available between all protocol instances.
@@ -300,9 +327,20 @@ class Server:
         self.should_exit = False
         self.force_exit = False
         self.last_notified = 0
+        self.event_loop_setup = False
+    
+    def setup_event_loop(self):
+        self.config.setup_event_loop()
+        self.event_loop_setup = True
+
+    def get_event_loop(self):
+        if not self.event_loop_setup:
+            self.setup_event_loop()
+        return asyncio.get_event_loop()
 
     def run(self, sockets=None, shutdown_servers=True):
-        self.config.setup_event_loop()
+        if not self.event_loop_setup:
+            self.setup_event_loop()
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.serve(sockets=sockets))
 
