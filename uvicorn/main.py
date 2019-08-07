@@ -295,12 +295,12 @@ class Uvicorn:
     
     def run(self):
         if isinstance(self.app, str) and (self.config.debug or self.config.reload):
-            sock = config.bind_socket()
+            sock = self.config.bind_socket()
             supervisor = StatReload(self.config)
             supervisor.run(self.server.run, sockets=[sock])
         elif self.config.workers > 1:
             sock = self.config.bind_socket()
-            supervisor = Multiprocess(config)
+            supervisor = Multiprocess(self.config)
             supervisor.run(self.server.run, sockets=[sock])
         else:
             self.server.run()
