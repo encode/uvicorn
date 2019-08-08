@@ -135,6 +135,21 @@ if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=5000, log_level="info")
 ```
 
+#### Extracting Event Loop to Provide to other Applications
+
+```python
+from fastapi import FastAPI
+from uvicorn import Uvicorn
+from faust import App
+
+app = FastAPI()
+uvicorn = Uvicorn(app, ...)
+faust_app = App(..., loop=uvicorn.get_event_loop())
+
+if __name__ == '__main__':
+    uvicorn.run()
+```
+
 ### Running with Gunicorn
 
 [Gunicorn][gunicorn] is a mature, fully featured server and process manager.
