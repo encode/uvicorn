@@ -259,24 +259,7 @@ def main(
 
 
 def run(app, **kwargs):
-    config = Config(app, **kwargs)
-    server = Server(config=config)
-
-    if config.reload and not isinstance(app, str):
-        config.logger_instance.warn(
-            "auto-reload only works when app is passed as an import string."
-        )
-
-    if isinstance(app, str) and (config.debug or config.reload):
-        sock = config.bind_socket()
-        supervisor = StatReload(config)
-        supervisor.run(server.run, sockets=[sock])
-    elif config.workers > 1:
-        sock = config.bind_socket()
-        supervisor = Multiprocess(config)
-        supervisor.run(server.run, sockets=[sock])
-    else:
-        server.run()
+    Uvicorn(app, **kwargs).run()
 
 
 class Uvicorn:
