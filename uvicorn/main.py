@@ -306,7 +306,7 @@ class Server:
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.serve(sockets=sockets))
 
-    async def serve(self, sockets=None, shutdown_servers=True):
+    async def serve(self, sockets=None, shutdown_servers=True, handle_signals=True):
         process_id = os.getpid()
 
         config = self.config
@@ -315,8 +315,9 @@ class Server:
 
         self.logger = config.logger_instance
         self.lifespan = config.lifespan_class(config)
-
-        self.install_signal_handlers()
+        
+        if handle_signals:
+            self.install_signal_handlers()
 
         self.logger.info("Started server process [{}]".format(process_id))
         await self.startup(sockets=sockets)
