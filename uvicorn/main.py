@@ -273,7 +273,8 @@ class Uvicorn:
                 "auto-reload only works when app is passed as an import string."
             )
     
-    def get_event_loop(self):
+    @property
+    def loop(self):
         return self.server.get_event_loop()
     
     def run(self):
@@ -310,6 +311,7 @@ class Server:
         self.should_exit = False
         self.force_exit = False
         self.last_notified = 0
+        self.loop = None
         self.event_loop_setup = False
     
     def setup_event_loop(self):
@@ -319,12 +321,15 @@ class Server:
     def get_event_loop(self):
         if not self.event_loop_setup:
             self.setup_event_loop()
-        return asyncio.get_event_loop()
+        if not self.loop:
+            self.loop = asyncio.get_event_loop()
+        return self.loop
 
     def run(self, sockets=None, shutdown_servers=True):
         if not self.event_loop_setup:
             self.setup_event_loop()
-        loop = asyncio.get_event_loop()
+        
+        loop = self.get_event_loop()
         loop.run_until_complete(self.serve(sockets=sockets))
 
     async def serve(self, sockets=None, shutdown_servers=True):
@@ -359,7 +364,7 @@ class Server:
             config.http_protocol_class, config=config, server_state=self.server_state
         )
 
-        loop = asyncio.get_event_loop()
+        loop = self.get_event_loop()
 
         if sockets is not None:
             # Explicitly passed a list of open sockets.
@@ -469,7 +474,7 @@ class Server:
             await self.lifespan.shutdown()
 
     def install_signal_handlers(self):
-        loop = asyncio.get_event_loop()
+        loop = self.get_event_loop()
 
         try:
             for sig in HANDLED_SIGNALS:
