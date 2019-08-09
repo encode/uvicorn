@@ -144,7 +144,7 @@ from faust import App
 
 app = FastAPI()
 uvicorn = Uvicorn(app, ...)
-faust_app = App(..., loop=uvicorn.get_event_loop())
+faust_app = App(..., loop=uvicorn.loop)
 
 if __name__ == '__main__':
     uvicorn.run()

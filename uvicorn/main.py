@@ -326,9 +326,6 @@ class Server:
         return self.loop
 
     def run(self, sockets=None, shutdown_servers=True):
-        if not self.event_loop_setup:
-            self.setup_event_loop()
-        
         loop = self.get_event_loop()
         loop.run_until_complete(self.serve(sockets=sockets))
 
