@@ -95,6 +95,8 @@ def test_invalid_upgrade(protocol_cls):
                 "missing sec-websocket-key header\n",
                 "missing sec-websocket-version header",  # websockets
                 "missing or empty sec-websocket-key header\n",  # wsproto
+                "failed to open a websocket connection: missing sec-websocket-key header.",
+                "failed to open a websocket connection: missing or empty sec-websocket-key header",
             ]
 
 
