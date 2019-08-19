@@ -89,6 +89,7 @@ class Config:
         workers=1,
         proxy_headers=False,
         root_path="",
+        thread_pool_worker=10,
         limit_concurrency=None,
         limit_max_requests=None,
         timeout_keep_alive=5,
@@ -120,6 +121,7 @@ class Config:
         self.workers = workers
         self.proxy_headers = proxy_headers
         self.root_path = root_path
+        self.thread_pool_worker = thread_pool_worker
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests
         self.timeout_keep_alive = timeout_keep_alive
@@ -199,7 +201,7 @@ class Config:
             self.interface = "asgi3" if use_asgi_3 else "asgi2"
 
         if self.interface == "wsgi":
-            self.loaded_app = WSGIMiddleware(self.loaded_app)
+            self.loaded_app = WSGIMiddleware(self.loaded_app, self.thread_pool_worker)
             self.ws_protocol_class = None
         elif self.interface == "asgi2":
             self.loaded_app = ASGI2Middleware(self.loaded_app)
