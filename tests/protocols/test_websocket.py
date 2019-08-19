@@ -91,10 +91,10 @@ def test_invalid_upgrade(protocol_cls):
             pass  # ok, wsproto 0.13
         else:
             assert response.status_code == 400
-            assert response.text in [
-                "Missing Sec-WebSocket-Key header\n",
-                "Missing Sec-WebSocket-Version header",  # websockets
-                "Missing or empty Sec-WebSocket-Key header\n",  # wsproto
+            assert response.text.lower() in [
+                "missing sec-websocket-key header\n",
+                "missing sec-websocket-version header",  # websockets
+                "missing or empty sec-websocket-key header\n",  # wsproto
             ]
 
 
