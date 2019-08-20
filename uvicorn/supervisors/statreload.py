@@ -24,7 +24,8 @@ class StatReload:
     @staticmethod
     def handle_fds(target, fd_stdin, **kwargs):
         """Handle stdin in subprocess for pdb."""
-        sys.stdin = os.fdopen(fd_stdin)
+        if fd_stdin is not None:
+            sys.stdin = os.fdopen(fd_stdin)
         target(**kwargs)
 
     def run(self, target, *args, **kwargs):
@@ -38,8 +39,13 @@ class StatReload:
 
         def get_subprocess():
             spawn = multiprocessing.get_context("spawn")
+            try:
+                fileno = sys.stdin.fileno()
+            except OSError:
+                fileno = None
+
             return spawn.Process(
-                target=self.handle_fds, args=(target, sys.stdin.fileno()), kwargs=kwargs
+                target=self.handle_fds, args=(target, fileno), kwargs=kwargs
             )
 
         process = get_subprocess()
