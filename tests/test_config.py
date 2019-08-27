@@ -42,7 +42,7 @@ def test_proxy_headers():
 
 def test_app_unimportable():
     config = Config(app="no.such:app")
-    with pytest.raises(ModuleNotFoundError):
+    with pytest.raises(ImportError):
         config.load()
 
 
