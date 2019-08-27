@@ -20,7 +20,7 @@ def mock_signal(handle_exit):
 
 def test_statreload(certfile_and_keyfile):
     certfile, keyfile = certfile_and_keyfile
-    config = Config(app=None, ssl_certfile=certfile.name, ssl_keyfile=keyfile.name)
+    config = Config(app=None, ssl_certfile=certfile, ssl_keyfile=keyfile)
 
     server = Server(config)
     type(server).run = lambda self: None
