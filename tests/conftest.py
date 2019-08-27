@@ -63,12 +63,12 @@ Sflxx+6bI4XMh0AsZhgtdW4=
 
 @pytest.fixture(scope="function")
 def certfile_and_keyfile(tmp_path):
-    certfile = str(tmp_path / 'cert.pem')
-    with open(certfile, 'bw') as fout:
+    certfile = str(tmp_path / "cert.pem")
+    with open(certfile, "bw") as fout:
         fout.write(CERTIFICATE)
 
-    keyfile = str(tmp_path / 'key.pem')
-    with open(keyfile, 'bw') as fout:
+    keyfile = str(tmp_path / "key.pem")
+    with open(keyfile, "bw") as fout:
         fout.write(PRIVATE_KEY)
 
     return certfile, keyfile
