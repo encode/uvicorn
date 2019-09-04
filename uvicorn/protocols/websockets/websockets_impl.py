@@ -16,6 +16,9 @@ class Server:
     def unregister(self, ws):
         pass
 
+    def is_serving(self):
+        return not self.closing
+
 
 class WebSocketProtocol(websockets.WebSocketServerProtocol):
     def __init__(self, config, server_state, _loop=None):
@@ -46,10 +49,11 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.initial_response = None
         self.connect_sent = False
         self.accepted_subprotocol = None
+        self.transfer_data_task = None
 
-        server = Server()
+        self.ws_server = Server()
 
-        super().__init__(ws_handler=self.ws_handler, ws_server=server)
+        super().__init__(ws_handler=self.ws_handler, ws_server=self.ws_server)
 
     def connection_made(self, transport):
         self.connections.add(self)
@@ -65,6 +69,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         super().connection_lost(exc)
 
     def shutdown(self):
+        self.ws_server.closing = True
         self.transport.close()
 
     def on_task_complete(self, task):
