@@ -48,8 +48,8 @@ def test_run(certfile_and_keyfile):
         app=App,
         loop="asyncio",
         limit_max_requests=1,
-        ssl_keyfile=keyfile.name,
-        ssl_certfile=certfile.name,
+        ssl_keyfile=keyfile,
+        ssl_certfile=certfile,
     )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
