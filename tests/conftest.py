@@ -1,5 +1,4 @@
 import pytest
-import tempfile
 
 
 CERTIFICATE = b"""-----BEGIN CERTIFICATE-----
