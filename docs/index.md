@@ -242,7 +242,7 @@ async def app(scope, receive, send):
     """
     assert scope['type'] == 'http'
 
-    body = f'Received {scope['method']} request to {scope['path']}'
+    body = f'Received {scope["method"]} request to {scope["path"]}'
     await send({
         'type': 'http.response.start',
         'status': 200,
@@ -315,7 +315,7 @@ async def app(scope, receive, send):
             [b'content-type', b'text/plain'],
         ]
     })
-    for chunk in [b'Hello', b', ', b'world!']
+    for chunk in [b'Hello', b', ', b'world!']:
         await send({
             'type': 'http.response.body',
             'body': chunk,
