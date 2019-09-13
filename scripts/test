@@ -15,7 +15,8 @@ ${PREFIX}coverage html
 ${PREFIX}autoflake --recursive uvicorn tests
 if [ "${PYTHON_VERSION}" = '3.7' ]; then
     echo "Skipping 'black' on 3.7. See issue https://github.com/ambv/black/issues/494"
-elif [ "${PYTHON_VERSION}" = '3.6' ]; then
+# black triggers known bug in PyPy3-3.6-7.1.1: https://bitbucket.org/pypy/pypy/issues/2985
+elif [ "${PYTHON_VERSION}" = '3.6' ] && ["$TRAVIS_PYTHON_VERSION" -ne 'pypy3']; then
     ${PREFIX}black uvicorn tests --check
 elif [ "${PYTHON_VERSION}" = '3.5' ]; then
     echo "Skipping black, unavailable on 3.5."
