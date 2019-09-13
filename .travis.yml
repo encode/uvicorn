@@ -10,6 +10,8 @@ matrix:
     - os: windows
       language: bash
       name: Windows
+    # The pypy3 job runs a fully pure Python setup, which triggers a part of the
+    # auto-detect tests that the other tests don't. We cannot test websockets though.
     - os: linux
       python: "pypy3"
     # The main tests run on Linux for a all relevant Python versions.
@@ -24,6 +26,10 @@ install:
         export PATH=/c/Python37:/c/Python37/Scripts:/c/Python38:/c/Python38/Scripts:$PATH;
         python -m pip install -U click h11 wsproto==0.13.* websockets==8.*;
         python -m pip install -U autoflake black codecov isort pytest pytest-cov requests;
+      elif [ "$TRAVIS_PYTHON_VERSION" = "pypy3" ]; then	
+        pip install -U click h11 wsproto==0.13.*;	
+        pip install -U autoflake codecov isort pytest pytest-cov requests;
+        pip install -U black;
       else
         pip install -U -r requirements.txt;
       fi;
