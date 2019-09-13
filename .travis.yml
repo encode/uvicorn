@@ -29,7 +29,6 @@ install:
       elif [ "$TRAVIS_PYTHON_VERSION" = "pypy3" ]; then
         pip install -U click h11 wsproto==0.13.*;
         pip install -U autoflake codecov isort pytest pytest-cov requests;
-        pip install -U black;
       else
         pip install -U -r requirements.txt;
       fi;
