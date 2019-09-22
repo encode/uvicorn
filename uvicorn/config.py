@@ -1,6 +1,8 @@
 import asyncio
 import inspect
 import logging
+import os
+import errno
 import socket
 import ssl
 import sys
@@ -225,6 +227,27 @@ class Config:
         message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
         protocol_name = "https" if self.is_ssl else "http"
         self.logger_instance.info(message % (protocol_name, self.host, self.port))
+        return sock
+
+    def bind_unix_socket(self):
+        path = os.fspath(self.uds)
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            sock.bind(path)
+        except OSError as exc:
+            sock.close()
+            if exc.errno == errno.EADDRINUSE:
+                msg = "Address %r is already in use" % path
+                raise OSError(errno.EADDRINUSE, msg) from None
+            else:
+                raise
+        except Exception:
+            sock.close()
+            raise
+        sock.setblocking(False)
+        sock.set_inheritable(True)
+        message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
+        self.logger_instance.info(message % self.uds)
         return sock
 
     @property

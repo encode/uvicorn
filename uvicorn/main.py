@@ -271,10 +271,18 @@ def run(app, **kwargs):
         sock = config.bind_socket()
         supervisor = StatReload(config)
         supervisor.run(server.run, sockets=[sock])
+        sock.close()
     elif config.workers > 1:
-        sock = config.bind_socket()
         supervisor = Multiprocess(config)
-        supervisor.run(server.run, sockets=[sock])
+        if config.uds is not None:
+            sock = config.bind_unix_socket()
+            supervisor.run(server.run, sockets=[sock])
+            sock.close()
+            os.remove(config.uds)
+        else:
+            sock = config.bind_socket()
+            supervisor.run(server.run, sockets=[sock])
+            sock.close()
     else:
         server.run()
 
