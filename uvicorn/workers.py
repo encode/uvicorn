@@ -25,6 +25,7 @@ class UvicornWorker(Worker):
             "timeout_keep_alive": self.cfg.keepalive,
             "timeout_notify": self.timeout,
             "callback_notify": self.callback_notify,
+            "limit_max_requests": self.max_requests,
         }
 
         if self.cfg.is_ssl:
