@@ -1,5 +1,8 @@
 import logging
+import os
 import socket
+import sys
+import tempfile
 
 import pytest
 
@@ -63,8 +66,25 @@ def test_logger():
 def test_socket_bind():
     config = Config(app=asgi_app)
     config.load()
+    sock = config.bind_socket()
 
-    assert isinstance(config.bind_socket(), socket.socket)
+    assert isinstance(sock, socket.socket)
+    assert sock.family.name == "AF_INET"
+
+
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="require unix-like system")
+def test_bind_unix_socket():
+    with tempfile.NamedTemporaryFile() as f:
+        uds = f.name
+
+    config = Config(app=asgi_app, uds=uds)
+    config.load()
+    sock = config.bind_unix_socket()
+
+    assert isinstance(sock, socket.socket)
+    assert sock.family.name == "AF_UNIX"
+
+    os.remove(uds)
 
 
 def test_ssl_config(certfile_and_keyfile):
