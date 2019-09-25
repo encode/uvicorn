@@ -230,7 +230,7 @@ class Config:
         return sock
 
     def bind_unix_socket(self):
-        path = os.fspath(self.uds)
+        path = self.uds
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
             sock.bind(path)
