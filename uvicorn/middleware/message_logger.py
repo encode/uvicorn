@@ -27,6 +27,7 @@ class MessageLoggerMiddleware:
         self.task_counter = 0
         self.app = app
         self.access_logger = logging.getLogger("uvicorn_access")
+        self.error_logger = logging.getLogger("uvicorn_error")
 
     async def __call__(self, scope, receive, send):
         self.task_counter += 1
@@ -54,7 +55,7 @@ class MessageLoggerMiddleware:
             await self.app(scope, inner_receive, inner_send)
         except BaseException as exc:
             log_text = "%s - ASGI [%d] Raised exception"
-            self.access_logger.debug(log_text, client_addr, task_counter)
+            self.error_logger.debug(log_text, client_addr, task_counter)
             raise exc from None
         else:
             log_text = "%s - ASGI [%d] Completed"

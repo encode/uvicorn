@@ -263,7 +263,7 @@ def run(app, **kwargs):
     server = Server(config=config)
 
     if config.reload and not isinstance(app, str):
-        config.logger_instance.warn(
+        config.error_logger_instance.warn(
             "auto-reload only works when app is passed as an import string."
         )
 
