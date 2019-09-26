@@ -40,13 +40,17 @@ class MessageLoggerMiddleware:
             message = await receive()
             logged_message = message_with_placeholders(message)
             log_text = "%s - ASGI [%d] Sent %s"
-            self.access_logger.debug(log_text, client_addr, task_counter, logged_message)
+            self.access_logger.debug(
+                log_text, client_addr, task_counter, logged_message
+            )
             return message
 
         async def inner_send(message):
             logged_message = message_with_placeholders(message)
             log_text = "%s - ASGI [%d] Received %s"
-            self.access_logger.debug(log_text, client_addr, task_counter, logged_message)
+            self.access_logger.debug(
+                log_text, client_addr, task_counter, logged_message
+            )
             await send(message)
 
         log_text = "%s - ASGI [%d] Started"

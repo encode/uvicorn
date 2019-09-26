@@ -228,17 +228,19 @@ class Config:
         sock.set_inheritable(True)
         message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
         protocol_name = "https" if self.is_ssl else "http"
-        self.access_logger_instance.info(message % (protocol_name, self.host, self.port))
+        self.access_logger_instance.info(
+            message % (protocol_name, self.host, self.port)
+        )
         return sock
 
     @property
     def error_logger_instance(self):
         if self.error_logger is not None:
             return self.error_logger
-        return get_logger(self.error_log_level, 'error')
+        return get_logger(self.error_log_level, "error")
 
     @property
     def access_logger_instance(self):
         if self.access_logger is not None:
             return self.access_logger
-        return get_logger(self.access_log_level, 'access')
+        return get_logger(self.access_log_level, "access")

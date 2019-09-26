@@ -55,7 +55,9 @@ def test_concrete_http_class():
 def test_logger():
     access_logger = logging.getLogger("just-for-tests-access")
     error_logger = logging.getLogger("just-for-tests-error")
-    config = Config(app=asgi_app, access_logger=access_logger,error_logger=error_logger )
+    config = Config(
+        app=asgi_app, access_logger=access_logger, error_logger=error_logger
+    )
     config.load()
 
     assert config.access_logger is access_logger

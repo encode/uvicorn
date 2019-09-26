@@ -7,9 +7,9 @@ import httptools
 
 from uvicorn.protocols.utils import (
     get_local_addr,
+    get_path_with_query_string,
     get_remote_addr,
     is_ssl,
-    get_path_with_query_string,
 )
 
 
@@ -84,7 +84,9 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.loop = _loop or asyncio.get_event_loop()
         self.access_logger = config.access_logger_instance
         self.error_logger = config.error_logger_instance
-        self.access_log = config.access_log and (self.access_logger.level <= logging.INFO)
+        self.access_log = config.access_log and (
+            self.access_logger.level <= logging.INFO
+        )
         self.parser = httptools.HttpRequestParser(self)
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path

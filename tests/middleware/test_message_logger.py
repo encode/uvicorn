@@ -29,6 +29,7 @@ def test_message_logger(caplog):
     assert sum(["uvicorn_access" in name for name in sent_to_loggers]) == 5
     assert sum(["uvicorn_error" in name for name in sent_to_loggers]) == 0
 
+
 def test_message_logger_exc(caplog):
     async def app(scope, receive, send):
         raise RuntimeError()
