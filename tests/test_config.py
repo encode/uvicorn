@@ -53,11 +53,13 @@ def test_concrete_http_class():
 
 
 def test_logger():
-    logger = logging.getLogger("just-for-tests")
-    config = Config(app=asgi_app, logger=logger)
+    access_logger = logging.getLogger("just-for-tests-access")
+    error_logger = logging.getLogger("just-for-tests-error")
+    config = Config(app=asgi_app, access_logger=access_logger,error_logger=error_logger )
     config.load()
 
-    assert config.logger is logger
+    assert config.access_logger is access_logger
+    assert config.error_logger is error_logger
 
 
 def test_socket_bind():

@@ -12,7 +12,7 @@ def test_message_logger(caplog):
         await send({"type": "http.response.start", "status": 200, "headers": []})
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
-    caplog.set_level(logging.DEBUG, logger="uvicorn")
+    caplog.set_level(logging.DEBUG, logger="uvicorn_access")
     app = MessageLoggerMiddleware(app)
     client = TestClient(app)
     response = client.get("/")
@@ -29,7 +29,7 @@ def test_message_logger_exc(caplog):
     async def app(scope, receive, send):
         raise RuntimeError()
 
-    caplog.set_level(logging.DEBUG, logger="uvicorn")
+    caplog.set_level(logging.DEBUG, logger="uvicorn_access")
     app = MessageLoggerMiddleware(app)
     client = TestClient(app)
     with pytest.raises(RuntimeError):

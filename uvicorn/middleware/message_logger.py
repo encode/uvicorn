@@ -26,7 +26,7 @@ class MessageLoggerMiddleware:
     def __init__(self, app):
         self.task_counter = 0
         self.app = app
-        self.logger = logging.getLogger("uvicorn")
+        self.access_logger = logging.getLogger("uvicorn_access")
 
     async def __call__(self, scope, receive, send):
         self.task_counter += 1
@@ -39,23 +39,23 @@ class MessageLoggerMiddleware:
             message = await receive()
             logged_message = message_with_placeholders(message)
             log_text = "%s - ASGI [%d] Sent %s"
-            self.logger.debug(log_text, client_addr, task_counter, logged_message)
+            self.access_logger.debug(log_text, client_addr, task_counter, logged_message)
             return message
 
         async def inner_send(message):
             logged_message = message_with_placeholders(message)
             log_text = "%s - ASGI [%d] Received %s"
-            self.logger.debug(log_text, client_addr, task_counter, logged_message)
+            self.access_logger.debug(log_text, client_addr, task_counter, logged_message)
             await send(message)
 
         log_text = "%s - ASGI [%d] Started"
-        self.logger.debug(log_text, client_addr, task_counter)
+        self.access_logger.debug(log_text, client_addr, task_counter)
         try:
             await self.app(scope, inner_receive, inner_send)
         except BaseException as exc:
             log_text = "%s - ASGI [%d] Raised exception"
-            self.logger.debug(log_text, client_addr, task_counter)
+            self.access_logger.debug(log_text, client_addr, task_counter)
             raise exc from None
         else:
             log_text = "%s - ASGI [%d] Completed"
-            self.logger.debug(log_text, client_addr, task_counter)
+            self.access_logger.debug(log_text, client_addr, task_counter)

@@ -28,7 +28,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.config = config
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
-        self.logger = config.logger_instance
+        self.access_logger = config.access_logger_instance
+        self.error_logger = config.error_logger_instance
         self.root_path = config.root_path
 
         # Shared server state
@@ -153,7 +154,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         except BaseException as exc:
             self.closed_event.set()
             msg = "Exception in ASGI application\n"
-            self.logger.error(msg, exc_info=exc)
+            self.error_logger.error(msg, exc_info=exc)
             if not self.handshake_started_event.is_set():
                 self.send_500_response()
             else:
@@ -163,12 +164,12 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             self.closed_event.set()
             if not self.handshake_started_event.is_set():
                 msg = "ASGI callable returned without sending handshake."
-                self.logger.error(msg)
+                self.error_logger.error(msg)
                 self.send_500_response()
                 self.transport.close()
             elif result is not None:
                 msg = "ASGI callable should return None, but returned '%s'."
-                self.logger.error(msg, result)
+                self.error_logger.error(msg, result)
                 await self.handshake_completed_event.wait()
                 self.transport.close()
 
@@ -177,7 +178,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         if not self.handshake_started_event.is_set():
             if message_type == "websocket.accept":
-                self.logger.info(
+                self.access_logger.info(
                     '%s - "WebSocket %s" [accepted]',
                     self.scope["client"],
                     self.scope["root_path"] + self.scope["path"],
@@ -187,7 +188,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 self.handshake_started_event.set()
 
             elif message_type == "websocket.close":
-                self.logger.info(
+                self.access_logger.info(
                     '%s - "WebSocket %s" 403',
                     self.scope["client"],
                     self.scope["root_path"] + self.scope["path"],

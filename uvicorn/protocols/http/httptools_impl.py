@@ -82,8 +82,9 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.config = config
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
-        self.logger = config.logger_instance
-        self.access_log = config.access_log and (self.logger.level <= logging.INFO)
+        self.access_logger = config.access_logger_instance
+        self.error_logger = config.error_logger_instance
+        self.access_log = config.access_log and (self.access_logger.level <= logging.INFO)
         self.parser = httptools.HttpRequestParser(self)
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
@@ -125,14 +126,14 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.client = get_remote_addr(transport)
         self.scheme = "https" if is_ssl(transport) else "http"
 
-        if self.logger.level <= logging.DEBUG:
-            self.logger.debug("%s - Connected", self.client)
+        if self.access_logger.level <= logging.DEBUG:
+            self.access_logger.debug("%s - Connected", self.client)
 
     def connection_lost(self, exc):
         self.connections.discard(self)
 
-        if self.logger.level <= logging.DEBUG:
-            self.logger.debug("%s - Disconnected", self.client)
+        if self.access_logger.level <= logging.DEBUG:
+            self.access_logger.debug("%s - Disconnected", self.client)
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
@@ -151,7 +152,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.parser.feed_data(data)
         except httptools.parser.errors.HttpParserError as exc:
             msg = "Invalid HTTP request received."
-            self.logger.warning(msg)
+            self.error_logger.warning(msg)
             self.transport.close()
         except httptools.HttpParserUpgrade as exc:
             self.handle_upgrade()
@@ -164,7 +165,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         if upgrade_value != b"websocket" or self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
-            self.logger.warning(msg)
+            self.error_logger.warning(msg)
             content = [STATUS_LINE[400]]
             for name, value in self.default_headers:
                 content.extend([name, b": ", value, b"\r\n"])
@@ -239,7 +240,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         ):
             app = service_unavailable
             message = "Exceeded concurrency limit."
-            self.logger.warning(message)
+            self.error_logger.warning(message)
         else:
             app = self.app
 
@@ -248,7 +249,8 @@ class HttpToolsProtocol(asyncio.Protocol):
             scope=self.scope,
             transport=self.transport,
             flow=self.flow,
-            logger=self.logger,
+            access_logger=self.access_logger,
+            error_logger=self.error_logger,
             access_log=self.access_log,
             default_headers=self.default_headers,
             message_event=self.message_event,
@@ -337,7 +339,8 @@ class RequestResponseCycle:
         scope,
         transport,
         flow,
-        logger,
+        access_logger,
+        error_logger,
         access_log,
         default_headers,
         message_event,
@@ -348,7 +351,8 @@ class RequestResponseCycle:
         self.scope = scope
         self.transport = transport
         self.flow = flow
-        self.logger = logger
+        self.access_logger = access_logger
+        self.error_logger = error_logger
         self.access_log = access_log
         self.default_headers = default_headers
         self.message_event = message_event
@@ -375,7 +379,7 @@ class RequestResponseCycle:
             result = await app(self.scope, self.receive, self.send)
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
-            self.logger.error(msg, exc_info=exc)
+            self.error_logger.error(msg, exc_info=exc)
             if not self.response_started:
                 await self.send_500_response()
             else:
@@ -383,15 +387,15 @@ class RequestResponseCycle:
         else:
             if result is not None:
                 msg = "ASGI callable should return None, but returned '%s'."
-                self.logger.error(msg, result)
+                self.error_logger.error(msg, result)
                 self.transport.close()
             elif not self.response_started and not self.disconnected:
                 msg = "ASGI callable returned without starting response."
-                self.logger.error(msg)
+                self.error_logger.error(msg)
                 await self.send_500_response()
             elif not self.response_complete and not self.disconnected:
                 msg = "ASGI callable returned without completing response."
-                self.logger.error(msg)
+                self.error_logger.error(msg)
                 self.transport.close()
         finally:
             self.on_response = None
@@ -434,7 +438,7 @@ class RequestResponseCycle:
             headers = self.default_headers + list(message.get("headers", []))
 
             if self.access_log:
-                self.logger.info(
+                self.access_logger.info(
                     '%s - "%s %s HTTP/%s" %d',
                     self.scope["client"],
                     self.scope["method"],

@@ -9,7 +9,8 @@ class LifespanOn:
             config.load()
 
         self.config = config
-        self.logger = config.logger_instance
+        self.access_logger = config.access_logger_instance
+        self.error_logger = config.error_logger_instance
         self.startup_event = asyncio.Event()
         self.shutdown_event = asyncio.Event()
         self.receive_queue = asyncio.Queue()
@@ -18,7 +19,7 @@ class LifespanOn:
         self.should_exit = False
 
     async def startup(self):
-        self.logger.info("Waiting for application startup.")
+        self.access_logger.info("Waiting for application startup.")
 
         loop = asyncio.get_event_loop()
         loop.create_task(self.main())
@@ -27,13 +28,13 @@ class LifespanOn:
         await self.startup_event.wait()
 
         if self.startup_failed or (self.error_occured and self.config.lifespan == "on"):
-            self.logger.error("Application startup failed. Exiting.")
+            self.error_logger.error("Application startup failed. Exiting.")
             self.should_exit = True
 
     async def shutdown(self):
         if self.error_occured:
             return
-        self.logger.info("Waiting for application shutdown.")
+        self.access_logger.info("Waiting for application shutdown.")
         await self.receive_queue.put({"type": "lifespan.shutdown"})
         await self.shutdown_event.wait()
 
@@ -49,10 +50,10 @@ class LifespanOn:
                 return
             if self.config.lifespan == "auto":
                 msg = "ASGI 'lifespan' protocol appears unsupported."
-                self.logger.info(msg)
+                self.access_logger.info(msg)
             else:
                 msg = "Exception in 'lifespan' protocol\n"
-                self.logger.error(msg, exc_info=exc)
+                self.error_logger.error(msg, exc_info=exc)
         finally:
             self.startup_event.set()
             self.shutdown_event.set()
@@ -75,7 +76,7 @@ class LifespanOn:
             self.startup_event.set()
             self.startup_failed = True
             if message.get("message"):
-                self.logger.error(message["message"])
+                self.error_logger.error(message["message"])
 
         elif message["type"] == "lifespan.shutdown.complete":
             assert self.startup_event.is_set(), STATE_TRANSITION_ERROR

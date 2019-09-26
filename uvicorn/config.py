@@ -4,7 +4,7 @@ import logging
 import socket
 import ssl
 import sys
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
@@ -47,11 +47,11 @@ INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
 SSL_PROTOCOL_VERSION = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
 
 
-def get_logger(log_level):
+def get_logger(log_level: Union[str, int], logger_type: str):
     if isinstance(log_level, str):
         log_level = LOG_LEVELS[log_level]
     logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
-    logger = logging.getLogger("uvicorn")
+    logger = logging.getLogger(f"uvicorn_{logger_type}")
     logger.setLevel(log_level)
     return logger
 
@@ -79,8 +79,10 @@ class Config:
         http="auto",
         ws="auto",
         lifespan="auto",
-        log_level="info",
-        logger=None,
+        error_log_level="info",
+        access_log_level="info",
+        access_logger=None,
+        error_logger=None,
         access_log=True,
         interface="auto",
         debug=False,
@@ -111,8 +113,10 @@ class Config:
         self.http = http
         self.ws = ws
         self.lifespan = lifespan
-        self.log_level = log_level
-        self.logger = logger
+        self.access_log_level = access_log_level
+        self.error_log_level = error_log_level
+        self.access_logger = access_logger
+        self.error_logger = error_logger
         self.access_log = access_log
         self.interface = interface
         self.debug = debug
@@ -185,7 +189,7 @@ class Config:
         try:
             self.loaded_app = import_from_string(self.app)
         except ImportFromStringError as exc:
-            self.logger_instance.error("Error loading ASGI app. %s" % exc)
+            self.error_logger_instance.error("Error loading ASGI app. %s" % exc)
             sys.exit(1)
 
         if self.interface == "auto":
@@ -206,7 +210,7 @@ class Config:
 
         if self.debug:
             self.loaded_app = DebugMiddleware(self.loaded_app)
-        if self.logger_instance.level <= logging.DEBUG:
+        if self.access_logger_instance.level <= logging.DEBUG:
             self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
             self.loaded_app = ProxyHeadersMiddleware(self.loaded_app)
@@ -224,11 +228,17 @@ class Config:
         sock.set_inheritable(True)
         message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
         protocol_name = "https" if self.is_ssl else "http"
-        self.logger_instance.info(message % (protocol_name, self.host, self.port))
+        self.access_logger_instance.info(message % (protocol_name, self.host, self.port))
         return sock
 
     @property
-    def logger_instance(self):
-        if self.logger is not None:
-            return self.logger
-        return get_logger(self.log_level)
+    def error_logger_instance(self):
+        if self.error_logger is not None:
+            return self.error_logger
+        return get_logger(self.error_log_level, 'error')
+
+    @property
+    def access_logger_instance(self):
+        if self.access_logger is not None:
+            return self.access_logger
+        return get_logger(self.access_log_level, 'access')

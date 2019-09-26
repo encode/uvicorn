@@ -313,18 +313,19 @@ class Server:
         if not config.loaded:
             config.load()
 
-        self.logger = config.logger_instance
+        self.access_logger = config.access_logger_instance
+        self.error_logger = config.error_logger_instance
         self.lifespan = config.lifespan_class(config)
 
         self.install_signal_handlers()
 
-        self.logger.info("Started server process [{}]".format(process_id))
+        self.access_logger.info("Started server process [{}]".format(process_id))
         await self.startup(sockets=sockets)
         if self.should_exit:
             return
         await self.main_loop()
         await self.shutdown(shutdown_servers=shutdown_servers)
-        self.logger.info("Finished server process [{}]".format(process_id))
+        self.access_logger.info("Finished server process [{}]".format(process_id))
 
     async def startup(self, sockets=None):
         config = self.config
@@ -357,7 +358,7 @@ class Server:
                 create_protocol, sock=sock, ssl=config.ssl
             )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
-            self.logger.info(message % str(sock.getsockname()))
+            self.access_logger.info(message % str(sock.getsockname()))
             self.servers = [server]
 
         elif config.uds is not None:
@@ -368,7 +369,7 @@ class Server:
             server = await loop.create_unix_server(create_protocol, path=config.uds)
             os.chmod(config.uds, uds_perms)
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
-            self.logger.info(message % config.uds)
+            self.access_logger.info(message % config.uds)
             self.servers = [server]
 
         else:
@@ -378,7 +379,7 @@ class Server:
             )
             protocol_name = "https" if config.ssl else "http"
             message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
-            self.logger.info(message % (protocol_name, config.host, config.port))
+            self.access_logger.info(message % (protocol_name, config.host, config.port))
             self.servers = [server]
 
         self.started = True
@@ -415,7 +416,7 @@ class Server:
         return False
 
     async def shutdown(self, shutdown_servers=True):
-        self.logger.info("Shutting down")
+        self.access_logger.info("Shutting down")
 
         # Stop accepting new connections.
         if shutdown_servers:
@@ -432,14 +433,14 @@ class Server:
         # Wait for existing connections to finish sending responses.
         if self.server_state.connections and not self.force_exit:
             msg = "Waiting for connections to close. (CTRL+C to force quit)"
-            self.logger.info(msg)
+            self.access_logger.info(msg)
             while self.server_state.connections and not self.force_exit:
                 await asyncio.sleep(0.1)
 
         # Wait for existing tasks to complete.
         if self.server_state.tasks and not self.force_exit:
             msg = "Waiting for background tasks to complete. (CTRL+C to force quit)"
-            self.logger.info(msg)
+            self.access_logger.info(msg)
             while self.server_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
 

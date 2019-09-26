@@ -22,7 +22,8 @@ class WSProtocol(asyncio.Protocol):
         self.config = config
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
-        self.logger = config.logger_instance
+        self.access_logger = config.access_logger_instance
+        self.error_logger = config.error_logger_instance
         self.root_path = config.root_path
 
         # Shared server state
@@ -208,19 +209,19 @@ class WSProtocol(asyncio.Protocol):
             result = await self.app(self.scope, self.receive, self.send)
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
-            self.logger.error(msg, exc_info=exc)
+            self.error_logger.error(msg, exc_info=exc)
             if not self.handshake_complete:
                 self.send_500_response()
             self.transport.close()
         else:
             if not self.handshake_complete:
                 msg = "ASGI callable returned without completing handshake."
-                self.logger.error(msg)
+                self.error_logger.error(msg)
                 self.send_500_response()
                 self.transport.close()
             elif result is not None:
                 msg = "ASGI callable should return None, but returned '%s'."
-                self.logger.error(msg, result)
+                self.error_logger.error(msg, result)
                 self.transport.close()
 
     async def send(self, message):
@@ -230,7 +231,7 @@ class WSProtocol(asyncio.Protocol):
 
         if not self.handshake_complete:
             if message_type == "websocket.accept":
-                self.logger.info(
+                self.access_logger.info(
                     '%s - "WebSocket %s" [accepted]',
                     self.scope["client"],
                     self.scope["root_path"] + self.scope["path"],
@@ -246,7 +247,7 @@ class WSProtocol(asyncio.Protocol):
 
             elif message_type == "websocket.close":
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": None})
-                self.logger.info(
+                self.access_logger.info(
                     '%s - "WebSocket %s" 403',
                     self.scope["client"],
                     self.scope["root_path"] + self.scope["path"],

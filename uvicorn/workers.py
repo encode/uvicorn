@@ -21,7 +21,7 @@ class UvicornWorker(Worker):
 
         config_kwargs = {
             "app": None,
-            "logger": self.log,
+            "access_logger": self.log,
             "timeout_keep_alive": self.cfg.keepalive,
             "timeout_notify": self.timeout,
             "callback_notify": self.callback_notify,

@@ -20,9 +20,9 @@ class Multiprocess:
 
     def run(self, target, *args, **kwargs):
         pid = os.getpid()
-        logger = self.config.logger_instance
+        access_logger = self.config.access_logger_instance
 
-        logger.info("Started parent process [{}]".format(pid))
+        access_logger.info("Started parent process [{}]".format(pid))
 
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.handle_exit)
@@ -38,4 +38,4 @@ class Multiprocess:
         ):
             time.sleep(0.1)
 
-        logger.info("Stopping parent process [{}]".format(pid))
+        access_logger.info("Stopping parent process [{}]".format(pid))
