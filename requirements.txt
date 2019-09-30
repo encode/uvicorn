@@ -4,7 +4,7 @@ h11
 # Optional
 httptools
 uvloop
-websockets==7.*
+websockets==8.*
 wsproto==0.13.*
 
 # Testing

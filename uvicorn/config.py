@@ -143,7 +143,7 @@ class Config:
 
     @property
     def is_ssl(self) -> bool:
-        return self.ssl_keyfile or self.ssl_certfile
+        return bool(self.ssl_keyfile or self.ssl_certfile)
 
     def load(self):
         assert not self.loaded

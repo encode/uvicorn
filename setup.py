@@ -43,9 +43,9 @@ env_marker = (
 requirements = [
     "click==7.*",
     "h11==0.8.*",
-    "websockets==7.*",
+    "websockets==8.*",
     "httptools==0.0.13 ;" + env_marker,
-    "uvloop==0.12.* ;" + env_marker,
+    "uvloop==0.* ;" + env_marker,
 ]
 
 
@@ -70,7 +70,6 @@ setup(
         'Operating System :: OS Independent',
         'Topic :: Internet :: WWW/HTTP',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: Implementation :: CPython',

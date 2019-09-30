@@ -1,5 +1,4 @@
 import pytest
-import tempfile
 
 
 CERTIFICATE = b"""-----BEGIN CERTIFICATE-----
@@ -62,17 +61,13 @@ Sflxx+6bI4XMh0AsZhgtdW4=
 
 
 @pytest.fixture(scope="function")
-def certfile_and_keyfile():
+def certfile_and_keyfile(tmp_path):
+    certfile = str(tmp_path / "cert.pem")
+    with open(certfile, "bw") as fout:
+        fout.write(CERTIFICATE)
 
-    certfile = tempfile.NamedTemporaryFile(suffix=".pem")
-    certfile.write(CERTIFICATE)
-    certfile.seek(0)
+    keyfile = str(tmp_path / "key.pem")
+    with open(keyfile, "bw") as fout:
+        fout.write(PRIVATE_KEY)
 
-    keyfile = tempfile.NamedTemporaryFile(suffix=".pem")
-    keyfile.write(PRIVATE_KEY)
-    keyfile.seek(0)
-
-    yield certfile, keyfile
-
-    certfile.close()
-    keyfile.close()
+    return certfile, keyfile

@@ -90,10 +90,12 @@ class WSGIResponder:
             self.executor, self.wsgi, environ, self.start_response
         )
         sender = self.loop.create_task(self.sender(send))
-        await asyncio.wait_for(wsgi, None)
-        self.send_queue.append(None)
-        self.send_event.set()
-        await asyncio.wait_for(sender, None)
+        try:
+            await asyncio.wait_for(wsgi, None)
+        finally:
+            self.send_queue.append(None)
+            self.send_event.set()
+            await asyncio.wait_for(sender, None)
         if self.exc_info is not None:
             raise self.exc_info[0].with_traceback(self.exc_info[1], self.exc_info[2])
 
