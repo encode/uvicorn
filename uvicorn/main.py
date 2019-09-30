@@ -272,11 +272,11 @@ class Uvicorn:
             self.config.logger_instance.warn(
                 "auto-reload only works when app is passed as an import string."
             )
-    
+
     @property
     def loop(self):
         return self.server.get_event_loop()
-    
+
     def run(self):
         if isinstance(self.app, str) and (self.config.debug or self.config.reload):
             sock = self.config.bind_socket()
@@ -313,7 +313,7 @@ class Server:
         self.last_notified = 0
         self.loop = None
         self.event_loop_setup = False
-    
+
     def setup_event_loop(self):
         self.config.setup_event_loop()
         self.event_loop_setup = True
