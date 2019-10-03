@@ -7,9 +7,9 @@ import h11
 
 from uvicorn.protocols.utils import (
     get_local_addr,
+    get_path_with_query_string,
     get_remote_addr,
     is_ssl,
-    get_path_with_query_string,
 )
 
 

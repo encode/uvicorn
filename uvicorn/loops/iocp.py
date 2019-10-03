@@ -1,5 +1,5 @@
-import sys
 import asyncio
+import sys
 
 
 def iocp_setup():
