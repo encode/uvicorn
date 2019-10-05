@@ -214,7 +214,7 @@ class Config:
         self.loaded = True
 
     def setup_event_loop(self):
-        if self.loop == 'manual':
+        if self.loop == "manual":
             # do not configure an event loop, as the user already configured it
             return
         loop_setup = import_from_string(LOOP_SETUPS[self.loop])
