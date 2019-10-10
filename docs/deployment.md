@@ -91,10 +91,16 @@ class App:
 app = App()
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=5000, log_level="info", reload=True)
+    uvicorn.run(app, host="127.0.0.1", port=5000, log_level="info")
 ```
 
 The set of configuration options is the same as for the command line tool.
+
+In order to use reloading, an import string must be used to pass the app into the `run` method:
+
+```python
+uvicorn.run("module:app", host="127.0.0.1", port=5000, log_level="info", reload=True)
+```
 
 ## Using a process manager
 
