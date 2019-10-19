@@ -34,7 +34,7 @@ install:
       else
         pip install -U -r requirements.txt;
         if [ "$TRAVIS_PYTHON_VERSION" = "3.8" ]; then
-          pip install -U uvloop==0.14.0.dev0
+          pip install -U uvloop==0.14.0.dev0;
         fi;
       fi;
 
