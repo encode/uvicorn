@@ -32,10 +32,10 @@ install:
         pip install -U click h11 wsproto==0.13.*;
         pip install -U autoflake codecov isort pytest pytest-cov requests;
       else
-        pip install -U -r requirements.txt;
         if [ "$TRAVIS_PYTHON_VERSION" = "3.8" ]; then
           pip install -U uvloop==0.12.2;
         fi;
+        pip install -U -r requirements.txt;
       fi;
 
 script:
