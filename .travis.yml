@@ -35,7 +35,7 @@ install:
         pip install -U Cython;
         pip install -U git+https://github.com/MagicStack/uvloop.git@1eb6727437430fe0500d7f044dd6e4432abd0901;
         pip install -U click h11 httptools websockets==8.* wsproto==0.13.*;
-        pip install -U autoflake codecov isort pytest pytest-cov requests;
+        pip install -U autoflake black codecov isort pytest pytest-cov requests;
       else
         pip install -U -r requirements.txt;
       fi;
