@@ -32,8 +32,8 @@ install:
         pip install -U click h11 wsproto==0.13.*;
         pip install -U autoflake codecov isort pytest pytest-cov requests;
       elif [ "$TRAVIS_PYTHON_VERSION" = "3.8" ]; then
-        pip install -U Cython
-        pip install -U git+https://github.com/MagicStack/uvloop.git@1eb6727437430fe0500d7f044dd6e4432abd0901
+        pip install -U Cython;
+        pip install -U git+https://github.com/MagicStack/uvloop.git@1eb6727437430fe0500d7f044dd6e4432abd0901;
         pip install -U click h11 httptools websockets==8.* wsproto==0.13.*;
         pip install -U autoflake codecov isort pytest pytest-cov requests;
       else
