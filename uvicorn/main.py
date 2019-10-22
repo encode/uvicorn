@@ -28,7 +28,7 @@ LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
 WS_CHOICES = click.Choice(WS_PROTOCOLS.keys())
 LIFESPAN_CHOICES = click.Choice(LIFESPAN.keys())
-LOOP_CHOICES = click.Choice(LOOP_SETUPS.keys())
+LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
 HANDLED_SIGNALS = (
@@ -267,7 +267,7 @@ def run(app, **kwargs):
             "auto-reload only works when app is passed as an import string."
         )
 
-    if isinstance(app, str) and (config.debug or config.reload):
+    if config.should_reload:
         sock = config.bind_socket()
         supervisor = StatReload(config)
         supervisor.run(server.run, sockets=[sock])
