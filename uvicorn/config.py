@@ -37,6 +37,7 @@ LIFESPAN = {
     "off": "uvicorn.lifespan.off:LifespanOff",
 }
 LOOP_SETUPS = {
+    "none": None,
     "auto": "uvicorn.loops.auto:auto_loop_setup",
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
@@ -216,7 +217,8 @@ class Config:
 
     def setup_event_loop(self):
         loop_setup = import_from_string(LOOP_SETUPS[self.loop])
-        loop_setup()
+        if loop_setup is not None:
+            loop_setup()
 
     def bind_socket(self):
         sock = socket.socket()
