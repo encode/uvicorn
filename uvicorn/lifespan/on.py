@@ -50,7 +50,7 @@ class LifespanOn:
                 return
             if self.config.lifespan == "auto":
                 msg = "ASGI 'lifespan' protocol appears unsupported."
-                self.access_logger.info(msg)
+                self.error_logger.info(msg)
             else:
                 msg = "Exception in 'lifespan' protocol\n"
                 self.error_logger.error(msg, exc_info=exc)
