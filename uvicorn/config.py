@@ -2,6 +2,7 @@ import asyncio
 import inspect
 import logging
 import os
+import platform
 import socket
 import ssl
 import sys
