@@ -229,7 +229,7 @@ class Config:
         sock.set_inheritable(True)
 
         if platform.system() == "Windows" and (self.workers > 1 or self.should_reload):
-            # We need to explicitly share the socket on Windows.
+            #  We need to explicitly share the socket on Windows.
             sock = socket.fromshare(sock.share(os.getpid()))
 
         message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
