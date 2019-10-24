@@ -177,7 +177,8 @@ class Config:
             logging.getLogger("uvicorn.error").setLevel(log_level)
             logging.getLogger("uvicorn.access").setLevel(log_level)
         if self.access_log is False:
-            logging.getLogger("uvicorn.access").setLevel("WARNING")
+            logging.getLogger("uvicorn.access").handlers = []
+            logging.getLogger("uvicorn.access").propagate = False
 
     def load(self):
         assert not self.loaded
