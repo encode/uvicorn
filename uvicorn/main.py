@@ -329,11 +329,6 @@ class Server:
     async def startup(self, sockets=None):
         config = self.config
 
-        await self.lifespan.startup()
-        if self.lifespan.should_exit:
-            self.should_exit = True
-            return
-
         create_protocol = functools.partial(
             config.http_protocol_class, config=config, server_state=self.server_state
         )
@@ -375,15 +370,23 @@ class Server:
 
         else:
             # Standard case. Create a socket from a host/port pair.
-            server = await loop.create_server(
-                create_protocol, host=config.host, port=config.port, ssl=config.ssl
-            )
+            try:
+                server = await loop.create_server(
+                    create_protocol, host=config.host, port=config.port, ssl=config.ssl
+                )
+            except OSError as exc:
+                self.logger.error(exc)
+                sys.exit(1)
             protocol_name = "https" if config.ssl else "http"
             message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
             self.logger.info(message % (protocol_name, config.host, config.port))
             self.servers = [server]
 
-        self.started = True
+        await self.lifespan.startup()
+        if self.lifespan.should_exit:
+            self.should_exit = True
+        else:
+            self.started = True
 
     async def main_loop(self):
         counter = 0
