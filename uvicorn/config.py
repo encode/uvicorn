@@ -1,6 +1,7 @@
 import asyncio
 import inspect
 import logging
+import logging.config
 import os
 import platform
 import socket
@@ -51,12 +52,49 @@ INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
 SSL_PROTOCOL_VERSION = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
 
 
-def get_logger(log_level):
+LOGGING_CONFIG = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '%(levelname)s: %(message)s'
+        },
+    },
+    'handlers': {
+        'stderr': {
+            'formatter': 'standard',
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stderr',
+        },
+        'stdout': {
+            'formatter': 'standard',
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stdout',
+        },
+    },
+    'loggers': {
+        'uvicorn': {
+            'handlers': ['stderr'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        'uvicorn.access': {
+            'handlers': ['stdout'],
+            'level': 'INFO',
+            'propagate': False
+        },
+    }
+}
+
+
+def get_logger(log_level, access_log):
     if isinstance(log_level, str):
         log_level = LOG_LEVELS[log_level]
-    logging.basicConfig(format="%(levelname)s: %(message)s", level=log_level)
+    logging.config.dictConfig(LOGGING_CONFIG)
     logger = logging.getLogger("uvicorn")
     logger.setLevel(log_level)
+    logger = logging.getLogger("uvicorn.access")
+    logger.setLevel(log_level if access_log else "WARNING")
     return logger
 
 
@@ -249,4 +287,4 @@ class Config:
     def logger_instance(self):
         if self.logger is not None:
             return self.logger
-        return get_logger(self.log_level)
+        return get_logger(self.log_level, self.access_log)

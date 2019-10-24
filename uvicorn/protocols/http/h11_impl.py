@@ -83,9 +83,7 @@ class H11Protocol(asyncio.Protocol):
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn")
         self.access_logger = logging.getLogger("uvicorn.access")
-        self.access_log = config.access_log and (
-            self.access_logger.level <= logging.INFO
-        )
+        self.access_log = self.access_logger.level <= logging.INFO
         self.conn = h11.Connection(h11.SERVER)
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
