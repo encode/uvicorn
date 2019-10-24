@@ -225,7 +225,11 @@ class Config:
     def bind_socket(self):
         sock = socket.socket()
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind((self.host, self.port))
+        try:
+            sock.bind((self.host, self.port))
+        except OSError as exc:
+            self.logger_instance.error(exc)
+            sys.exit(1)
         sock.set_inheritable(True)
 
         if platform.system() == "Windows" and (self.workers > 1 or self.should_reload):

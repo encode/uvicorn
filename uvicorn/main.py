@@ -368,9 +368,13 @@ class Server:
 
         else:
             # Standard case. Create a socket from a host/port pair.
-            server = await loop.create_server(
-                create_protocol, host=config.host, port=config.port, ssl=config.ssl
-            )
+            try:
+                server = await loop.create_server(
+                    create_protocol, host=config.host, port=config.port, ssl=config.ssl
+                )
+            except OSError as exc:
+                self.logger.error(exc)
+                sys.exit(1)
             protocol_name = "https" if config.ssl else "http"
             message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
             self.logger.info(message % (protocol_name, config.host, config.port))
