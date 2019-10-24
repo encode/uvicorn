@@ -18,6 +18,7 @@ class StatReload:
         self.should_exit = False
         self.reload_count = 0
         self.mtimes = {}
+        self.logger = logging.getLogger("uvicorn.error")
 
     def handle_exit(self, sig, frame):
         self.should_exit = True
@@ -31,9 +32,8 @@ class StatReload:
 
     def run(self, target, *args, **kwargs):
         pid = os.getpid()
-        logger = logging.getLogger("uvicorn")
 
-        logger.info("Started reloader process [{}]".format(pid))
+        self.logger.info("Started reloader process [{}]".format(pid))
 
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.handle_exit)
@@ -63,7 +63,7 @@ class StatReload:
                 process.start()
                 self.reload_count += 1
 
-        logger.info("Stopping reloader process [{}]".format(pid))
+        self.logger.info("Stopping reloader process [{}]".format(pid))
 
     def clear(self):
         self.mtimes = {}
@@ -84,7 +84,7 @@ class StatReload:
                 if Path.cwd() in Path(filename).parents:
                     display_path = os.path.normpath(os.path.relpath(filename))
                 message = "Detected file change in '%s'. Reloading..."
-                self.config.logger_instance.warning(message, display_path)
+                self.logger.warning(message, display_path)
                 return True
         return False
 

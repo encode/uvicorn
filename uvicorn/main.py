@@ -21,7 +21,6 @@ from uvicorn.config import (
     SSL_PROTOCOL_VERSION,
     WS_PROTOCOLS,
     Config,
-    get_logger,
 )
 from uvicorn.supervisors import Multiprocess, StatReload
 
@@ -264,9 +263,8 @@ def run(app, **kwargs):
     server = Server(config=config)
 
     if config.reload and not isinstance(app, str):
-        config.logger_instance.warn(
-            "auto-reload only works when app is passed as an import string."
-        )
+        logger = logging.getLogger("uvicorn.error")
+        logger.warn("auto-reload only works when app is passed as an import string.")
 
     if config.should_reload:
         sock = config.bind_socket()
@@ -314,7 +312,7 @@ class Server:
         if not config.loaded:
             config.load()
 
-        self.logger = logging.getLogger("uvicorn")
+        self.logger = logging.getLogger("uvicorn.error")
         self.lifespan = config.lifespan_class(config)
 
         self.install_signal_handlers()

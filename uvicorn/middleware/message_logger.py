@@ -26,7 +26,7 @@ class MessageLoggerMiddleware:
     def __init__(self, app):
         self.task_counter = 0
         self.app = app
-        self.logger = logging.getLogger("uvicorn")
+        self.logger = logging.getLogger("uvicorn.error")
 
     async def __call__(self, scope, receive, send):
         self.task_counter += 1

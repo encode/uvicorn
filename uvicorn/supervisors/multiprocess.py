@@ -21,7 +21,7 @@ class Multiprocess:
 
     def run(self, target, *args, **kwargs):
         pid = os.getpid()
-        logger = logging.getLogger("uvicorn")
+        logger = logging.getLogger("uvicorn.error")
 
         logger.info("Started parent process [{}]".format(pid))
 
