@@ -329,11 +329,6 @@ class Server:
     async def startup(self, sockets=None):
         config = self.config
 
-        await self.lifespan.startup()
-        if self.lifespan.should_exit:
-            self.should_exit = True
-            return
-
         create_protocol = functools.partial(
             config.http_protocol_class, config=config, server_state=self.server_state
         )
@@ -381,7 +376,11 @@ class Server:
             self.logger.info(message % (protocol_name, config.host, config.port))
             self.servers = [server]
 
-        self.started = True
+        await self.lifespan.startup()
+        if self.lifespan.should_exit:
+            self.should_exit = True
+        else:
+            self.started = True
 
     async def main_loop(self):
         counter = 0
