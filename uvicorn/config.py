@@ -74,6 +74,8 @@ LOGGING_CONFIG = {
     },
 }
 
+logger = logging.getLogger("uvicorn.error")
+
 
 def create_ssl_context(certfile, keyfile, ssl_version, cert_reqs, ca_certs, ciphers):
     ctx = ssl.SSLContext(ssl_version)
@@ -159,7 +161,6 @@ class Config:
             self.reload_dirs = reload_dirs
 
         self.loaded = False
-        self.logger = logging.getLogger("uvicorn.error")
         self.configure_logging()
 
     @property
@@ -167,8 +168,26 @@ class Config:
         return bool(self.ssl_keyfile or self.ssl_certfile)
 
     def configure_logging(self):
+        if sys.version_info < (3, 7):
+            # https://bugs.python.org/issue30520
+            import pickle
+
+            def __reduce__(self):
+                if isinstance(self, logging.RootLogger):
+                    return logging.getLogger, ()
+
+                if logging.getLogger(self.name) is not self:
+                    raise pickle.PicklingError("logger cannot be pickled")
+                return logging.getLogger, (self.name,)
+
+            logging.Logger.__reduce__ = __reduce__
+
         if self.log_config is not None:
-            logging.config.dictConfig(self.log_config)
+            if isinstance(self.log_config, dict):
+                logging.config.dictConfig(self.log_config)
+            else:
+                logging.config.fileConfig(self.log_config)
+
         if self.log_level is not None:
             if isinstance(self.log_level, str):
                 log_level = LOG_LEVELS[self.log_level]
@@ -220,7 +239,7 @@ class Config:
         try:
             self.loaded_app = import_from_string(self.app)
         except ImportFromStringError as exc:
-            self.logger.error("Error loading ASGI app. %s" % exc)
+            logger.error("Error loading ASGI app. %s" % exc)
             sys.exit(1)
 
         if self.interface == "auto":
@@ -241,7 +260,7 @@ class Config:
 
         if self.debug:
             self.loaded_app = DebugMiddleware(self.loaded_app)
-        if self.logger.level <= logging.DEBUG:
+        if logger.level <= logging.DEBUG:
             self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
             self.loaded_app = ProxyHeadersMiddleware(self.loaded_app)
@@ -259,7 +278,7 @@ class Config:
         try:
             sock.bind((self.host, self.port))
         except OSError as exc:
-            self.logger.error(exc)
+            logger.error(exc)
             sys.exit(1)
         sock.set_inheritable(True)
 
@@ -269,7 +288,7 @@ class Config:
 
         message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
         protocol_name = "https" if self.is_ssl else "http"
-        self.logger.info(message % (protocol_name, self.host, self.port))
+        logger.info(message % (protocol_name, self.host, self.port))
         return sock
 
     @property

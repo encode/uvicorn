@@ -36,6 +36,8 @@ HANDLED_SIGNALS = (
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
 )
 
+logger = logging.getLogger("uvicorn.error")
+
 
 @click.command()
 @click.argument("app")
@@ -109,10 +111,17 @@ HANDLED_SIGNALS = (
     show_default=True,
 )
 @click.option(
+    "--log-config",
+    type=click.Path(exists=True),
+    default=None,
+    help="Logging configuration file.",
+    show_default=True,
+)
+@click.option(
     "--log-level",
     type=LEVEL_CHOICES,
-    default="info",
-    help="Log level.",
+    default=None,
+    help="Log level. [default: info]",
     show_default=True,
 )
 @click.option(
@@ -208,6 +217,7 @@ def main(
     reload: bool,
     reload_dirs: typing.List[str],
     workers: int,
+    log_config: str,
     log_level: str,
     no_access_log: bool,
     proxy_headers: bool,
@@ -312,18 +322,17 @@ class Server:
         if not config.loaded:
             config.load()
 
-        self.logger = logging.getLogger("uvicorn.error")
         self.lifespan = config.lifespan_class(config)
 
         self.install_signal_handlers()
 
-        self.logger.info("Started server process [{}]".format(process_id))
+        logger.info("Started server process [{}]".format(process_id))
         await self.startup(sockets=sockets)
         if self.should_exit:
             return
         await self.main_loop()
         await self.shutdown(shutdown_servers=shutdown_servers)
-        self.logger.info("Finished server process [{}]".format(process_id))
+        logger.info("Finished server process [{}]".format(process_id))
 
     async def startup(self, sockets=None):
         config = self.config
@@ -351,7 +360,7 @@ class Server:
                 create_protocol, sock=sock, ssl=config.ssl
             )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
-            self.logger.info(message % str(sock.getsockname()))
+            logger.info(message % str(sock.getsockname()))
             self.servers = [server]
 
         elif config.uds is not None:
@@ -364,7 +373,7 @@ class Server:
             )
             os.chmod(config.uds, uds_perms)
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
-            self.logger.info(message % config.uds)
+            logger.info(message % config.uds)
             self.servers = [server]
 
         else:
@@ -374,11 +383,11 @@ class Server:
                     create_protocol, host=config.host, port=config.port, ssl=config.ssl
                 )
             except OSError as exc:
-                self.logger.error(exc)
+                logger.error(exc)
                 sys.exit(1)
             protocol_name = "https" if config.ssl else "http"
             message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
-            self.logger.info(message % (protocol_name, config.host, config.port))
+            logger.info(message % (protocol_name, config.host, config.port))
             self.servers = [server]
 
         await self.lifespan.startup()
@@ -419,7 +428,7 @@ class Server:
         return False
 
     async def shutdown(self, shutdown_servers=True):
-        self.logger.info("Shutting down")
+        logger.info("Shutting down")
 
         # Stop accepting new connections.
         if shutdown_servers:
@@ -436,14 +445,14 @@ class Server:
         # Wait for existing connections to finish sending responses.
         if self.server_state.connections and not self.force_exit:
             msg = "Waiting for connections to close. (CTRL+C to force quit)"
-            self.logger.info(msg)
+            logger.info(msg)
             while self.server_state.connections and not self.force_exit:
                 await asyncio.sleep(0.1)
 
         # Wait for existing tasks to complete.
         if self.server_state.tasks and not self.force_exit:
             msg = "Waiting for background tasks to complete. (CTRL+C to force quit)"
-            self.logger.info(msg)
+            logger.info(msg)
             while self.server_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
 
