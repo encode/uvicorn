@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import logging
 import os
 import signal
 import socket
@@ -313,7 +314,7 @@ class Server:
         if not config.loaded:
             config.load()
 
-        self.logger = config.logger_instance
+        self.logger = logging.getLogger("uvicorn")
         self.lifespan = config.lifespan_class(config)
 
         self.install_signal_handlers()

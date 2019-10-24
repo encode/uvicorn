@@ -1,3 +1,4 @@
+import logging
 import multiprocessing
 import os
 import signal
@@ -30,7 +31,7 @@ class StatReload:
 
     def run(self, target, *args, **kwargs):
         pid = os.getpid()
-        logger = self.config.logger_instance
+        logger = logging.getLogger("uvicorn")
 
         logger.info("Started reloader process [{}]".format(pid))
 
