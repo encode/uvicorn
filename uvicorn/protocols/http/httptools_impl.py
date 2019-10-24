@@ -83,7 +83,10 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn")
-        self.access_log = config.access_log and (self.logger.level <= logging.INFO)
+        self.access_logger = logging.getLogger("uvicorn.access")
+        self.access_log = config.access_log and (
+            self.access_logger.level <= logging.INFO
+        )
         self.parser = httptools.HttpRequestParser(self)
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
@@ -250,6 +253,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             transport=self.transport,
             flow=self.flow,
             logger=self.logger,
+            access_logger=self.access_logger,
             access_log=self.access_log,
             default_headers=self.default_headers,
             message_event=self.message_event,
@@ -339,6 +343,7 @@ class RequestResponseCycle:
         transport,
         flow,
         logger,
+        access_logger,
         access_log,
         default_headers,
         message_event,
@@ -350,6 +355,7 @@ class RequestResponseCycle:
         self.transport = transport
         self.flow = flow
         self.logger = logger
+        self.access_logger = access_logger
         self.access_log = access_log
         self.default_headers = default_headers
         self.message_event = message_event
@@ -435,7 +441,7 @@ class RequestResponseCycle:
             headers = self.default_headers + list(message.get("headers", []))
 
             if self.access_log:
-                self.logger.info(
+                self.access_logger.info(
                     '%s - "%s %s HTTP/%s" %d',
                     self.scope["client"],
                     self.scope["method"],
