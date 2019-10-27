@@ -32,30 +32,30 @@ class MessageLoggerMiddleware:
         self.task_counter += 1
 
         task_counter = self.task_counter
-        client_addr = scope.get("client")
+        client = scope.get("client")
+        prefix = "%s:%d - ASGI" % (client[0], client[1]) if client else "ASGI"
 
         async def inner_receive():
-            nonlocal client_addr, receive, task_counter
             message = await receive()
             logged_message = message_with_placeholders(message)
-            log_text = "%s - ASGI [%d] Sent %s"
-            self.logger.debug(log_text, client_addr, task_counter, logged_message)
+            log_text = "%s [%d] Sent %s"
+            self.logger.debug(log_text, prefix, task_counter, logged_message)
             return message
 
         async def inner_send(message):
             logged_message = message_with_placeholders(message)
-            log_text = "%s - ASGI [%d] Received %s"
-            self.logger.debug(log_text, client_addr, task_counter, logged_message)
+            log_text = "%s [%d] Received %s"
+            self.logger.debug(log_text, prefix, task_counter, logged_message)
             await send(message)
 
-        log_text = "%s - ASGI [%d] Started"
-        self.logger.debug(log_text, client_addr, task_counter)
+        log_text = "%s [%d] Started"
+        self.logger.debug(log_text, prefix, task_counter)
         try:
             await self.app(scope, inner_receive, inner_send)
         except BaseException as exc:
-            log_text = "%s - ASGI [%d] Raised exception"
-            self.logger.debug(log_text, client_addr, task_counter)
+            log_text = "%s [%d] Raised exception"
+            self.logger.debug(log_text, prefix, task_counter)
             raise exc from None
         else:
-            log_text = "%s - ASGI [%d] Completed"
-            self.logger.debug(log_text, client_addr, task_counter)
+            log_text = "%s [%d] Completed"
+            self.logger.debug(log_text, prefix, task_counter)

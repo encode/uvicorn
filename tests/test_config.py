@@ -9,11 +9,11 @@ from uvicorn.middleware.wsgi import WSGIMiddleware
 
 
 async def asgi_app():
-    pass
+    pass  # pragma: nocover
 
 
 def wsgi_app():
-    pass
+    pass  # pragma: nocover
 
 
 def test_debug_app():

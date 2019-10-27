@@ -127,13 +127,15 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.scheme = "https" if is_ssl(transport) else "http"
 
         if self.logger.level <= logging.DEBUG:
-            self.logger.debug("%s - Connected", self.client)
+            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            self.logger.debug("%sConnected", prefix)
 
     def connection_lost(self, exc):
         self.connections.discard(self)
 
         if self.logger.level <= logging.DEBUG:
-            self.logger.debug("%s - Disconnected", self.client)
+            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            self.logger.debug("%sDisconnected", prefix)
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True

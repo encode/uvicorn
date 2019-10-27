@@ -55,22 +55,31 @@ SSL_PROTOCOL_VERSION = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
 LOGGING_CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,
-    "formatters": {"standard": {"format": "%(levelname)s: %(message)s"}},
+    "formatters": {
+        "errors": {
+            "()": "uvicorn.logging.ErrorFormatter",
+            "fmt": "%(levelname)s:\t%(message)s",
+        },
+        "access": {
+            "()": "uvicorn.logging.AccessFormatter",
+            "fmt": '%(levelname)s:\t%(client_addr)s - "%(request_line)s" %(status_code)s',
+        },
+    },
     "handlers": {
-        "stderr": {
-            "formatter": "standard",
+        "errors": {
+            "formatter": "errors",
             "class": "logging.StreamHandler",
             "stream": "ext://sys.stderr",
         },
-        "stdout": {
-            "formatter": "standard",
+        "access": {
+            "formatter": "access",
             "class": "logging.StreamHandler",
             "stream": "ext://sys.stdout",
         },
     },
     "loggers": {
-        "uvicorn.error": {"handlers": ["stderr"], "level": "INFO"},
-        "uvicorn.access": {"handlers": ["stdout"], "level": "INFO"},
+        "uvicorn.error": {"handlers": ["errors"], "level": "INFO"},
+        "uvicorn.access": {"handlers": ["access"], "level": "INFO"},
     },
 }
 
