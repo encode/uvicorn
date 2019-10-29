@@ -3,13 +3,13 @@ h11
 
 # Optional
 httptools
-uvloop
+uvloop==0.14.0rc2
 websockets==8.*
 wsproto==0.13.*
 
 # Testing
 autoflake
-black; python_version >= '3.6'
+black
 codecov
 isort
 pytest
