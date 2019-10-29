@@ -141,7 +141,8 @@ class H11Protocol(asyncio.Protocol):
                 pass
 
         self.message_event.set()
-        self.flow.resume_writing()
+        if self.flow is not None:
+            self.flow.resume_writing()
 
     def eof_received(self):
         pass
