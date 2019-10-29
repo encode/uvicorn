@@ -336,7 +336,7 @@ class Server:
         if self.should_exit:
             return
         await self.main_loop()
-        await self.shutdown()
+        await self.shutdown(sockets=sockets)
 
         message = "Finished server process [%d]"
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
@@ -450,10 +450,12 @@ class Server:
             return self.server_state.total_requests >= self.config.limit_max_requests
         return False
 
-    async def shutdown(self):
+    async def shutdown(self, sockets=None):
         logger.info("Shutting down")
 
         # Stop accepting new connections.
+        for socket in sockets or []:
+            socket.close()
         for server in self.servers:
             server.close()
         for server in self.servers:
