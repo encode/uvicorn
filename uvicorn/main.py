@@ -13,8 +13,6 @@ from email.utils import formatdate
 import click
 
 from uvicorn.config import (
-    DEFAULT_FORWARDED_IPS,
-    DEFAULT_WORKERS,
     HTTP_PROTOCOLS,
     INTERFACES,
     LIFESPAN,
@@ -74,7 +72,7 @@ logger = logging.getLogger("uvicorn.error")
 )
 @click.option(
     "--workers",
-    default=DEFAULT_WORKERS,
+    default=None,
     type=int,
     help="Number of worker processes. Defaults to the $WEB_CONCURRENCY environment variable if available. Not valid with --reload.",
 )
@@ -114,6 +112,13 @@ logger = logging.getLogger("uvicorn.error")
     show_default=True,
 )
 @click.option(
+    "--env-file",
+    type=click.Path(exists=True),
+    default=None,
+    help="Environment configuration file.",
+    show_default=True,
+)
+@click.option(
     "--log-config",
     type=click.Path(exists=True),
     default=None,
@@ -142,7 +147,7 @@ logger = logging.getLogger("uvicorn.error")
 @click.option(
     "--forwarded-allow-ips",
     type=str,
-    default=DEFAULT_FORWARDED_IPS,
+    default=None,
     help="Comma seperated list of IPs to trust with proxy headers. Defaults to the $FORWARDED_ALLOW_IPS environment variable if available, or '127.0.0.1'.",
 )
 @click.option(
@@ -229,6 +234,7 @@ def main(
     reload: bool,
     reload_dirs: typing.List[str],
     workers: int,
+    env_file: str,
     log_config: str,
     log_level: str,
     access_log: bool,
@@ -258,6 +264,7 @@ def main(
         "http": http,
         "ws": ws,
         "lifespan": lifespan,
+        "env_file": env_file,
         "log_config": LOGGING_CONFIG if log_config is None else log_config,
         "log_level": log_level,
         "access_log": access_log,
