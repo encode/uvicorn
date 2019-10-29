@@ -5,7 +5,7 @@ import click
 
 
 class ColourizedFormatter(logging.Formatter):
-    level_name_colours = {
+    level_name_colors = {
         logging.DEBUG: lambda level_name: click.style(str(level_name), fg="blue"),
         logging.INFO: lambda level_name: click.style(str(level_name), fg="green"),
         logging.WARNING: lambda level_name: click.style(str(level_name), fg="yellow"),
@@ -16,30 +16,30 @@ class ColourizedFormatter(logging.Formatter):
     }
 
     def __init__(self, fmt=None, datefmt=None, style="%"):
-        self.colourize = self.should_colourize()
+        self.use_colors = self.should_use_colors()
         super().__init__(fmt=fmt, datefmt=datefmt, style=style)
 
-    def colourized_level_name(self, level_name, level_no):
+    def color_level_name(self, level_name, level_no):
         default = lambda level_name: str(level_name)
-        func = self.level_name_colours.get(level_no, default)
+        func = self.level_name_colors.get(level_no, default)
         return func(level_name)
 
-    def should_colourize(self):
+    def should_use_colors(self):
         return True
 
     def formatMessage(self, record):
-        if self.colourize:
-            record.__dict__["levelname"] = self.colourized_level_name(
+        if self.use_colors:
+            record.__dict__["levelname"] = self.color_level_name(
                 record.levelname, record.levelno
             )
-            if "colorized" in record.__dict__:
-                record.msg = record.__dict__["colorized"]
+            if "color_message" in record.__dict__:
+                record.msg = record.__dict__["color_message"]
                 record.__dict__["message"] = record.getMessage()
         return super().formatMessage(record)
 
 
 class ErrorFormatter(ColourizedFormatter):
-    def should_colourize(self):
+    def should_use_colors(self):
         return sys.stderr.isatty()
 
 
@@ -52,7 +52,7 @@ class AccessFormatter(ColourizedFormatter):
         5: lambda code: click.style(str(code), fg="bright_red"),
     }
 
-    def should_colourize(self):
+    def should_use_colors(self):
         return sys.stdout.isatty()
 
     def get_client_addr(self, scope):
@@ -74,7 +74,7 @@ class AccessFormatter(ColourizedFormatter):
     def get_status_code(self, record):
         status_code = record.__dict__["status_code"]
         if self.colourize:
-            default = lambda code: str(codstatus_codee)
+            default = lambda code: str(status_code)
             func = self.status_code_colours.get(status_code // 100, default)
             return func(status_code)
         return str(status_code)

@@ -329,10 +329,8 @@ class Server:
         self.install_signal_handlers()
 
         message = "Started server process [%d]"
-        colorized_message = (
-            "Started server process [" + click.style("%d", fg="cyan") + "]"
-        )
-        logger.info(message, process_id, extra={"colorized": colorized_message})
+        color_message = "Started server process [" + click.style("%d", fg="cyan") + "]"
+        logger.info(message, process_id, extra={"color_message": color_message})
 
         await self.startup(sockets=sockets)
         if self.should_exit:
@@ -341,13 +339,11 @@ class Server:
         await self.shutdown()
 
         message = "Finished server process [%d]"
-        colorized_message = (
-            "Finished server process [" + click.style("%d", fg="cyan") + "]"
-        )
+        color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
         logger.info(
             "Finished server process [%d]",
             process_id,
-            extra={"colorized": colorized_message},
+            extra={"color_message": color_message},
         )
 
     async def startup(self, sockets=None):
@@ -403,7 +399,7 @@ class Server:
                 sys.exit(1)
             protocol_name = "https" if config.ssl else "http"
             message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
-            colorized_message = (
+            color_message = (
                 "Uvicorn running on "
                 + click.style("%s://%s:%d", bold=True)
                 + " (Press CTRL+C to quit)"
@@ -413,7 +409,7 @@ class Server:
                 protocol_name,
                 config.host,
                 config.port,
-                extra={"colorized": colorized_message},
+                extra={"color_message": color_message},
             )
             self.servers = [server]
 

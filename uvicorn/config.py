@@ -298,7 +298,7 @@ class Config:
             sock = socket.fromshare(sock.share(os.getpid()))
 
         message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
-        colorized_message = (
+        color_message = (
             "Uvicorn running on "
             + click.style("%s://%s:%d", bold=True)
             + " (Press CTRL+C to quit)"
@@ -309,7 +309,7 @@ class Config:
             protocol_name,
             self.host,
             self.port,
-            extra={"colorized": colourized_message},
+            extra={"color_message": color_message},
         )
         return sock
 
