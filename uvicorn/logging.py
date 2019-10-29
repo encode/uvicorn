@@ -1,3 +1,4 @@
+import http
 import logging
 import sys
 
@@ -81,11 +82,17 @@ class AccessFormatter(ColourizedFormatter):
 
     def get_status_code(self, record):
         status_code = record.__dict__["status_code"]
+        try:
+            status_phrase = http.HTTPStatus(status_code).phrase
+        except ValueError:
+            status_phrase = ""
+        status_and_phrase = "%s %s" % (status_code, status_phrase)
+
         if self.use_colors:
-            default = lambda code: str(status_code)
+            default = lambda code: status_and_phrase
             func = self.status_code_colours.get(status_code // 100, default)
-            return func(status_code)
-        return str(status_code)
+            return func(status_and_phrase)
+        return status_and_phrase
 
     def formatMessage(self, record):
         scope = record.__dict__["scope"]
