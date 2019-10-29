@@ -6,6 +6,7 @@ import urllib
 import httptools
 
 from uvicorn.protocols.utils import (
+    get_client_addr,
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
@@ -443,7 +444,7 @@ class RequestResponseCycle:
             if self.access_log:
                 self.access_logger.info(
                     '%s - "%s %s HTTP/%s" %d',
-                    self.scope["client"],
+                    get_client_addr(self.scope),
                     self.scope["method"],
                     get_path_with_query_string(self.scope),
                     self.scope["http_version"],
