@@ -73,7 +73,7 @@ class AccessFormatter(ColourizedFormatter):
 
     def get_status_code(self, record):
         status_code = record.__dict__["status_code"]
-        if self.colourize:
+        if self.use_colors:
             default = lambda code: str(status_code)
             func = self.status_code_colours.get(status_code // 100, default)
             return func(status_code)
@@ -88,7 +88,7 @@ class AccessFormatter(ColourizedFormatter):
         status_code = self.get_status_code(record)
         http_version = scope["http_version"]
         request_line = "%s %s HTTP/%s" % (method, full_path, http_version)
-        if self.colourize:
+        if self.use_colors:
             request_line = click.style(request_line, bold=True)
         record.__dict__.update(
             {
