@@ -1,5 +1,6 @@
 import asyncio
 import http
+import logging
 from urllib.parse import unquote
 
 import websockets
@@ -28,7 +29,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.config = config
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
-        self.logger = config.logger_instance
+        self.logger = logging.getLogger("uvicorn.error")
         self.root_path = config.root_path
 
         # Shared server state

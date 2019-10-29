@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 from gunicorn.workers.base import Worker
 
@@ -17,11 +18,17 @@ class UvicornWorker(Worker):
     def __init__(self, *args, **kwargs):
         super(UvicornWorker, self).__init__(*args, **kwargs)
 
-        self.log.level = self.log.loglevel
+        logger = logging.getLogger("uvicorn.error")
+        logger.handlers = self.log.error_log.handlers
+        logger.setLevel(self.log.error_log.level)
+
+        logger = logging.getLogger("uvicorn.access")
+        logger.handlers = self.log.access_log.handlers
+        logger.setLevel(self.log.access_log.level)
 
         config_kwargs = {
             "app": None,
-            "logger": self.log,
+            "log_config": None,
             "timeout_keep_alive": self.cfg.keepalive,
             "timeout_notify": self.timeout,
             "callback_notify": self.callback_notify,

@@ -33,6 +33,13 @@ def is_ssl(transport):
     return bool(transport.get_extra_info("sslcontext"))
 
 
+def get_client_addr(scope):
+    client = scope.get("client")
+    if not client:
+        return ""
+    return "%s:%d" % client
+
+
 def get_path_with_query_string(scope):
     path_with_query_string = scope.get("root_path", "") + scope["path"]
     if scope["query_string"]:

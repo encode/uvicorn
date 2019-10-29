@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
 
@@ -9,7 +10,7 @@ class LifespanOn:
             config.load()
 
         self.config = config
-        self.logger = config.logger_instance
+        self.logger = logging.getLogger("uvicorn.error")
         self.startup_event = asyncio.Event()
         self.shutdown_event = asyncio.Event()
         self.receive_queue = asyncio.Queue()
