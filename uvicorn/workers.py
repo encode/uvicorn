@@ -54,9 +54,7 @@ class UvicornWorker(Worker):
         self.config.app = self.wsgi
         server = Server(config=self.config)
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(
-            server.serve(sockets=self.sockets, shutdown_servers=False)
-        )
+        loop.run_until_complete(server.serve(sockets=self.sockets))
 
     async def callback_notify(self):
         self.notify()
