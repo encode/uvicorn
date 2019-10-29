@@ -13,6 +13,7 @@ from email.utils import formatdate
 import click
 
 from uvicorn.config import (
+    DEFAULT_WORKERS,
     HTTP_PROTOCOLS,
     INTERFACES,
     LIFESPAN,
@@ -72,9 +73,9 @@ logger = logging.getLogger("uvicorn.error")
 )
 @click.option(
     "--workers",
-    default=1,
+    default=DEFAULT_WORKERS,
     type=int,
-    help="Number of worker processes. Not valid with --reload.",
+    help="Number of worker processes. Defaults to the $WEB_CONCURRENCY environment variable if available. Not valid with --reload.",
 )
 @click.option(
     "--loop",

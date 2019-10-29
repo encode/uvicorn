@@ -50,6 +50,11 @@ LOOP_SETUPS = {
 }
 INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
 
+try:
+    DEFAULT_WORKERS = int(os.environ.get("WEB_CONCURRENCY", 1))
+except ValueError:
+    DEFAULT_WORKERS = 1
+
 # Fallback to 'ssl.PROTOCOL_SSLv23' in order to support Python < 3.5.3.
 SSL_PROTOCOL_VERSION = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
 
@@ -118,7 +123,7 @@ class Config:
         debug=False,
         reload=False,
         reload_dirs=None,
-        workers=1,
+        workers=DEFAULT_WORKERS,
         proxy_headers=False,
         root_path="",
         limit_concurrency=None,
