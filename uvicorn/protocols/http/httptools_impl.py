@@ -6,6 +6,7 @@ import urllib
 import httptools
 
 from uvicorn.protocols.utils import (
+    get_client_addr,
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
@@ -82,8 +83,9 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.config = config
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
-        self.logger = config.logger_instance
-        self.access_log = config.access_log and (self.logger.level <= logging.INFO)
+        self.logger = logging.getLogger("uvicorn.error")
+        self.access_logger = logging.getLogger("uvicorn.access")
+        self.access_log = self.access_logger.hasHandlers()
         self.parser = httptools.HttpRequestParser(self)
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
@@ -126,13 +128,15 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.scheme = "https" if is_ssl(transport) else "http"
 
         if self.logger.level <= logging.DEBUG:
-            self.logger.debug("%s - Connected", self.client)
+            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            self.logger.debug("%sConnected", prefix)
 
     def connection_lost(self, exc):
         self.connections.discard(self)
 
         if self.logger.level <= logging.DEBUG:
-            self.logger.debug("%s - Disconnected", self.client)
+            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            self.logger.debug("%sDisconnected", prefix)
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
@@ -250,6 +254,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             transport=self.transport,
             flow=self.flow,
             logger=self.logger,
+            access_logger=self.access_logger,
             access_log=self.access_log,
             default_headers=self.default_headers,
             message_event=self.message_event,
@@ -339,6 +344,7 @@ class RequestResponseCycle:
         transport,
         flow,
         logger,
+        access_logger,
         access_log,
         default_headers,
         message_event,
@@ -350,6 +356,7 @@ class RequestResponseCycle:
         self.transport = transport
         self.flow = flow
         self.logger = logger
+        self.access_logger = access_logger
         self.access_log = access_log
         self.default_headers = default_headers
         self.message_event = message_event
@@ -435,9 +442,9 @@ class RequestResponseCycle:
             headers = self.default_headers + list(message.get("headers", []))
 
             if self.access_log:
-                self.logger.info(
+                self.access_logger.info(
                     '%s - "%s %s HTTP/%s" %d',
-                    self.scope["client"],
+                    get_client_addr(self.scope),
                     self.scope["method"],
                     get_path_with_query_string(self.scope),
                     self.scope["http_version"],

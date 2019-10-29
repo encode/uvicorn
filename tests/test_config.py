@@ -1,4 +1,3 @@
-import logging
 import socket
 
 import pytest
@@ -10,11 +9,11 @@ from uvicorn.middleware.wsgi import WSGIMiddleware
 
 
 async def asgi_app():
-    pass
+    pass  # pragma: nocover
 
 
 def wsgi_app():
-    pass
+    pass  # pragma: nocover
 
 
 def test_debug_app():
@@ -50,14 +49,6 @@ def test_concrete_http_class():
     config = Config(app=asgi_app, http=protocols.http.h11_impl.H11Protocol)
     config.load()
     assert config.http_protocol_class is protocols.http.h11_impl.H11Protocol
-
-
-def test_logger():
-    logger = logging.getLogger("just-for-tests")
-    config = Config(app=asgi_app, logger=logger)
-    config.load()
-
-    assert config.logger is logger
 
 
 def test_socket_bind():

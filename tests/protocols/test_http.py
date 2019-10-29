@@ -174,7 +174,7 @@ def test_request_logging(path, protocol_cls, caplog):
     get_request_with_query_string = b"\r\n".join(
         ["GET {} HTTP/1.1".format(path).encode("ascii"), b"Host: example.org", b"", b""]
     )
-    caplog.set_level(logging.INFO, logger="uvicorn")
+    caplog.set_level(logging.INFO, logger="uvicorn.access")
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls)

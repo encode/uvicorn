@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import logging
 import os
 import signal
 import socket
@@ -16,11 +17,11 @@ from uvicorn.config import (
     INTERFACES,
     LIFESPAN,
     LOG_LEVELS,
+    LOGGING_CONFIG,
     LOOP_SETUPS,
     SSL_PROTOCOL_VERSION,
     WS_PROTOCOLS,
     Config,
-    get_logger,
 )
 from uvicorn.supervisors import Multiprocess, StatReload
 
@@ -35,6 +36,8 @@ HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
 )
+
+logger = logging.getLogger("uvicorn.error")
 
 
 @click.command()
@@ -109,10 +112,17 @@ HANDLED_SIGNALS = (
     show_default=True,
 )
 @click.option(
+    "--log-config",
+    type=click.Path(exists=True),
+    default=None,
+    help="Logging configuration file.",
+    show_default=True,
+)
+@click.option(
     "--log-level",
     type=LEVEL_CHOICES,
-    default="info",
-    help="Log level.",
+    default=None,
+    help="Log level. [default: info]",
     show_default=True,
 )
 @click.option(
@@ -208,6 +218,7 @@ def main(
     reload: bool,
     reload_dirs: typing.List[str],
     workers: int,
+    log_config: str,
     log_level: str,
     no_access_log: bool,
     proxy_headers: bool,
@@ -235,6 +246,7 @@ def main(
         "http": http,
         "ws": ws,
         "lifespan": lifespan,
+        "log_config": LOGGING_CONFIG if log_config is None else log_config,
         "log_level": log_level,
         "access_log": not no_access_log,
         "interface": interface,
@@ -263,9 +275,8 @@ def run(app, **kwargs):
     server = Server(config=config)
 
     if config.reload and not isinstance(app, str):
-        config.logger_instance.warn(
-            "auto-reload only works when app is passed as an import string."
-        )
+        logger = logging.getLogger("uvicorn.error")
+        logger.warn("auto-reload only works when app is passed as an import string.")
 
     if config.should_reload:
         sock = config.bind_socket()
@@ -313,18 +324,27 @@ class Server:
         if not config.loaded:
             config.load()
 
-        self.logger = config.logger_instance
         self.lifespan = config.lifespan_class(config)
 
         self.install_signal_handlers()
 
-        self.logger.info("Started server process [{}]".format(process_id))
+        message = "Started server process [%d]"
+        color_message = "Started server process [" + click.style("%d", fg="cyan") + "]"
+        logger.info(message, process_id, extra={"color_message": color_message})
+
         await self.startup(sockets=sockets)
         if self.should_exit:
             return
         await self.main_loop()
         await self.shutdown(sockets=sockets)
-        self.logger.info("Finished server process [{}]".format(process_id))
+
+        message = "Finished server process [%d]"
+        color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
+        logger.info(
+            "Finished server process [%d]",
+            process_id,
+            extra={"color_message": color_message},
+        )
 
     async def startup(self, sockets=None):
         config = self.config
@@ -352,7 +372,7 @@ class Server:
                 create_protocol, sock=sock, ssl=config.ssl
             )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
-            self.logger.info(message % str(sock.getsockname()))
+            logger.info(message % str(sock.getsockname()))
             self.servers = [server]
 
         elif config.uds is not None:
@@ -365,7 +385,7 @@ class Server:
             )
             os.chmod(config.uds, uds_perms)
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
-            self.logger.info(message % config.uds)
+            logger.info(message % config.uds)
             self.servers = [server]
 
         else:
@@ -375,11 +395,22 @@ class Server:
                     create_protocol, host=config.host, port=config.port, ssl=config.ssl
                 )
             except OSError as exc:
-                self.logger.error(exc)
+                logger.error(exc)
                 sys.exit(1)
             protocol_name = "https" if config.ssl else "http"
             message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
-            self.logger.info(message % (protocol_name, config.host, config.port))
+            color_message = (
+                "Uvicorn running on "
+                + click.style("%s://%s:%d", bold=True)
+                + " (Press CTRL+C to quit)"
+            )
+            logger.info(
+                message,
+                protocol_name,
+                config.host,
+                config.port,
+                extra={"color_message": color_message},
+            )
             self.servers = [server]
 
         await self.lifespan.startup()
@@ -420,7 +451,7 @@ class Server:
         return False
 
     async def shutdown(self, sockets=None):
-        self.logger.info("Shutting down")
+        logger.info("Shutting down")
 
         # Stop accepting new connections.
         for socket in sockets or []:
@@ -438,14 +469,14 @@ class Server:
         # Wait for existing connections to finish sending responses.
         if self.server_state.connections and not self.force_exit:
             msg = "Waiting for connections to close. (CTRL+C to force quit)"
-            self.logger.info(msg)
+            logger.info(msg)
             while self.server_state.connections and not self.force_exit:
                 await asyncio.sleep(0.1)
 
         # Wait for existing tasks to complete.
         if self.server_state.tasks and not self.force_exit:
             msg = "Waiting for background tasks to complete. (CTRL+C to force quit)"
-            self.logger.info(msg)
+            logger.info(msg)
             while self.server_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
 
