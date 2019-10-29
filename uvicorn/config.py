@@ -50,13 +50,6 @@ LOOP_SETUPS = {
 }
 INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
 
-try:
-    DEFAULT_WORKERS = int(os.environ.get("WEB_CONCURRENCY", 1))
-except ValueError:
-    DEFAULT_WORKERS = 1
-
-DEFAULT_FORWARDED_IPS = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
-
 
 # Fallback to 'ssl.PROTOCOL_SSLv23' in order to support Python < 3.5.3.
 SSL_PROTOCOL_VERSION = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
@@ -119,6 +112,7 @@ class Config:
         http="auto",
         ws="auto",
         lifespan="auto",
+        env_file=None,
         log_config=LOGGING_CONFIG,
         log_level=None,
         access_log=True,
@@ -126,9 +120,9 @@ class Config:
         debug=False,
         reload=False,
         reload_dirs=None,
-        workers=DEFAULT_WORKERS,
+        workers=None,
         proxy_headers=True,
-        forwarded_allow_ips=DEFAULT_FORWARDED_IPS,
+        forwarded_allow_ips=None,
         root_path="",
         limit_concurrency=None,
         limit_max_requests=None,
@@ -158,9 +152,9 @@ class Config:
         self.interface = interface
         self.debug = debug
         self.reload = reload
-        self.workers = workers
+        self.workers = workers or 1
         self.proxy_headers = proxy_headers
-        self.forwarded_allow_ips = forwarded_allow_ips
+        self.forwarded_allow_ips = forwarded_allow_ips or "127.0.0.1"
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests
@@ -176,13 +170,25 @@ class Config:
         self.headers = headers if headers else []  # type: List[str]
         self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
 
+        self.loaded = False
+        self.configure_logging()
+
         if reload_dirs is None:
             self.reload_dirs = sys.path
         else:
             self.reload_dirs = reload_dirs
 
-        self.loaded = False
-        self.configure_logging()
+        if env_file is not None:
+            from dotenv import load_dotenv
+
+            logger.info("Loading environment from '%s'", env_file)
+            load_dotenv(dotenv_path=env_file)
+
+        if workers is None and "WEB_CONCURRENCY" in os.environ:
+            self.workers = int(os.environ["WEB_CONCURRENCY"])
+
+        if forwarded_allow_ips is None and "FORWARDED_ALLOW_IPS" in os.environ:
+            self.forwarded_allow_ips = os.environ["FORWARDED_ALLOW_IPS"]
 
     @property
     def is_ssl(self) -> bool:
