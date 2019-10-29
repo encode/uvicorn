@@ -11,7 +11,7 @@ async def app(scope, receive, send):
     await response(scope, receive, send)
 
 
-app = ProxyHeadersMiddleware(app)
+app = ProxyHeadersMiddleware(app, trusted_hosts="*")
 
 
 def test_proxy_headers():

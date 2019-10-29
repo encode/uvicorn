@@ -13,6 +13,7 @@ from email.utils import formatdate
 import click
 
 from uvicorn.config import (
+    DEFAULT_FORWARDED_IPS,
     DEFAULT_WORKERS,
     HTTP_PROTOCOLS,
     INTERFACES,
@@ -127,13 +128,22 @@ logger = logging.getLogger("uvicorn.error")
     show_default=True,
 )
 @click.option(
-    "--no-access-log", is_flag=True, default=False, help="Disable access log."
+    "--access-log/--no-access-log",
+    is_flag=True,
+    default=True,
+    help="Enable/Disable access log.",
 )
 @click.option(
-    "--proxy-headers",
+    "--proxy-headers/--no-proxy-headers",
     is_flag=True,
-    default=False,
-    help="Use X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to populate remote address info.",
+    default=None,
+    help="Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to populate remote address info.",
+)
+@click.option(
+    "--forwarded-allow-ips",
+    type=str,
+    default=DEFAULT_FORWARDED_IPS,
+    help="Comma seperated list of IPs to trust with proxy headers. Defaults to the $FORWARDED_ALLOW_IPS environment variable if available, or '127.0.0.1'.",
 )
 @click.option(
     "--root-path",
@@ -221,8 +231,9 @@ def main(
     workers: int,
     log_config: str,
     log_level: str,
-    no_access_log: bool,
+    access_log: bool,
     proxy_headers: bool,
+    forwarded_allow_ips: str,
     root_path: str,
     limit_concurrency: int,
     limit_max_requests: int,
@@ -249,13 +260,14 @@ def main(
         "lifespan": lifespan,
         "log_config": LOGGING_CONFIG if log_config is None else log_config,
         "log_level": log_level,
-        "access_log": not no_access_log,
+        "access_log": access_log,
         "interface": interface,
         "debug": debug,
         "reload": reload,
         "reload_dirs": reload_dirs if reload_dirs else None,
         "workers": workers,
         "proxy_headers": proxy_headers,
+        "forwarded_allow_ips": forwarded_allow_ips,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
         "limit_max_requests": limit_max_requests,
