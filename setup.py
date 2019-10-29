@@ -45,7 +45,7 @@ requirements = [
     "h11==0.8.*",
     "websockets==8.*",
     "httptools==0.0.13 ;" + env_marker,
-    "uvloop==0.* ;" + env_marker,
+    "uvloop==0.14.0rc2 ;" + env_marker,
 ]
 
 
@@ -63,7 +63,7 @@ setup(
     install_requires=requirements,
     data_files = [("", ["LICENSE.md"])],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
@@ -72,6 +72,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
     ],
