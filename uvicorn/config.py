@@ -1,4 +1,5 @@
 import asyncio
+import click
 import inspect
 import logging
 import logging.config
@@ -296,8 +297,9 @@ class Config:
             sock = socket.fromshare(sock.share(os.getpid()))
 
         message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
+        colorized_message = "Uvicorn running on " + click.style("%s://%s:%d", bold=True) + " (Press CTRL+C to quit)"
         protocol_name = "https" if self.is_ssl else "http"
-        logger.info(message % (protocol_name, self.host, self.port))
+        logger.info(message, protocol_name, self.host, self.port, extra={"colorized": colourized_message})
         return sock
 
     @property

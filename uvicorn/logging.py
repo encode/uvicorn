@@ -6,7 +6,7 @@ import click
 
 class ColourizedFormatter(logging.Formatter):
     level_name_colours = {
-        logging.DEBUG: lambda level_name: click.style(str(level_name), fg="cyan"),
+        logging.DEBUG: lambda level_name: click.style(str(level_name), fg="blue"),
         logging.INFO: lambda level_name: click.style(str(level_name), fg="green"),
         logging.WARNING: lambda level_name: click.style(str(level_name), fg="yellow"),
         logging.ERROR: lambda level_name: click.style(str(level_name), fg="red"),
@@ -32,6 +32,9 @@ class ColourizedFormatter(logging.Formatter):
             record.__dict__["levelname"] = self.colourized_level_name(
                 record.levelname, record.levelno
             )
+            if "colorized" in record.__dict__:
+                record.msg = record.__dict__["colorized"]
+                record.__dict__["message"] = record.getMessage()
         return super().formatMessage(record)
 
 
@@ -85,6 +88,8 @@ class AccessFormatter(ColourizedFormatter):
         status_code = self.get_status_code(record)
         http_version = scope["http_version"]
         request_line = "%s %s HTTP/%s" % (method, full_path, http_version)
+        if self.colourize:
+            request_line = click.style(request_line, bold=True)
         record.__dict__.update(
             {
                 "method": method,
