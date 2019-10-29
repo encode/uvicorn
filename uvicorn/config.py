@@ -55,6 +55,9 @@ try:
 except ValueError:
     DEFAULT_WORKERS = 1
 
+DEFAULT_FORWARDED_IPS = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
+
+
 # Fallback to 'ssl.PROTOCOL_SSLv23' in order to support Python < 3.5.3.
 SSL_PROTOCOL_VERSION = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
 
@@ -124,7 +127,8 @@ class Config:
         reload=False,
         reload_dirs=None,
         workers=DEFAULT_WORKERS,
-        proxy_headers=False,
+        proxy_headers=True,
+        forwarded_allow_ips=DEFAULT_FORWARDED_IPS,
         root_path="",
         limit_concurrency=None,
         limit_max_requests=None,
@@ -156,6 +160,7 @@ class Config:
         self.reload = reload
         self.workers = workers
         self.proxy_headers = proxy_headers
+        self.forwarded_allow_ips = forwarded_allow_ips
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests
@@ -279,7 +284,9 @@ class Config:
         if logger.level <= logging.DEBUG:
             self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
-            self.loaded_app = ProxyHeadersMiddleware(self.loaded_app)
+            self.loaded_app = ProxyHeadersMiddleware(
+                self.loaded_app, trusted_hosts=self.forwarded_allow_ips
+            )
 
         self.loaded = True
 

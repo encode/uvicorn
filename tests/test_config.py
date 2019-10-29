@@ -5,6 +5,7 @@ import pytest
 from uvicorn import protocols
 from uvicorn.config import Config
 from uvicorn.middleware.debug import DebugMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
 
@@ -17,7 +18,7 @@ def wsgi_app():
 
 
 def test_debug_app():
-    config = Config(app=asgi_app, debug=True)
+    config = Config(app=asgi_app, debug=True, proxy_headers=False)
     config.load()
 
     assert config.debug is True
@@ -25,7 +26,7 @@ def test_debug_app():
 
 
 def test_wsgi_app():
-    config = Config(app=wsgi_app, interface="wsgi")
+    config = Config(app=wsgi_app, interface="wsgi", proxy_headers=False)
     config.load()
 
     assert isinstance(config.loaded_app, WSGIMiddleware)
@@ -33,10 +34,11 @@ def test_wsgi_app():
 
 
 def test_proxy_headers():
-    config = Config(app=asgi_app, proxy_headers=True)
+    config = Config(app=asgi_app)
     config.load()
 
     assert config.proxy_headers is True
+    assert isinstance(config.loaded_app, ProxyHeadersMiddleware)
 
 
 def test_app_unimportable():
