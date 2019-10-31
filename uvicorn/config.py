@@ -59,18 +59,18 @@ LOGGING_CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
-        "errors": {
-            "()": "uvicorn.logging.ErrorFormatter",
+        "default": {
+            "()": "uvicorn.logging.DefaultFormatter",
             "fmt": "%(levelprefix)s %(message)s",
         },
         "access": {
             "()": "uvicorn.logging.AccessFormatter",
-            "fmt": '%(levelprefix)s: %(client_addr)s - "%(request_line)s" %(status_code)s',
+            "fmt": '%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',
         },
     },
     "handlers": {
-        "errors": {
-            "formatter": "errors",
+        "default": {
+            "formatter": "default",
             "class": "logging.StreamHandler",
             "stream": "ext://sys.stderr",
         },
@@ -81,8 +81,9 @@ LOGGING_CONFIG = {
         },
     },
     "loggers": {
-        "uvicorn.error": {"handlers": ["errors"], "level": "INFO"},
-        "uvicorn.access": {"handlers": ["access"], "level": "INFO"},
+        "": {"handlers": ["default"], "level": "INFO"},
+        "uvicorn.error": {"level": "INFO"},
+        "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
     },
 }
 
@@ -220,6 +221,7 @@ class Config:
                 log_level = LOG_LEVELS[self.log_level]
             else:
                 log_text = self.log_level
+            logging.getLogger("").setLevel(log_level)
             logging.getLogger("uvicorn.error").setLevel(log_level)
             logging.getLogger("uvicorn.access").setLevel(log_level)
         if self.access_log is False:
