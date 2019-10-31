@@ -18,12 +18,15 @@ from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
+TRACE_LOG_LEVEL = 5
+
 LOG_LEVELS = {
     "critical": logging.CRITICAL,
     "error": logging.ERROR,
     "warning": logging.WARNING,
     "info": logging.INFO,
     "debug": logging.DEBUG,
+    "trace": TRACE_LOG_LEVEL,
 }
 HTTP_PROTOCOLS = {
     "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
@@ -196,6 +199,8 @@ class Config:
         return bool(self.ssl_keyfile or self.ssl_certfile)
 
     def configure_logging(self):
+        logging.addLevelName(TRACE_LOG_LEVEL, "TRACE")
+
         if sys.version_info < (3, 7):
             # https://bugs.python.org/issue30520
             import pickle
@@ -224,6 +229,7 @@ class Config:
             logging.getLogger("").setLevel(log_level)
             logging.getLogger("uvicorn.error").setLevel(log_level)
             logging.getLogger("uvicorn.access").setLevel(log_level)
+            logging.getLogger("uvicorn.asgi").setLevel(log_level)
         if self.access_log is False:
             logging.getLogger("uvicorn.access").handlers = []
             logging.getLogger("uvicorn.access").propagate = False
@@ -289,7 +295,7 @@ class Config:
 
         if self.debug:
             self.loaded_app = DebugMiddleware(self.loaded_app)
-        if logger.level <= logging.DEBUG:
+        if logger.level <= TRACE_LOG_LEVEL:
             self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
             self.loaded_app = ProxyHeadersMiddleware(

@@ -4,6 +4,8 @@ import sys
 
 import click
 
+TRACE_LOG_LEVEL = 5
+
 
 class ColourizedFormatter(logging.Formatter):
     """
@@ -15,7 +17,8 @@ class ColourizedFormatter(logging.Formatter):
     """
 
     level_name_colors = {
-        logging.DEBUG: lambda level_name: click.style(str(level_name), fg="blue"),
+        TRACE_LOG_LEVEL: lambda level_name: click.style(str(level_name), fg="blue"),
+        logging.DEBUG: lambda level_name: click.style(str(level_name), fg="cyan"),
         logging.INFO: lambda level_name: click.style(str(level_name), fg="green"),
         logging.WARNING: lambda level_name: click.style(str(level_name), fg="yellow"),
         logging.ERROR: lambda level_name: click.style(str(level_name), fg="red"),
