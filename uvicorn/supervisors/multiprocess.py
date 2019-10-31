@@ -2,12 +2,17 @@ import logging
 import multiprocessing
 import os
 import signal
+import sys
 import time
+
+import click
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
 )
+
+logger = logging.getLogger("uvicorn.error")
 
 
 class Multiprocess:
@@ -19,18 +24,38 @@ class Multiprocess:
     def handle_exit(self, sig, frame):
         self.should_exit = True
 
-    def run(self, target, *args, **kwargs):
-        pid = os.getpid()
-        logger = logging.getLogger("uvicorn.error")
+    def get_subprocess(self, target, kwargs):
+        spawn = multiprocessing.get_context("spawn")
+        try:
+            fileno = sys.stdin.fileno()
+        except OSError:
+            fileno = None
 
-        logger.info("Started parent process [{}]".format(pid))
+        return spawn.Process(
+            target=self.start_subprocess, args=(target, fileno), kwargs=kwargs
+        )
+
+    def start_subprocess(self, target, fd_stdin, **kwargs):
+        if fd_stdin is not None:
+            sys.stdin = os.fdopen(fd_stdin)
+        self.config.configure_logging()
+        target(**kwargs)
+
+    def run(self, target, **kwargs):
+        pid = str(os.getpid())
+
+        message = "Started parent process [{}]".format(pid)
+        color_message = "Started parent process [{}]".format(
+            click.style(pid, fg="cyan", bold=True)
+        )
+        logger.info(message, extra={"color_message": color_message})
 
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.handle_exit)
 
         processes = []
         for idx in range(self.workers):
-            process = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
+            process = self.get_subprocess(target=target, kwargs=kwargs)
             process.start()
             processes.append(process)
 
@@ -39,4 +64,8 @@ class Multiprocess:
         ):
             time.sleep(0.1)
 
-        logger.info("Stopping parent process [{}]".format(pid))
+        message = "Stopping parent process [{}]".format(pid)
+        color_message = "Stopping parent process [{}]".format(
+            click.style(pid, fg="cyan", bold=True)
+        )
+        logger.info(message, extra={"color_message": color_message})
