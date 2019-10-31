@@ -4,6 +4,8 @@ import os
 import signal
 import time
 
+import click
+
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
@@ -20,10 +22,14 @@ class Multiprocess:
         self.should_exit = True
 
     def run(self, target, *args, **kwargs):
-        pid = os.getpid()
+        pid = str(os.getpid())
         logger = logging.getLogger("uvicorn.error")
 
-        logger.info("Started parent process [{}]".format(pid))
+        message = "Started parent process [{}]".format(pid)
+        color_message = "Started parent process [{}]".format(
+            click.style(pid, fg="cyan", bold=True)
+        )
+        logger.info(message, extra={"color_message": color_message})
 
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.handle_exit)
@@ -39,4 +45,8 @@ class Multiprocess:
         ):
             time.sleep(0.1)
 
-        logger.info("Stopping parent process [{}]".format(pid))
+        message = "Stopping parent process [{}]".format(pid)
+        color_message = "Stopping parent process [{}]".format(
+            click.style(pid, fg="cyan", bold=True)
+        )
+        logger.info(message, extra={"color_message": color_message})

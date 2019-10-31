@@ -61,11 +61,11 @@ LOGGING_CONFIG = {
     "formatters": {
         "errors": {
             "()": "uvicorn.logging.ErrorFormatter",
-            "fmt": "%(levelname)s:\t%(message)s",
+            "fmt": "%(levelprefix)s %(message)s",
         },
         "access": {
             "()": "uvicorn.logging.AccessFormatter",
-            "fmt": '%(levelname)s:\t%(client_addr)s - "%(request_line)s" %(status_code)s',
+            "fmt": '%(levelprefix)s: %(client_addr)s - "%(request_line)s" %(status_code)s',
         },
     },
     "handlers": {

@@ -37,6 +37,7 @@ class ColourizedFormatter(logging.Formatter):
         return True
 
     def formatMessage(self, record):
+        seperator = " " * (8 - len(record.levelname))
         if self.use_colors:
             record.__dict__["levelname"] = self.color_level_name(
                 record.levelname, record.levelno
@@ -44,6 +45,7 @@ class ColourizedFormatter(logging.Formatter):
             if "color_message" in record.__dict__:
                 record.msg = record.__dict__["color_message"]
                 record.__dict__["message"] = record.getMessage()
+        record.__dict__["levelprefix"] = record.__dict__["levelname"] + ":" + seperator
         return super().formatMessage(record)
 
 
