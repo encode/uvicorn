@@ -1,5 +1,15 @@
 # Change Log
 
+
+## 0.10.2
+
+* Enable --proxy-headers by default.
+
+## 0.10.1
+
+* Resolve issues with logging when using `--reload` or `--workers`.
+* Setup up root logger to capture output for all logger instances, not just `uvicorn.error` and `uvicorn.access`.
+
 ## 0.10.0
 
 * Support for Python 3.8
