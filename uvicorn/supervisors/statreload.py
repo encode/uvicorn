@@ -26,13 +26,24 @@ class StatReload:
     def handle_exit(self, sig, frame):
         self.should_exit = True
 
+    def get_subprocess(self, target, kwargs):
+        spawn = multiprocessing.get_context("spawn")
+        try:
+            fileno = sys.stdin.fileno()
+        except OSError:
+            fileno = None
+
+        return spawn.Process(
+            target=self.start_subprocess, args=(target, fileno), kwargs=kwargs
+        )
+
     def start_subprocess(self, target, fd_stdin, **kwargs):
         if fd_stdin is not None:
             sys.stdin = os.fdopen(fd_stdin)
         self.config.configure_logging()
         target(**kwargs)
 
-    def run(self, target, *args, **kwargs):
+    def run(self, target, **kwargs):
         pid = str(os.getpid())
 
         message = "Started reloader process [{}]".format(pid)
@@ -44,18 +55,7 @@ class StatReload:
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.handle_exit)
 
-        def get_subprocess():
-            spawn = multiprocessing.get_context("spawn")
-            try:
-                fileno = sys.stdin.fileno()
-            except OSError:
-                fileno = None
-
-            return spawn.Process(
-                target=self.start_subprocess, args=(target, fileno), kwargs=kwargs
-            )
-
-        process = get_subprocess()
+        process = self.get_subprocess(target, kwargs=kwargs)
         process.start()
 
         while process.is_alive() and not self.should_exit:
