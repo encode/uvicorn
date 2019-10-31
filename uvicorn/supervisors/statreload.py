@@ -65,7 +65,7 @@ class StatReload:
                 os.kill(process.pid, signal.SIGTERM)
                 process.join()
 
-                process = get_subprocess()
+                process = self.get_subprocess(target, kwargs=kwargs)
                 process.start()
                 self.reload_count += 1
 
