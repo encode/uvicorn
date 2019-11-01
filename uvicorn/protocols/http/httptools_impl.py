@@ -28,6 +28,8 @@ STATUS_LINE = {
 
 HIGH_WATER_LIMIT = 65536
 
+TRACE_LOG_LEVEL = 5
+
 
 class FlowControl:
     def __init__(self, transport):
@@ -127,16 +129,16 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.client = get_remote_addr(transport)
         self.scheme = "https" if is_ssl(transport) else "http"
 
-        if self.logger.level <= logging.DEBUG:
+        if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
-            self.logger.debug("%sConnected", prefix)
+            self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
 
     def connection_lost(self, exc):
         self.connections.discard(self)
 
-        if self.logger.level <= logging.DEBUG:
+        if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
-            self.logger.debug("%sDisconnected", prefix)
+            self.logger.log(TRACE_LOG_LEVEL, "%sConnection lost", prefix)
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
