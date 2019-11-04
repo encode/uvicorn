@@ -32,7 +32,7 @@ Install using `pip`:
 
 ```shell
 $ pip install uvicorn  # Install with minimal (pure Python) deps
-$ pip install uvicorn[default]  # Install with fast deps (where possible)
+$ pip install uvicorn[standard]  # Install with fast deps (where possible)
 ```
 
 Create an application, in `example.py`:
