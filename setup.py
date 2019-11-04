@@ -38,9 +38,12 @@ env_marker = (
     " and platform_python_implementation != 'pypy'"
 )
 
-requirements = [
+minimal_requirements = [
     "click==7.*",
     "h11==0.8.*",
+]
+
+extra_requirements = [
     "websockets==8.*",
     "httptools==0.0.13 ;" + env_marker,
     "uvloop==0.14.0rc2 ;" + env_marker,
@@ -59,11 +62,8 @@ setup(
     author_email='tom@tomchristie.com',
     packages=get_packages('uvicorn'),
     data_files = [("", ["LICENSE.md"])],
-    install_requires=['click'],
-    extras_require={
-        'pure': ['h11', 'wsproto==0.13.*'],
-        'fast': ['uvloop', 'httptools', 'websockets>=6.0'],
-    },
+    install_requires=minimal_requirements,
+    extras_require={'default': extra_requirements},
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
