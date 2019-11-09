@@ -294,9 +294,11 @@ def run(app, **kwargs):
     config = Config(app, **kwargs)
     server = Server(config=config)
 
-    if config.reload and not isinstance(app, str):
+    if (config.reload or config.workers > 1) and not isinstance(app, str):
         logger = logging.getLogger("uvicorn.error")
-        logger.warn("auto-reload only works when app is passed as an import string.")
+        logger.warn(
+            "You must pass the application as an import string to enable 'reload' or 'workers'."
+        )
 
     if config.should_reload:
         sock = config.bind_socket()
