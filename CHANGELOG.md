@@ -1,5 +1,13 @@
 # Change Log
 
+## 0.10.4
+
+* Error clearly when `workers=<NUM>` is used with app instance, instead of an app import string.
+* Switch `--reload-dir` to current working directory by default.
+
+## 0.10.3
+
+* Add ``--log-level trace`
 
 ## 0.10.2
 

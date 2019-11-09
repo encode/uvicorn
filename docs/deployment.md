@@ -82,6 +82,8 @@ See the [settings documentation](settings.md) for more details on the supported 
 
 To run directly from within a Python program, you should use `uvicorn.run(app, **config)`. For example:
 
+**example.py**:
+
 ```python
 import uvicorn
 
@@ -91,16 +93,20 @@ class App:
 app = App()
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=5000, log_level="info")
+    uvicorn.run("example:app", host="127.0.0.1", port=5000, log_level="info")
 ```
 
 The set of configuration options is the same as for the command line tool.
 
-In order to use reloading, an import string must be used to pass the app into the `run` method:
+Note that the application instance itself *can* be passed instead of the app
+import string.
 
 ```python
-uvicorn.run("module:app", host="127.0.0.1", port=5000, log_level="info", reload=True)
+uvicorn.run(app, host="127.0.0.1", port=5000, log_level="info")
 ```
+
+However, this style only works if you are not using multiprocessing (`workers=NUM`)
+or reloading (`reload=True`), so we recommend using the import string style.
 
 ## Using a process manager
 
