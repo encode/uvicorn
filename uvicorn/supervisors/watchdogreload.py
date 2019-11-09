@@ -39,11 +39,11 @@ class WatchdogReload(BaseReload):
         self.has_changed = False
 
         # watchdog only accept directories
-        watch_dirs = [
+        watch_dirs = {
             path.realpath(watch_dir)
             for watch_dir in self.config.reload_dirs
             if path.isdir(watch_dir)
-        ]
+        }
 
         watch_dirs_set = set(watch_dirs)
 

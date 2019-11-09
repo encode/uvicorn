@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from uvicorn.config import Config
-from uvicorn.supervisors import StatReload
+from uvicorn.supervisors.statreload import StatReload
 
 
 def run(sockets):
