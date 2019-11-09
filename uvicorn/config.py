@@ -178,7 +178,7 @@ class Config:
         self.configure_logging()
 
         if reload_dirs is None:
-            self.reload_dirs = sys.path
+            self.reload_dirs = [os.getcwd()]
         else:
             self.reload_dirs = reload_dirs
 
