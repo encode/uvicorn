@@ -4,7 +4,7 @@ from pathlib import Path
 
 from uvicorn.config import Config
 from uvicorn.main import Server
-from uvicorn.supervisors.statreload import StatReload
+from uvicorn.supervisors.watchdogreload import WatchdogReload
 
 
 def wait_for_reload(reloader, until, update_file):
@@ -25,18 +25,18 @@ def test_statreload(certfile_and_keyfile):
     server = Server(config)
     type(server).run = lambda self: None
 
-    reloader = StatReload(config)
+    reloader = WatchdogReload(config)
     reloader.run(server.run)
 
 
 def test_reload_dirs(tmpdir):
     update_file = os.path.join(str(tmpdir), "example.py")
     config = Config(app=None, reload_dirs=[str(tmpdir)])
-    reloader = StatReload(config)
+    reloader = WatchdogReload(config)
     reloader.run(wait_for_reload, reloader=reloader, until=1, update_file=update_file)
 
 
 def test_exit_signal(tmpdir):
     config = Config(app=None)
-    reloader = StatReload(config)
+    reloader = WatchdogReload(config)
     reloader.run(mock_signal, handle_exit=reloader.handle_exit)
