@@ -16,13 +16,13 @@ class ChangeEventHandler(PatternMatchingEventHandler):
         ignore_patterns=None,
         ignore_directories=False,
         case_sensitive=False,
-        callback=None
+        callback=None,
     ):
         super().__init__(
             patterns=patterns,
             ignore_patterns=ignore_patterns,
             ignore_directories=ignore_directories,
-            case_sensitive=case_sensitive
+            case_sensitive=case_sensitive,
         )
 
         self.callback = callback
@@ -54,17 +54,19 @@ class WatchdogReload(BaseReload):
                 if compare_dir is watch_dir:
                     continue
 
-                if watch_dir.startswith(compare_dir) and len(watch_dir) > len(compare_dir):
+                if watch_dir.startswith(compare_dir) and len(watch_dir) > len(
+                    compare_dir
+                ):
                     watch_dirs_set.remove(watch_dir)
 
         def callback(event):
-            display_path = getattr(event, 'dest_path', event.src_path)
+            display_path = getattr(event, "dest_path", event.src_path)
             message = "Detected file change in '%s'. Reloading..."
             logger.warning(message, display_path)
             self.has_changed = True
 
         observer = Observer()
-        event_handler = ChangeEventHandler(patterns=['*.py'], callback=callback)
+        event_handler = ChangeEventHandler(patterns=["*.py"], callback=callback)
 
         for watch_dir in watch_dirs_set:
             observer.schedule(event_handler, watch_dir, recursive=True)
