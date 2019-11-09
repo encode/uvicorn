@@ -3,7 +3,7 @@
 Use the following options to configure Uvicorn, when running from the command line.
 
 If you're running using programmatically, using `uvicorn.run(...)`, then use
-equivalent keyword arguments, eg. `uvicorn.run(app, port=5000, debug=True, access_log=False)`.
+equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=True, access_log=False)`.
 
 ## Application
 
@@ -23,11 +23,12 @@ equivalent keyword arguments, eg. `uvicorn.run(app, port=5000, debug=True, acces
 
 ## Production
 
-* `--workers <int>` - Use multiple worker processes.
+* `--workers <int>` - Use multiple worker processes. Defaults to the value of the `$WEB_CONCURRENCY` environment variable.
 
 ## Logging
 
-* `--log-level <str>` - Set the log level. **Options:** *'critical', 'error', 'warning', 'info', 'debug'.* **Default:** *'info'*.
+* `--log-config <path>` - Logging configuration file.
+* `--log-level <str>` - Set the log level. **Options:** *'critical', 'error', 'warning', 'info', 'debug', 'trace'.* **Default:** *'info'*.
 * `--no-access-log` - Disable access log only, without changing log level.
 
 ## Implementation
@@ -46,7 +47,9 @@ Note that WSGI mode always disables WebSocket support, as it is not supported by
 ## HTTP
 
 * `--root-path <str>` - Set the ASGI `root_path` for applications submounted below a given URL path.
-* `--proxy-headers` - Use the X-Forwarded-Proto and X-Forwarded-For headers to populate remote scheme/address info.
+* `--proxy-headers` / `--no-proxy-headers` - Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to populate remote address info. Defaults to enabled, but is restricted to only trusting
+connecting IPs in the `forwarded-allow-ips` configuration.
+* `--forwarded-allow-ips` <comma-separated-list> Comma seperated list of IPs to trust with proxy headers. Defaults to the ``$FORWARDED_ALLOW_IPS` environment variable if available, or '127.0.0.1'.
 
 ## HTTPS
 
