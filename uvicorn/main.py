@@ -68,7 +68,7 @@ logger = logging.getLogger("uvicorn.error")
     "--reload-dir",
     "reload_dirs",
     multiple=True,
-    help="Set reload directories explicitly, instead of using 'sys.path'.",
+    help="Set reload directories explicitly, instead of using the current working directory.",
 )
 @click.option(
     "--workers",
