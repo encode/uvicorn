@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 
 from uvicorn.subprocess import get_subprocess
+from uvicorn.supervisors.basereload import BaseReload
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.

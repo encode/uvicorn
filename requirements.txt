@@ -19,3 +19,6 @@ requests
 # Documentation
 mkdocs
 mkdocs-material
+
+# Efficient debug reload
+watchdog
