@@ -5,8 +5,20 @@ starting child processes.
 import multiprocessing
 import os
 import platform
-import socket
 import sys
+import time
+
+spawn = multiprocessing.get_context("spawn")
+
+
+class ProcessWrapper:
+    def __init__(self, target, kwargs):
+        self.process = spawn.Process(target=target, kwargs=kwargs)
+
+    def start(self):
+        self.process.start()
+        while self.process.pid is None:
+            time.sleep(0.01)
 
 
 def get_subprocess(config, target, sockets):
@@ -33,8 +45,9 @@ def get_subprocess(config, target, sockets):
     # Under Windows we cannot pass sockets directly, but must marshall
     # them into share instances.
     if platform.system() == "Windows":
-        pid = os.getpid()
-        sockets = [s.share(pid) for s in sockets]
+        from multiprocessing.resource_sharer import DupSocket
+
+        sockets = [DupSocket(s) for s in sockets]
 
     kwargs = {
         "config": config,
@@ -46,7 +59,7 @@ def get_subprocess(config, target, sockets):
     return spawn.Process(target=subprocess_started, kwargs=kwargs)
 
 
-def subprocess_started(config, target, sockets, stdin_fileno):
+def subprocess_started(config, target, sockets, stdin_fileno, queue):
     """
     Called when the child process starts.
 
@@ -64,7 +77,7 @@ def subprocess_started(config, target, sockets, stdin_fileno):
 
     # On Windows we need to marshall sockets back from their share instances.
     if platform.system() == "Windows":
-        sockets = [socket.fromshare(s) for s in sockets]
+        sockets = [s.detach() for s in sockets]
 
     # Logging needs to be setup again for each child.
     config.configure_logging()
