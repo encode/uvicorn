@@ -1,12 +1,12 @@
 import logging
-import multiprocessing
 import os
 import signal
-import sys
-import time
+import threading
 from pathlib import Path
 
 import click
+
+from uvicorn.subprocess import get_subprocess
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -17,33 +17,20 @@ logger = logging.getLogger("uvicorn.error")
 
 
 class StatReload:
-    def __init__(self, config):
+    def __init__(self, config, target, sockets):
         self.config = config
-        self.should_exit = False
-        self.reload_count = 0
+        self.target = target
+        self.sockets = sockets
+        self.should_exit = threading.Event()
         self.mtimes = {}
 
     def handle_exit(self, sig, frame):
-        self.should_exit = True
+        """
+        A signal handler that is registered with the parent process.
+        """
+        self.should_exit.set()
 
-    def get_subprocess(self, target, kwargs):
-        spawn = multiprocessing.get_context("spawn")
-        try:
-            fileno = sys.stdin.fileno()
-        except OSError:
-            fileno = None
-
-        return spawn.Process(
-            target=self.start_subprocess, args=(target, fileno), kwargs=kwargs
-        )
-
-    def start_subprocess(self, target, fd_stdin, **kwargs):
-        if fd_stdin is not None:
-            sys.stdin = os.fdopen(fd_stdin)
-        self.config.configure_logging()
-        target(**kwargs)
-
-    def run(self, target, **kwargs):
+    def run(self):
         pid = str(os.getpid())
 
         message = "Started reloader process [{}]".format(pid)
@@ -55,28 +42,30 @@ class StatReload:
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.handle_exit)
 
-        process = self.get_subprocess(target, kwargs=kwargs)
+        process = get_subprocess(
+            config=self.config, target=self.target, sockets=self.sockets
+        )
         process.start()
 
-        while process.is_alive() and not self.should_exit:
-            time.sleep(0.3)
+        while not self.should_exit.wait(0.25):
             if self.should_restart():
-                self.clear()
-                os.kill(process.pid, signal.SIGTERM)
-                process.join()
+                process = self.restart(process)
 
-                process = self.get_subprocess(target, kwargs=kwargs)
-                process.start()
-                self.reload_count += 1
-
+        process.join()
         message = "Stopping reloader process [{}]".format(pid)
         color_message = "Stopping reloader process [{}]".format(
             click.style(pid, fg="cyan", bold=True)
         )
         logger.info(message, extra={"color_message": color_message})
 
-    def clear(self):
+    def restart(self, process):
         self.mtimes = {}
+        os.kill(process.pid, signal.SIGTERM)
+        process.join()
+
+        process = get_subprocess(self.config, target, kwargs=kwargs)
+        process.start()
+        return process
 
     def should_restart(self):
         for filename in self.iter_py_files():
@@ -102,6 +91,5 @@ class StatReload:
         for reload_dir in self.config.reload_dirs:
             for subdir, dirs, files in os.walk(reload_dir):
                 for file in files:
-                    filepath = subdir + os.sep + file
-                    if filepath.endswith(".py"):
-                        yield filepath
+                    if file.endswith(".py"):
+                        yield subdir + os.sep + file
