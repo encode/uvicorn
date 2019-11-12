@@ -40,12 +40,6 @@ def test_should_reload(tmpdir):
         assert reloader.should_restart()
 
         reloader.restart()
-
-        assert not reloader.should_restart()
-        update_file.touch()
-        assert reloader.should_restart()
-
-        reloader.restart()
         reloader.shutdown()
     finally:
         os.chdir(working_dir)

@@ -74,7 +74,7 @@ class StatReload:
     def should_restart(self):
         for filename in self.iter_py_files():
             try:
-                mtime = os.stat(filename).st_mtime
+                mtime = os.path.getmtime(filename)
             except OSError as exc:  # pragma: nocover
                 continue
 
