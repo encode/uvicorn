@@ -22,50 +22,54 @@ class StatReload:
         self.target = target
         self.sockets = sockets
         self.should_exit = threading.Event()
+        self.pid = os.getpid()
         self.mtimes = {}
 
-    def handle_exit(self, sig, frame):
+    def signal_handler(self, sig, frame):
         """
         A signal handler that is registered with the parent process.
         """
         self.should_exit.set()
 
     def run(self):
-        pid = str(os.getpid())
+        self.startup()
+        while not self.should_exit.wait(0.25):
+            if self.should_restart():
+                self.restart()
+        self.shutdown()
 
-        message = "Started reloader process [{}]".format(pid)
+    def startup(self):
+        message = "Started reloader process [{}]".format(str(self.pid))
         color_message = "Started reloader process [{}]".format(
-            click.style(pid, fg="cyan", bold=True)
+            click.style(str(self.pid), fg="cyan", bold=True)
         )
         logger.info(message, extra={"color_message": color_message})
 
         for sig in HANDLED_SIGNALS:
-            signal.signal(sig, self.handle_exit)
+            signal.signal(sig, self.signal_handler)
 
-        process = get_subprocess(
+        self.process = get_subprocess(
             config=self.config, target=self.target, sockets=self.sockets
         )
-        process.start()
+        self.process.start()
 
-        while not self.should_exit.wait(0.25):
-            if self.should_restart():
-                process = self.restart(process)
+    def restart(self):
+        self.mtimes = {}
+        os.kill(self.process.pid, signal.SIGTERM)
+        self.process.join()
 
-        process.join()
-        message = "Stopping reloader process [{}]".format(pid)
+        self.process = get_subprocess(
+            config=self.config, target=self.target, sockets=self.sockets
+        )
+        self.process.start()
+
+    def shutdown(self):
+        self.process.join()
+        message = "Stopping reloader process [{}]".format(str(self.pid))
         color_message = "Stopping reloader process [{}]".format(
-            click.style(pid, fg="cyan", bold=True)
+            click.style(str(self.pid), fg="cyan", bold=True)
         )
         logger.info(message, extra={"color_message": color_message})
-
-    def restart(self, process):
-        self.mtimes = {}
-        os.kill(process.pid, signal.SIGTERM)
-        process.join()
-
-        process = get_subprocess(self.config, target, kwargs=kwargs)
-        process.start()
-        return process
 
     def should_restart(self):
         for filename in self.iter_py_files():

@@ -1,6 +1,6 @@
-import requests
+import signal
 
-from uvicorn import Config, Server
+from uvicorn import Config
 from uvicorn.supervisors import Multiprocess
 
 
@@ -9,7 +9,13 @@ def run(sockets):
 
 
 def test_multiprocess_run():
+    """
+    A basic sanity check.
+
+    Simply run the supervisor against a no-op server, and signal for it to
+    quit immediately.
+    """
     config = Config(app=None, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
-    supervisor.should_exit.set()
+    supervisor.signal_handler(sig=signal.SIGINT, frame=None)
     supervisor.run()
