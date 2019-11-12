@@ -1,5 +1,14 @@
 # Change Log
 
+## 0.10.6
+
+* Exit if `workers` or `reload` are use without an app import string style.
+* Reorganise supervisor processes to properly hand over sockets on windows.
+
+## 0.10.5
+
+* Update uvloop dependency to 0.14+
+
 ## 0.10.4
 
 * Error clearly when `workers=<NUM>` is used with app instance, instead of an app import string.
