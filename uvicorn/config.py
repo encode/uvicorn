@@ -3,7 +3,6 @@ import inspect
 import logging
 import logging.config
 import os
-import platform
 import socket
 import ssl
 import sys
@@ -318,10 +317,6 @@ class Config:
             logger.error(exc)
             sys.exit(1)
         sock.set_inheritable(True)
-
-        if platform.system() == "Windows" and (self.workers > 1 or self.should_reload):
-            #  We need to explicitly share the socket on Windows.
-            sock = socket.fromshare(sock.share(os.getpid()))
 
         message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
         color_message = (

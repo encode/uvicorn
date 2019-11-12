@@ -1,22 +1,21 @@
-from uvicorn.config import Config
+import signal
+
+from uvicorn import Config
 from uvicorn.supervisors import Multiprocess
 
 
-def no_op():
+def run(sockets):
     pass
 
 
-def mock_signal(handle_exit):
-    handle_exit(None, None)
+def test_multiprocess_run():
+    """
+    A basic sanity check.
 
-
-def test_multiprocess():
+    Simply run the supervisor against a no-op server, and signal for it to
+    quit immediately.
+    """
     config = Config(app=None, workers=2)
-    reloader = Multiprocess(config)
-    reloader.run(no_op)
-
-
-def test_exit_signal():
-    config = Config(app=None, workers=2)
-    reloader = Multiprocess(config)
-    reloader.run(mock_signal, handle_exit=reloader.handle_exit)
+    supervisor = Multiprocess(config, target=run, sockets=[])
+    supervisor.signal_handler(sig=signal.SIGINT, frame=None)
+    supervisor.run()

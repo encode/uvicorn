@@ -302,12 +302,12 @@ def run(app, **kwargs):
 
     if config.should_reload:
         sock = config.bind_socket()
-        supervisor = StatReload(config)
-        supervisor.run(server.run, sockets=[sock])
+        supervisor = StatReload(config, target=server.run, sockets=[sock])
+        supervisor.run()
     elif config.workers > 1:
         sock = config.bind_socket()
-        supervisor = Multiprocess(config)
-        supervisor.run(server.run, sockets=[sock])
+        supervisor = Multiprocess(config, target=server.run, sockets=[sock])
+        supervisor.run()
     else:
         server.run()
 

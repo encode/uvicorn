@@ -1,42 +1,52 @@
 import os
-import time
+import signal
+import sys
 from pathlib import Path
 
+import pytest
+
 from uvicorn.config import Config
-from uvicorn.main import Server
 from uvicorn.supervisors import StatReload
 
 
-def wait_for_reload(reloader, until, update_file):
-    # I think coverage doesn't fully track this, since it runs in a spawned subprocess.
-    while reloader.reload_count < until:  # pragma: nocover
-        time.sleep(0.1)
-        Path(update_file).touch()
+def run(sockets):
+    pass
 
 
-def mock_signal(handle_exit):
-    handle_exit(None, None)
+def test_statreload():
+    """
+    A basic sanity check.
+
+    Simply run the reloader against a no-op server, and signal for it to
+    quit immediately.
+    """
+    config = Config(app=None, reload=True)
+    reloader = StatReload(config, target=run, sockets=[])
+    reloader.signal_handler(sig=signal.SIGINT, frame=None)
+    reloader.run()
 
 
-def test_statreload(certfile_and_keyfile):
-    certfile, keyfile = certfile_and_keyfile
-    config = Config(app=None, ssl_certfile=certfile, ssl_keyfile=keyfile)
+@pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="Skipping reload test on Windows, due to low mtime resolution.",
+)
+def test_should_reload(tmpdir):
+    update_file = Path(os.path.join(str(tmpdir), "example.py"))
+    update_file.touch()
 
-    server = Server(config)
-    type(server).run = lambda self: None
+    working_dir = os.getcwd()
+    os.chdir(str(tmpdir))
+    try:
+        config = Config(app=None, reload=True)
+        reloader = StatReload(config, target=run, sockets=[])
+        reloader.signal_handler(sig=signal.SIGINT, frame=None)
+        reloader.startup()
 
-    reloader = StatReload(config)
-    reloader.run(server.run)
+        assert not reloader.should_restart()
+        update_file.touch()
+        assert reloader.should_restart()
 
-
-def test_reload_dirs(tmpdir):
-    update_file = os.path.join(str(tmpdir), "example.py")
-    config = Config(app=None, reload_dirs=[str(tmpdir)])
-    reloader = StatReload(config)
-    reloader.run(wait_for_reload, reloader=reloader, until=1, update_file=update_file)
-
-
-def test_exit_signal(tmpdir):
-    config = Config(app=None)
-    reloader = StatReload(config)
-    reloader.run(mock_signal, handle_exit=reloader.handle_exit)
+        reloader.restart()
+        reloader.shutdown()
+    finally:
+        os.chdir(working_dir)
