@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.10.8
+
+* Fix reload/multiprocessing error.
+
 ## 0.10.7
 
 * Use resource_sharer.DupSocket to resolve socket sharing on Windows.

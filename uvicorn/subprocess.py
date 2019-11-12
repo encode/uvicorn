@@ -11,16 +11,6 @@ import time
 spawn = multiprocessing.get_context("spawn")
 
 
-class ProcessWrapper:
-    def __init__(self, target, kwargs):
-        self.process = spawn.Process(target=target, kwargs=kwargs)
-
-    def start(self):
-        self.process.start()
-        while self.process.pid is None:
-            time.sleep(0.01)
-
-
 def get_subprocess(config, target, sockets):
     """
     Called in the parent process, to instantiate a new child process instance.
@@ -32,9 +22,6 @@ def get_subprocess(config, target, sockets):
     * sockets - A list of sockets to pass to the server. Sockets are bound once
                 by the parent process, and then passed to the child processes.
     """
-    #  For consistency everywhere we spawn rather than fork.
-    spawn = multiprocessing.get_context("spawn")
-
     # We pass across the stdin fileno, and reopen it in the child process.
     # This is required for some debugging environments.
     try:
@@ -59,7 +46,7 @@ def get_subprocess(config, target, sockets):
     return spawn.Process(target=subprocess_started, kwargs=kwargs)
 
 
-def subprocess_started(config, target, sockets, stdin_fileno, queue):
+def subprocess_started(config, target, sockets, stdin_fileno):
     """
     Called when the child process starts.
 
