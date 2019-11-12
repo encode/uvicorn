@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.10.7
+
+* Use resource_sharer.DupSocket to resolve socket sharing on Windows.
+
 ## 0.10.6
 
 * Exit if `workers` or `reload` are use without an app import string style.
