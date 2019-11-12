@@ -45,7 +45,7 @@ requirements = [
     "h11==0.8.*",
     "websockets==8.*",
     "httptools==0.0.13 ;" + env_marker,
-    "uvloop==0.14.0rc2 ;" + env_marker,
+    "uvloop>=0.14.0 ;" + env_marker,
 ]
 
 
