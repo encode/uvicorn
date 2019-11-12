@@ -1,6 +1,9 @@
 import os
 import signal
+import sys
 from pathlib import Path
+
+import pytest
 
 from uvicorn.config import Config
 from uvicorn.supervisors import StatReload
@@ -23,6 +26,10 @@ def test_statreload():
     reloader.run()
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("win"),
+    reason="Skipping reload test on Windows, due to low mtime resolution.",
+)
 def test_should_reload(tmpdir):
     update_file = Path(os.path.join(str(tmpdir), "example.py"))
     update_file.touch()
