@@ -299,6 +299,7 @@ def run(app, **kwargs):
         logger.warn(
             "You must pass the application as an import string to enable 'reload' or 'workers'."
         )
+        sys.exit(1)
 
     if config.should_reload:
         sock = config.bind_socket()
