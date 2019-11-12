@@ -3,7 +3,7 @@ h11
 
 # Optional
 httptools
-uvloop==0.14.0rc2
+uvloop>=0.14.0
 websockets==8.*
 wsproto==0.13.*
 
