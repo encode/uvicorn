@@ -4,8 +4,16 @@ import socket
 def get_remote_addr(transport):
     socket_info = transport.get_extra_info("socket")
     if socket_info is not None:
-        info = socket_info.getpeername()
-        family = socket_info.family
+        try:
+            info = socket_info.getpeername()
+        except OSError:
+            # This case appears to inconsistently occur with uvloop
+            # bound to a unix domain socket.
+            family = None
+            info = None
+        else:
+            family = socket_info.family
+
         if family in (socket.AF_INET, socket.AF_INET6):
             return (str(info[0]), int(info[1]))
         return None
