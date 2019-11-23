@@ -370,6 +370,11 @@ class Server:
         )
 
     async def startup(self, sockets=None):
+        await self.lifespan.startup()
+        if self.lifespan.should_exit:
+            self.should_exit = True
+            return
+
         config = self.config
 
         create_protocol = functools.partial(
@@ -435,12 +440,8 @@ class Server:
                 extra={"color_message": color_message},
             )
             self.servers = [server]
-
-        await self.lifespan.startup()
-        if self.lifespan.should_exit:
-            self.should_exit = True
-        else:
-            self.started = True
+            
+        self.started = True
 
     async def main_loop(self):
         counter = 0
