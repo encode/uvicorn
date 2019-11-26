@@ -424,6 +424,7 @@ class Server:
                 )
             except OSError as exc:
                 logger.error(exc)
+                await self.lifespan.shutdown()
                 sys.exit(1)
             protocol_name = "https" if config.ssl else "http"
             message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
