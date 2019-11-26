@@ -441,7 +441,7 @@ class Server:
                 extra={"color_message": color_message},
             )
             self.servers = [server]
-            
+
         self.started = True
 
     async def main_loop(self):
