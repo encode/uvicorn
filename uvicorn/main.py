@@ -139,6 +139,12 @@ logger = logging.getLogger("uvicorn.error")
     help="Enable/Disable access log.",
 )
 @click.option(
+    "--use-colors/--use-colors",
+    is_flag=True,
+    default=True,
+    help="Enable/Disable colorized logging.",
+)
+@click.option(
     "--proxy-headers/--no-proxy-headers",
     is_flag=True,
     default=True,
