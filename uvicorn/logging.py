@@ -1,6 +1,5 @@
 import http
 import logging
-import sys
 
 import click
 

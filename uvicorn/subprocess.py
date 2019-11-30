@@ -6,7 +6,6 @@ import multiprocessing
 import os
 import platform
 import sys
-import time
 
 spawn = multiprocessing.get_context("spawn")
 

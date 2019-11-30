@@ -95,12 +95,12 @@ LOGGING_CONFIG_NO_COLORS = {
         "default": {
             "()": "uvicorn.logging.ColourizedFormatter",
             "fmt": "%(levelprefix)s %(message)s",
-            "use_colors": False
+            "use_colors": False,
         },
         "access": {
             "()": "uvicorn.logging.AccessFormatter",
             "fmt": '%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',
-            "use_colors": False
+            "use_colors": False,
         },
     },
     "handlers": {
