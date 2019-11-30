@@ -57,12 +57,12 @@ INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
 SSL_PROTOCOL_VERSION = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
 
 
-LOGGING_CONFIG = {
+LOGGING_CONFIG_COLORS = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "default": {
-            "()": "uvicorn.logging.DefaultFormatter",
+            "()": "uvicorn.logging.ColourizedFormatter",
             "fmt": "%(levelprefix)s %(message)s",
         },
         "access": {
@@ -88,6 +88,7 @@ LOGGING_CONFIG = {
         "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
     },
 }
+
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -116,7 +117,7 @@ class Config:
         ws="auto",
         lifespan="auto",
         env_file=None,
-        log_config=LOGGING_CONFIG,
+        log_config=LOGGING_CONFIG_COLORS,
         log_level=None,
         access_log=True,
         interface="auto",
