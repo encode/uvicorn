@@ -88,7 +88,39 @@ LOGGING_CONFIG_COLORS = {
         "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
     },
 }
-
+LOGGING_CONFIG_NO_COLORS = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "()": "uvicorn.logging.ColourizedFormatter",
+            "fmt": "%(levelprefix)s %(message)s",
+            "use_colors": False
+        },
+        "access": {
+            "()": "uvicorn.logging.AccessFormatter",
+            "fmt": '%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',
+            "use_colors": False
+        },
+    },
+    "handlers": {
+        "default": {
+            "formatter": "default",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stderr",
+        },
+        "access": {
+            "formatter": "access",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",
+        },
+    },
+    "loggers": {
+        "": {"handlers": ["default"], "level": "INFO"},
+        "uvicorn.error": {"level": "INFO"},
+        "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
+    },
+}
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -120,6 +152,7 @@ class Config:
         log_config=LOGGING_CONFIG_COLORS,
         log_level=None,
         access_log=True,
+        use_colors=True,
         interface="auto",
         debug=False,
         reload=False,
@@ -153,6 +186,7 @@ class Config:
         self.log_config = log_config
         self.log_level = log_level
         self.access_log = access_log
+        self.use_colors = use_colors
         self.interface = interface
         self.debug = debug
         self.reload = reload
@@ -216,10 +250,15 @@ class Config:
             logging.Logger.__reduce__ = __reduce__
 
         if self.log_config is not None:
+            if not self.use_colors:
+                self.log_config = LOGGING_CONFIG_NO_COLORS
+
             if isinstance(self.log_config, dict):
                 logging.config.dictConfig(self.log_config)
             else:
                 logging.config.fileConfig(self.log_config)
+        else:
+            pass
 
         if self.log_level is not None:
             if isinstance(self.log_level, str):

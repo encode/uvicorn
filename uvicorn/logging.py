@@ -27,8 +27,8 @@ class ColourizedFormatter(logging.Formatter):
         ),
     }
 
-    def __init__(self, fmt=None, datefmt=None, style="%"):
-        self.use_colors = self.should_use_colors()
+    def __init__(self, fmt=None, datefmt=None, style="%", use_colors=True):
+        self.use_colors = use_colors
         super().__init__(fmt=fmt, datefmt=datefmt, style=style)
 
     def color_level_name(self, level_name, level_no):
@@ -51,11 +51,6 @@ class ColourizedFormatter(logging.Formatter):
         return super().formatMessage(record)
 
 
-class DefaultFormatter(ColourizedFormatter):
-    def should_use_colors(self):
-        return sys.stderr.isatty()
-
-
 class AccessFormatter(ColourizedFormatter):
     status_code_colours = {
         1: lambda code: click.style(str(code), fg="bright_white"),
@@ -64,9 +59,6 @@ class AccessFormatter(ColourizedFormatter):
         4: lambda code: click.style(str(code), fg="red"),
         5: lambda code: click.style(str(code), fg="bright_red"),
     }
-
-    def should_use_colors(self):
-        return sys.stdout.isatty()
 
     def get_client_addr(self, scope):
         client = scope.get("client")
