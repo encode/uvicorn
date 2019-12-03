@@ -229,8 +229,6 @@ class Config:
                 logging.config.dictConfig(self.log_config)
             else:
                 logging.config.fileConfig(self.log_config)
-        else:
-            pass
 
         if self.log_level is not None:
             if isinstance(self.log_level, str):
