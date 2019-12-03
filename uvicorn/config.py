@@ -220,8 +220,12 @@ class Config:
         if self.log_config is not None:
             if isinstance(self.log_config, dict):
                 if self.use_colors in (True, False):
-                    self.log_config["formatters"]["default"]["use_colors"] = self.use_colors
-                    self.log_config["formatters"]["access"]["use_colors"] = self.use_colors
+                    self.log_config["formatters"]["default"][
+                        "use_colors"
+                    ] = self.use_colors
+                    self.log_config["formatters"]["access"][
+                        "use_colors"
+                    ] = self.use_colors
                 logging.config.dictConfig(self.log_config)
             else:
                 logging.config.fileConfig(self.log_config)
