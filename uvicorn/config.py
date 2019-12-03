@@ -190,10 +190,12 @@ class Config:
             self.workers = int(os.environ["WEB_CONCURRENCY"])
 
         if forwarded_allow_ips is None:
-            self.forwarded_allow_ips = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
+            self.forwarded_allow_ips = os.environ.get(
+                "FORWARDED_ALLOW_IPS", "127.0.0.1"
+            )
         else:
             self.forwarded_allow_ips = forwarded_allow_ips
-            
+
     @property
     def is_ssl(self) -> bool:
         return bool(self.ssl_keyfile or self.ssl_certfile)
