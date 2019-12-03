@@ -559,13 +559,12 @@ class Server:
 
     def install_signal_handlers(self):
         loop = asyncio.get_event_loop()
-
         try:
-            for sig in HANDLED_SIGNALS:
+            for sig in self.config.handled_signals:
                 loop.add_signal_handler(sig, self.handle_exit, sig, None)
         except NotImplementedError as exc:
             # Windows
-            for sig in HANDLED_SIGNALS:
+            for sig in self.config.handled_signals:
                 signal.signal(sig, self.handle_exit)
 
     def handle_exit(self, sig, frame):

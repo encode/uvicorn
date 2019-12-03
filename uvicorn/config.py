@@ -3,6 +3,7 @@ import inspect
 import logging
 import logging.config
 import os
+import signal
 import socket
 import ssl
 import sys
@@ -141,6 +142,7 @@ class Config:
         ssl_ca_certs=None,
         ssl_ciphers="TLSv1",
         headers=None,
+        exit_signals=(signal.SIGINT, signal.SIGTERM),
     ):
         self.app = app
         self.host = host
@@ -175,6 +177,7 @@ class Config:
         self.ssl_ciphers = ssl_ciphers
         self.headers = headers if headers else []  # type: List[str]
         self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
+        self.handled_signals = exit_signals or []
 
         self.loaded = False
         self.configure_logging()

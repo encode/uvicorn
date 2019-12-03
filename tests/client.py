@@ -99,7 +99,11 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         response_started = False
         raw_kwargs = {"body": io.BytesIO()}
 
-        loop = asyncio.get_event_loop()
+        if not asyncio.get_event_loop().is_closed():
+            loop = asyncio.get_event_loop()
+        else:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
 
         try:
             loop.run_until_complete(self.app(scope, receive, send))
