@@ -1,5 +1,6 @@
 import http
 import logging
+import sys
 
 import click
 
@@ -26,7 +27,7 @@ class ColourizedFormatter(logging.Formatter):
         ),
     }
 
-    def __init__(self, fmt=None, datefmt=None, style="%", use_colors=True):
+    def __init__(self, fmt=None, datefmt=None, style="%", use_colors=None):
         self.use_colors = use_colors
         super().__init__(fmt=fmt, datefmt=datefmt, style=style)
 
@@ -48,6 +49,11 @@ class ColourizedFormatter(logging.Formatter):
                 record.__dict__["message"] = record.getMessage()
         record.__dict__["levelprefix"] = levelname + ":" + seperator
         return super().formatMessage(record)
+
+
+class DefaultFormatter(ColourizedFormatter):
+    def should_use_colors(self):
+        return sys.stderr.isatty()
 
 
 class AccessFormatter(ColourizedFormatter):

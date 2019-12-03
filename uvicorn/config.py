@@ -57,50 +57,18 @@ INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
 SSL_PROTOCOL_VERSION = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
 
 
-LOGGING_CONFIG_COLORS = {
+LOGGING_CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "default": {
-            "()": "uvicorn.logging.ColourizedFormatter",
+            "()": "uvicorn.logging.DefaultFormatter",
             "fmt": "%(levelprefix)s %(message)s",
+            "use_colors": None,
         },
         "access": {
             "()": "uvicorn.logging.AccessFormatter",
             "fmt": '%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',
-        },
-    },
-    "handlers": {
-        "default": {
-            "formatter": "default",
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stderr",
-        },
-        "access": {
-            "formatter": "access",
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stdout",
-        },
-    },
-    "loggers": {
-        "": {"handlers": ["default"], "level": "INFO"},
-        "uvicorn.error": {"level": "INFO"},
-        "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
-    },
-}
-LOGGING_CONFIG_NO_COLORS = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "default": {
-            "()": "uvicorn.logging.ColourizedFormatter",
-            "fmt": "%(levelprefix)s %(message)s",
-            "use_colors": False,
-        },
-        "access": {
-            "()": "uvicorn.logging.AccessFormatter",
-            "fmt": '%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',
-            "use_colors": False,
         },
     },
     "handlers": {
@@ -149,10 +117,10 @@ class Config:
         ws="auto",
         lifespan="auto",
         env_file=None,
-        log_config=LOGGING_CONFIG_COLORS,
+        log_config=LOGGING_CONFIG,
         log_level=None,
         access_log=True,
-        use_colors=True,
+        use_colors=None,
         interface="auto",
         debug=False,
         reload=False,
@@ -250,10 +218,10 @@ class Config:
             logging.Logger.__reduce__ = __reduce__
 
         if self.log_config is not None:
-            if not self.use_colors:
-                self.log_config = LOGGING_CONFIG_NO_COLORS
-
             if isinstance(self.log_config, dict):
+                if self.use_colors in (True, False):
+                    self.log_config["formatters"]["default"]["use_colors"] = self.use_colors
+                    self.log_config["formatters"]["access"]["use_colors"] = self.use_colors
                 logging.config.dictConfig(self.log_config)
             else:
                 logging.config.fileConfig(self.log_config)
