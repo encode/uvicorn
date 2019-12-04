@@ -219,8 +219,7 @@ class Config:
                 logging.config.dictConfig(self.log_config)
             else:
                 logging.config.fileConfig(
-                    self.log_config,
-                    disable_existing_loggers=False
+                    self.log_config, disable_existing_loggers=False
                 )
 
         if self.log_level is not None:
