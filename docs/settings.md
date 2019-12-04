@@ -30,6 +30,7 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 * `--log-config <path>` - Logging configuration file.
 * `--log-level <str>` - Set the log level. **Options:** *'critical', 'error', 'warning', 'info', 'debug', 'trace'.* **Default:** *'info'*.
 * `--no-access-log` - Disable access log only, without changing log level.
+* `--use`
 
 ## Implementation
 

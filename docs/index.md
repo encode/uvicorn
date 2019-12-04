@@ -67,7 +67,6 @@ The uvicorn command line tool is the easiest way to run your application...
 ### Command line options
 
 ```
-$ uvicorn --help
 Usage: uvicorn [OPTIONS] APP
 
 Options:
