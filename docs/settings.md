@@ -32,6 +32,8 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 * `--no-access-log` - Disable access log only, without changing log level.
 * `--use-colors / --no-use-colors` - Enable / disable colorized formatting of the log records, in case this is not set it will be auto-detected.
 
+See a custom logging configuration [example](examples.md)
+
 ## Implementation
 
 * `--loop <str>` - Set the event loop implementation. The uvloop implementation provides greater performance, but is not compatible with Windows or PyPy. But you can use IOCP in windows. **Options:** *'auto', 'asyncio', 'uvloop', 'iocp'.* **Default:** *'auto'*.
