@@ -97,7 +97,7 @@ Options:
   --log-level [critical|error|warning|info|debug|trace]
                                   Log level. [default: info]
   --access-log / --no-access-log  Enable/Disable access log.
-  --use-colors / --use-colors     Enable/Disable colorized logging.
+  --use-colors / --no-use-colors  Enable/Disable colorized logging.
   --proxy-headers / --no-proxy-headers
                                   Enable/Disable X-Forwarded-Proto,
                                   X-Forwarded-For, X-Forwarded-Port to
