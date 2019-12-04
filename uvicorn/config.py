@@ -218,7 +218,10 @@ class Config:
             if isinstance(self.log_config, dict):
                 logging.config.dictConfig(self.log_config)
             else:
-                logging.config.fileConfig(self.log_config)
+                logging.config.fileConfig(
+                    self.log_config,
+                    disable_existing_loggers=False
+                )
 
         if self.log_level is not None:
             if isinstance(self.log_level, str):
