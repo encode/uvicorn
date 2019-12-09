@@ -6,7 +6,7 @@ The below `logging_example.yaml` overrides the default logging configuration usi
 
 It makes use of the `uvicorn.error` and `uvicorn.access` colorized loggers with to the `use_colors` key in the formatters section.
 
-It also makes use of the `TRACE` output and setup a debug logger on the `logging_example.py` with the `--log-level` flag.
+It also makes use of the `TRACE` output with the `--log-level` flag and setup a debug logger on the `logging_example.py`.
 
 ![logging](./src/logging_example/logging_example.png)
 
