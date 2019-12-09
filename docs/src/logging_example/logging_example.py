@@ -24,9 +24,9 @@ async def app(scope, receive, send):
 
 
 if __name__ == '__main__':
-    with open('logging.yaml', 'r') as stream:
+    with open('logging_example/logging_example.yaml', 'r') as stream:
         config = yaml.load(stream, yaml.FullLoader)
     # DEBUG DEV
     # uvicorn.run("main:app", reload=True, log_config=config)
     # TRACE
-    uvicorn.run("main:app", reload=True, log_config=config, log_level="trace")
+    uvicorn.run("logging_example:app", reload=True, log_config=config, log_level="trace")
