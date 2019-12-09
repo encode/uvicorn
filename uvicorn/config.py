@@ -160,7 +160,6 @@ class Config:
         self.reload = reload
         self.workers = workers or 1
         self.proxy_headers = proxy_headers
-        self.forwarded_allow_ips = forwarded_allow_ips or "127.0.0.1"
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests
@@ -193,8 +192,12 @@ class Config:
         if workers is None and "WEB_CONCURRENCY" in os.environ:
             self.workers = int(os.environ["WEB_CONCURRENCY"])
 
-        if forwarded_allow_ips is None and "FORWARDED_ALLOW_IPS" in os.environ:
-            self.forwarded_allow_ips = os.environ["FORWARDED_ALLOW_IPS"]
+        if forwarded_allow_ips is None:
+            self.forwarded_allow_ips = os.environ.get(
+                "FORWARDED_ALLOW_IPS", "127.0.0.1"
+            )
+        else:
+            self.forwarded_allow_ips = forwarded_allow_ips
 
     @property
     def is_ssl(self) -> bool:
