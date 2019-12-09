@@ -64,6 +64,7 @@ LOGGING_CONFIG = {
         "default": {
             "()": "uvicorn.logging.DefaultFormatter",
             "fmt": "%(levelprefix)s %(message)s",
+            "use_colors": None,
         },
         "access": {
             "()": "uvicorn.logging.AccessFormatter",
@@ -119,6 +120,7 @@ class Config:
         log_config=LOGGING_CONFIG,
         log_level=None,
         access_log=True,
+        use_colors=None,
         interface="auto",
         debug=False,
         reload=False,
@@ -152,6 +154,7 @@ class Config:
         self.log_config = log_config
         self.log_level = log_level
         self.access_log = access_log
+        self.use_colors = use_colors
         self.interface = interface
         self.debug = debug
         self.reload = reload
@@ -216,6 +219,13 @@ class Config:
 
         if self.log_config is not None:
             if isinstance(self.log_config, dict):
+                if self.use_colors in (True, False):
+                    self.log_config["formatters"]["default"][
+                        "use_colors"
+                    ] = self.use_colors
+                    self.log_config["formatters"]["access"][
+                        "use_colors"
+                    ] = self.use_colors
                 logging.config.dictConfig(self.log_config)
             else:
                 logging.config.fileConfig(self.log_config)
