@@ -2,20 +2,16 @@
 
 ## Custom logging
 
-The below `logging_example.yaml` overrides the default logging configuration using the `--log-config` flag.
+The below `logging_example.yaml` is a yaml representation of the default logging configuration.
+You can pass it loading a dict, using the `--log-config` flag.
+It sets 2 loggers:
+1. `uvicorn.error` whose formatter is the `uvicorn.logging.DefaultFormatter`. 
+2. `uvicorn.access` whose formatter is the `uvicorn.logging.AccessFormatter`. 
 
-It makes use of the `uvicorn.error` and `uvicorn.access` colorized loggers with to the `use_colors` key in the formatters section.
+Both formatters will output a colorized automatically if a tty is detected.
 
-It also makes use of the `TRACE` output with the `--log-level` flag and setup a debug logger on the `logging_example.py`.
-
-![logging](./src/logging_example/logging_example.png)
+If you used the `--use-colors / --no-use-colors` then the output will / won't be colorized.
 
 ```yaml hl_lines="7 11 38 39 40 41"
 {!./src/logging_example/logging_example.yaml!}
-```
-
-in your `logging_example.py`
-
-```python hl_lines="7 32"
-{!./src/logging_example/logging_example.py!}
 ```
