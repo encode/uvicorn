@@ -17,3 +17,5 @@ pages:
 markdown_extensions:
   - markdown.extensions.codehilite:
       guess_lang: false
+  - markdown_include.include:
+      base_path: docs
