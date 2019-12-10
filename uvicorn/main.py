@@ -2,6 +2,7 @@ import asyncio
 import functools
 import logging
 import os
+import platform
 import signal
 import socket
 import ssl
@@ -12,6 +13,7 @@ from email.utils import formatdate
 
 import click
 
+import uvicorn
 from uvicorn.config import (
     HTTP_PROTOCOLS,
     INTERFACES,
@@ -38,6 +40,19 @@ HANDLED_SIGNALS = (
 )
 
 logger = logging.getLogger("uvicorn.error")
+
+
+@click.command()
+def version():
+    click.echo(
+        "Running uvicorn %s with %s %s on %s"
+        % (
+            uvicorn.__version__,
+            platform.python_implementation(),
+            platform.python_version(),
+            platform.system(),
+        )
+    )
 
 
 @click.command()
