@@ -1,6 +1,3 @@
-import sys
-
-
 def auto_loop_setup():
     try:
         import uvloop
