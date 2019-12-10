@@ -42,8 +42,9 @@ HANDLED_SIGNALS = (
 logger = logging.getLogger("uvicorn.error")
 
 
-@click.command()
-def version():
+def print_version(ctx, param, value):
+    if not value or ctx.resilient_parsing:
+        return
     click.echo(
         "Running uvicorn %s with %s %s on %s"
         % (
@@ -53,6 +54,7 @@ def version():
             platform.system(),
         )
     )
+    ctx.exit()
 
 
 @click.command()
@@ -239,6 +241,9 @@ def version():
     "headers",
     multiple=True,
     help="Specify custom default HTTP response headers as a Name:Value pair",
+)
+@click.option(
+    "--version", is_flag=True, callback=print_version, expose_value=False, is_eager=True
 )
 def main(
     app,
