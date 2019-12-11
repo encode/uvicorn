@@ -29,12 +29,13 @@ class Multiprocess:
         """
         A signal handler that is registered with the parent process.
         """
+        logger.info(f"children: {self.child_pids}")
         for child_pid in self.child_pids:
             try:
                 os.kill(child_pid, signal.SIGINT)
                 finished = os.waitpid(child_pid, 0)
             except Exception as e:
-                logger.error("cant kill server")
+                logger.error(f"cant kill server: {e}")
         self.should_exit.set()
 
     def run(self):
@@ -58,6 +59,7 @@ class Multiprocess:
             )
             process.start()
             self.processes.append(process)
+        for process in self.processes:
             self.child_pids.append(process.pid)
 
     def shutdown(self):
