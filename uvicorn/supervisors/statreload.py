@@ -72,7 +72,6 @@ class StatReload:
         self.process.start()
 
     def shutdown(self):
-        logger.info(f"is set {self.should_exit.is_set()}")
         self.process.join()
         message = "Stopping reloader process [{}]".format(str(self.pid))
         color_message = "Stopping reloader process [{}]".format(
