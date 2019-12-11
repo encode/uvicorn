@@ -35,7 +35,7 @@ class StatReload:
                 os.kill(child_pid, signal.SIGINT)
                 finished = os.waitpid(child_pid, 0)
             except Exception as e:
-                logger.error("cant kill server")
+                logger.error(f"Cant kill child PID {child_pid}: {e}")
         self.should_exit.set()
 
     def run(self):
