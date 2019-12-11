@@ -81,11 +81,11 @@ async def app(scope, receive, send):
 """
 
 
-data = [(DOCKERFILE), (DOCKERFILE_RELOAD)]
+data = [(DOCKERFILE, "uv"), (DOCKERFILE_RELOAD, "uvr")]
 
 
-@pytest.mark.parametrize("dockerfile", data)
-def test_docker(tmpdir_factory, dockerfile):
+@pytest.mark.parametrize("dockerfile, tag", data)
+def test_docker(tmpdir_factory, dockerfile, tag):
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
     appdir = tmpdir_factory.mktemp("app")
@@ -95,7 +95,7 @@ def test_docker(tmpdir_factory, dockerfile):
         f.write(APPFILE)
     client: DockerClient = docker.from_env()
     image, _ = client.images.build(
-        path=".", dockerfile=appdir / "Dockerfile", tag=f"{dockerfile}"
+        path=".", dockerfile=appdir / "Dockerfile", tag=tag
     )
     container = client.containers.run(
         image,
