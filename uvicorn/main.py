@@ -257,6 +257,7 @@ def main(
     ssl_ca_certs: str,
     ssl_ciphers: str,
     headers: typing.List[str],
+    use_colors: bool,
 ):
     sys.path.insert(0, ".")
 
@@ -292,6 +293,7 @@ def main(
         "ssl_ca_certs": ssl_ca_certs,
         "ssl_ciphers": ssl_ciphers,
         "headers": list([header.split(":") for header in headers]),
+        "use_colors": use_colors,
     }
     run(**kwargs)
 
