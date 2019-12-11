@@ -58,14 +58,16 @@ def test_should_reload(tmpdir):
 
 DOCKERFILE = """
 FROM python:3.7-buster
-RUN pip install uvicorn==0.10.8
+RUN apt update && apt-get install -y git --no-install-recommends && rm -rf /var/lib/apt/lists/* && apt-get clean
+RUN pip install git+https://github.com/euri10/uvicorn.git@docker_signal#egg=uvicorn
 WORKDIR /app
 CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000"]
 """
 
 DOCKERFILE_RELOAD = """
 FROM python:3.7-buster
-RUN pip install uvicorn==0.10.8
+RUN apt update && apt-get install -y git --no-install-recommends && rm -rf /var/lib/apt/lists/* && apt-get clean
+RUN pip install git+https://github.com/euri10/uvicorn.git@docker_signal#egg=uvicorn
 WORKDIR /app
 CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000", "--reload"]
 """
@@ -93,7 +95,7 @@ def test_docker(tmpdir_factory, dockerfile):
         f.write(APPFILE)
     client: DockerClient = docker.from_env()
     image, _ = client.images.build(
-        path=".", dockerfile=appdir / "Dockerfile", tag=f"uvicorn_docker"
+        path=".", dockerfile=appdir / "Dockerfile", tag=f"{dockerfile}"
     )
     container = client.containers.run(
         image,
