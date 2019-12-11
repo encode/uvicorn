@@ -95,5 +95,4 @@ class StatReload:
         for reload_dir in self.config.reload_dirs:
             for subdir, dirs, files in os.walk(reload_dir):
                 for file in files:
-                    if file.endswith(".py"):
-                        yield subdir + os.sep + file
+                    yield subdir + os.sep + file

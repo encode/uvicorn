@@ -1,6 +1,7 @@
 import os
 import signal
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -41,8 +42,14 @@ def test_should_reload(tmpdir):
         reloader = StatReload(config, target=run, sockets=[])
         reloader.signal_handler(sig=signal.SIGINT, frame=None)
         reloader.startup()
-
         assert not reloader.should_restart()
+
+        # This sleep is needed to avoid unreliable tests. Relying on
+        # timing in tests is a bad idea but I'm not sure how to do
+        # better in this case since we are actually testing if
+        # StatReload's understanding of mtime is correct so we are
+        # bound by it's precision.
+        time.sleep(0.01)
         update_file.touch()
         assert reloader.should_restart()
 
