@@ -72,7 +72,7 @@ class StatReload:
         logger.info(message, extra={"color_message": color_message})
 
     def should_restart(self):
-        for filename in self.iter_py_files():
+        for filename in self.iter_watched_files():
             try:
                 mtime = os.path.getmtime(filename)
             except OSError as exc:  # pragma: nocover
@@ -91,9 +91,10 @@ class StatReload:
                 return True
         return False
 
-    def iter_py_files(self):
+    def iter_watched_files(self):
         for reload_dir in self.config.reload_dirs:
-            for subdir, dirs, files in os.walk(reload_dir):
-                for file in files:
-                    if file.endswith(".py"):
-                        yield subdir + os.sep + file
+            for extension in self.config.reload_extensions:
+                for subdir, dirs, files in os.walk(reload_dir):
+                    for file in files:
+                        if file.endswith(extension):
+                            yield subdir + os.sep + file

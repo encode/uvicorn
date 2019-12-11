@@ -78,6 +78,8 @@ Options:
   --reload                        Enable auto-reload.
   --reload-dir TEXT               Set reload directories explicitly, instead
                                   of using the current working directory.
+  --reload-extension TEXT         Set reloaded file extensions explicitly,
+                                  instead of only watching .py.
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
                                   available. Not valid with --reload.
