@@ -59,7 +59,7 @@ def test_should_reload(tmpdir):
 DOCKERFILE = """
 FROM python:3.7-buster
 RUN apt update && apt-get install -y git --no-install-recommends && rm -rf /var/lib/apt/lists/* && apt-get clean
-RUN pip install git+https://github.com/euri10/uvicorn.git@docker_signal#egg=uvicorn
+RUN pip install git+https://github.com/euri10/uvicorn.git@bd5dd14c3e669d272bc29b1f3fb164e56ce3258b#egg=uvicorn
 WORKDIR /app
 CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000"]
 """
@@ -67,7 +67,7 @@ CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000"]
 DOCKERFILE_RELOAD = """
 FROM python:3.7-buster
 RUN apt update && apt-get install -y git --no-install-recommends && rm -rf /var/lib/apt/lists/* && apt-get clean
-RUN pip install git+https://github.com/euri10/uvicorn.git@docker_signal#egg=uvicorn
+RUN pip install git+https://github.com/euri10/uvicorn.git@bd5dd14c3e669d272bc29b1f3fb164e56ce3258b#egg=uvicorn
 WORKDIR /app
 CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000", "--reload"]
 """
@@ -75,7 +75,7 @@ CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000", "--reload"]
 DOCKERFILE_WORKER = """
 FROM python:3.7-buster
 RUN apt update && apt-get install -y git --no-install-recommends && rm -rf /var/lib/apt/lists/* && apt-get clean
-RUN pip install git+https://github.com/euri10/uvicorn.git@docker_signal#egg=uvicorn
+RUN pip install git+https://github.com/euri10/uvicorn.git@bd5dd14c3e669d272bc29b1f3fb164e56ce3258b#egg=uvicorn
 WORKDIR /app
 CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000", "--workers", "2"]
 """
