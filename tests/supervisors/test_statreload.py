@@ -72,6 +72,14 @@ WORKDIR /app
 CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000", "--reload"]
 """
 
+DOCKERFILE_WORKER = """
+FROM python:3.7-buster
+RUN apt update && apt-get install -y git --no-install-recommends && rm -rf /var/lib/apt/lists/* && apt-get clean
+RUN pip install git+https://github.com/euri10/uvicorn.git@docker_signal#egg=uvicorn
+WORKDIR /app
+CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000", "--workers", 2]
+"""
+
 APPFILE = """
 async def app(scope, receive, send):
     message = await receive()
@@ -81,7 +89,7 @@ async def app(scope, receive, send):
 """
 
 
-data = [(DOCKERFILE, "uv"), (DOCKERFILE_RELOAD, "uvr")]
+data = [(DOCKERFILE, "uv"), (DOCKERFILE_RELOAD, "uvr"), (DOCKERFILE_WORKER, "uvw")]
 
 
 @pytest.mark.parametrize("dockerfile, tag", data)
@@ -94,9 +102,7 @@ def test_docker(tmpdir_factory, dockerfile, tag):
     with open(appdir / "app.py", "w") as f:
         f.write(APPFILE)
     client: DockerClient = docker.from_env()
-    image, _ = client.images.build(
-        path=".", dockerfile=appdir / "Dockerfile", tag=tag
-    )
+    image, _ = client.images.build(path=".", dockerfile=appdir / "Dockerfile", tag=tag)
     container = client.containers.run(
         image,
         name="uvicorn_docker",

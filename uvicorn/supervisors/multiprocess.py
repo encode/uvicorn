@@ -23,11 +23,18 @@ class Multiprocess:
         self.processes = []
         self.should_exit = threading.Event()
         self.pid = os.getpid()
+        self.child_pids = []
 
     def signal_handler(self, sig, frame):
         """
         A signal handler that is registered with the parent process.
         """
+        for child_pid in self.child_pids:
+            try:
+                os.kill(child_pid, signal.SIGINT)
+                finished = os.waitpid(child_pid, 0)
+            except Exception as e:
+                logger.error("cant kill server")
         self.should_exit.set()
 
     def run(self):
@@ -51,6 +58,7 @@ class Multiprocess:
             )
             process.start()
             self.processes.append(process)
+            self.child_pids.append(process.pid)
 
     def shutdown(self):
         for process in self.processes:
