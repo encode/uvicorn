@@ -1,3 +1,4 @@
+import logging
 import os
 import signal
 import sys
@@ -31,6 +32,8 @@ def test_statreload():
     reason="Skipping reload test on Windows, due to low mtime resolution.",
 )
 def test_should_reload(tmpdir):
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
     update_file = Path(os.path.join(str(tmpdir), "example.py"))
     update_file.touch()
 
@@ -43,7 +46,9 @@ def test_should_reload(tmpdir):
         reloader.startup()
 
         assert not reloader.should_restart()
+        logger.debug(f"before reload: {os.path.getmtime(update_file)}")
         update_file.touch()
+        logger.debug(f"after reload: {os.path.getmtime(update_file)}")
         assert reloader.should_restart()
 
         reloader.restart()
