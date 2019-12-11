@@ -24,15 +24,23 @@ class StatReload:
         self.should_exit = threading.Event()
         self.pid = os.getpid()
         self.mtimes = {}
+        self.child_pids = []
 
     def signal_handler(self, sig, frame):
         """
         A signal handler that is registered with the parent process.
         """
+        for child_pid in self.child_pids:
+            try:
+                os.kill(child_pid, signal.SIGINT)
+                finished = os.waitpid(child_pid, 0)
+            except Exception as e:
+                logger.error("cant kill server")
         self.should_exit.set()
 
     def run(self):
         self.startup()
+        self.child_pids.append(self.process.pid)
         while not self.should_exit.wait(0.25):
             if self.should_restart():
                 self.restart()
@@ -64,6 +72,7 @@ class StatReload:
         self.process.start()
 
     def shutdown(self):
+        logger.info(f"is set {self.should_exit.is_set()}")
         self.process.join()
         message = "Stopping reloader process [{}]".format(str(self.pid))
         color_message = "Stopping reloader process [{}]".format(

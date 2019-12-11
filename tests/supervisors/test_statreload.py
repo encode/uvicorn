@@ -70,7 +70,7 @@ WORKDIR /app
 CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000", "--reload"]
 """
 
-APPFILE="""
+APPFILE = """
 async def app(scope, receive, send):
     message = await receive()
     await send({"type": "http.response.start", "status": 200, "headers": []})
@@ -79,7 +79,7 @@ async def app(scope, receive, send):
 """
 
 
-data = [(DOCKERFILE),(DOCKERFILE_RELOAD)]
+data = [(DOCKERFILE), (DOCKERFILE_RELOAD)]
 
 
 @pytest.mark.parametrize("dockerfile", data)
@@ -103,10 +103,12 @@ def test_docker(tmpdir_factory, dockerfile):
     )
     try:
         time.sleep(1)
-        assert container.status == 'created'
+        assert container.status == "created"
         time.sleep(1)
         assert "Application startup complete" in container.logs().decode()
-        logger.info(f"number of process in container top: {len(container.top()['Processes'])}")
+        logger.info(
+            f"number of process in container top: {len(container.top()['Processes'])}"
+        )
         logger.info(container.top()["Processes"])
         container.kill(signal=signal.SIGINT)
         time.sleep(1)
