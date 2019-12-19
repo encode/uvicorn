@@ -2,6 +2,7 @@ import asyncio
 import functools
 import logging
 import os
+import platform
 import signal
 import socket
 import ssl
@@ -12,6 +13,7 @@ from email.utils import formatdate
 
 import click
 
+import uvicorn
 from uvicorn.config import (
     HTTP_PROTOCOLS,
     INTERFACES,
@@ -38,6 +40,21 @@ HANDLED_SIGNALS = (
 )
 
 logger = logging.getLogger("uvicorn.error")
+
+
+def print_version(ctx, param, value):
+    if not value or ctx.resilient_parsing:
+        return
+    click.echo(
+        "Running uvicorn %s with %s %s on %s"
+        % (
+            uvicorn.__version__,
+            platform.python_implementation(),
+            platform.python_version(),
+            platform.system(),
+        )
+    )
+    ctx.exit()
 
 
 @click.command()
@@ -224,6 +241,14 @@ logger = logging.getLogger("uvicorn.error")
     "headers",
     multiple=True,
     help="Specify custom default HTTP response headers as a Name:Value pair",
+)
+@click.option(
+    "--version",
+    is_flag=True,
+    callback=print_version,
+    expose_value=False,
+    is_eager=True,
+    help="Display the uvicorn version and exit.",
 )
 def main(
     app,
