@@ -243,7 +243,12 @@ def print_version(ctx, param, value):
     help="Specify custom default HTTP response headers as a Name:Value pair",
 )
 @click.option(
-    "--version", is_flag=True, callback=print_version, expose_value=False, is_eager=True
+    "--version",
+    is_flag=True,
+    callback=print_version,
+    expose_value=False,
+    is_eager=True,
+    help="Display the uvicorn version and exit.",
 )
 def main(
     app,
