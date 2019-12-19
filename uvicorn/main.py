@@ -453,6 +453,9 @@ class Server:
             except OSError as exc:
                 logger.error(exc)
                 sys.exit(1)
+            port = config.port
+            if port == 0:
+                port = server.sockets[0].getsockname()[1]
             protocol_name = "https" if config.ssl else "http"
             message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
             color_message = (
@@ -464,7 +467,7 @@ class Server:
                 message,
                 protocol_name,
                 config.host,
-                config.port,
+                port,
                 extra={"color_message": color_message},
             )
             self.servers = [server]
