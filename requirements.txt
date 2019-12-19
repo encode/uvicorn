@@ -19,4 +19,3 @@ requests
 # Documentation
 mkdocs
 mkdocs-material
-markdown-include
