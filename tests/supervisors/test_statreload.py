@@ -1,6 +1,6 @@
 import os
 import signal
-import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -26,10 +26,6 @@ def test_statreload():
     reloader.run()
 
 
-@pytest.mark.skipif(
-    sys.platform.startswith("win"),
-    reason="Skipping reload test on Windows, due to low mtime resolution.",
-)
 def test_should_reload(tmpdir):
     update_file = Path(os.path.join(str(tmpdir), "example.py"))
     update_file.touch()
@@ -43,6 +39,7 @@ def test_should_reload(tmpdir):
         reloader.startup()
 
         assert not reloader.should_restart()
+        time.sleep(0.1)
         update_file.touch()
         assert reloader.should_restart()
 
