@@ -4,9 +4,9 @@ starting child processes.
 """
 import multiprocessing
 import os
-import platform
 import sys
 
+multiprocessing.allow_connection_pickling()
 spawn = multiprocessing.get_context("spawn")
 
 
@@ -27,13 +27,6 @@ def get_subprocess(config, target, sockets):
         stdin_fileno = sys.stdin.fileno()
     except OSError:
         stdin_fileno = None
-
-    # Under Windows we cannot pass sockets directly, but must marshall
-    # them into share instances.
-    if platform.system() == "Windows":
-        from multiprocessing.resource_sharer import DupSocket
-
-        sockets = [DupSocket(s) for s in sockets]
 
     kwargs = {
         "config": config,
@@ -60,10 +53,6 @@ def subprocess_started(config, target, sockets, stdin_fileno):
     # Re-open stdin.
     if stdin_fileno is not None:
         sys.stdin = os.fdopen(stdin_fileno)
-
-    # On Windows we need to marshall sockets back from their share instances.
-    if platform.system() == "Windows":
-        sockets = [s.detach() for s in sockets]
 
     # Logging needs to be setup again for each child.
     config.configure_logging()
