@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.11.1
+
+* Use a more liberal `h11` dependency. Either `0.8.*` or `0.9.*``.
+
 ## 0.11.0
 
 * Fix reload/multiprocessing on Windows with Python 3.8.
