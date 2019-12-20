@@ -482,12 +482,14 @@ def test_send_binary_data_to_server_bigger_than_default(protocol_cls):
             await self.send({"type": "websocket.send", "bytes": _bytes})
 
     async def send_text(url):
-        async with websockets.connect(url, max_size=DEFAULT_MAX_WS_BYTES_PLUS1) as websocket:
-            await websocket.send(b"\x01"*DEFAULT_MAX_WS_BYTES_PLUS1)
+        async with websockets.connect(
+            url, max_size=DEFAULT_MAX_WS_BYTES_PLUS1
+        ) as websocket:
+            await websocket.send(b"\x01" * DEFAULT_MAX_WS_BYTES_PLUS1)
             return await websocket.recv()
 
     with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         data = loop.run_until_complete(send_text(url))
-        assert data == b"\x01"*DEFAULT_MAX_WS_BYTES_PLUS1
+        assert data == b"\x01" * DEFAULT_MAX_WS_BYTES_PLUS1
         loop.close()
