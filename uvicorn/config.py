@@ -114,7 +114,7 @@ class Config:
         loop="auto",
         http="auto",
         ws="auto",
-        websocket_max_message_size = 16 * 1024 * 1024,
+        websocket_max_message_size=16 * 1024 * 1024,
         lifespan="auto",
         env_file=None,
         log_config=LOGGING_CONFIG,
