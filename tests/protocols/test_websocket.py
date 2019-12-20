@@ -472,7 +472,7 @@ MAX_WS_BYTES_MINUS1 = 1024 * 1024 * 16 - 1
 
 
 @pytest.mark.parametrize("protocol_cls", ONLY_WEBSOCKETPROTOCOL)
-def test_send_binary_data_to_server(protocol_cls):
+def test_send_binary_data_to_server_bigger_than_default(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.accept"})
