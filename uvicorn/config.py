@@ -48,7 +48,6 @@ LOOP_SETUPS = {
     "auto": "uvicorn.loops.auto:auto_loop_setup",
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
-    "iocp": "uvicorn.loops.iocp:iocp_setup",
 }
 INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
 
