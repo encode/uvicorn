@@ -414,8 +414,19 @@ class Server:
         if sockets is not None:
             # Explicitly passed a list of open sockets.
             # We use this when the server is run from a Gunicorn worker.
+
+            def _share_socket(sock: socket) -> socket:
+                # Windows requires the socket be explicitly shared across
+                # multiple workers (processes).
+                from socket import fromshare  # type: ignore
+
+                sock_data = sock.share(os.getpid())  # type: ignore
+                return fromshare(sock_data)
+
             self.servers = []
             for sock in sockets:
+                if config.workers > 1 and platform.system() == "Windows":
+                    sock = _share_socket(sock)
                 server = await loop.create_server(
                     create_protocol, sock=sock, ssl=config.ssl
                 )
