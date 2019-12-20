@@ -1,5 +1,13 @@
 # Change Log
 
+## 0.11.0
+
+* Fix reload/multiprocessing on Windows with Python 3.8.
+* Drop IOCP support. (Required for fix above.)
+* Add `uvicorn --version` flag.
+* Add `--use-colors` and `--no-use-colors` flags.
+* Display port correctly, when auto port selection isused with `--port=0`.
+
 ## 0.10.8
 
 * Fix reload/multiprocessing error.
