@@ -32,6 +32,7 @@ class ColourizedFormatter(logging.Formatter):
             self.use_colors = use_colors
         else:
             self.use_colors = sys.stdout.isatty()
+        click.clear()
         super().__init__(fmt=fmt, datefmt=datefmt, style=style)
 
     def color_level_name(self, level_name, level_no):
