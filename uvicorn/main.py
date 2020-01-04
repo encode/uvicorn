@@ -417,7 +417,7 @@ class Server:
             self.servers = []
             for sock in sockets:
                 server = await loop.create_server(
-                    create_protocol, sock=sock, ssl=config.ssl
+                    create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
                 )
                 self.servers.append(server)
 
@@ -425,7 +425,7 @@ class Server:
             # Use an existing socket, from a file descriptor.
             sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
             server = await loop.create_server(
-                create_protocol, sock=sock, ssl=config.ssl
+                create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
             )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
             logger.info(message % str(sock.getsockname()))
@@ -437,7 +437,7 @@ class Server:
             if os.path.exists(config.uds):
                 uds_perms = os.stat(config.uds).st_mode
             server = await loop.create_unix_server(
-                create_protocol, path=config.uds, ssl=config.ssl
+                create_protocol, path=config.uds, ssl=config.ssl, backlog=config.backlog
             )
             os.chmod(config.uds, uds_perms)
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
@@ -448,7 +448,11 @@ class Server:
             # Standard case. Create a socket from a host/port pair.
             try:
                 server = await loop.create_server(
-                    create_protocol, host=config.host, port=config.port, ssl=config.ssl
+                    create_protocol,
+                    host=config.host,
+                    port=config.port,
+                    ssl=config.ssl,
+                    backlog=config.backlog,
                 )
             except OSError as exc:
                 logger.error(exc)
