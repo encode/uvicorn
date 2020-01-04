@@ -186,6 +186,12 @@ def print_version(ctx, param, value):
     help="Maximum number of concurrent connections or tasks to allow, before issuing HTTP 503 responses.",
 )
 @click.option(
+    "--backlog",
+    type=int,
+    default=100,
+    help="Maximum number of connections to hold in backlog",
+)
+@click.option(
     "--limit-max-requests",
     type=int,
     default=None,
@@ -273,6 +279,7 @@ def main(
     forwarded_allow_ips: str,
     root_path: str,
     limit_concurrency: int,
+    backlog: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
     ssl_keyfile: str,
@@ -309,6 +316,7 @@ def main(
         "forwarded_allow_ips": forwarded_allow_ips,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
+        "backlog": backlog,
         "limit_max_requests": limit_max_requests,
         "timeout_keep_alive": timeout_keep_alive,
         "ssl_keyfile": ssl_keyfile,
