@@ -188,7 +188,7 @@ def print_version(ctx, param, value):
 @click.option(
     "--backlog",
     type=int,
-    default=100,
+    default=2048,
     help="Maximum number of connections to hold in backlog",
 )
 @click.option(

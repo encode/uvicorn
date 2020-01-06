@@ -130,7 +130,7 @@ class Config:
         root_path="",
         limit_concurrency=None,
         limit_max_requests=None,
-        backlog=100,
+        backlog=2048,
         timeout_keep_alive=5,
         timeout_notify=30,
         callback_notify=None,
