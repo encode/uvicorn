@@ -111,6 +111,8 @@ Options:
   --limit-concurrency INTEGER     Maximum number of concurrent connections or
                                   tasks to allow, before issuing HTTP 503
                                   responses.
+  --backlog INTEGER               Maximum number of connections to hold in
+                                  backlog
   --limit-max-requests INTEGER    Maximum number of requests to service before
                                   terminating the process.
   --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
