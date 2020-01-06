@@ -130,6 +130,7 @@ class Config:
         root_path="",
         limit_concurrency=None,
         limit_max_requests=None,
+        backlog=2048,
         timeout_keep_alive=5,
         timeout_notify=30,
         callback_notify=None,
@@ -162,6 +163,7 @@ class Config:
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests
+        self.backlog = backlog
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
         self.callback_notify = callback_notify

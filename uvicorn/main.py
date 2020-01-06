@@ -186,6 +186,12 @@ def print_version(ctx, param, value):
     help="Maximum number of concurrent connections or tasks to allow, before issuing HTTP 503 responses.",
 )
 @click.option(
+    "--backlog",
+    type=int,
+    default=2048,
+    help="Maximum number of connections to hold in backlog",
+)
+@click.option(
     "--limit-max-requests",
     type=int,
     default=None,
@@ -273,6 +279,7 @@ def main(
     forwarded_allow_ips: str,
     root_path: str,
     limit_concurrency: int,
+    backlog: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
     ssl_keyfile: str,
@@ -309,6 +316,7 @@ def main(
         "forwarded_allow_ips": forwarded_allow_ips,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
+        "backlog": backlog,
         "limit_max_requests": limit_max_requests,
         "timeout_keep_alive": timeout_keep_alive,
         "ssl_keyfile": ssl_keyfile,
@@ -417,7 +425,7 @@ class Server:
             self.servers = []
             for sock in sockets:
                 server = await loop.create_server(
-                    create_protocol, sock=sock, ssl=config.ssl
+                    create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
                 )
                 self.servers.append(server)
 
@@ -425,7 +433,7 @@ class Server:
             # Use an existing socket, from a file descriptor.
             sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
             server = await loop.create_server(
-                create_protocol, sock=sock, ssl=config.ssl
+                create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
             )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
             logger.info(message % str(sock.getsockname()))
@@ -437,7 +445,7 @@ class Server:
             if os.path.exists(config.uds):
                 uds_perms = os.stat(config.uds).st_mode
             server = await loop.create_unix_server(
-                create_protocol, path=config.uds, ssl=config.ssl
+                create_protocol, path=config.uds, ssl=config.ssl, backlog=config.backlog
             )
             os.chmod(config.uds, uds_perms)
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
@@ -448,7 +456,11 @@ class Server:
             # Standard case. Create a socket from a host/port pair.
             try:
                 server = await loop.create_server(
-                    create_protocol, host=config.host, port=config.port, ssl=config.ssl
+                    create_protocol,
+                    host=config.host,
+                    port=config.port,
+                    ssl=config.ssl,
+                    backlog=config.backlog,
                 )
             except OSError as exc:
                 logger.error(exc)

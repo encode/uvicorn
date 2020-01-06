@@ -2,7 +2,6 @@ import asyncio
 import logging
 
 from gunicorn.workers.base import Worker
-
 from uvicorn.config import Config
 from uvicorn.main import Server
 
@@ -45,6 +44,9 @@ class UvicornWorker(Worker):
                 "ssl_ciphers": self.cfg.ssl_options.get("ciphers"),
             }
             config_kwargs.update(ssl_kwargs)
+
+        if self.cfg.settings["backlog"].value:
+            config_kwargs["backlog"] = self.cfg.settings["backlog"].value
 
         config_kwargs.update(self.CONFIG_KWARGS)
 
