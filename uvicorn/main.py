@@ -88,6 +88,12 @@ def print_version(ctx, param, value):
     help="Set reload directories explicitly, instead of using the current working directory.",
 )
 @click.option(
+    "--reload-types",
+    "reload_types",
+    multiple=True,
+    help="Specify the types of files that tigger reloads, instead of only reloading when .py files are changed.",
+)
+@click.option(
     "--workers",
     default=None,
     type=int,
@@ -270,6 +276,7 @@ def main(
     debug: bool,
     reload: bool,
     reload_dirs: typing.List[str],
+    reload_types: typing.List[str],
     workers: int,
     env_file: str,
     log_config: str,
@@ -311,6 +318,7 @@ def main(
         "debug": debug,
         "reload": reload,
         "reload_dirs": reload_dirs if reload_dirs else None,
+        "reload_types": reload_types if reload_types else None,
         "workers": workers,
         "proxy_headers": proxy_headers,
         "forwarded_allow_ips": forwarded_allow_ips,

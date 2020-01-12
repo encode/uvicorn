@@ -124,6 +124,7 @@ class Config:
         debug=False,
         reload=False,
         reload_dirs=None,
+        reload_types=None,
         workers=None,
         proxy_headers=True,
         forwarded_allow_ips=None,
@@ -183,6 +184,11 @@ class Config:
             self.reload_dirs = [os.getcwd()]
         else:
             self.reload_dirs = reload_dirs
+
+        if reload_types is None:
+            self.reload_types = [".py"]
+        else:
+            self.reload_types = reload_types
 
         if env_file is not None:
             from dotenv import load_dotenv
