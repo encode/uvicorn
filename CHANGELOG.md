@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.11.2
+
+* Don't open socket until after application startup.
+* Support `--backlog`.
+
 ## 0.11.1
 
 * Use a more liberal `h11` dependency. Either `0.8.*` or `0.9.*``.
