@@ -103,6 +103,20 @@ def create_ssl_context(certfile, keyfile, ssl_version, cert_reqs, ca_certs, ciph
     return ctx
 
 
+def ipvXmessage(version=None):
+    if version == 6:
+        ip_repr = "%s://[%s]:%d"
+    elif version == 4:
+        ip_repr = "%s://%s:%d"
+    message = f"Uvicorn running on {ip_repr} (Press CTRL+C to quit)"
+    color_message = (
+        "Uvicorn running on "
+        + click.style(ip_repr, bold=True)
+        + " (Press CTRL+C to quit)"
+    )
+    return message, color_message
+
+
 class Config:
     def __init__(
         self,
@@ -323,7 +337,10 @@ class Config:
             loop_setup()
 
     def bind_socket(self):
-        sock = socket.socket()
+        family, sockettype, proto, canonname, sockaddr = socket.getaddrinfo(
+            self.host, self.port, type=socket.SOCK_STREAM
+        )[0]
+        sock = socket.socket(family=family, type=sockettype)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             sock.bind((self.host, self.port))
@@ -332,12 +349,10 @@ class Config:
             sys.exit(1)
         sock.set_inheritable(True)
 
-        message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
-        color_message = (
-            "Uvicorn running on "
-            + click.style("%s://%s:%d", bold=True)
-            + " (Press CTRL+C to quit)"
-        )
+        if family == socket.AddressFamily.AF_INET6:
+            message, color_message = ipvXmessage(6)
+        else:
+            message, color_message = ipvXmessage(4)
         protocol_name = "https" if self.is_ssl else "http"
         logger.info(
             message,
