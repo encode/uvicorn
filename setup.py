@@ -37,7 +37,7 @@ def get_packages(package):
 env_marker = (
     "sys_platform != 'win32'"
     " and sys_platform != 'cygwin'"
-    " and platform_python_implementation != 'pypy'"
+    " and platform_python_implementation != 'PyPy'"
 )
 
 requirements = [
