@@ -102,7 +102,7 @@ Options:
                                   Enable/Disable X-Forwarded-Proto,
                                   X-Forwarded-For, X-Forwarded-Port to
                                   populate remote address info.
-  --forwarded-allow-ips TEXT      Comma seperated list of IPs to trust with
+  --forwarded-allow-ips TEXT      Comma separated list of IPs to trust with
                                   proxy headers. Defaults to the
                                   $FORWARDED_ALLOW_IPS environment variable if
                                   available, or '127.0.0.1'.
