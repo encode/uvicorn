@@ -5,7 +5,7 @@ import asyncio
 import requests
 
 from uvicorn.config import Config
-from uvicorn.main import Server, run
+from uvicorn.main import Server
 
 
 def test_run():
