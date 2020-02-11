@@ -2,9 +2,10 @@ import asyncio
 import concurrent.futures
 import io
 import sys
+from tempfile import SpooledTemporaryFile
 
 
-def build_environ(scope, message, body):
+def build_environ(scope, message, body: SpooledTemporaryFile):
     """
     Builds a scope and request message into a WSGI environ object.
     """
@@ -16,7 +17,7 @@ def build_environ(scope, message, body):
         "SERVER_PROTOCOL": "HTTP/%s" % scope["http_version"],
         "wsgi.version": (1, 0),
         "wsgi.url_scheme": scope.get("scheme", "http"),
-        "wsgi.input": io.BytesIO(body),
+        "wsgi.input": body,
         "wsgi.errors": sys.stdout,
         "wsgi.multithread": True,
         "wsgi.multiprocess": True,
@@ -78,13 +79,14 @@ class WSGIResponder:
 
     async def __call__(self, receive, send):
         message = await receive()
-        body = message.get("body", b"")
+        body_file = SpooledTemporaryFile(1024 * 1024)
+        body_file.write(message.get("body", b""))
         more_body = message.get("more_body", False)
         while more_body:
             body_message = await receive()
-            body += body_message.get("body", b"")
+            body_file.write(body_message.get("body", b""))
             more_body = body_message.get("more_body", False)
-        environ = build_environ(self.scope, message, body)
+        environ = build_environ(self.scope, message, body_file)
         self.loop = asyncio.get_event_loop()
         wsgi = self.loop.run_in_executor(
             self.executor, self.wsgi, environ, self.start_response
