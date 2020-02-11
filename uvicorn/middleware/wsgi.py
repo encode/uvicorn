@@ -86,6 +86,7 @@ class WSGIResponder:
             body_message = await receive()
             body_file.write(body_message.get("body", b""))
             more_body = body_message.get("more_body", False)
+        body_file.seek(0, 0)
         environ = build_environ(self.scope, message, body_file)
         self.loop = asyncio.get_event_loop()
         wsgi = self.loop.run_in_executor(
