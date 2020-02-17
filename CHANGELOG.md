@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.11.3
+
+* Update dependencies.
+
 ## 0.11.2
 
 * Don't open socket until after application startup.
