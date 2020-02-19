@@ -17,3 +17,7 @@ pages:
 markdown_extensions:
   - markdown.extensions.codehilite:
       guess_lang: false
+
+extra_javascript:
+  - 'js/chat.js'
+  - 'js/sidecar-1.5.0.js'
