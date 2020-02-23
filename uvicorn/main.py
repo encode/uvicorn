@@ -530,8 +530,7 @@ class Server:
         for server in self.servers:
             server.close()
         for socket in sockets or []:
-            if socket != None:
-                socket.close()
+            socket.close()
         for server in self.servers:
             await server.wait_closed()
 
