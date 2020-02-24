@@ -527,10 +527,10 @@ class Server:
         logger.info("Shutting down")
 
         # Stop accepting new connections.
-        for socket in sockets or []:
-            socket.close()
         for server in self.servers:
             server.close()
+        for socket in sockets or []:
+            socket.close()
         for server in self.servers:
             await server.wait_closed()
 

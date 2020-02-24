@@ -36,7 +36,7 @@ Uvicorn will pause reading from a transport once the buffered request body hits 
 
 ### Response completion
 
-Once a response has been sent, Uvicorn will no longer buffer any remaining request body. Any later calls to `recieve` will return an `http.disconnect` message.
+Once a response has been sent, Uvicorn will no longer buffer any remaining request body. Any later calls to `receive` will return an `http.disconnect` message.
 
 Together with the read flow control, this behavior ensures that responses that return without reading the request body will not stream any substantial amounts of data into memory.
 
