@@ -360,7 +360,7 @@ class RequestResponseCycle:
         self.transport = transport
         self.flow = flow
         self.logger = logger
-        self.access_logger = logger
+        self.access_logger = access_logger
         self.access_log = access_log
         self.default_headers = default_headers
         self.message_event = message_event
