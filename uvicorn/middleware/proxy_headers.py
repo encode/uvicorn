@@ -34,11 +34,11 @@ class ProxyHeadersMiddleware:
                     scope["scheme"] = x_forwarded_proto.strip()
 
                 if b"x-forwarded-for" in headers:
-                    # Determine the client address from the last trusted IP in the
+                    # Determine the client address from the first trusted IP in the
                     # X-Forwarded-For header. We've lost the connecting client's port
                     # information by now, so only include the host.
                     x_forwarded_for = headers[b"x-forwarded-for"].decode("latin1")
-                    host = x_forwarded_for.split(",")[-1].strip()
+                    host = x_forwarded_for.split(",")[0].strip()
                     port = 0
                     scope["client"] = (host, port)
 
