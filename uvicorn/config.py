@@ -141,6 +141,7 @@ class Config:
         ssl_ca_certs=None,
         ssl_ciphers="TLSv1",
         headers=None,
+        exclude_scope_keys=None,
     ):
         self.app = app
         self.host = host
@@ -175,7 +176,7 @@ class Config:
         self.ssl_ciphers = ssl_ciphers
         self.headers = headers if headers else []  # type: List[str]
         self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
-
+        self.exclude_scope_keys = exclude_scope_keys
         self.loaded = False
         self.configure_logging()
 

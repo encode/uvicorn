@@ -87,6 +87,7 @@ class H11Protocol(asyncio.Protocol):
         self.logger = logging.getLogger("uvicorn.error")
         self.access_logger = logging.getLogger("uvicorn.access")
         self.access_log = self.access_logger.hasHandlers()
+        self.exclude_scope_keys = config.exclude_scope_keys
         self.conn = h11.Connection(h11.SERVER)
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
@@ -227,7 +228,8 @@ class H11Protocol(asyncio.Protocol):
                     logger=self.logger,
                     access_logger=self.access_logger,
                     access_log=self.access_log,
-                    default_headers=self.default_headers,
+                    exclude_scope_keys = self.exclude_scope_keys,
+                default_headers=self.default_headers,
                     message_event=self.message_event,
                     on_response=self.on_response_complete,
                 )
@@ -351,6 +353,7 @@ class RequestResponseCycle:
         logger,
         access_logger,
         access_log,
+        exclude_scope_keys,
         default_headers,
         message_event,
         on_response,
@@ -360,8 +363,9 @@ class RequestResponseCycle:
         self.transport = transport
         self.flow = flow
         self.logger = logger
-        self.access_logger = logger
+        self.access_logger = access_logger
         self.access_log = access_log
+        self.exclude_scope_keys = exclude_scope_keys
         self.default_headers = default_headers
         self.message_event = message_event
         self.on_response = on_response

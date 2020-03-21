@@ -1,14 +1,13 @@
 import asyncio
 import logging
+from typing import Dict, Any, List
 
-import h11
 import pytest
 
 from tests.response import Response
 from uvicorn.config import Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
-from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
@@ -214,6 +213,68 @@ def test_request_logging2(path, protocol_cls, caplog):
         (b"host", b"example.org"),
         (b"authorization", b"Bearer SUPERSECRET"),
     ] == caplog.records[0].scope["headers"]
+
+    protocol = get_connected_protocol(
+        app, protocol_cls, log_config=None, exclude_scope_keys=[b"authorization"]
+    )
+    protocol.data_received(get_request_with_query_string)
+    protocol.loop.run_one()
+
+    assert '"GET {} HTTP/1.1" 200'.format(path) in caplog.records[0].message
+    assert [
+        (b"host", b"example.org"),
+        (b"authorization", b"****"),
+    ] == caplog.records[0].scope["headers"]
+
+
+scopeblurred = [
+    (
+        {
+            "type": "http",
+            "http_version": "1.1",
+            "server": ("127.0.0.1", 8000),
+            "client": ("127.0.0.1", 8001),
+            "scheme": "http",
+            "method": "GET",
+            "root_path": "",
+            "path": "/",
+            "raw_path": b"/",
+            "query_string": b"",
+            "headers": [
+                (b"host", b"example.org"),
+                (b"authorization", b"Bearer SUPERSECRET"),
+            ],
+        },
+        {
+            "type": "http",
+            "http_version": "1.1",
+            "server": ("127.0.0.1", 8000),
+            "client": ("127.0.0.1", 8001),
+            "scheme": "http",
+            "method": "GET",
+            "root_path": "",
+            "path": "/",
+            "raw_path": b"/",
+            "query_string": b"",
+            "headers": [(b"host", b"example.org"), (b"authorization", b"****")],
+        },
+        [b"authorization"]
+    )
+]
+
+
+def blurscope(original_scope: Dict[str, Any], blurme: List[str]):
+    blurred_scope = original_scope
+    for idx, header_tuple in enumerate(original_scope["headers"]):
+        for bm in blurme:
+            if header_tuple[0] == bm:
+                blurred_scope["headers"][idx] = (bm, b"****")
+    return blurred_scope
+
+
+@pytest.mark.parametrize("original_scope,blurred_scope,blurme", scopeblurred)
+def test_blurred_scope(original_scope, blurred_scope, blurme):
+   assert blurscope(original_scope, blurme) == blurred_scope
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
