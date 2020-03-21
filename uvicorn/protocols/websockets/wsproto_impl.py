@@ -111,10 +111,17 @@ class WSProtocol(asyncio.Protocol):
         self.writable.set()
 
     def shutdown(self):
-        self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
-        output = self.conn.send(wsproto.events.CloseConnection(code=1012))
-        self.transport.write(output)
-        self.transport.close()
+        if self.handshake_complete:
+            self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
+            output = self.conn.send(wsproto.events.CloseConnection(code=1012))
+            self.transport.write(output)
+            self.transport.close()
+        else:
+            self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
+            output = self.conn.send(wsproto.events.RejectConnection())
+            self.transport.write(output)
+            self.transport.close()
+            self.tasks.pop()
 
     def on_task_complete(self, task):
         self.tasks.discard(task)
