@@ -11,7 +11,7 @@ from uvicorn.protocols.utils import (
     get_path_with_query_string,
     get_remote_addr,
     is_ssl,
-)
+    blurscope)
 
 
 def _get_status_line(status_code):
@@ -88,6 +88,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.logger = logging.getLogger("uvicorn.error")
         self.access_logger = logging.getLogger("uvicorn.access")
         self.access_log = self.access_logger.hasHandlers()
+        self.exclude_scope_keys = config.exclude_scope_keys
         self.parser = httptools.HttpRequestParser(self)
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
@@ -258,6 +259,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             logger=self.logger,
             access_logger=self.access_logger,
             access_log=self.access_log,
+            exclude_scope_keys=self.exclude_scope_keys,
             default_headers=self.default_headers,
             message_event=self.message_event,
             expect_100_continue=self.expect_100_continue,
@@ -348,6 +350,7 @@ class RequestResponseCycle:
         logger,
         access_logger,
         access_log,
+        exclude_scope_keys,
         default_headers,
         message_event,
         expect_100_continue,
@@ -360,6 +363,7 @@ class RequestResponseCycle:
         self.logger = logger
         self.access_logger = access_logger
         self.access_log = access_log
+        self.exclude_scope_keys = exclude_scope_keys
         self.default_headers = default_headers
         self.message_event = message_event
         self.on_response = on_response
@@ -444,6 +448,10 @@ class RequestResponseCycle:
             headers = self.default_headers + list(message.get("headers", []))
 
             if self.access_log:
+                if self.exclude_scope_keys is not None:
+                    blurred_scope = blurscope(self.scope, self.exclude_scope_keys)
+                else:
+                    blurred_scope = self.scope
                 self.access_logger.info(
                     '%s - "%s %s HTTP/%s" %d',
                     get_client_addr(self.scope),
@@ -451,7 +459,7 @@ class RequestResponseCycle:
                     get_path_with_query_string(self.scope),
                     self.scope["http_version"],
                     status_code,
-                    extra={"status_code": status_code, "scope": self.scope},
+                    extra={"status_code": status_code, "scope": blurred_scope},
                 )
 
             # Write response status line and headers
