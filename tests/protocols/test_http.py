@@ -186,6 +186,36 @@ def test_request_logging(path, protocol_cls, caplog):
     assert '"GET {} HTTP/1.1" 200'.format(path) in caplog.records[0].message
 
 
+@pytest.mark.parametrize("path", ["/", "/?foo", "/?foo=bar", "/?foo=bar&baz=1"])
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+def test_request_logging2(path, protocol_cls, caplog):
+    get_request_with_query_string = b"\r\n".join(
+        [
+            "GET {} HTTP/1.1".format(path).encode("ascii"),
+            b"Host: example.org",
+            b"Authorization: Bearer SUPERSECRET",
+            b"",
+            b"",
+        ]
+    )
+    caplog.set_level(logging.INFO, logger="uvicorn.access")
+    logging.getLogger("uvicorn.access").propagate = True
+
+    app = Response(
+        "Hello, world", media_type="text/plain", headers={"Bearer": "SECRET"}
+    )
+
+    protocol = get_connected_protocol(app, protocol_cls, log_config=None)
+    protocol.data_received(get_request_with_query_string)
+    protocol.loop.run_one()
+
+    assert '"GET {} HTTP/1.1" 200'.format(path) in caplog.records[0].message
+    assert [
+        (b"host", b"example.org"),
+        (b"authorization", b"Bearer SUPERSECRET"),
+    ] == caplog.records[0].scope["headers"]
+
+
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_head_request(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
