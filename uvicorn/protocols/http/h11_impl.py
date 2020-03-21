@@ -11,7 +11,7 @@ from uvicorn.protocols.utils import (
     get_path_with_query_string,
     get_remote_addr,
     is_ssl,
-)
+    blurscope)
 
 
 def _get_status_phrase(status_code):
@@ -448,6 +448,10 @@ class RequestResponseCycle:
             headers = self.default_headers + message.get("headers", [])
 
             if self.access_log:
+                if self.exclude_scope_keys is not None:
+                    blurred_scope = blurscope(self.scope, self.exclude_scope_keys)
+                else:
+                    blurred_scope = self.scope
                 self.access_logger.info(
                     '%s - "%s %s HTTP/%s" %d',
                     get_client_addr(self.scope),
@@ -455,7 +459,7 @@ class RequestResponseCycle:
                     get_path_with_query_string(self.scope),
                     self.scope["http_version"],
                     status_code,
-                    extra={"status_code": status_code, "scope": self.scope},
+                    extra={"status_code": status_code, "scope": blurred_scope},
                 )
 
             # Write response status line and headers

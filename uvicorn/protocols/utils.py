@@ -1,4 +1,5 @@
 import socket
+from typing import Dict, Any, List
 
 
 def get_remote_addr(transport):
@@ -55,3 +56,12 @@ def get_path_with_query_string(scope):
             path_with_query_string, scope["query_string"].decode("ascii")
         )
     return path_with_query_string
+
+
+def blurscope(original_scope: Dict[str, Any], blurme: List[bytes]):
+    blurred_scope = original_scope
+    for idx, header_tuple in enumerate(original_scope["headers"]):
+        for bm in blurme:
+            if header_tuple[0] == bm:
+                blurred_scope["headers"][idx] = (bm, b"****")
+    return blurred_scope

@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from typing import Dict, Any, List
 
 import pytest
 
@@ -8,6 +7,7 @@ from tests.response import Response
 from uvicorn.config import Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
+from uvicorn.protocols.utils import blurscope
 
 try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
@@ -201,7 +201,7 @@ def test_request_logging2(path, protocol_cls, caplog):
     logging.getLogger("uvicorn.access").propagate = True
 
     app = Response(
-        "Hello, world", media_type="text/plain", headers={"Bearer": "SECRET"}
+        "Hello, world", media_type="text/plain",
     )
 
     protocol = get_connected_protocol(app, protocol_cls, log_config=None)
@@ -220,11 +220,11 @@ def test_request_logging2(path, protocol_cls, caplog):
     protocol.data_received(get_request_with_query_string)
     protocol.loop.run_one()
 
-    assert '"GET {} HTTP/1.1" 200'.format(path) in caplog.records[0].message
+    assert '"GET {} HTTP/1.1" 200'.format(path) in caplog.records[1].message
     assert [
         (b"host", b"example.org"),
         (b"authorization", b"****"),
-    ] == caplog.records[0].scope["headers"]
+    ] == caplog.records[1].scope["headers"]
 
 
 scopeblurred = [
@@ -261,15 +261,6 @@ scopeblurred = [
         [b"authorization"]
     )
 ]
-
-
-def blurscope(original_scope: Dict[str, Any], blurme: List[str]):
-    blurred_scope = original_scope
-    for idx, header_tuple in enumerate(original_scope["headers"]):
-        for bm in blurme:
-            if header_tuple[0] == bm:
-                blurred_scope["headers"][idx] = (bm, b"****")
-    return blurred_scope
 
 
 @pytest.mark.parametrize("original_scope,blurred_scope,blurme", scopeblurred)
