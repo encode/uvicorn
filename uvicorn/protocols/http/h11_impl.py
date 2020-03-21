@@ -6,12 +6,13 @@ from urllib.parse import unquote
 import h11
 
 from uvicorn.protocols.utils import (
+    blurscope,
     get_client_addr,
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
     is_ssl,
-    blurscope)
+)
 
 
 def _get_status_phrase(status_code):
@@ -228,8 +229,8 @@ class H11Protocol(asyncio.Protocol):
                     logger=self.logger,
                     access_logger=self.access_logger,
                     access_log=self.access_log,
-                    exclude_scope_keys = self.exclude_scope_keys,
-                default_headers=self.default_headers,
+                    exclude_scope_keys=self.exclude_scope_keys,
+                    default_headers=self.default_headers,
                     message_event=self.message_event,
                     on_response=self.on_response_complete,
                 )

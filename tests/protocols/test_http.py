@@ -200,9 +200,7 @@ def test_request_logging2(path, protocol_cls, caplog):
     caplog.set_level(logging.INFO, logger="uvicorn.access")
     logging.getLogger("uvicorn.access").propagate = True
 
-    app = Response(
-        "Hello, world", media_type="text/plain",
-    )
+    app = Response("Hello, world", media_type="text/plain",)
 
     protocol = get_connected_protocol(app, protocol_cls, log_config=None)
     protocol.data_received(get_request_with_query_string)
@@ -221,10 +219,9 @@ def test_request_logging2(path, protocol_cls, caplog):
     protocol.loop.run_one()
 
     assert '"GET {} HTTP/1.1" 200'.format(path) in caplog.records[1].message
-    assert [
-        (b"host", b"example.org"),
-        (b"authorization", b"****"),
-    ] == caplog.records[1].scope["headers"]
+    assert [(b"host", b"example.org"), (b"authorization", b"****"),] == caplog.records[
+        1
+    ].scope["headers"]
 
 
 scopeblurred = [
@@ -258,14 +255,14 @@ scopeblurred = [
             "query_string": b"",
             "headers": [(b"host", b"example.org"), (b"authorization", b"****")],
         },
-        [b"authorization"]
+        [b"authorization"],
     )
 ]
 
 
 @pytest.mark.parametrize("original_scope,blurred_scope,blurme", scopeblurred)
 def test_blurred_scope(original_scope, blurred_scope, blurme):
-   assert blurscope(original_scope, blurme) == blurred_scope
+    assert blurscope(original_scope, blurme) == blurred_scope
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)

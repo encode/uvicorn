@@ -6,12 +6,13 @@ import urllib
 import httptools
 
 from uvicorn.protocols.utils import (
+    blurscope,
     get_client_addr,
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
     is_ssl,
-    blurscope)
+)
 
 
 def _get_status_line(status_code):
