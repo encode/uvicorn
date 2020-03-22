@@ -14,10 +14,20 @@ class ProxyHeadersMiddleware:
     def __init__(self, app, trusted_hosts="127.0.0.1"):
         self.app = app
         if isinstance(trusted_hosts, str):
-            self.trusted_hosts = [item.strip() for item in trusted_hosts.split(",")]
+            self.trusted_hosts = {item.strip() for item in trusted_hosts.split(",")}
         else:
-            self.trusted_hosts = trusted_hosts
+            self.trusted_hosts = set(trusted_hosts)
         self.always_trust = "*" in self.trusted_hosts
+
+    def get_trusted_client_host(
+        self, x_forwarded_for_hosts
+    ):  # type: (List[str]) -> str
+        if self.always_trust:
+            return x_forwarded_for_hosts[0]
+
+        for host in reversed(x_forwarded_for_hosts):
+            if host not in self.trusted_hosts:
+                return host
 
     async def __call__(self, scope, receive, send):
         if scope["type"] in ("http", "websocket"):
@@ -34,11 +44,14 @@ class ProxyHeadersMiddleware:
                     scope["scheme"] = x_forwarded_proto.strip()
 
                 if b"x-forwarded-for" in headers:
-                    # Determine the client address from the first trusted IP in the
+                    # Determine the client address from the last trusted IP in the
                     # X-Forwarded-For header. We've lost the connecting client's port
                     # information by now, so only include the host.
                     x_forwarded_for = headers[b"x-forwarded-for"].decode("latin1")
-                    host = x_forwarded_for.split(",")[0].strip()
+                    x_forwarded_for_hosts = [
+                        item.strip() for item in x_forwarded_for.split(",")
+                    ]
+                    host = self.get_trusted_client_host(x_forwarded_for_hosts)
                     port = 0
                     scope["client"] = (host, port)
 
