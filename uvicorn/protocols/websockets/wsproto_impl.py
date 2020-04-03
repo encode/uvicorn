@@ -12,7 +12,8 @@ from wsproto.utilities import RemoteProtocolError
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 # Check wsproto version. We've build against 0.13. We don't know about 0.14 yet.
-assert wsproto.__version__ > "0.13", "Need wsproto version 0.13"
+if wsproto.__version__ <= "0.13":
+    raise AssertionError("Need wsproto version 0.13")
 
 
 class WSProtocol(asyncio.Protocol):

@@ -248,7 +248,8 @@ class Config:
             logging.getLogger("uvicorn.access").propagate = False
 
     def load(self):
-        assert not self.loaded
+        if self.loaded:
+            raise AssertionError
 
         if self.is_ssl:
             self.ssl = create_ssl_context(
