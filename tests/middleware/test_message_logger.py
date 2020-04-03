@@ -20,11 +20,11 @@ def test_message_logger(caplog):
     response = client.get("/")
     assert response.status_code == 200
     messages = [record.msg % record.args for record in caplog.records]
-    assert sum(["ASGI [1] Started" in message for message in messages]) == 1
-    assert sum(["ASGI [1] Send" in message for message in messages]) == 2
-    assert sum(["ASGI [1] Receive" in message for message in messages]) == 1
-    assert sum(["ASGI [1] Completed" in message for message in messages]) == 1
-    assert sum(["ASGI [1] Raised exception" in message for message in messages]) == 0
+    assert sum("ASGI [1] Started" in message for message in messages) == 1
+    assert sum("ASGI [1] Send" in message for message in messages) == 2
+    assert sum("ASGI [1] Receive" in message for message in messages) == 1
+    assert sum("ASGI [1] Completed" in message for message in messages) == 1
+    assert sum("ASGI [1] Raised exception" in message for message in messages) == 0
 
 
 def test_message_logger_exc(caplog):
@@ -38,8 +38,8 @@ def test_message_logger_exc(caplog):
     with pytest.raises(RuntimeError):
         client.get("/")
     messages = [record.msg % record.args for record in caplog.records]
-    assert sum(["ASGI [1] Started" in message for message in messages]) == 1
-    assert sum(["ASGI [1] Send" in message for message in messages]) == 0
-    assert sum(["ASGI [1] Receive" in message for message in messages]) == 0
-    assert sum(["ASGI [1] Completed" in message for message in messages]) == 0
-    assert sum(["ASGI [1] Raised exception" in message for message in messages]) == 1
+    assert sum("ASGI [1] Started" in message for message in messages) == 1
+    assert sum("ASGI [1] Send" in message for message in messages) == 0
+    assert sum("ASGI [1] Receive" in message for message in messages) == 0
+    assert sum("ASGI [1] Completed" in message for message in messages) == 0
+    assert sum("ASGI [1] Raised exception" in message for message in messages) == 1
