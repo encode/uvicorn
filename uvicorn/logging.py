@@ -39,7 +39,8 @@ class ColourizedFormatter(logging.Formatter):
         func = self.level_name_colors.get(level_no, default)
         return func(level_name)
 
-    def should_use_colors(self):
+    @staticmethod
+    def should_use_colors():
         return True
 
     def formatMessage(self, record):
@@ -68,16 +69,19 @@ class AccessFormatter(ColourizedFormatter):
         5: lambda code: click.style(str(code), fg="bright_red"),
     }
 
-    def get_client_addr(self, scope):
+    @staticmethod
+    def get_client_addr(scope):
         client = scope.get("client")
         if not client:
             return ""
         return "%s:%d" % (client[0], client[1])
 
-    def get_path(self, scope):
+    @staticmethod
+    def get_path(scope):
         return scope.get("root_path", "") + scope["path"]
 
-    def get_full_path(self, scope):
+    @staticmethod
+    def get_full_path(scope):
         path = scope.get("root_path", "") + scope["path"]
         query_string = scope.get("query_string", b"").decode("ascii")
         if query_string:
