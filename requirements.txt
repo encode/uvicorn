@@ -21,4 +21,4 @@ mkdocs
 mkdocs-material
 
 # Efficient debug reload
-watchdog
+watchdog>0.10,<0.11
