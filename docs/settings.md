@@ -21,6 +21,12 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 * `--reload` - Enable auto-reload.
 * `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default all directories in `sys.path` will be watched.
 
+By default Uvicorn uses simple changes detection strategy that compares python files modification times few times a second. If this approach doesn't work for your project (eg. because of its complexity), you can install Uvicorn with optional `watchdog` dependency to use filesystem events instead:
+
+```
+$ pip install uvicorn[watchdogreload]
+```
+
 ## Production
 
 * `--workers <int>` - Use multiple worker processes. Defaults to the value of the `$WEB_CONCURRENCY` environment variable.
