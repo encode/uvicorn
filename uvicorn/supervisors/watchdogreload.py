@@ -9,33 +9,11 @@ from uvicorn.supervisors.basereload import BaseReload
 logger = logging.getLogger("uvicorn.error")
 
 
-class ChangeEventHandler(PatternMatchingEventHandler):
-    def __init__(
-        self,
-        patterns=None,
-        ignore_patterns=None,
-        ignore_directories=False,
-        case_sensitive=False,
-        callback=None,
-    ):
-        super().__init__(
-            patterns=patterns,
-            ignore_patterns=ignore_patterns,
-            ignore_directories=ignore_directories,
-            case_sensitive=case_sensitive,
-        )
-
-        self.callback = callback
-
-    def on_any_event(self, event):
-        super().on_any_event(event)
-        if self.callback is not None:
-            self.callback(event)
-
-
 class WatchdogReload(BaseReload):
-    def __init__(self, config):
-        super().__init__(config)
+    def __init__(self, config, target, sockets):
+        super().__init__(config, target, sockets)
+
+        self.reload_count = 0
         self.has_changed = False
 
         # watchdog only accept directories
@@ -79,3 +57,27 @@ class WatchdogReload(BaseReload):
             return True
 
         return False
+
+
+class ChangeEventHandler(PatternMatchingEventHandler):
+    def __init__(
+        self,
+        patterns=None,
+        ignore_patterns=None,
+        ignore_directories=False,
+        case_sensitive=False,
+        callback=None,
+    ):
+        super().__init__(
+            patterns=patterns,
+            ignore_patterns=ignore_patterns,
+            ignore_directories=ignore_directories,
+            case_sensitive=case_sensitive,
+        )
+
+        self.callback = callback
+
+    def on_any_event(self, event):
+        super().on_any_event(event)
+        if self.callback is not None:
+            self.callback(event)
