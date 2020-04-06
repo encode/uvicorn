@@ -3,6 +3,7 @@ h11
 
 # Optional
 httptools
+PyYAML>=5.1
 uvloop>=0.14.0
 websockets==8.*
 wsproto==0.13.*
@@ -15,6 +16,7 @@ flake8
 isort
 pytest
 pytest-cov
+pytest-mock
 requests
 
 # Documentation
