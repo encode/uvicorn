@@ -77,6 +77,4 @@ class BaseReload:
         logger.info(message, extra={"color_message": color_message})
 
     def should_restart(self):
-        raise NotImplementedError(
-            "Reload strategies should override should_restart()"
-        )
+        raise NotImplementedError("Reload strategies should override should_restart()")
