@@ -1,10 +1,9 @@
 import logging
 from os import path
 
-from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler
-
 from uvicorn.supervisors.basereload import BaseReload
+from watchdog.events import PatternMatchingEventHandler
+from watchdog.observers import Observer
 
 logger = logging.getLogger("uvicorn.error")
 
