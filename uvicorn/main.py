@@ -25,7 +25,7 @@ from uvicorn.config import (
     WS_PROTOCOLS,
     Config,
 )
-from uvicorn.supervisors import Multiprocess, StatReload
+from uvicorn.supervisors import Multiprocess, ChangeReload
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
@@ -344,7 +344,7 @@ def run(app, **kwargs):
 
     if config.should_reload:
         sock = config.bind_socket()
-        supervisor = StatReload(config, target=server.run, sockets=[sock])
+        supervisor = ChangeReload(config, target=server.run, sockets=[sock])
         supervisor.run()
     elif config.workers > 1:
         sock = config.bind_socket()

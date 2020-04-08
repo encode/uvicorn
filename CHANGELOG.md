@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+
+* Use `watchdog`, if installed, for watching code changes.
+
 ## 0.11.3
 
 * Update dependencies.

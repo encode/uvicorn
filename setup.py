@@ -50,6 +50,8 @@ requirements = [
     "uvloop>=0.14.0 ;" + env_marker,
 ]
 
+extras_require = {"watchdogreload": ["watchdog>0.10,<0.11"]},
+
 
 setup(
     name="uvicorn",
@@ -63,6 +65,7 @@ setup(
     author_email="tom@tomchristie.com",
     packages=get_packages("uvicorn"),
     install_requires=requirements,
+    extras_require=extras_require,
     data_files=[("", ["LICENSE.md"])],
     classifiers=[
         "Development Status :: 4 - Beta",
