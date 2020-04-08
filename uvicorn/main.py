@@ -25,7 +25,7 @@ from uvicorn.config import (
     WS_PROTOCOLS,
     Config,
 )
-from uvicorn.supervisors import Multiprocess, ChangeReload
+from uvicorn.supervisors import ChangeReload, Multiprocess
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
