@@ -5,7 +5,9 @@ name: CI
 
 on:
   push:
-    branches: [ '*' ]
+    branches:
+      - '*'
+      - '!master'
   pull_request:
     branches: [ master ]
 
@@ -42,7 +44,8 @@ jobs:
         python -m pip install --upgrade pip
         pip install -U click h11 wsproto==0.13.*
         pip install -U autoflake codecov isort pytest pytest-cov requests watchdog
-    - name: Install dependencies
+    - name: Install dependencies (except windows and pypy3)
+      if: matrix.os != 'windows-latest' && matrix.python-version != 'pypy3'
       run: |
         python -m pip install --upgrade pip
         pip install -U -r requirements.txt
