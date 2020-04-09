@@ -1,3 +1,4 @@
+import os
 import signal
 
 from uvicorn import Config
@@ -19,3 +20,11 @@ def test_multiprocess_run():
     supervisor = Multiprocess(config, target=run, sockets=[])
     supervisor.signal_handler(sig=signal.SIGINT, frame=None)
     supervisor.run()
+
+
+def test_multiprocess_run2():
+    config = Config(app=None, workers=2)
+    supervisor = Multiprocess(config, target=run, sockets=[])
+    supervisor.startup()
+    os.kill(supervisor.pid, signal.SIGINT)
+    supervisor.shutdown()
