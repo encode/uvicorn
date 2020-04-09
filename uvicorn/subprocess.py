@@ -70,4 +70,3 @@ def shutdown_subprocess(pid):
     """
     os.kill(pid, signal.SIGINT)
     os.waitpid(pid, 0)
-

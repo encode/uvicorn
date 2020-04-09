@@ -35,7 +35,6 @@ class BaseReload:
 
         self.should_exit.set()
 
-
     def run(self):
         self.startup()
         while not self.should_exit.wait(0.25):
