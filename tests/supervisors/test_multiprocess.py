@@ -1,5 +1,8 @@
 import os
 import signal
+import sys
+
+import pytest
 
 from uvicorn import Config
 from uvicorn.supervisors import Multiprocess
@@ -22,9 +25,12 @@ def test_multiprocess_run():
     supervisor.run()
 
 
-# def test_multiprocess_run2():
-#     config = Config(app=None, workers=2)
-#     supervisor = Multiprocess(config, target=run, sockets=[])
-#     supervisor.startup()
-#     os.kill(supervisor.pid, signal.SIGINT)
-#     supervisor.shutdown()
+@pytest.mark.skipif(
+    sys.platform.startswith("win"), reason="Skipping os.kill on windows"
+)
+def test_multiprocess_run2():
+    config = Config(app=None, workers=2)
+    supervisor = Multiprocess(config, target=run, sockets=[])
+    supervisor.startup()
+    os.kill(supervisor.pid, signal.SIGINT)
+    supervisor.shutdown()
