@@ -22,9 +22,9 @@ def test_multiprocess_run():
     supervisor.run()
 
 
-def test_multiprocess_run2():
-    config = Config(app=None, workers=2)
-    supervisor = Multiprocess(config, target=run, sockets=[])
-    supervisor.startup()
-    os.kill(supervisor.pid, signal.SIGINT)
-    supervisor.shutdown()
+# def test_multiprocess_run2():
+#     config = Config(app=None, workers=2)
+#     supervisor = Multiprocess(config, target=run, sockets=[])
+#     supervisor.startup()
+#     os.kill(supervisor.pid, signal.SIGINT)
+#     supervisor.shutdown()
