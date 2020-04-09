@@ -3,8 +3,6 @@ import signal
 import time
 from pathlib import Path
 
-import pytest
-
 from uvicorn.config import Config
 from uvicorn.supervisors.statreload import StatReload
 

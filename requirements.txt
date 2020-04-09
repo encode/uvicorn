@@ -11,6 +11,7 @@ wsproto==0.13.*
 autoflake
 black
 codecov
+flake8
 isort
 pytest
 pytest-cov

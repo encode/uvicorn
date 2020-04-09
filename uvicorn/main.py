@@ -529,8 +529,8 @@ class Server:
         # Stop accepting new connections.
         for server in self.servers:
             server.close()
-        for socket in sockets or []:
-            socket.close()
+        for sock in sockets or []:
+            sock.close()
         for server in self.servers:
             await server.wait_closed()
 
@@ -563,7 +563,7 @@ class Server:
         try:
             for sig in HANDLED_SIGNALS:
                 loop.add_signal_handler(sig, self.handle_exit, sig, None)
-        except NotImplementedError as exc:
+        except NotImplementedError:
             # Windows
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)

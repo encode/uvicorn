@@ -16,7 +16,7 @@ class StatReload(BaseReload):
         for filename in self.iter_py_files():
             try:
                 mtime = os.path.getmtime(filename)
-            except OSError as exc:  # pragma: nocover
+            except OSError:  # pragma: nocover
                 continue
 
             old_time = self.mtimes.get(filename)
