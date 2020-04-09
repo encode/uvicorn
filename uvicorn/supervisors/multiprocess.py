@@ -1,11 +1,11 @@
 import logging
 import os
 import signal
-import threading
 
 import click
 
 from uvicorn.subprocess import get_subprocess
+from uvicorn.supervisors.interface import ProcessTracker
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -15,27 +15,14 @@ HANDLED_SIGNALS = (
 logger = logging.getLogger("uvicorn.error")
 
 
-class Multiprocess:
+class Multiprocess(ProcessTracker):
     def __init__(self, config, target, sockets):
+        super().__init__()
         self.config = config
         self.target = target
         self.sockets = sockets
         self.processes = []
-        self.should_exit = threading.Event()
         self.pid = os.getpid()
-        self.child_pids = []
-
-    def signal_handler(self, sig, frame):
-        """
-        A signal handler that is registered with the parent process.
-        """
-        for child_pid in self.child_pids:
-            try:
-                os.kill(child_pid, signal.SIGINT)
-                finished = os.waitpid(child_pid, 0)
-            except Exception as e:
-                logger.error(f"Cant kill child PID {child_pid}: {e}")
-        self.should_exit.set()
 
     def run(self):
         self.startup()
