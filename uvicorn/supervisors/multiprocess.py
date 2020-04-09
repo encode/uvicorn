@@ -5,7 +5,7 @@ import threading
 
 import click
 
-from uvicorn.subprocess import get_subprocess
+from uvicorn.subprocess import get_subprocess, shutdown_subprocess
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -23,32 +23,18 @@ class Multiprocess:
         self.processes = []
         self.should_exit = threading.Event()
         self.pid = os.getpid()
-        self.child_pids = []
 
     def signal_handler(self, sig, frame):
         """
         A signal handler that is registered with the parent process.
         """
-        logger.info(f"Handling signal: {sig}")
-        for child_pid in self.child_pids:
-            logger.debug(f"Attempt at killing child PID {child_pid}")
+
+        for process in self.processes:
             try:
-                os.kill(child_pid, signal.SIGINT)
-                (pid, status) = os.waitpid(child_pid, 0)
-                if pid == child_pid:
-                    logger.debug(f"{pid}: {status}")
-                    if os.WIFEXITED(status):
-                        logger.debug(
-                            "process returning status exited via the exit() system call"
-                        )
-                    elif os.WIFSIGNALED(status):
-                        logger.debug(
-                            "process returning status was terminated by a signal"
-                        )
-                    elif os.WIFSTOPPED(status):
-                        logger.debug("process returning status was stopped")
-            except Exception as e:
-                logger.error(f"Cant kill child PID {child_pid}: {e}")
+                shutdown_subprocess(process.pid)
+            except Exception as exc:
+                logger.error(f"Could not stop child process {process.pid}: {exc}")
+
         self.should_exit.set()
 
     def run(self):
@@ -72,8 +58,6 @@ class Multiprocess:
             )
             process.start()
             self.processes.append(process)
-        for process in self.processes:
-            self.child_pids.append(process.pid)
 
     def shutdown(self):
         for process in self.processes:
