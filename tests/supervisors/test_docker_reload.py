@@ -14,7 +14,7 @@
 # COPY uvicorn .
 # RUN pip install -e .
 # WORKDIR /app
-# CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000"]
+# CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000", "--log-level=debug"]
 # """
 #
 # DOCKERFILE_RELOAD = """
@@ -23,7 +23,7 @@
 # COPY uvicorn .
 # RUN pip install -e .
 # WORKDIR /app
-# CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000", "--reload"]
+# CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000", "--reload", "--log-level=debug"]
 # """
 #
 # DOCKERFILE_WORKER = """
@@ -32,7 +32,7 @@
 # COPY uvicorn .
 # RUN pip install -e .
 # WORKDIR /app
-# CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000", "--workers", "2"]
+# CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=5000", "--workers", "2", "--log-level=debug"]
 # """
 #
 # APPFILE = """
