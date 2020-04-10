@@ -1,3 +1,5 @@
+import os
+from datetime import datetime
 import logging
 from os import path
 
@@ -44,7 +46,7 @@ class WatchdogReload(BaseReload):
             self.has_changed = True
 
         observer = Observer()
-        event_handler = ChangeEventHandler(patterns=["*.py"], ignore_patterns=["*.py~"], callback=callback)
+        event_handler = ChangeEventHandler(patterns=["*.py"], callback=callback)
 
         for watch_dir in watch_dirs_set:
             observer.schedule(event_handler, watch_dir, recursive=True)
@@ -74,10 +76,18 @@ class ChangeEventHandler(PatternMatchingEventHandler):
             ignore_directories=ignore_directories,
             case_sensitive=case_sensitive,
         )
+        self.last_modified = datetime.now().timestamp()
 
         self.callback = callback
 
     def on_any_event(self, event):
         super().on_any_event(event)
         if self.callback is not None:
-            self.callback(event)
+            if event.event_type == "modified":
+                statbuf = os.stat(event.src_path)
+                new = statbuf.st_mtime
+                if (new - self.last_modified) > 0.1:
+                    self.callback(event)
+                self.last_modified = new
+            else:
+                self.callback(event)
