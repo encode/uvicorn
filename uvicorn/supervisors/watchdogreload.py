@@ -37,13 +37,14 @@ class WatchdogReload(BaseReload):
                     watch_dirs_set.remove(watch_dir)
 
         def callback(event):
+            # logger.info(event)
             display_path = getattr(event, "dest_path", event.src_path)
             message = "Detected file change in '%s'. Reloading..."
             logger.warning(message, display_path)
             self.has_changed = True
 
         observer = Observer()
-        event_handler = ChangeEventHandler(patterns=["*.py"], callback=callback)
+        event_handler = ChangeEventHandler(patterns=["*.py"], ignore_patterns=["*.py~"], callback=callback)
 
         for watch_dir in watch_dirs_set:
             observer.schedule(event_handler, watch_dir, recursive=True)
