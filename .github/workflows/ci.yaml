@@ -49,20 +49,34 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -U -r requirements.txt
+    - name: Run black check
+      # Skipping 'black' on pypy3.6-7.1.1. See issue https://bitbucket.org/pypy/pypy/issues/2985
+      if: always() && matrix.python-version != 'pypy3'
+      run: |
+        black uvicorn tests --check
+    - name: Test with flake8
+      if: always()
+      run: |
+        python -m pip install --upgrade pip
+        flake8 uvicorn tests --ignore W503,E203,E501,E731
+    - name: Test with mypy
+      if: always()
+      run: |
+        python -m pip install --upgrade pip
+        mypy uvicorn tests --ignore-missing-imports --disallow-untyped-def
     - name: Test with pytest
+      if: always()
       run: |
         pytest --ignore venv --cov=uvicorn --cov=tests --cov-report=term-missing
     - name: Run coverage
+      if: always()
       run: |
         coverage html
     - name: Run autoflake
+      if: always()
       run: |
         autoflake --recursive uvicorn tests
-    - name: Run black check
-      # Skipping 'black' on pypy3.6-7.1.1. See issue https://bitbucket.org/pypy/pypy/issues/2985
-      if: matrix.python-version != 'pypy3'
-      run: |
-        black uvicorn tests --check
     - name: Run codecov
+      if: always()
       run: |
         codecov
