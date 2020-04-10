@@ -1,11 +1,12 @@
-import os
-from datetime import datetime
 import logging
+import os
+from datetime import datetime, timedelta
 from os import path
 
-from uvicorn.supervisors.basereload import BaseReload
 from watchdog.events import PatternMatchingEventHandler
 from watchdog.observers import Observer
+
+from uvicorn.supervisors.basereload import BaseReload
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -76,7 +77,7 @@ class ChangeEventHandler(PatternMatchingEventHandler):
             ignore_directories=ignore_directories,
             case_sensitive=case_sensitive,
         )
-        self.last_modified = datetime.now().timestamp()
+        self.last_modified = datetime.now()
 
         self.callback = callback
 
@@ -84,10 +85,10 @@ class ChangeEventHandler(PatternMatchingEventHandler):
         super().on_any_event(event)
         if self.callback is not None:
             if event.event_type == "modified":
-                statbuf = os.stat(event.src_path)
-                new = statbuf.st_mtime
-                if (new - self.last_modified) > 0.1:
+                if datetime.now() - self.last_modified < timedelta(milliseconds=100):
+                    return
+                else:
+                    self.last_modified = datetime.now()
                     self.callback(event)
-                self.last_modified = new
             else:
                 self.callback(event)
