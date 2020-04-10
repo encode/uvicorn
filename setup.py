@@ -50,7 +50,7 @@ requirements = [
     "uvloop>=0.14.0 ;" + env_marker,
 ]
 
-extras_require = {"watchdogreload": ["watchdog>0.10,<0.11"]},
+extras_require = {"watchdogreload": ["watchdog>0.10,<0.11"]}
 
 
 setup(
