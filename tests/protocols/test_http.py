@@ -679,8 +679,7 @@ def test_supported_upgrade_request(protocol_cls):
 
 
 async def asgi3app(scope, receive, send):
-    response = Response()
-    await response(scope, receive, send)
+    pass
 
 
 def asgi2app(scope):
