@@ -100,7 +100,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         self.scope = {
             "type": "websocket",
-            "asgi": {"version": "2.1", "spec_version": "2.1"},
+            "asgi": {"version": self.config.asgi_version, "spec_version": "2.1"},
             "scheme": self.scheme,
             "server": self.server,
             "client": self.client,
