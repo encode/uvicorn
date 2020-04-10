@@ -66,3 +66,29 @@ def test_ssl_config(certfile_and_keyfile):
     config.load()
 
     assert config.is_ssl is True
+
+
+async def asgi3app(scope, receive, send):
+    pass
+
+
+def asgi2app(scope):
+    async def asgi(receive, send):
+        raise RuntimeError("Something went wrong")
+
+    return asgi
+
+
+asgi_scope_data = [
+    (asgi3app, "asgi3", {"asgi": {"version": "3.0", "spec_version": "2.1"}}),
+    (asgi2app, "asgi2", {"asgi": {"version": "2.0", "spec_version": "2.1"}}),
+]
+
+
+@pytest.mark.parametrize(
+    "asgi2or3_app, expected_interface, expected_scope", asgi_scope_data
+)
+def test_interface_config(asgi2or3_app, expected_interface, expected_scope):
+    config = Config(app=asgi2or3_app)
+    config.load()
+    assert config.interface == expected_interface
