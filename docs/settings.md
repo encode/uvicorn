@@ -8,7 +8,7 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 ## Application
 
 * `APP` - The ASGI application to run, in the format `"<module>:<attribute>"`.
-* `--app-dir <str>` - Specifty application directory.
+* `--app-dir <str>` - Look for `APP` in the specified directory. Defaults to `.`.
 
 ## Socket Binding
 
