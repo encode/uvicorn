@@ -22,16 +22,17 @@ class BaseReload:
         self.sockets = sockets
         self.should_exit = threading.Event()
         self.pid = os.getpid()
+        self.process = None
 
     def signal_handler(self, sig, frame):
         """
         A signal handler that is registered with the parent process.
         """
-        for process in self.processes:
+        if self.process is not None:
             try:
-                shutdown_subprocess(process.pid)
+                shutdown_subprocess(self.process.pid)
             except Exception as exc:
-                logger.error(f"Could not stop child process {process.pid}: {exc}")
+                logger.error(f"Could not stop child process {self.process.pid}: {exc}")
 
         self.should_exit.set()
 
@@ -42,7 +43,6 @@ class BaseReload:
                 self.restart()
         self.shutdown()
 
-        self.child_pids.append(self.process.pid)
         while not self.should_exit.wait(0.25):
             if self.should_restart():
                 self.restart()
@@ -62,7 +62,6 @@ class BaseReload:
             config=self.config, target=self.target, sockets=self.sockets
         )
         self.process.start()
-        self.processes.append(self.process)
 
     def restart(self):
         self.mtimes = {}
@@ -73,7 +72,6 @@ class BaseReload:
             config=self.config, target=self.target, sockets=self.sockets
         )
         self.process.start()
-        self.processes.append(self.process)
 
     def shutdown(self):
         self.process.join()
