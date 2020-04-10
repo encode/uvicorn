@@ -257,7 +257,11 @@ def print_version(ctx, param, value):
     help="Display the uvicorn version and exit.",
 )
 @click.option(
-    "--app-dir", "app_dir", default=".", help="Specifty application directory."
+    "--app-dir",
+    "app_dir",
+    default=".",
+    show_default=True,
+    help="Look for APP in the specified directory. Defaults to '.'",
 )
 def main(
     app,
