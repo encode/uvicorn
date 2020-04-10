@@ -1,7 +1,5 @@
 import signal
 
-import pytest
-
 from uvicorn import Config
 from uvicorn.supervisors import Multiprocess
 
