@@ -2,6 +2,11 @@ import socket
 
 import pytest
 
+from tests.protocols.test_http import (
+    HTTP_PROTOCOLS,
+    SIMPLE_GET_REQUEST,
+    get_connected_protocol,
+)
 from uvicorn import protocols
 from uvicorn.config import Config
 from uvicorn.middleware.debug import DebugMiddleware
@@ -74,21 +79,19 @@ async def asgi3app(scope, receive, send):
 
 def asgi2app(scope):
     async def asgi(receive, send):
-        raise RuntimeError("Something went wrong")
+        pass
 
     return asgi
 
 
-asgi_scope_data = [
-    (asgi3app, "asgi3", {"asgi": {"version": "3.0", "spec_version": "2.1"}}),
-    (asgi2app, "asgi2", {"asgi": {"version": "2.0", "spec_version": "2.1"}}),
+asgi_config_data = [
+    (asgi3app, "asgi3",),
+    (asgi2app, "asgi2",),
 ]
 
 
-@pytest.mark.parametrize(
-    "asgi2or3_app, expected_interface, expected_scope", asgi_scope_data
-)
-def test_interface_config(asgi2or3_app, expected_interface, expected_scope):
+@pytest.mark.parametrize("asgi2or3_app, expected_interface", asgi_config_data)
+def test_interface_config(asgi2or3_app, expected_interface):
     config = Config(app=asgi2or3_app)
     config.load()
     assert config.interface == expected_interface
