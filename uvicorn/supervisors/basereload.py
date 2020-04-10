@@ -43,7 +43,6 @@ class BaseReload:
                 self.restart()
         self.shutdown()
 
-
     def startup(self):
         message = "Started reloader process [{}]".format(str(self.pid))
         color_message = "Started reloader process [{}]".format(
