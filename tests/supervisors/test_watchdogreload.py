@@ -33,7 +33,7 @@ def test_should_reload(tmpdir):
 
         assert not reloader.should_restart()
         update_file.touch()
-        time.sleep(0.5)
+        time.sleep(0.1)
         assert reloader.should_restart()
 
         reloader.restart()
