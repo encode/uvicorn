@@ -20,10 +20,12 @@ class UvicornWorker(Worker):
         logger = logging.getLogger("uvicorn.error")
         logger.handlers = self.log.error_log.handlers
         logger.setLevel(self.log.error_log.level)
+        logger.propagate = False
 
         logger = logging.getLogger("uvicorn.access")
         logger.handlers = self.log.access_log.handlers
         logger.setLevel(self.log.access_log.level)
+        logger.propagate = False
 
         config_kwargs = {
             "app": None,
