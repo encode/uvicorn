@@ -73,25 +73,17 @@ def test_ssl_config(certfile_and_keyfile):
     assert config.is_ssl is True
 
 
-async def asgi3app(scope, receive, send):
-    pass
-
-
-def asgi2app(scope):
+def asgi2_app(scope):
     async def asgi(receive, send):
         pass
 
     return asgi
 
 
-asgi_config_data = [
-    (asgi3app, "asgi3",),
-    (asgi2app, "asgi2",),
-]
-
-
-@pytest.mark.parametrize("asgi2or3_app, expected_interface", asgi_config_data)
-def test_interface_config(asgi2or3_app, expected_interface):
-    config = Config(app=asgi2or3_app)
+@pytest.mark.parametrize(
+    "app, expected_interface", [(asgi_app, "3.0",), (asgi2_app, "2.0",),]
+)
+def test_asgi_version(app, expected_interface):
+    config = Config(app=app)
     config.load()
-    assert config.interface == expected_interface
+    assert config.asgi_version == expected_interface
