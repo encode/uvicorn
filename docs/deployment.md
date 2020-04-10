@@ -87,7 +87,7 @@ Options:
                                   [default: TLSv1]
   --header TEXT                   Specify custom default HTTP response headers
                                   as a Name:Value pair
-  --app-dir TEXT                  Specifty application directory.
+  --app-dir TEXT                  Look for APP in the specified directory. Defaults to '.'
   --help                          Show this message and exit.
 ```
 
