@@ -43,10 +43,6 @@ class BaseReload:
                 self.restart()
         self.shutdown()
 
-        while not self.should_exit.wait(0.25):
-            if self.should_restart():
-                self.restart()
-        self.shutdown()
 
     def startup(self):
         message = "Started reloader process [{}]".format(str(self.pid))
