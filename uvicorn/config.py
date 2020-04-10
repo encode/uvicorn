@@ -204,7 +204,6 @@ class Config:
     def asgi_version(self) -> str:
         return {"asgi2": "2.0", "asgi3": "3.0"}[self.interface]
 
-
     @property
     def is_ssl(self) -> bool:
         return bool(self.ssl_keyfile or self.ssl_certfile)
