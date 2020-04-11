@@ -1,8 +1,10 @@
 import asyncio
 import socket
+import sys
 import threading
 import time
 
+import pytest
 import requests
 
 from uvicorn.config import Config
@@ -124,6 +126,9 @@ def test_run_with_shutdown():
     assert exc is None
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("win"), reason="Skipping uds test on Windows"
+)
 def test_run_uds(uds, caplog):
     class App:
         def __init__(self, scope):
