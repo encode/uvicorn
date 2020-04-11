@@ -30,7 +30,7 @@ install:
         python -m pip install -U autoflake black codecov flake8 isort pytest pytest-cov requests watchdog watchgod;
       elif [ "$TRAVIS_PYTHON_VERSION" = "pypy3" ]; then
         pip install -U click h11 wsproto==0.13.*;
-        pip install -U autoflake codecov flake8 isort pytest pytest-cov requests watchdog;
+        pip install -U autoflake codecov flake8 isort pytest pytest-cov requests watchdog watchgod;
       else
         pip install -U -r requirements.txt;
       fi;
