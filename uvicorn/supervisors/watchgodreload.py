@@ -1,21 +1,20 @@
 import logging
 from os import path
 
-from watchgod import watch, run_process
+from watchgod import watch, run_process, AllWatcher, PythonWatcher
 
+from uvicorn.subprocess import subprocess_started, get_subprocess
 from uvicorn.supervisors.basereload import BaseReload
 
 
 logger = logging.getLogger("uvicorn.error")
 
 
-class WatchGodReload():
+class WatchGodReload(BaseReload):
     def __init__(self, config, target, sockets):
-        self.config = config
-        self.target = target
-        self.sockets = sockets
 
-        self.should_restart = False
+        super().__init__(config, target, sockets)
+        self.watchers = []
         # watchdog only accept directories
         watch_dirs = {
             path.realpath(watch_dir)
@@ -37,12 +36,20 @@ class WatchGodReload():
                 ):
                     watch_dirs_set.remove(watch_dir)
         self.watch_dir_set = watch_dirs_set
+        for w in watch_dirs_set:
+            self.watchers.append(PythonWatcher(w))
 
-    def run(self):
-        for w in self.watch_dir_set:
-            run_process(w, target=self.target, callback=self.callback)
+    def should_restart(self):
+        for watcher in self.watchers:
+            change = watcher.check()
+            if change != set():
+                message = "Detected file change in '%s'. Reloading..."
+                logger.warning(message, change)
+                return True
 
-    def callback(self, change):
-        logger.info("callback")
-        logger.info(change)
+        return False
+
+
+
+
 
