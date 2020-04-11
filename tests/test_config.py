@@ -90,3 +90,15 @@ def test_forwarded_allow_ips():
     config = Config(app=asgi_app, forwarded_allow_ips="192.168.0.1")
     config.load()
     assert config.forwarded_allow_ips == "192.168.0.1"
+
+
+@pytest.mark.parametrize("use_colors", [(True), (False)])
+def test_log_config_use_colors(use_colors):
+    log_config = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {"default": {}, "access": {}},
+    }
+    config = Config(app=asgi_app, log_config=log_config, use_colors=use_colors)
+    config.load()
+    assert config.use_colors == use_colors
