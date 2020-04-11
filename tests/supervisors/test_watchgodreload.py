@@ -3,6 +3,8 @@ import signal
 import time
 from pathlib import Path
 
+import pytest
+
 from uvicorn.config import Config
 from uvicorn.supervisors.watchgodreload import WatchGodReload
 
@@ -17,9 +19,9 @@ def test_statreload(certfile_and_keyfile):
     reloader.signal_handler(sig=signal.SIGINT, frame=None)
     reloader.run()
 
-
-def test_should_reload(tmpdir):
-    update_file = Path(os.path.join(str(tmpdir), "example.py"))
+@pytest.mark.parametrize("should_reload, file", [(True, "example.py"), (False, ".dotted")])
+def test_should_reload(tmpdir, should_reload, file):
+    update_file = Path(os.path.join(str(tmpdir), file))
     update_file.touch()
 
     working_dir = os.getcwd()
@@ -33,7 +35,7 @@ def test_should_reload(tmpdir):
         assert not reloader.should_restart()
         update_file.touch()
         time.sleep(0.1)
-        assert reloader.should_restart()
+        assert reloader.should_restart() == should_reload
 
         reloader.restart()
         reloader.shutdown()
