@@ -14,10 +14,11 @@ def run(sockets):
 def test_statreload(certfile_and_keyfile):
     config = Config(app=None)
     reloader = WatchGodReload(config, target=run, sockets=[])
+    reloader.signal_handler(sig=signal.SIGINT, frame=None)
     reloader.run()
 
 
-def test_should_reload(tmpdir, caplog):
+def test_should_reload(tmpdir):
     update_file = Path(os.path.join(str(tmpdir), "example.py"))
     update_file.touch()
 
@@ -26,12 +27,15 @@ def test_should_reload(tmpdir, caplog):
     try:
         config = Config(app=None, reload=True)
         reloader = WatchGodReload(config, target=run, sockets=[])
-        reloader.run()
+        reloader.signal_handler(sig=signal.SIGINT, frame=None)
+        reloader.startup()
 
+        assert not reloader.should_restart()
         update_file.touch()
         time.sleep(0.1)
+        assert reloader.should_restart()
 
-        assert "toto" in caplog
-
+        reloader.restart()
+        reloader.shutdown()
     finally:
         os.chdir(working_dir)
