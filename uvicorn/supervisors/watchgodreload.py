@@ -1,7 +1,7 @@
 import logging
 from os import path
 
-from watchgod import PythonWatcher
+from watchgod import PythonWatcher, RegExpWatcher
 
 from uvicorn.supervisors.basereload import BaseReload
 
@@ -32,8 +32,10 @@ class WatchGodReload(BaseReload):
                 ):
                     watch_dirs_set.remove(watch_dir)
         self.watch_dir_set = watch_dirs_set
+        re_files = r"^[^.].*$"
         for w in watch_dirs_set:
-            self.watchers.append(PythonWatcher(w))
+            # self.watchers.append(PythonWatcher(w))
+            self.watchers.append(RegExpWatcher(w, re_files=re_files))
 
     def should_restart(self):
         for watcher in self.watchers:
@@ -44,3 +46,5 @@ class WatchGodReload(BaseReload):
                 return True
 
         return False
+
+
