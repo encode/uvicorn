@@ -11,13 +11,13 @@ logger = logging.getLogger("uvicorn.error")
 
 class CustomWatcher(DefaultWatcher):
 
-    ignore_dotted_file_regexes= r"^\/?(?:\w+\/)*(\.\w+)"
+    ignore_dotted_file_regex= r"^\/?(?:\w+\/)*(\.\w+)"
     ignored = []
 
     def __init__(self, root_path):
         for t in self.ignored_file_regexes:
             self.ignored.append(t)
-        self.ignored.append(self.ignore_dotted_file_regexes)
+        self.ignored.append(self.ignore_dotted_file_regex)
         self._ignored = tuple(re.compile(r) for r in self.ignored)
         super().__init__(root_path)
 
