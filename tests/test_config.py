@@ -4,7 +4,7 @@ import socket
 import pytest
 
 from uvicorn import protocols
-from uvicorn.config import Config
+from uvicorn.config import LOG_LEVELS, Config
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
@@ -108,3 +108,15 @@ def test_log_config_inifile(ini_log_config):
     config = Config(app=asgi_app, log_config=ini_log_config)
     config.load()
     assert config
+
+
+log_lvl_passed = [(k) for k, v in LOG_LEVELS.items()] + [
+    (v) for k, v in LOG_LEVELS.items()
+]
+
+
+@pytest.mark.parametrize("log_lvl_passed", log_lvl_passed)
+def test_log_level(log_lvl_passed,):
+    config = Config(app=asgi_app, log_level=log_lvl_passed)
+    config.load()
+    assert config.log_level == log_lvl_passed
