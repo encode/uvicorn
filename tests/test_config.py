@@ -84,3 +84,9 @@ def test_reload_dir(tmp_path):
     config = Config(app=asgi_app, reload_dirs=tmp_path)
     config.load()
     assert config.reload_dirs == tmp_path
+
+
+def test_forwarded_allow_ips():
+    config = Config(app=asgi_app, forwarded_allow_ips="192.168.0.1")
+    config.load()
+    assert config.forwarded_allow_ips == "192.168.0.1"
