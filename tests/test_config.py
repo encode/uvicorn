@@ -76,3 +76,8 @@ def test_env_file(env_file):
     assert not bool(os.environ.get("KEY_FALSE"))
     assert os.environ.get("KEY_NOT_EXISTS") is None
 
+
+def test_reload_dir(tmp_path):
+    config = Config(app=asgi_app, reload_dirs=tmp_path)
+    config.load()
+    assert config.reload_dirs == tmp_path

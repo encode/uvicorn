@@ -72,7 +72,7 @@ def certfile_and_keyfile(tmp_path):
     return certfile, keyfile
 
 
-ENV_FILE="""
+ENV_FILE = """
 KEY_TRUE="1"
 KEY_FALSE=""
 """
