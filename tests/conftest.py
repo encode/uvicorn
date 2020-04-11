@@ -75,6 +75,7 @@ def certfile_and_keyfile(tmp_path):
 ENV_FILE = """
 KEY_TRUE="1"
 KEY_FALSE=""
+WEB_CONCURRENCY=2048
 """
 
 

@@ -75,6 +75,9 @@ def test_env_file(env_file):
     assert bool(os.environ.get("KEY_TRUE"))
     assert not bool(os.environ.get("KEY_FALSE"))
     assert os.environ.get("KEY_NOT_EXISTS") is None
+    # you'd love that a beefy desktop !
+    assert int(os.environ.get("WEB_CONCURRENCY")) == 2048
+    assert config.workers == 2048
 
 
 def test_reload_dir(tmp_path):
