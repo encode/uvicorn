@@ -1,4 +1,5 @@
 import asyncio
+import socket
 import threading
 import time
 
@@ -121,3 +122,37 @@ def test_run_with_shutdown():
     server.should_exit = True
     thread.join()
     assert exc is None
+
+
+def test_run_uds(uds, caplog):
+    class App:
+        def __init__(self, scope):
+            if scope["type"] != "http":
+                raise Exception()
+
+        async def __call__(self, receive, send):
+            await send({"type": "http.response.start", "status": 204, "headers": []})
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+    class CustomServer(Server):
+        def install_signal_handlers(self):
+            pass
+
+    sockfile, sock = uds
+    config = Config(app=App, loop="asyncio", limit_max_requests=1, uds=sockfile)
+    server = CustomServer(config=config)
+    thread = threading.Thread(target=server.run)
+    thread.start()
+    while not server.started:
+        time.sleep(0.01)
+    data = b"GET / HTTP/1.1\r\n\r\n"
+    sock_client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        sock_client.connect(sockfile)
+        r = sock_client.sendall(data)
+        assert r is None
+    except Exception as e:
+        print(e)
+    finally:
+        sock_client.close()
+    thread.join()

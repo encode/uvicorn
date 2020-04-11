@@ -1,3 +1,5 @@
+import socket
+
 import pytest
 
 CERTIFICATE = b"""-----BEGIN CERTIFICATE-----
@@ -111,3 +113,11 @@ def ini_log_config(tmp_path):
     with open(inifile, "w") as fout:
         fout.write(INI_LOG_CONFIG)
     return inifile
+
+
+@pytest.fixture(scope="function")
+def uds(tmp_path):
+    sockfile = str(tmp_path / "socket")
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.bind(sockfile)
+    return sockfile, sock

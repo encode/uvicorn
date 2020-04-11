@@ -141,3 +141,9 @@ def test_should_reload_property():
     config = Config(app="tests.test_config:asgi_app", reload=True)
     config.load()
     assert config.should_reload
+
+
+def test_config_unix_domain_socket(uds):
+    config = Config(app=asgi_app, uds=uds)
+    config.load()
+    assert config.uds == uds
