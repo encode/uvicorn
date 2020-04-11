@@ -126,3 +126,12 @@ def test_log_access():
     config = Config(app=asgi_app, access_log=False)
     config.load()
     assert not config.access_log
+
+
+def test_fail_asgi_app_import_and_exit():
+    asgi_app_wrong = ""
+    config = Config(app=asgi_app_wrong)
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        config.load()
+    assert pytest_wrapped_e.type == SystemExit
+    assert pytest_wrapped_e.value.code == 1
