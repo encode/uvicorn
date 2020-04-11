@@ -1,11 +1,9 @@
 import logging
 from os import path
 
-from watchgod import watch, run_process, AllWatcher, PythonWatcher
+from watchgod import PythonWatcher
 
-from uvicorn.subprocess import subprocess_started, get_subprocess
 from uvicorn.supervisors.basereload import BaseReload
-
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -15,13 +13,11 @@ class WatchGodReload(BaseReload):
 
         super().__init__(config, target, sockets)
         self.watchers = []
-        # watchdog only accept directories
         watch_dirs = {
             path.realpath(watch_dir)
             for watch_dir in self.config.reload_dirs
             if path.isdir(watch_dir)
         }
-
         watch_dirs_set = set(watch_dirs)
 
         # remove directories that already have a parent watched, so that we don't have
@@ -32,7 +28,7 @@ class WatchGodReload(BaseReload):
                     continue
 
                 if watch_dir.startswith(compare_dir) and len(watch_dir) > len(
-                        compare_dir
+                    compare_dir
                 ):
                     watch_dirs_set.remove(watch_dir)
         self.watch_dir_set = watch_dirs_set
@@ -48,8 +44,3 @@ class WatchGodReload(BaseReload):
                 return True
 
         return False
-
-
-
-
-
