@@ -72,8 +72,7 @@ def certfile_and_keyfile(tmp_path):
     return certfile, keyfile
 
 
-ENV_FILE = """
-KEY_TRUE="1"
+ENV_FILE = """KEY_TRUE="1"
 KEY_FALSE=""
 WEB_CONCURRENCY=2048
 """
@@ -87,8 +86,7 @@ def env_file(tmp_path):
     return envfile
 
 
-INI_LOG_CONFIG = """
-[loggers]
+INI_LOG_CONFIG = """[loggers]
 keys=root
 [handlers]
 keys=h
