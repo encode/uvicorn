@@ -120,3 +120,9 @@ def test_log_level(log_lvl_passed,):
     config = Config(app=asgi_app, log_level=log_lvl_passed)
     config.load()
     assert config.log_level == log_lvl_passed
+
+
+def test_log_access():
+    config = Config(app=asgi_app, access_log=False)
+    config.load()
+    assert not config.access_log
