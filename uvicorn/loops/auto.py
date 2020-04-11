@@ -1,7 +1,7 @@
 def auto_loop_setup():
     try:
-        import uvloop
-    except ImportError as exc:  # pragma: no cover
+        import uvloop  # noqa
+    except ImportError:  # pragma: no cover
         from uvicorn.loops.asyncio import asyncio_setup as loop_setup
 
         loop_setup()

@@ -4,7 +4,6 @@ import time
 from pathlib import Path
 
 from uvicorn.config import Config
-from uvicorn.main import Server
 from uvicorn.supervisors.watchdogreload import WatchdogReload
 
 

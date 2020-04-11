@@ -26,7 +26,7 @@ class MockTransport:
 
 def test_get_local_addr_with_socket():
     transport = MockTransport({"socket": MockSocket(family=socket.AF_IPX)})
-    assert get_local_addr(transport) == None
+    assert get_local_addr(transport) is None
 
     transport = MockTransport(
         {"socket": MockSocket(family=socket.AF_INET6, sockname=["::1", 123])}
@@ -41,7 +41,7 @@ def test_get_local_addr_with_socket():
 
 def test_get_remote_addr_with_socket():
     transport = MockTransport({"socket": MockSocket(family=socket.AF_IPX)})
-    assert get_remote_addr(transport) == None
+    assert get_remote_addr(transport) is None
 
     transport = MockTransport(
         {"socket": MockSocket(family=socket.AF_INET6, peername=["::1", 123])}
@@ -56,7 +56,7 @@ def test_get_remote_addr_with_socket():
 
 def test_get_local_addr():
     transport = MockTransport({"sockname": "path/to/unix-domain-socket"})
-    assert get_local_addr(transport) == None
+    assert get_local_addr(transport) is None
 
     transport = MockTransport({"sockname": ["123.45.6.7", 123]})
     assert get_local_addr(transport) == ("123.45.6.7", 123)
@@ -64,7 +64,7 @@ def test_get_local_addr():
 
 def test_get_remote_addr():
     transport = MockTransport({"peername": None})
-    assert get_remote_addr(transport) == None
+    assert get_remote_addr(transport) is None
 
     transport = MockTransport({"peername": ["123.45.6.7", 123]})
     assert get_remote_addr(transport) == ("123.45.6.7", 123)

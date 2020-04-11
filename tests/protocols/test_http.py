@@ -1,14 +1,12 @@
 import asyncio
 import logging
 
-import h11
 import pytest
 
 from tests.response import Response
 from uvicorn.config import Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
-from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol

@@ -13,6 +13,7 @@ set -x
 PYTHONPATH=. ${PREFIX}pytest --ignore venv --cov=uvicorn --cov=tests --cov-report=term-missing ${@}
 ${PREFIX}coverage html
 ${PREFIX}autoflake --recursive uvicorn tests
+${PREFIX}flake8 uvicorn tests --ignore=W503,E203,E501,E731
 if [ "${TRAVIS_PYTHON_VERSION}" = "pypy3" ]; then
     echo "Skipping 'black' on pypy3.6-7.1.1. See issue https://bitbucket.org/pypy/pypy/issues/2985"
 else
