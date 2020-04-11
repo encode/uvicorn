@@ -19,7 +19,10 @@ def test_statreload(certfile_and_keyfile):
     reloader.signal_handler(sig=signal.SIGINT, frame=None)
     reloader.run()
 
-@pytest.mark.parametrize("should_reload, file", [(True, "example.py"), (False, ".dotted")])
+
+@pytest.mark.parametrize(
+    "should_reload, file", [(True, "example.py"), (False, ".dotted")]
+)
 def test_should_reload(tmpdir, should_reload, file):
     update_file = Path(os.path.join(str(tmpdir), file))
     update_file.touch()

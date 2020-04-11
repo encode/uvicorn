@@ -11,7 +11,7 @@ logger = logging.getLogger("uvicorn.error")
 
 class CustomWatcher(DefaultWatcher):
 
-    ignore_dotted_file_regex= r"^\/?(?:\w+\/)*(\.\w+)"
+    ignore_dotted_file_regex = r"^\/?(?:\w+\/)*(\.\w+)"
     ignored = []
 
     def __init__(self, root_path):
@@ -61,5 +61,3 @@ class WatchGodReload(BaseReload):
                 return True
 
         return False
-
-
