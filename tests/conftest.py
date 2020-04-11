@@ -70,3 +70,17 @@ def certfile_and_keyfile(tmp_path):
         fout.write(PRIVATE_KEY)
 
     return certfile, keyfile
+
+
+ENV_FILE="""
+KEY_TRUE="1"
+KEY_FALSE=""
+"""
+
+
+@pytest.fixture(scope="function")
+def env_file(tmp_path):
+    envfile = str(tmp_path / ".env")
+    with open(envfile, "w") as fout:
+        fout.write(ENV_FILE)
+    return envfile

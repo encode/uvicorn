@@ -1,3 +1,4 @@
+import os
 import socket
 
 import pytest
@@ -66,3 +67,12 @@ def test_ssl_config(certfile_and_keyfile):
     config.load()
 
     assert config.is_ssl is True
+
+
+def test_env_file(env_file):
+    config = Config(app=asgi_app, env_file=env_file)
+    config.load()
+    assert bool(os.environ.get("KEY_TRUE"))
+    assert not bool(os.environ.get("KEY_FALSE"))
+    assert os.environ.get("KEY_NOT_EXISTS") is None
+
