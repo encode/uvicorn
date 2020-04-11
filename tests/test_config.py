@@ -135,3 +135,9 @@ def test_fail_asgi_app_import_and_exit():
         config.load()
     assert pytest_wrapped_e.type == SystemExit
     assert pytest_wrapped_e.value.code == 1
+
+
+def test_should_reload_property():
+    config = Config(app="tests.test_config:asgi_app", reload=True)
+    config.load()
+    assert config.should_reload
