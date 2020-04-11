@@ -116,8 +116,9 @@ def ini_log_config(tmp_path):
 
 
 @pytest.fixture(scope="function")
-def uds(tmp_path):
+def socket_file(tmp_path):
     sockfile = str(tmp_path / "socket")
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    fd = sock.fileno()
     sock.bind(sockfile)
-    return sockfile, sock
+    return sockfile, sock, fd

@@ -147,7 +147,18 @@ def test_should_reload_property():
 @pytest.mark.skipif(
     sys.platform.startswith("win"), reason="Skipping uds test on Windows"
 )
-def test_config_unix_domain_socket(uds):
+def test_config_unix_domain_socket(socket_file):
+    uds, _, _ = socket_file
     config = Config(app=asgi_app, uds=uds)
     config.load()
     assert config.uds == uds
+
+
+@pytest.mark.skipif(
+    sys.platform.startswith("win"), reason="Skipping uds test on Windows"
+)
+def test_config_file_descriptor(socket_file):
+    _, _, fd = socket_file
+    config = Config(app=asgi_app, fd=fd)
+    config.load()
+    assert config.fd == fd
