@@ -102,3 +102,10 @@ def test_log_config_use_colors(use_colors):
     config = Config(app=asgi_app, log_config=log_config, use_colors=use_colors)
     config.load()
     assert config.use_colors == use_colors
+
+
+def test_log_config_inifile(ini_log_config):
+    config = Config(app=asgi_app, log_config=ini_log_config)
+    config.load()
+    assert config
+
