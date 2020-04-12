@@ -1,5 +1,4 @@
 import os
-import platform
 import socket
 import sys
 
@@ -146,7 +145,7 @@ def test_should_reload_property():
 
 
 @pytest.mark.skipif(
-    sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
+    sys.platform.startswith("win"),
     reason="Skipping unix domain socket test on Windows and pypy",
 )
 def test_config_unix_domain_socket(socket_file):
@@ -170,8 +169,8 @@ def test_config_file_descriptor(socket_file):
 def test_config_rebind_socket():
     sock = socket.socket()
     config = Config(asgi_app)
-    sock.bind((config.host, config.port))
     with pytest.raises(SystemExit) as pytest_wrapped_e:
+        sock.bind((config.host, config.port))
         config.bind_socket()
     assert pytest_wrapped_e.type == SystemExit
     assert pytest_wrapped_e.value.code == 1
