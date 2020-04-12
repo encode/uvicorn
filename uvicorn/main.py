@@ -348,7 +348,9 @@ def run(app, **kwargs):
         supervisor.run()
     elif config.workers > 1:
         sock = config.bind_socket()
-        supervisor = Multiprocess(config, target=server.run, sockets=[sock])
+        supervisor = Multiprocess(
+            config, target=server.run, sockets=[sock], workers_number=config.workers
+        )
         supervisor.run()
     else:
         server.run()
