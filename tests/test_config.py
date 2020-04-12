@@ -159,6 +159,17 @@ def test_config_unix_domain_socket(socket_file):
 )
 def test_config_file_descriptor(socket_file):
     _, _, fd = socket_file
+
     config = Config(app=asgi_app, fd=fd)
     config.load()
     assert config.fd == fd
+
+
+@pytest.mark.skipif(
+    not sys.platform.startswith("win"), reason="Triggers OSError only on Windows"
+)
+def test_config_file_descriptor_os_error(socket_file):
+    with pytest.raises(OSError):
+        uds, _, _ = socket_file
+        config = Config(app=asgi_app, uds=uds)
+        config.load()
