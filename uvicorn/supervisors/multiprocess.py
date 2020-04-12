@@ -16,13 +16,14 @@ logger = logging.getLogger("uvicorn.error")
 
 
 class Multiprocess:
-    def __init__(self, config, target, sockets):
+    def __init__(self, config, target, sockets, workers_number):
         self.config = config
         self.target = target
         self.sockets = sockets
         self.processes = []
         self.should_exit = threading.Event()
         self.pid = os.getpid()
+        self.workers_number = workers_number
 
     def signal_handler(self, sig, frame):
         """
@@ -39,8 +40,13 @@ class Multiprocess:
 
     def run(self):
         self.startup()
-        self.should_exit.wait()
+        while not self.should_exit.wait(0.25):
+            if not self.workers_alive():
+                self.should_exit.set()
         self.shutdown()
+
+    def workers_alive(self):
+        return self.workers_number - sum([not p.is_alive() for p in self.processes])
 
     def startup(self):
         message = "Started parent process [{}]".format(str(self.pid))
@@ -54,7 +60,7 @@ class Multiprocess:
 
         for idx in range(self.config.workers):
             process = get_subprocess(
-                config=self.config, target=self.target, sockets=self.sockets
+                config=self.config, target=self.target, sockets=self.sockets,
             )
             process.start()
             self.processes.append(process)
