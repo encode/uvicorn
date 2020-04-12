@@ -1,4 +1,5 @@
 import os
+import platform
 import socket
 import sys
 
@@ -145,7 +146,8 @@ def test_should_reload_property():
 
 
 @pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="Skipping uds test on Windows"
+    sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
+    reason="Skipping unix domain socket test on Windows and pypy",
 )
 def test_config_unix_domain_socket(socket_file):
     uds, _, _ = socket_file
@@ -155,7 +157,7 @@ def test_config_unix_domain_socket(socket_file):
 
 
 @pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="Skipping uds test on Windows"
+    sys.platform.startswith("win"), reason="Skipping file descriptor test on Windows"
 )
 def test_config_file_descriptor(socket_file):
     _, _, fd = socket_file
