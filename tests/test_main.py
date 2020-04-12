@@ -161,4 +161,3 @@ def test_run_uds(tmp_path):
     finally:
         sock_client.close()
     thread.join()
-

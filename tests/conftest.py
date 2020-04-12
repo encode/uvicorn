@@ -1,5 +1,3 @@
-import socket
-
 import pytest
 
 CERTIFICATE = b"""-----BEGIN CERTIFICATE-----
@@ -113,4 +111,3 @@ def ini_log_config(tmp_path):
     with open(inifile, "w") as fout:
         fout.write(INI_LOG_CONFIG)
     return inifile
-
