@@ -165,11 +165,12 @@ def test_config_file_descriptor(socket_file):
     assert config.fd == fd
 
 
-@pytest.mark.skipif(
-    not sys.platform.startswith("win"), reason="Triggers OSError only on Windows"
-)
-def test_config_file_descriptor_os_error(socket_file):
-    with pytest.raises(OSError):
-        uds, _, _ = socket_file
-        config = Config(app=asgi_app, uds=uds)
-        config.load()
+def test_config_rebind_socket():
+    sock = socket.socket()
+    config = Config(asgi_app)
+    sock.bind((config.host, config.port))
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        config.bind_socket()
+    assert pytest_wrapped_e.type == SystemExit
+    assert pytest_wrapped_e.value.code == 1
+    sock.close()
