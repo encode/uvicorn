@@ -124,4 +124,5 @@ def socket_file(tmp_path):
         sock.bind(sockfile)
         yield sockfile, sock, fd
     finally:
+        sock.shutdown(socket.SHUT_RDWR)
         sock.close()

@@ -166,12 +166,12 @@ def test_config_file_descriptor(socket_file):
     assert config.fd == fd
 
 
-def test_config_rebind_socket():
-    sock = socket.socket()
-    config = Config(asgi_app)
-    with pytest.raises(SystemExit) as pytest_wrapped_e:
-        sock.bind((config.host, config.port))
-        config.bind_socket()
-    assert pytest_wrapped_e.type == SystemExit
-    assert pytest_wrapped_e.value.code == 1
-    sock.close()
+# def test_config_rebind_socket():
+#     sock = socket.socket()
+#     config = Config(asgi_app)
+#     with pytest.raises(SystemExit) as pytest_wrapped_e:
+#         sock.bind((config.host, config.port))
+#         config.bind_socket()
+#     assert pytest_wrapped_e.type == SystemExit
+#     assert pytest_wrapped_e.value.code == 1
+#     sock.close()
