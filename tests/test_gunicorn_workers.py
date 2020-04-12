@@ -51,5 +51,6 @@ def test_gunicorn_uvicorn():
     assert response.status_code == 200
     assert response.content == b"Hello"
     process.terminate()
-    print("8000")
+    # needed timeout for travis or the port wont get released fast enough
+    # and will "block" subsequent tests
     time.sleep(1)
