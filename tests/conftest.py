@@ -120,5 +120,8 @@ def socket_file(tmp_path):
     sockfile = str(tmp_path / "socket")
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     fd = sock.fileno()
-    sock.bind(sockfile)
-    return sockfile, sock, fd
+    try:
+        sock.bind(sockfile)
+        yield sockfile, sock, fd
+    finally:
+        sock.close()
