@@ -30,18 +30,18 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
 
 def test_gunicorn_uvicorn():
     options = {
-        'bind': '%s:%s' % ('127.0.0.1', '8080'),
+        'bind': '%s:%s' % ('127.0.0.1', '8000'),
         'workers': 1,
-        "worker_class": "uvicorn.workers.UvicornWorker"
+        "worker_class": "uvicorn.workers.UvicornWorker",
+        "log_level": "debug"
         
     }
     gunicorn_uvicorn_server = StandaloneApplication(handler_app, options)
     process = Process(target=gunicorn_uvicorn_server.run)
+    print(process.pid)
     process.start()
     time.sleep(1)
-    response = requests.get("http://127.0.0.1:8080")
+    response = requests.get("http://127.0.0.1:8000")
     assert response.status_code == 200
     assert response.content == b"Hello"
-    # need a timeout or it wont close
-    process.join(timeout=2)
-    print("here")
+    process.terminate()
