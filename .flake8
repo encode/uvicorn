@@ -2,6 +2,10 @@
 ignore =
     # Conflict W504 with old style W503. One of these things.
     W503,
+    # Whitespace before ':'.
+    E203,
+    # Do not assign a lambda expression, use a def. 
+    E731,
     # The restriction on the length of strings.
     E501
 exclude =
