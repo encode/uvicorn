@@ -1,4 +1,5 @@
 import os
+import platform
 import socket
 import sys
 
@@ -164,12 +165,18 @@ def test_config_file_descriptor():
     assert config.fd == 1
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
+    reason="Skipping uds test on Windows",
+)
 def test_config_rebind_socket():
     sock = socket.socket()
     config = Config(asgi_app)
-    with pytest.raises(SystemExit) as pytest_wrapped_e:
+    try:
         sock.bind((config.host, config.port))
-        config.bind_socket()
-    assert pytest_wrapped_e.type == SystemExit
-    assert pytest_wrapped_e.value.code == 1
-    sock.close()
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
+            config.bind_socket()
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == 1
+    finally:
+        sock.close()
