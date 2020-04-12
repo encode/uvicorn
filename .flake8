@@ -7,6 +7,8 @@ ignore =
 exclude =
     # Git certainly doesn't need to be checked.
     .git,
+    # Virtual environment doesn't need to be checked too.
+    venv,
     # Bytecode directories to skiping.
     __pycache__,
     # Eggs from installation, they can not escape!
