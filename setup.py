@@ -64,7 +64,7 @@ setup(
     packages=get_packages("uvicorn"),
     install_requires=requirements,
     extras_require=extras_require,
-    data_files=[("", ["LICENSE.md"])],
+    include_package_data=True,
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Web Environment",
