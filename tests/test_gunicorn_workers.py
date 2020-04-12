@@ -1,7 +1,10 @@
+import platform
+import sys
 import time
 from multiprocessing.context import Process
 
 import gunicorn.app.base
+import pytest
 import requests
 
 
@@ -29,6 +32,10 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
         return self.application
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
+    reason="Skipping uds test on Windows",
+)
 def test_gunicorn_uvicorn():
     options = {
         "bind": "%s:%s" % ("127.0.0.1", "8000"),
@@ -40,7 +47,7 @@ def test_gunicorn_uvicorn():
     process = Process(target=gunicorn_uvicorn_server.run)
     print(process.pid)
     process.start()
-    time.sleep(1)
+    time.sleep(0.1)
     response = requests.get("http://127.0.0.1:8000")
     assert response.status_code == 200
     assert response.content == b"Hello"
