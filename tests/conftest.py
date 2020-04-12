@@ -114,15 +114,3 @@ def ini_log_config(tmp_path):
         fout.write(INI_LOG_CONFIG)
     return inifile
 
-
-@pytest.fixture(scope="function")
-def socket_file(tmp_path):
-    sockfile = str(tmp_path / "socket")
-    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    fd = sock.fileno()
-    try:
-        sock.bind(sockfile)
-        yield sockfile, sock, fd
-    finally:
-        sock.shutdown(socket.SHUT_RDWR)
-        sock.close()

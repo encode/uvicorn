@@ -148,8 +148,8 @@ def test_should_reload_property():
     sys.platform.startswith("win"),
     reason="Skipping unix domain socket test on Windows and pypy",
 )
-def test_config_unix_domain_socket(socket_file):
-    uds, _, _ = socket_file
+def test_config_unix_domain_socket(tmp_path):
+    uds = tmp_path / "socket"
     config = Config(app=asgi_app, uds=uds)
     config.load()
     assert config.uds == uds
@@ -158,20 +158,18 @@ def test_config_unix_domain_socket(socket_file):
 @pytest.mark.skipif(
     sys.platform.startswith("win"), reason="Skipping file descriptor test on Windows"
 )
-def test_config_file_descriptor(socket_file):
-    _, _, fd = socket_file
-
-    config = Config(app=asgi_app, fd=fd)
+def test_config_file_descriptor():
+    config = Config(app=asgi_app, fd=1)
     config.load()
-    assert config.fd == fd
+    assert config.fd == 1
 
 
-# def test_config_rebind_socket():
-#     sock = socket.socket()
-#     config = Config(asgi_app)
-#     with pytest.raises(SystemExit) as pytest_wrapped_e:
-#         sock.bind((config.host, config.port))
-#         config.bind_socket()
-#     assert pytest_wrapped_e.type == SystemExit
-#     assert pytest_wrapped_e.value.code == 1
-#     sock.close()
+def test_config_rebind_socket():
+    sock = socket.socket()
+    config = Config(asgi_app)
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        sock.bind((config.host, config.port))
+        config.bind_socket()
+    assert pytest_wrapped_e.type == SystemExit
+    assert pytest_wrapped_e.value.code == 1
+    sock.close()
