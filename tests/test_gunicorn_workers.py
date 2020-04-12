@@ -45,7 +45,6 @@ def test_gunicorn_uvicorn():
     }
     gunicorn_uvicorn_server = StandaloneApplication(handler_app, options)
     process = Process(target=gunicorn_uvicorn_server.run)
-    print(process.pid)
     process.start()
     time.sleep(0.1)
     response = requests.get("http://127.0.0.1:8000")
