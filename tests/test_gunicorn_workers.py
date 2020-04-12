@@ -51,3 +51,5 @@ def test_gunicorn_uvicorn():
     assert response.status_code == 200
     assert response.content == b"Hello"
     process.terminate()
+    print("8000")
+    time.sleep(1)
