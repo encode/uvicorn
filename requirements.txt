@@ -16,6 +16,7 @@ isort
 pytest
 pytest-cov
 requests
+gunicorn
 
 # Documentation
 mkdocs
