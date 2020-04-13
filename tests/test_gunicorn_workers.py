@@ -15,7 +15,6 @@ async def handler_app(scope, receive, send):
 
 
 class StandaloneApplication(gunicorn_app_base.BaseApplication):
-
     def __init__(self, app, options=None):
         self.options = options or {}
         self.application = app
