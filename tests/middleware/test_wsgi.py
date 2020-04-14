@@ -1,9 +1,45 @@
 import sys
+import time
+import asyncio
+from tempfile import TemporaryFile
 
 import pytest
 
 from tests.client import TestClient
-from uvicorn.middleware.wsgi import WSGIMiddleware
+from uvicorn.middleware.wsgi import WSGIMiddleware, Body
+
+
+def test_body():
+    recv_event = asyncio.Event()
+    body = Body(recv_event)
+    body.write(
+        b"""This is a body test.
+Why do this?
+To prevent memory leaks.
+And cancel pre-reading.
+Newline.0
+Newline.1
+Newline.2
+Newline.3
+"""
+    )
+    body.feed_eof()
+    assert body.readline() == b"This is a body test.\n"
+    assert body.readline(6) == b"Why do"
+    assert body.readline(20) == b" this?\n"
+
+    assert body.readlines(2) == [
+        b"To prevent memory leaks.\n",
+        b"And cancel pre-reading.\n",
+    ]
+    for index, line in enumerate(body):
+        assert line == b"Newline." + str(index).encode("utf8") + b"\n"
+        if index == 1:
+            break
+    assert body.readlines() == [
+        b"Newline.2\n",
+        b"Newline.3\n",
+    ]
 
 
 def hello_world(environ, start_response):
@@ -60,6 +96,17 @@ def test_wsgi_post():
     response = client.post("/", json={"example": 123})
     assert response.status_code == 200
     assert response.text == '{"example": 123}'
+
+
+def test_wsgi_post_big_file():
+    app = WSGIMiddleware(echo_body)
+    client = TestClient(app)
+    file = TemporaryFile()
+    for num in range(1000000):
+        file.write(str(num).encode("utf8"))
+    response = client.post("/", files={"file": file})
+    assert response.status_code == 200
+    assert response.content
 
 
 def test_wsgi_exception():

@@ -2,9 +2,89 @@ import asyncio
 import concurrent.futures
 import io
 import sys
+import time
 
 
-def build_environ(scope, message, body):
+class Body:
+    def __init__(self, recv_event):
+        self.buffer = bytearray()
+        self.recv_event = recv_event
+        self._has_more = True
+
+    def feed_eof(self):
+        self._has_more = False
+
+    @property
+    def has_more(self):
+        if self._has_more or self.buffer:
+            return True
+        return False
+
+    def write(self, data):
+        self.buffer.extend(data)
+
+    def _read(self, size=0):
+        """
+        read data
+
+        * Call _read to pre-read data into the buffer
+        * Call _read(size) to read data of specified length in buffer
+        * Call _read(negative) to read all data in buffer
+        """
+        while self._has_more and not self.buffer:
+            if not self.recv_event.is_set():
+                self.recv_event.set()
+            time.sleep(0.25)
+
+        if size < 0:
+            data = self.buffer[:]
+            del self.buffer[:]
+        else:
+            data = self.buffer[:size]
+            del self.buffer[:size]
+        return bytes(data)
+
+    def read(self, size=-1):
+        data = self._read(size)
+        while (len(data) < size or size == -1) and self.has_more:
+            data += self._read(size - len(data))
+        return data
+
+    def _readline(self, limit):
+        index = self.buffer.find(b"\n")
+        if -1 < index:  # found b"\n"
+            if limit > -1:
+                return self._read(min(index + 1, limit))
+            return self._read(index + 1)
+
+        if -1 < limit < len(self.buffer):
+            return self._read(limit)
+
+        if self._has_more:  # Not found b"\n", request more data
+            self.recv_event.set()
+        return None
+
+    def readline(self, limit=-1):
+        data = self._readline(limit)
+        while (not data) and self.has_more:
+            data = self._readline(limit)
+        return data if data else bytes()
+
+    def readlines(self, hint=-1):
+        if hint == -1:
+            raw_data = self.read(-1)
+            if raw_data[-1] == 10:  # 10 -> b"\n"
+                raw_data = raw_data[:-1]
+            bytelist = raw_data.split(b"\n")
+            return [line + b"\n" for line in bytelist]
+        return [self.readline() for _ in range(hint)]
+
+    def __iter__(self):
+        while self.has_more:
+            yield self.readline()
+
+
+def build_environ(scope, body):
     """
     Builds a scope and request message into a WSGI environ object.
     """
@@ -16,7 +96,7 @@ def build_environ(scope, message, body):
         "SERVER_PROTOCOL": "HTTP/%s" % scope["http_version"],
         "wsgi.version": (1, 0),
         "wsgi.url_scheme": scope.get("scheme", "http"),
-        "wsgi.input": io.BytesIO(body),
+        "wsgi.input": body,
         "wsgi.errors": sys.stdout,
         "wsgi.multithread": True,
         "wsgi.multiprocess": True,
@@ -70,6 +150,7 @@ class WSGIResponder:
         self.scope = scope
         self.status = None
         self.response_headers = None
+        self.recv_event = asyncio.Event()
         self.send_event = asyncio.Event()
         self.send_queue = []
         self.loop = None
@@ -77,27 +158,33 @@ class WSGIResponder:
         self.exc_info = None
 
     async def __call__(self, receive, send):
-        message = await receive()
-        body = message.get("body", b"")
-        more_body = message.get("more_body", False)
-        while more_body:
-            body_message = await receive()
-            body += body_message.get("body", b"")
-            more_body = body_message.get("more_body", False)
-        environ = build_environ(self.scope, message, body)
+        body = Body(self.recv_event)
+        environ = build_environ(self.scope, body)
         self.loop = asyncio.get_event_loop()
         wsgi = self.loop.run_in_executor(
             self.executor, self.wsgi, environ, self.start_response
         )
         sender = self.loop.create_task(self.sender(send))
+        receiver = self.loop.create_task(self.recevier(receive, body))
         try:
             await asyncio.wait_for(wsgi, None)
         finally:
             self.send_queue.append(None)
             self.send_event.set()
             await asyncio.wait_for(sender, None)
+            receiver.cancel()
         if self.exc_info is not None:
             raise self.exc_info[0].with_traceback(self.exc_info[1], self.exc_info[2])
+
+    async def recevier(self, receive, body):
+        more_body = True
+        while more_body:
+            await self.recv_event.wait()
+            message = await receive()
+            self.recv_event.clear()
+            body.write(message.get("body", b""))
+            more_body = message.get("more_body", False)
+        body.feed_eof()
 
     async def sender(self, send):
         while True:
