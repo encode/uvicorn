@@ -34,6 +34,12 @@ Install using `pip`:
 $ pip install uvicorn
 ```
 
+If trying to install in a docker image add this to `Dockerfile`:
+```
+RUN apk add build-base
+```
+
+
 Create an application, in `example.py`:
 
 ```python
