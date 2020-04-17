@@ -57,7 +57,7 @@ class WatchGodReload(BaseReload):
             change = watcher.check()
             if change != set():
                 message = "Detected file change in '%s'. Reloading..."
-                logger.warning(message, change)
+                logger.warning(message, [c[1] for c in change])
                 return True
 
         return False
