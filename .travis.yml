@@ -27,10 +27,10 @@ install:
         choco install python3;
         export PATH=/c/Python37:/c/Python37/Scripts:/c/Python38:/c/Python38/Scripts:$PATH;
         python -m pip install -U click h11 wsproto==0.13.* websockets==8.*;
-        python -m pip install -U autoflake black codecov flake8 isort pytest pytest-cov requests watchdog watchgod;
+        python -m pip install -U autoflake black codecov flake8 isort pytest pytest-cov requests watchgod;
       elif [ "$TRAVIS_PYTHON_VERSION" = "pypy3" ]; then
         pip install -U click h11 wsproto==0.13.*;
-        pip install -U autoflake codecov flake8 isort pytest pytest-cov requests watchdog watchgod;
+        pip install -U autoflake codecov flake8 isort pytest pytest-cov requests watchgod;
       else
         pip install -U -r requirements.txt;
       fi;
