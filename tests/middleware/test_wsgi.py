@@ -1,5 +1,4 @@
 import sys
-import time
 import asyncio
 from tempfile import TemporaryFile
 

@@ -1,6 +1,5 @@
 import asyncio
 import concurrent.futures
-import io
 import sys
 import time
 
