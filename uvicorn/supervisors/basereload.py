@@ -45,6 +45,8 @@ class BaseReload:
 
     def startup(self):
         message = "Started reloader process [{}]".format(str(self.pid))
+        if self.__class__.__name__ == "WatchGodReload":
+            message += f" powered by watchgod"
         color_message = "Started reloader process [{}]".format(
             click.style(str(self.pid), fg="cyan", bold=True)
         )
