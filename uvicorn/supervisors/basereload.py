@@ -23,6 +23,7 @@ class BaseReload:
         self.should_exit = threading.Event()
         self.pid = os.getpid()
         self.process = None
+        self.reloader_name = None
 
     def signal_handler(self, sig, frame):
         """
@@ -44,7 +45,7 @@ class BaseReload:
         self.shutdown()
 
     def startup(self):
-        message = "Started reloader process [{}]".format(str(self.pid))
+        message = f"Started reloader process [{self.pid}] using {self.reloader_name}"
         color_message = "Started reloader process [{}]".format(
             click.style(str(self.pid), fg="cyan", bold=True)
         )
