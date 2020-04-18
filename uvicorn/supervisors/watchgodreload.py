@@ -10,7 +10,6 @@ logger = logging.getLogger("uvicorn.error")
 
 
 class CustomWatcher(DefaultWatcher):
-
     ignore_dotted_file_regex = r"^\/?(?:\w+\/)*(\.\w+)"
     ignored = []
 
@@ -27,8 +26,8 @@ class CustomWatcher(DefaultWatcher):
 
 class WatchGodReload(BaseReload):
     def __init__(self, config, target, sockets):
-
         super().__init__(config, target, sockets)
+        self.reloader_name = "watchgod"
         self.watchers = []
         watch_dirs = {
             path.realpath(watch_dir)
