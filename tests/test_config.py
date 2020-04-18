@@ -118,7 +118,7 @@ log_lvl_passed = [(k) for k, v in LOG_LEVELS.items()] + [
 
 
 @pytest.mark.parametrize("log_lvl_passed", log_lvl_passed)
-def test_log_level(log_lvl_passed,):
+def test_log_level_set_as_str_or_int(log_lvl_passed,):
     config = Config(app=asgi_app, log_level=log_lvl_passed)
     config.load()
     assert config.log_level == log_lvl_passed
@@ -146,8 +146,8 @@ def test_should_reload_property():
 
 
 @pytest.mark.skipif(
-    sys.platform.startswith("win"),
-    reason="Skipping unix domain socket test on Windows and pypy",
+    sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
+    reason="Skipping unix domain tests on Windows and PyPy",
 )
 def test_config_unix_domain_socket(tmp_path):
     uds = tmp_path / "socket"
@@ -157,7 +157,8 @@ def test_config_unix_domain_socket(tmp_path):
 
 
 @pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="Skipping file descriptor test on Windows"
+    sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
+    reason="Skipping file descriptor tests on Windows and PyPy",
 )
 def test_config_file_descriptor():
     config = Config(app=asgi_app, fd=1)
@@ -167,7 +168,7 @@ def test_config_file_descriptor():
 
 @pytest.mark.skipif(
     sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
-    reason="Skipping uds test on Windows",
+    reason="Skipping unix domain tests on Windows and PyPy",
 )
 def test_config_rebind_socket():
     sock = socket.socket()
