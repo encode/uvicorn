@@ -50,7 +50,7 @@ test_logging_config = {
 
 @pytest.mark.skipif(
     sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
-    reason="Skipping uds test on Windows and PyPy",
+    reason="Skipping test on Windows and PyPy",
 )
 def test_trace_logging(capsys):
     class App:
@@ -88,7 +88,7 @@ def test_trace_logging(capsys):
 
 @pytest.mark.skipif(
     sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
-    reason="Skipping uds test on Windows and PyPy",
+    reason="Skipping test on Windows and PyPy",
 )
 @pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
 def test_access_logging(capsys, http_protocol):
