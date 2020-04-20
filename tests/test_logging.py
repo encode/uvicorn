@@ -17,7 +17,7 @@ test_logging_config= {
             "format": "[TEST_ACCESS] %(levelname)-9s %(name)s - %(lineno)d - %(message)s"
         },
         "test_formatter_asgi": {
-            "format": "[TEST_ACCESS] %(levelname)-9s %(name)s - %(lineno)d - %(message)s"
+            "format": "[TEST_ASGI] %(levelname)-9s %(name)s - %(lineno)d - %(message)s"
         },
     },
     "handlers": {
