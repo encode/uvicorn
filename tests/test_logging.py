@@ -6,12 +6,12 @@ import requests
 
 from uvicorn import Config, Server
 
-test_logging_config= {
+test_logging_config = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "test_formatter_default": {
-           "format": "[TEST_DEFAULT] %(levelname)-9s %(name)s - %(lineno)d - %(message)s"
+            "format": "[TEST_DEFAULT] %(levelname)-9s %(name)s - %(lineno)d - %(message)s"
         },
         "test_formatter_access": {
             "format": "[TEST_ACCESS] %(levelname)-9s %(name)s - %(lineno)d - %(message)s"
@@ -35,7 +35,7 @@ test_logging_config= {
             "formatter": "test_formatter_asgi",
             "class": "logging.StreamHandler",
             "stream": "ext://sys.stdout",
-        }
+        },
     },
     "loggers": {
         "": {"handlers": ["default"], "level": "INFO"},
@@ -59,7 +59,14 @@ def test_trace_logging(capsys):
     class CustomServer(Server):
         def install_signal_handlers(self):
             pass
-    config = Config(app=App, loop="asyncio", limit_max_requests=1, log_config=test_logging_config, log_level="trace")
+
+    config = Config(
+        app=App,
+        loop="asyncio",
+        limit_max_requests=1,
+        log_config=test_logging_config,
+        log_level="trace",
+    )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
@@ -67,7 +74,6 @@ def test_trace_logging(capsys):
         time.sleep(0.01)
     response = requests.get("http://127.0.0.1:8000")
     assert response.status_code == 204
-    # print(caplog.records)
     thread.join()
     captured = capsys.readouterr()
     assert '"GET / HTTP/1.1" 204' in captured.out
@@ -88,7 +94,14 @@ def test_access_logging(capsys, http_protocol):
     class CustomServer(Server):
         def install_signal_handlers(self):
             pass
-    config = Config(app=App, loop="asyncio", http=http_protocol, limit_max_requests=1, log_config=test_logging_config)
+
+    config = Config(
+        app=App,
+        loop="asyncio",
+        http=http_protocol,
+        limit_max_requests=1,
+        log_config=test_logging_config,
+    )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
@@ -96,9 +109,7 @@ def test_access_logging(capsys, http_protocol):
         time.sleep(0.01)
     response = requests.get("http://127.0.0.1:8000")
     assert response.status_code == 204
-    # print(caplog.records)
     thread.join()
     captured = capsys.readouterr()
     assert '"GET / HTTP/1.1" 204' in captured.out
     assert "uvicorn.access" in captured.out
-
