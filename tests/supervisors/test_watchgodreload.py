@@ -3,8 +3,12 @@ import signal
 import time
 from pathlib import Path
 
+import pytest
+
 from uvicorn.config import Config
 from uvicorn.supervisors.watchgodreload import WatchGodReload
+
+from . import WATCHED_FILES
 
 
 def run(sockets):
@@ -18,9 +22,9 @@ def test_watchgodreload(certfile_and_keyfile):
     reloader.run()
 
 
-def test_should_reload_when_python_file_is_changed(tmpdir):
-    file = "example.py"
-    update_file = Path(os.path.join(str(tmpdir), file))
+@pytest.mark.parametrize("filename", WATCHED_FILES)
+def test_should_reload_when_file_is_changed(tmpdir, filename):
+    update_file = Path(os.path.join(str(tmpdir), filename))
     update_file.touch()
 
     working_dir = os.getcwd()
@@ -43,8 +47,7 @@ def test_should_reload_when_python_file_is_changed(tmpdir):
 
 
 def test_should_not_reload_when_dot_file_is_changed(tmpdir):
-    file = ".dotted"
-    update_file = Path(os.path.join(str(tmpdir), file))
+    update_file = Path(os.path.join(str(tmpdir), ".dotted"))
     update_file.touch()
 
     working_dir = os.getcwd()
