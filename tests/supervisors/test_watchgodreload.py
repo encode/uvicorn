@@ -24,7 +24,7 @@ def test_watchgodreload(certfile_and_keyfile):
 
 @pytest.mark.parametrize("filename", WATCHED_FILES)
 def test_should_reload_when_file_is_changed(tmpdir, filename):
-    update_file = Path(os.path.join(str(tmpdir), filename))
+    update_file = Path(tmpdir) / filename
     update_file.touch()
 
     working_dir = os.getcwd()
@@ -47,7 +47,7 @@ def test_should_reload_when_file_is_changed(tmpdir, filename):
 
 
 def test_should_not_reload_when_dot_file_is_changed(tmpdir):
-    update_file = Path(os.path.join(str(tmpdir), ".dotted"))
+    update_file = Path(tmpdir) / ".dotted"
     update_file.touch()
 
     working_dir = os.getcwd()
