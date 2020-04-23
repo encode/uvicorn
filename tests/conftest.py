@@ -70,3 +70,44 @@ def certfile_and_keyfile(tmp_path):
         fout.write(PRIVATE_KEY)
 
     return certfile, keyfile
+
+
+ENV_FILE = """KEY_TRUE="1"
+KEY_FALSE=""
+WEB_CONCURRENCY=2048
+"""
+
+
+@pytest.fixture(scope="function")
+def env_file(tmp_path):
+    envfile = str(tmp_path / ".env")
+    with open(envfile, "w") as fout:
+        fout.write(ENV_FILE)
+    return envfile
+
+
+INI_LOG_CONFIG = """[loggers]
+keys=root
+[handlers]
+keys=h
+[formatters]
+keys=f
+[logger_root]
+level=INFO
+handlers=h
+[handler_h]
+class=StreamHandler
+level=INFO
+formatter=f
+args=(sys.stderr,)
+[formatter_f]
+format=%(asctime)s %(name)s %(levelname)-4s %(message)s
+"""
+
+
+@pytest.fixture(scope="function")
+def ini_log_config(tmp_path):
+    inifile = str(tmp_path / "log_config.ini")
+    with open(inifile, "w") as fout:
+        fout.write(INI_LOG_CONFIG)
+    return inifile
