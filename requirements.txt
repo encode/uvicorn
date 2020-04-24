@@ -6,7 +6,6 @@ httptools
 uvloop>=0.14.0
 websockets==8.*
 wsproto==0.13.*
-python-dotenv
 
 # Testing
 autoflake
@@ -17,7 +16,6 @@ isort
 pytest
 pytest-cov
 requests
-gunicorn
 
 # Documentation
 mkdocs
