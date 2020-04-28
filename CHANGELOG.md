@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## 0.11.4
 
 * Use `watchgod`, if installed, for watching code changes.
 * Reload application when any files in watched directories change, not just `.py` files.
