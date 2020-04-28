@@ -37,7 +37,7 @@ $ pip install uvicorn
 Create an application, in `example.py`:
 
 ```python
-{!./src/index_asgi_app.py!}
+{!./src/index.py!}
 ```
 
 Run the server:

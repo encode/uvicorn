@@ -1,4 +1,4 @@
-async def app(scope, receive, send):
+async def example_app(scope, receive, send):
     assert scope['type'] == 'http'
     await send({
         'type': 'http.response.start',
