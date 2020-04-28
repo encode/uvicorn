@@ -234,14 +234,14 @@ The instance coroutine communicates back to the server by sending messages to th
 
 ```python
 await send({
-    'type': 'http.request.start',
+    'type': 'http.response.start',
     'status': 200,
     'headers': [
         [b'content-type', b'text/plain'],
     ]
 })
 await send({
-    'type': 'http.request.body',
+    'type': 'http.response.body',
     'body': b'Hello, world!',
 })
 ```
