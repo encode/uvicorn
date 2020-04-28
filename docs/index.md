@@ -36,8 +36,8 @@ $ pip install uvicorn
 
 Create an application, in `example.py`:
 
-```python
-{!./src/index.py!}
+```python hl_lines="4"
+{!./src/index/example.py!}
 ```
 
 Run the server:
@@ -128,14 +128,8 @@ To run uvicorn directly from your application...
 
 **example.py**:
 
-```python
-import uvicorn
-
-async def app(scope, receive, send):
-    ...
-
-if __name__ == "__main__":
-    uvicorn.run("example:app", host="127.0.0.1", port=5000, log_level="info")
+```python hl_lines="19 20"
+{!./src/index/example.py!}
 ```
 
 ### Running with Gunicorn
