@@ -6,6 +6,15 @@
 <em>The lightning-fast ASGI server.</em>
 </p>
 
+<p align="center">
+<a href="https://github.com/encode/uvicorn/actions">
+    <img src="https://github.com/encode/uvicorn/workflows/Test%20Suite/badge.svg" alt="Test Suite">
+</a>
+<a href="https://pypi.org/project/uvicorn/">
+    <img src="https://badge.fury.io/py/uvicorn.svg" alt="Package version">
+</a>
+</p>
+
 ---
 
 # Introduction
