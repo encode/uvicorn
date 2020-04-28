@@ -220,7 +220,6 @@ An incoming HTTP request might have a connection `scope` like this:
 
 The instance coroutine communicates back to the server by sending messages to the `send` coroutine.
 
-{!src/index_asgi_app.py}
 ```python
 await send({
     'type': 'http.response.start',
