@@ -52,8 +52,9 @@ def test_should_reload_when_watched_file_is_changed(tmpdir, filename):
         os.chdir(working_dir)
 
 
-def test_should_not_reload_when_dot_file_is_changed(tmpdir):
-    update_file = Path(tmpdir) / ".dotted"
+@pytest.mark.parametrize("filename", [(".dotted"), ("main.pyc")])
+def test_should_not_reload_when_dot_or_pyc_file_is_changed(filename, tmpdir):
+    update_file = Path(tmpdir) / filename
     update_file.touch()
 
     working_dir = os.getcwd()
