@@ -32,7 +32,7 @@ class UvicornWorker(Worker):
             "app": None,
             "log_config": None,
             "timeout_keep_alive": self.cfg.keepalive,
-            "timeout_notify": self.cfg.timeout,
+            "timeout_notify": self.timeout,
             "callback_notify": self.callback_notify,
             "limit_max_requests": self.max_requests,
             "forwarded_allow_ips": self.cfg.forwarded_allow_ips,
