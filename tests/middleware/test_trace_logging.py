@@ -94,7 +94,7 @@ def test_trace_logging(http_protocol, capsys):
     reason="Skipping test on Windows and PyPy",
 )
 @pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
-def test_access_logging(capsys, caplog, http_protocol):
+def test_access_logging(capsys, http_protocol):
     class App:
         def __init__(self, scope):
             if scope["type"] != "http":
