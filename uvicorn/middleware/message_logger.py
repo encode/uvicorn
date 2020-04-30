@@ -1,13 +1,13 @@
 import logging
 
+from uvicorn.logging import TRACE_LOG_LEVEL
+
 PLACEHOLDER_FORMAT = {
     "body": "<{length} bytes>",
     "bytes": "<{length} bytes>",
     "text": "<{length} chars>",
     "headers": "<...>",
 }
-TRACE_LOG_LEVEL = 5
-
 
 def message_with_placeholders(message):
     """

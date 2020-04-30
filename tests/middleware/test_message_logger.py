@@ -1,9 +1,9 @@
 import pytest
 
 from tests.client import TestClient
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 
-TRACE_LOG_LEVEL = 5
 
 
 def test_message_logger(caplog):

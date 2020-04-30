@@ -5,6 +5,7 @@ from urllib.parse import unquote
 
 import h11
 
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -26,8 +27,6 @@ STATUS_PHRASES = {
 }
 
 HIGH_WATER_LIMIT = 65536
-
-TRACE_LOG_LEVEL = 5
 
 
 class FlowControl:
@@ -86,6 +85,7 @@ class H11Protocol(asyncio.Protocol):
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.access_logger = logging.getLogger("uvicorn.access")
+        self.asgi_logger = logging.getLogger("uvicorn.asgi")
         self.access_log = self.access_logger.hasHandlers()
         self.conn = h11.Connection(h11.SERVER)
         self.ws_protocol_class = config.ws_protocol_class
@@ -125,16 +125,12 @@ class H11Protocol(asyncio.Protocol):
         self.client = get_remote_addr(transport)
         self.scheme = "https" if is_ssl(transport) else "http"
 
-        if self.logger.level <= TRACE_LOG_LEVEL:
-            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
-            self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
+        self.asgi_logger.log(TRACE_LOG_LEVEL, "%sConnection made", "%s:%d - " % tuple(self.client) if self.client else "")
 
     def connection_lost(self, exc):
         self.connections.discard(self)
 
-        if self.logger.level <= TRACE_LOG_LEVEL:
-            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
-            self.logger.log(TRACE_LOG_LEVEL, "%sConnection lost", prefix)
+        self.asgi_logger.log(TRACE_LOG_LEVEL, "%sConnection lost",  "%s:%d - " % tuple(self.client) if self.client else "")
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True

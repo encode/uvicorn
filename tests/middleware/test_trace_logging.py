@@ -8,7 +8,6 @@ import pytest
 import requests
 
 from uvicorn import Config, Server
-from uvicorn.config import TRACE_LOG_LEVEL
 
 test_logging_config = {
     "version": 1,
