@@ -11,13 +11,13 @@ from typing import List, Tuple
 import click
 
 from uvicorn.importer import ImportFromStringError, import_from_string
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
-TRACE_LOG_LEVEL = 5
 
 LOG_LEVELS = {
     "critical": logging.CRITICAL,
