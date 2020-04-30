@@ -9,6 +9,7 @@ PLACEHOLDER_FORMAT = {
     "headers": "<...>",
 }
 
+
 def message_with_placeholders(message):
     """
     Return an ASGI message, with any body-type content omitted and replaced

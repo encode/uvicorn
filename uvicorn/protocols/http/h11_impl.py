@@ -125,12 +125,20 @@ class H11Protocol(asyncio.Protocol):
         self.client = get_remote_addr(transport)
         self.scheme = "https" if is_ssl(transport) else "http"
 
-        self.asgi_logger.log(TRACE_LOG_LEVEL, "%sConnection made", "%s:%d - " % tuple(self.client) if self.client else "")
+        self.asgi_logger.log(
+            TRACE_LOG_LEVEL,
+            "%sConnection made",
+            "%s:%d - " % tuple(self.client) if self.client else "",
+        )
 
     def connection_lost(self, exc):
         self.connections.discard(self)
 
-        self.asgi_logger.log(TRACE_LOG_LEVEL, "%sConnection lost",  "%s:%d - " % tuple(self.client) if self.client else "")
+        self.asgi_logger.log(
+            TRACE_LOG_LEVEL,
+            "%sConnection lost",
+            "%s:%d - " % tuple(self.client) if self.client else "",
+        )
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True

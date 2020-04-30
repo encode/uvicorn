@@ -18,7 +18,6 @@ from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
-
 LOG_LEVELS = {
     "critical": logging.CRITICAL,
     "error": logging.ERROR,

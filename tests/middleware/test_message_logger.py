@@ -5,7 +5,6 @@ from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 
 
-
 def test_message_logger(caplog):
     async def app(scope, receive, send):
         await receive()
