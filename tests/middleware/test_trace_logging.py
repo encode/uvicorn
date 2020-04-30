@@ -1,3 +1,4 @@
+import logging
 import platform
 import sys
 import threading
@@ -7,6 +8,7 @@ import pytest
 import requests
 
 from uvicorn import Config, Server
+from uvicorn.config import TRACE_LOG_LEVEL
 
 test_logging_config = {
     "version": 1,
@@ -40,7 +42,6 @@ test_logging_config = {
         },
     },
     "loggers": {
-        "": {"handlers": ["default"], "level": "INFO"},
         "uvicorn.error": {"handlers": ["default"], "level": "INFO", "propagate": False},
         "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
         "uvicorn.asgi": {"handlers": ["asgi"], "level": "TRACE", "propagate": False},
@@ -52,7 +53,8 @@ test_logging_config = {
     sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
     reason="Skipping test on Windows and PyPy",
 )
-def test_trace_logging(capsys):
+@pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
+def test_trace_logging(http_protocol, capsys):
     class App:
         def __init__(self, scope):
             if scope["type"] != "http":
@@ -69,6 +71,7 @@ def test_trace_logging(capsys):
     config = Config(
         app=App,
         loop="asyncio",
+        http=http_protocol,
         limit_max_requests=1,
         log_config=test_logging_config,
         log_level="trace",
@@ -81,9 +84,11 @@ def test_trace_logging(capsys):
     response = requests.get("http://127.0.0.1:8000")
     assert response.status_code == 204
     thread.join()
+
     captured = capsys.readouterr()
     assert '"GET / HTTP/1.1" 204' in captured.out
     assert "[TEST_ACCESS] TRACE" not in captured.out
+    assert "[TEST_DEFAULT] TRACE" not in captured.err
 
 
 @pytest.mark.skipif(
@@ -91,7 +96,7 @@ def test_trace_logging(capsys):
     reason="Skipping test on Windows and PyPy",
 )
 @pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
-def test_access_logging(capsys, http_protocol):
+def test_access_logging(capsys, caplog, http_protocol):
     class App:
         def __init__(self, scope):
             if scope["type"] != "http":
