@@ -16,11 +16,10 @@ isort
 pytest
 pytest-cov
 requests
-gunicorn
 
 # Documentation
 mkdocs
 mkdocs-material
 
 # Efficient debug reload
-watchdog>0.10,<0.11
+watchgod>=0.6,<0.7

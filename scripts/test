@@ -5,17 +5,10 @@ if [ -d 'venv' ] ; then
     export PREFIX="venv/bin/"
 fi
 
-export VERSION_SCRIPT="import sys; print('%s.%s' % sys.version_info[0:2])"
-export PYTHON_VERSION=`${PREFIX}python -c "$VERSION_SCRIPT"`
-
 set -x
 
-PYTHONPATH=. ${PREFIX}pytest -s --log-cli-level=debug --ignore venv --cov=uvicorn --cov=tests --cov-report=term-missing ${@}
+PYTHONPATH=. ${PREFIX}pytest --ignore venv --cov=uvicorn --cov=tests --cov-report=term-missing ${@}
 ${PREFIX}coverage html
 ${PREFIX}autoflake --recursive uvicorn tests
 ${PREFIX}flake8 uvicorn tests --ignore=W503,E203,E501,E731
-if [ "${TRAVIS_PYTHON_VERSION}" = "pypy3" ]; then
-    echo "Skipping 'black' on pypy3.6-7.1.1. See issue https://bitbucket.org/pypy/pypy/issues/2985"
-else
-    ${PREFIX}black uvicorn tests --check
-fi
+${PREFIX}black uvicorn tests --check
