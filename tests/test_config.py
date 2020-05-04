@@ -93,7 +93,12 @@ def test_ssl_config(certfile_and_keyfile):
 
 @pytest.mark.parametrize(
     "use_colors, expected",
-    [(None, None), (True, True), (False, False), ("invalid", False)],
+    [
+        pytest.param(None, None, id="use_colors_not_provided"),
+        pytest.param(True, True, id="use_colors_enabled"),
+        pytest.param(False, False, id="use_colors_disabled"),
+        pytest.param("invalid", False, id="use_colors_invalid_value"),
+    ],
 )
 def test_log_config_default(mocked_logging_config_module, use_colors, expected):
     """
@@ -108,9 +113,7 @@ def test_log_config_default(mocked_logging_config_module, use_colors, expected):
     assert provided_dict_config["formatters"]["default"]["use_colors"] == expected
 
 
-def test_log_config_json(
-    mocked_logging_config_module, logging_config, json_logging_config, mocker
-):
+def test_log_config_json(mocked_logging_config_module, logging_config, json_logging_config, mocker):
     """
     Test that one can load a json config from disk.
     """
@@ -125,9 +128,7 @@ def test_log_config_json(
     mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
 
 
-def test_log_config_yaml(
-    mocked_logging_config_module, logging_config, yaml_logging_config, mocker
-):
+def test_log_config_yaml(mocked_logging_config_module, logging_config, yaml_logging_config, mocker):
     """
     Test that one can load a yaml config from disk.
     """
