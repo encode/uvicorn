@@ -8,8 +8,7 @@
 
 ---
 
-[![Build Status](https://travis-ci.org/encode/uvicorn.svg?branch=master)](https://travis-ci.org/encode/uvicorn)
-[![Coverage](https://codecov.io/gh/encode/uvicorn/branch/master/graph/badge.svg)](https://codecov.io/gh/encode/uvicorn)
+[![Build Status](https://github.com/encode/uvicorn/workflows/Test%20Suite/badge.svg)](https://github.com/encode/uvicorn/actions)
 [![Package version](https://badge.fury.io/py/uvicorn.svg)](https://pypi.python.org/pypi/uvicorn)
 
 **Documentation**: [https://www.uvicorn.org](https://www.uvicorn.org)

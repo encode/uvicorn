@@ -10,6 +10,7 @@ logger = logging.getLogger("uvicorn.error")
 class StatReload(BaseReload):
     def __init__(self, config, target, sockets):
         super().__init__(config, target, sockets)
+        self.reloader_name = "statreload"
         self.mtimes = {}
 
     def should_restart(self):
