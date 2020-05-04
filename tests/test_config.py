@@ -113,7 +113,9 @@ def test_log_config_default(mocked_logging_config_module, use_colors, expected):
     assert provided_dict_config["formatters"]["default"]["use_colors"] == expected
 
 
-def test_log_config_json(mocked_logging_config_module, logging_config, json_logging_config, mocker):
+def test_log_config_json(
+    mocked_logging_config_module, logging_config, json_logging_config, mocker
+):
     """
     Test that one can load a json config from disk.
     """
@@ -128,7 +130,9 @@ def test_log_config_json(mocked_logging_config_module, logging_config, json_logg
     mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
 
 
-def test_log_config_yaml(mocked_logging_config_module, logging_config, yaml_logging_config, mocker):
+def test_log_config_yaml(
+    mocked_logging_config_module, logging_config, yaml_logging_config, mocker
+):
     """
     Test that one can load a yaml config from disk.
     """
@@ -145,9 +149,9 @@ def test_log_config_yaml(mocked_logging_config_module, logging_config, yaml_logg
 
 def test_log_config_file(mocked_logging_config_module):
     """
-    Test that one can load an ini config from disk.
+    Test that one can load a configparser config from disk.
     """
-    config = Config(app=asgi_app, log_config="log_config.ini")
+    config = Config(app=asgi_app, log_config="log_config")
     config.load()
 
-    mocked_logging_config_module.fileConfig.assert_called_once_with("log_config.ini")
+    mocked_logging_config_module.fileConfig.assert_called_once_with("log_config")
