@@ -188,6 +188,10 @@ class H11Protocol(asyncio.Protocol):
                 raw_path, _, query_string = event.target.partition(b"?")
                 self.scope = {
                     "type": "http",
+                    "asgi": {
+                        "version": self.config.asgi_version,
+                        "spec_version": "2.1",
+                    },
                     "http_version": event.http_version.decode("ascii"),
                     "server": self.server,
                     "client": self.client,
