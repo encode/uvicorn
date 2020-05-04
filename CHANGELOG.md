@@ -1,8 +1,15 @@
 # Change Log
 
-## Unreleased
+## 0.11.5
 
-* Use `watchdog`, if installed, for watching code changes.
+* Revert "Watch all files, not just .py" due to unexpected side effects.
+* Revert "Pass through gunicorn timeout config." due to unexpected side effects.
+
+## 0.11.4
+
+* Use `watchgod`, if installed, for watching code changes.
+* Watch all files, not just .py.
+* Pass through gunicorn timeout config.
 
 ## 0.11.3
 
