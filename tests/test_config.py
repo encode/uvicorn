@@ -2,11 +2,6 @@ import socket
 
 import pytest
 
-from tests.protocols.test_http import (
-    HTTP_PROTOCOLS,
-    SIMPLE_GET_REQUEST,
-    get_connected_protocol,
-)
 from uvicorn import protocols
 from uvicorn.config import Config
 from uvicorn.middleware.debug import DebugMiddleware
@@ -81,7 +76,7 @@ def asgi2_app(scope):
 
 
 @pytest.mark.parametrize(
-    "app, expected_interface", [(asgi_app, "3.0",), (asgi2_app, "2.0",),]
+    "app, expected_interface", [(asgi_app, "3.0",), (asgi2_app, "2.0",)]
 )
 def test_asgi_version(app, expected_interface):
     config = Config(app=app)
