@@ -25,7 +25,7 @@ from uvicorn.config import (
     WS_PROTOCOLS,
     Config,
 )
-from uvicorn.supervisors import Multiprocess, StatReload
+from uvicorn.supervisors import ChangeReload, Multiprocess
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
@@ -344,7 +344,7 @@ def run(app, **kwargs):
 
     if config.should_reload:
         sock = config.bind_socket()
-        supervisor = StatReload(config, target=server.run, sockets=[sock])
+        supervisor = ChangeReload(config, target=server.run, sockets=[sock])
         supervisor.run()
     elif config.workers > 1:
         sock = config.bind_socket()
@@ -529,8 +529,8 @@ class Server:
         # Stop accepting new connections.
         for server in self.servers:
             server.close()
-        for socket in sockets or []:
-            socket.close()
+        for sock in sockets or []:
+            sock.close()
         for server in self.servers:
             await server.wait_closed()
 
@@ -563,7 +563,7 @@ class Server:
         try:
             for sig in HANDLED_SIGNALS:
                 loop.add_signal_handler(sig, self.handle_exit, sig, None)
-        except NotImplementedError as exc:
+        except NotImplementedError:
             # Windows
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)

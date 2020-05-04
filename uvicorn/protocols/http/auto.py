@@ -1,6 +1,6 @@
 try:
-    import httptools
-except ImportError as exc:  # pragma: no cover
+    import httptools  # noqa
+except ImportError:  # pragma: no cover
     from uvicorn.protocols.http.h11_impl import H11Protocol
 
     AutoHTTPProtocol = H11Protocol

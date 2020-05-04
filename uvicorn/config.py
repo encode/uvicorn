@@ -211,20 +211,6 @@ class Config:
     def configure_logging(self):
         logging.addLevelName(TRACE_LOG_LEVEL, "TRACE")
 
-        if sys.version_info < (3, 7):
-            # https://bugs.python.org/issue30520
-            import pickle
-
-            def __reduce__(self):
-                if isinstance(self, logging.RootLogger):
-                    return logging.getLogger, ()
-
-                if logging.getLogger(self.name) is not self:
-                    raise pickle.PicklingError("logger cannot be pickled")
-                return logging.getLogger, (self.name,)
-
-            logging.Logger.__reduce__ = __reduce__
-
         if self.log_config is not None:
             if isinstance(self.log_config, dict):
                 if self.use_colors in (True, False):
