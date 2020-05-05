@@ -40,15 +40,17 @@ env_marker = (
     " and platform_python_implementation != 'PyPy'"
 )
 
-requirements = [
+minimal_requirements = [
     "click==7.*",
     "h11>=0.8,<0.10",
+    "h11==0.8.*",
+]
+
+extra_requirements = [
     "websockets==8.*",
     "httptools==0.1.* ;" + env_marker,
     "uvloop>=0.14.0 ;" + env_marker,
 ]
-
-extras_require = {"watchgodreload": ["watchgod>=0.6,<0.7"]}
 
 
 setup(
@@ -58,13 +60,13 @@ setup(
     license="BSD",
     description="The lightning-fast ASGI server.",
     long_description=get_long_description(),
-    long_description_content_type="text/markdown",
-    author="Tom Christie",
-    author_email="tom@tomchristie.com",
-    packages=get_packages("uvicorn"),
-    install_requires=requirements,
-    extras_require=extras_require,
-    include_package_data=True,
+    long_description_content_type='text/markdown',
+    author='Tom Christie',
+    author_email='tom@tomchristie.com',
+    packages=get_packages('uvicorn'),
+    data_files = [("", ["LICENSE.md"])],
+    install_requires=minimal_requirements,
+    extras_require={'standard': extra_requirements},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Web Environment",
