@@ -69,9 +69,9 @@ setup(
     author="Tom Christie",
     author_email="tom@tomchristie.com",
     packages=get_packages("uvicorn"),
-    data_files=[("", ["LICENSE.md"])],
     install_requires=minimal_requirements,
     extras_require={"standard": extra_requirements},
+    include_package_data=True,
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Web Environment",
