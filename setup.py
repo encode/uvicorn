@@ -40,9 +40,7 @@ env_marker_cpython = (
     " and platform_python_implementation != 'PyPy'"
 )
 
-env_marker_win = (
-    "sys_platform == 'win32'"
-)
+env_marker_win = "sys_platform == 'win32'"
 
 
 minimal_requirements = [
@@ -56,7 +54,7 @@ extra_requirements = [
     "uvloop>=0.14.0 ;" + env_marker_cpython,
     "colorama>=0.4.*;" + env_marker_win,
     "watchgod>=0.6,<0.7",
-    "python-dotenv==0.13.*"
+    "python-dotenv==0.13.*",
 ]
 
 
@@ -67,13 +65,13 @@ setup(
     license="BSD",
     description="The lightning-fast ASGI server.",
     long_description=get_long_description(),
-    long_description_content_type='text/markdown',
-    author='Tom Christie',
-    author_email='tom@tomchristie.com',
-    packages=get_packages('uvicorn'),
-    data_files = [("", ["LICENSE.md"])],
+    long_description_content_type="text/markdown",
+    author="Tom Christie",
+    author_email="tom@tomchristie.com",
+    packages=get_packages("uvicorn"),
+    data_files=[("", ["LICENSE.md"])],
     install_requires=minimal_requirements,
-    extras_require={'standard': extra_requirements},
+    extras_require={"standard": extra_requirements},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Web Environment",
