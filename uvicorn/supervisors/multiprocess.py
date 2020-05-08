@@ -29,11 +29,14 @@ class Multiprocess:
         A signal handler that is registered with the parent process.
         """
 
-        for process in self.processes:
-            try:
-                shutdown_subprocess(process.pid)
-            except Exception as exc:
-                logger.error(f"Could not stop child process {process.pid}: {exc}")
+        # handle docker case if pid is 1
+        if self.pid == 1:
+            for process in self.processes:
+                try:
+                    logger.debug(f"{process}")
+                    shutdown_subprocess(process.pid)
+                except Exception as exc:
+                    logger.error(f"Could not stop child process {process.pid}: {exc}")
 
         self.should_exit.set()
 
@@ -57,6 +60,7 @@ class Multiprocess:
                 config=self.config, target=self.target, sockets=self.sockets
             )
             process.start()
+
             self.processes.append(process)
 
     def shutdown(self):

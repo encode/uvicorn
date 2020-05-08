@@ -1,0 +1,13 @@
+version: "3.7"
+x-dev_common: &dev_common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  volumes:
+    - .:/usr/src/app
+services:
+  backend:
+    <<: *dev_common
+    ports:
+      - 8000:8000
+    command: ["uvicorn", "app:app", "--workers", "2", "--log-level", "trace"]
