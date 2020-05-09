@@ -1,11 +1,27 @@
 environment:
-  matrix:
-  - TOXENV: py37
 
-build: off
+  matrix:
+      - PYTHON_VERSION: "3.7"
 
 install:
-- pip install tox
+
+  # Get git submodules (not done by appveyor by default)
+  - "git submodule update --init --recursive"
+
+  # Prepend newly installed Python to the PATH of this build (this cannot be
+  # done from inside the powershell script as it would require to restart
+  # the parent CMD process).
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+
+  # Check that we have the expected version and architecture for Python
+  - "python --version"
+  - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
+
+  - "pip install -U -r requirements.txt"
+
+build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
-- tox
+  # Run the project tests (don't do examples because they are too slow)
+  - "pytest"
+
