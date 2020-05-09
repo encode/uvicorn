@@ -61,12 +61,3 @@ def subprocess_started(config, target, sockets, stdin_fileno):
     # Now we can call into `Server.run(sockets=sockets)`
     target(sockets=sockets)
 
-
-def shutdown_subprocess(pid):
-    """
-    Helper to attempt cleanly shutting down a subprocess. May fail with an exception.
-
-    * pid - Process identifier.
-    """
-    os.kill(pid, signal.SIGINT)
-    os.waitpid(pid, 0)

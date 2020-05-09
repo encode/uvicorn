@@ -1,12 +1,11 @@
 import logging
-import multiprocessing
 import os
 import signal
 import threading
 
 import click
 
-from uvicorn.subprocess import get_subprocess, shutdown_subprocess
+from uvicorn.subprocess import get_subprocess
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
