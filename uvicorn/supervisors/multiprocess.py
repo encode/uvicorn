@@ -1,4 +1,5 @@
 import logging
+import multiprocessing
 import os
 import signal
 import threading
@@ -28,7 +29,8 @@ class Multiprocess:
         """
         A signal handler that is registered with the parent process.
         """
-
+        logger.debug(f"parent: {multiprocessing.parent_process()}")
+        logger.debug(f"active children: {multiprocessing.active_children()}")
         # handle docker case if pid is 1
         if self.pid == 1:
             for process in self.processes:
