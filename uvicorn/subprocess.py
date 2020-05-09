@@ -6,9 +6,10 @@ import multiprocessing
 import os
 import signal
 import sys
+from multiprocessing.context import Process
 
 multiprocessing.allow_connection_pickling()
-spawn = multiprocessing.get_context("spawn")
+# spawn = multiprocessing.get_context("spawn")
 
 
 def get_subprocess(config, target, sockets):
@@ -36,7 +37,8 @@ def get_subprocess(config, target, sockets):
         "stdin_fileno": stdin_fileno,
     }
 
-    return spawn.Process(target=subprocess_started, kwargs=kwargs)
+    # return spawn.Process(target=subprocess_started, kwargs=kwargs)
+    return Process(target=subprocess_started, kwargs=kwargs)
 
 
 def subprocess_started(config, target, sockets, stdin_fileno):
