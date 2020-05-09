@@ -4,7 +4,6 @@ starting child processes.
 """
 import multiprocessing
 import os
-import signal
 import sys
 
 multiprocessing.allow_connection_pickling()
@@ -60,4 +59,3 @@ def subprocess_started(config, target, sockets, stdin_fileno):
 
     # Now we can call into `Server.run(sockets=sockets)`
     target(sockets=sockets)
-
