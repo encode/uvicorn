@@ -15,8 +15,7 @@ install:
 
   # Check that we have the expected version and architecture for Python
   - "python --version"
-  - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
-
+  - "python -m pip install --upgrade pip"
   - "pip install -U -r requirements.txt"
 
 build: false  # Not a C# project, build stuff at the test step instead.
