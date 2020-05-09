@@ -16,6 +16,6 @@ def test_multiprocess_run():
     quit immediately.
     """
     config = Config(app=None, workers=2)
-    supervisor = Multiprocess(config, target=run, sockets=[], workers_number=2)
+    supervisor = Multiprocess(config, target=run, sockets=[])
     supervisor.signal_handler(sig=signal.SIGINT, frame=None)
     supervisor.run()
