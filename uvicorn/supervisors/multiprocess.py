@@ -24,7 +24,7 @@ class Multiprocess:
         self.should_exit = threading.Event()
         self.pid = os.getpid()
 
-    def handle_exit(self, sig, frame):
+    def handle_int(self, sig, frame):
         logger.debug(sig)
         self.should_exit.set()
 
@@ -46,7 +46,7 @@ class Multiprocess:
         )
         logger.info(message, extra={"color_message": color_message})
 
-        signal.signal(signal.SIGINT, self.handle_exit)
+        signal.signal(signal.SIGINT, self.handle_int)
         signal.signal(signal.SIGTERM, self.handle_term)
 
         for idx in range(self.config.workers):
