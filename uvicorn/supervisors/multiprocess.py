@@ -24,22 +24,14 @@ class Multiprocess:
         self.should_exit = threading.Event()
         self.pid = os.getpid()
 
-    def signal_handler(self, sig, frame):
-        """
-        A signal handler that is registered with the parent process.
-        """
-        self.should_exit.set()
-
     def handle_exit(self, sig, frame):
         logger.debug(sig)
-        for process in self.processes:
-            process.join()
         self.should_exit.set()
 
     def handle_term(self, sig, frame):
         logger.debug(sig)
         for process in self.processes:
-            process.join(5)
+            process.terminate()
         self.should_exit.set()
 
     def run(self):
@@ -54,17 +46,14 @@ class Multiprocess:
         )
         logger.info(message, extra={"color_message": color_message})
 
-        # signal.signal(signal.SIGINT, self.handle_exit)
-        # signal.signal(signal.SIGTERM, self.handle_term)
+        signal.signal(signal.SIGINT, self.handle_exit)
+        signal.signal(signal.SIGTERM, self.handle_term)
 
-        for sig in HANDLED_SIGNALS:
-            signal.signal(sig, self.signal_handler)
         for idx in range(self.config.workers):
             process = get_subprocess(
                 config=self.config, target=self.target, sockets=self.sockets
             )
             process.start()
-
             self.processes.append(process)
 
     def shutdown(self):

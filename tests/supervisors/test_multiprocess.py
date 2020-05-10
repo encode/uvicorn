@@ -17,8 +17,9 @@ def test_multiprocess_run():
     """
     config = Config(app=None, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
-    supervisor.signal_handler(sig=signal.SIGINT, frame=None)
+    supervisor.handle_exit(sig=signal.SIGINT, frame=None)
     supervisor.run()
+
 
 def test_multiprocess_run_term():
     """
@@ -29,5 +30,5 @@ def test_multiprocess_run_term():
     """
     config = Config(app=None, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
-    supervisor.signal_handler(sig=signal.SIGTERM, frame=None)
+    supervisor.handle_term(sig=signal.SIGTERM, frame=None)
     supervisor.run()
