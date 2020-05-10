@@ -26,12 +26,14 @@ class Multiprocess:
 
     def handle_exit(self, sig, frame):
         logger.debug(sig)
+        for process in self.processes:
+            process.join()
         self.should_exit.set()
 
     def handle_term(self, sig, frame):
         logger.debug(sig)
         for process in self.processes:
-            process.terminate()
+            process.join(5)
         self.should_exit.set()
 
     def run(self):
@@ -58,8 +60,6 @@ class Multiprocess:
             self.processes.append(process)
 
     def shutdown(self):
-        for process in self.processes:
-            process.join()
 
         message = "Stopping parent process [{}]".format(str(self.pid))
         color_message = "Stopping parent process [{}]".format(
