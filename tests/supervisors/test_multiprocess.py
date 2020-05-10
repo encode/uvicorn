@@ -19,3 +19,15 @@ def test_multiprocess_run():
     supervisor = Multiprocess(config, target=run, sockets=[])
     supervisor.signal_handler(sig=signal.SIGINT, frame=None)
     supervisor.run()
+
+def test_multiprocess_run_term():
+    """
+    A basic sanity check.
+
+    Simply run the supervisor against a no-op server, and signal for it to
+    quit immediately.
+    """
+    config = Config(app=None, workers=2)
+    supervisor = Multiprocess(config, target=run, sockets=[])
+    supervisor.signal_handler(sig=signal.SIGTERM, frame=None)
+    supervisor.run()
