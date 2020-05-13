@@ -17,7 +17,7 @@ from uvicorn.protocols.utils import (
 def _get_status_phrase(status_code):
     try:
         return http.HTTPStatus(status_code).phrase.encode()
-    except ValueError as exc:
+    except ValueError:
         return b""
 
 
@@ -134,7 +134,7 @@ class H11Protocol(asyncio.Protocol):
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
-            self.logger.log(TRACE_LOG_LEVEL, "%Connection lost", prefix)
+            self.logger.log(TRACE_LOG_LEVEL, "%sConnection lost", prefix)
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
@@ -142,7 +142,7 @@ class H11Protocol(asyncio.Protocol):
             event = h11.ConnectionClosed()
             try:
                 self.conn.send(event)
-            except h11.LocalProtocolError as exc:
+            except h11.LocalProtocolError:
                 # Premature client disconnect
                 pass
 
@@ -165,7 +165,7 @@ class H11Protocol(asyncio.Protocol):
         while True:
             try:
                 event = self.conn.next_event()
-            except h11.RemoteProtocolError as exc:
+            except h11.RemoteProtocolError:
                 msg = "Invalid HTTP request received."
                 self.logger.warning(msg)
                 self.transport.close()
@@ -188,6 +188,10 @@ class H11Protocol(asyncio.Protocol):
                 raw_path, _, query_string = event.target.partition(b"?")
                 self.scope = {
                     "type": "http",
+                    "asgi": {
+                        "version": self.config.asgi_version,
+                        "spec_version": "2.1",
+                    },
                     "http_version": event.http_version.decode("ascii"),
                     "server": self.server,
                     "client": self.client,
@@ -200,7 +204,6 @@ class H11Protocol(asyncio.Protocol):
                     "headers": self.headers,
                 }
 
-                should_upgrade = False
                 for name, value in self.headers:
                     if name == b"connection":
                         tokens = [token.lower().strip() for token in value.split(b",")]
@@ -360,7 +363,7 @@ class RequestResponseCycle:
         self.transport = transport
         self.flow = flow
         self.logger = logger
-        self.access_logger = logger
+        self.access_logger = access_logger
         self.access_log = access_log
         self.default_headers = default_headers
         self.message_event = message_event

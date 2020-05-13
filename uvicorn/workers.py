@@ -21,10 +21,12 @@ class UvicornWorker(Worker):
         logger = logging.getLogger("uvicorn.error")
         logger.handlers = self.log.error_log.handlers
         logger.setLevel(self.log.error_log.level)
+        logger.propagate = False
 
         logger = logging.getLogger("uvicorn.access")
         logger.handlers = self.log.access_log.handlers
         logger.setLevel(self.log.access_log.level)
+        logger.propagate = False
 
         config_kwargs = {
             "app": None,
@@ -33,6 +35,7 @@ class UvicornWorker(Worker):
             "timeout_notify": self.timeout,
             "callback_notify": self.callback_notify,
             "limit_max_requests": self.max_requests,
+            "forwarded_allow_ips": self.cfg.forwarded_allow_ips,
         }
 
         if self.cfg.is_ssl:
@@ -45,6 +48,9 @@ class UvicornWorker(Worker):
                 "ssl_ciphers": self.cfg.ssl_options.get("ciphers"),
             }
             config_kwargs.update(ssl_kwargs)
+
+        if self.cfg.settings["backlog"].value:
+            config_kwargs["backlog"] = self.cfg.settings["backlog"].value
 
         config_kwargs.update(self.CONFIG_KWARGS)
 

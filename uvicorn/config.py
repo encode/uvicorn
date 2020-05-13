@@ -131,6 +131,7 @@ class Config:
         root_path="",
         limit_concurrency=None,
         limit_max_requests=None,
+        backlog=2048,
         timeout_keep_alive=5,
         timeout_notify=30,
         callback_notify=None,
@@ -164,6 +165,7 @@ class Config:
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests
+        self.backlog = backlog
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
         self.callback_notify = callback_notify
@@ -201,25 +203,15 @@ class Config:
             self.forwarded_allow_ips = forwarded_allow_ips
 
     @property
+    def asgi_version(self) -> str:
+        return {"asgi2": "2.0", "asgi3": "3.0"}[self.interface]
+
+    @property
     def is_ssl(self) -> bool:
         return bool(self.ssl_keyfile or self.ssl_certfile)
 
     def configure_logging(self):
         logging.addLevelName(TRACE_LOG_LEVEL, "TRACE")
-
-        if sys.version_info < (3, 7):
-            # https://bugs.python.org/issue30520
-            import pickle
-
-            def __reduce__(self):
-                if isinstance(self, logging.RootLogger):
-                    return logging.getLogger, ()
-
-                if logging.getLogger(self.name) is not self:
-                    raise pickle.PicklingError("logger cannot be pickled")
-                return logging.getLogger, (self.name,)
-
-            logging.Logger.__reduce__ = __reduce__
 
         if self.log_config is not None:
             if isinstance(self.log_config, dict):

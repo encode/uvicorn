@@ -30,7 +30,7 @@ class MessageLoggerMiddleware:
         self.logger = logging.getLogger("uvicorn.asgi")
 
         def trace(message, *args, **kwargs):
-            logging.log(TRACE_LOG_LEVEL, message, *args, **kwargs)
+            self.logger.log(TRACE_LOG_LEVEL, message, *args, **kwargs)
 
         self.logger.trace = trace
 

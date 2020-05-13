@@ -19,7 +19,13 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 ## Development
 
 * `--reload` - Enable auto-reload.
-* `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default all directories in `sys.path` will be watched.
+* `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default all directories in current directory will be watched.
+
+By default Uvicorn uses simple changes detection strategy that compares python files modification times few times a second. If this approach doesn't work for your project (eg. because of its complexity), you can install Uvicorn with optional `watchgod` dependency to use filesystem events instead:
+
+```
+$ pip install uvicorn[watchgodreload]
+```
 
 ## Production
 
@@ -50,7 +56,7 @@ Note that WSGI mode always disables WebSocket support, as it is not supported by
 * `--root-path <str>` - Set the ASGI `root_path` for applications submounted below a given URL path.
 * `--proxy-headers` / `--no-proxy-headers` - Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to populate remote address info. Defaults to enabled, but is restricted to only trusting
 connecting IPs in the `forwarded-allow-ips` configuration.
-* `--forwarded-allow-ips` <comma-separated-list> Comma seperated list of IPs to trust with proxy headers. Defaults to the ``$FORWARDED_ALLOW_IPS` environment variable if available, or '127.0.0.1'.
+* `--forwarded-allow-ips` <comma-separated-list> Comma separated list of IPs to trust with proxy headers. Defaults to the ``$FORWARDED_ALLOW_IPS` environment variable if available, or '127.0.0.1'. A wildcard '*' means always trust.
 
 ## HTTPS
 
@@ -65,6 +71,7 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 
 * `--limit-concurrency <int>` - Maximum number of concurrent connections or tasks to allow, before issuing HTTP 503 responses. Useful for ensuring known memory usage patterns even under over-resourced loads.
 * `--limit-max-requests <int>` - Maximum number of requests to service before terminating the process. Useful when running together with a process manager, for preventing memory leaks from impacting long-running processes.
+* `--backlog <int>` - Maximum number of connections to hold in backlog. Relevant for heavy incoming traffic.
 
 ## Timeouts
 

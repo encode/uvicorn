@@ -6,6 +6,15 @@
 <em>The lightning-fast ASGI server.</em>
 </p>
 
+<p align="center">
+<a href="https://github.com/encode/uvicorn/actions">
+    <img src="https://github.com/encode/uvicorn/workflows/Test%20Suite/badge.svg" alt="Test Suite">
+</a>
+<a href="https://pypi.org/project/uvicorn/">
+    <img src="https://badge.fury.io/py/uvicorn.svg" alt="Package version">
+</a>
+</p>
+
 ---
 
 # Introduction
@@ -26,7 +35,7 @@ Uvicorn currently supports HTTP/1.1 and WebSockets. Support for HTTP/2 is planne
 
 ## Quickstart
 
-Requirements: Python 3.5, 3.6, 3.7
+Requirements: Python 3.5, 3.6, 3.7, 3.8
 
 Install using `pip`:
 
@@ -102,7 +111,7 @@ Options:
                                   Enable/Disable X-Forwarded-Proto,
                                   X-Forwarded-For, X-Forwarded-Port to
                                   populate remote address info.
-  --forwarded-allow-ips TEXT      Comma seperated list of IPs to trust with
+  --forwarded-allow-ips TEXT      Comma separated list of IPs to trust with
                                   proxy headers. Defaults to the
                                   $FORWARDED_ALLOW_IPS environment variable if
                                   available, or '127.0.0.1'.
@@ -111,6 +120,8 @@ Options:
   --limit-concurrency INTEGER     Maximum number of concurrent connections or
                                   tasks to allow, before issuing HTTP 503
                                   responses.
+  --backlog INTEGER               Maximum number of connections to hold in
+                                  backlog
   --limit-max-requests INTEGER    Maximum number of requests to service before
                                   terminating the process.
   --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
@@ -232,14 +243,14 @@ The instance coroutine communicates back to the server by sending messages to th
 
 ```python
 await send({
-    'type': 'http.request.start',
+    'type': 'http.response.start',
     'status': 200,
     'headers': [
         [b'content-type', b'text/plain'],
     ]
 })
 await send({
-    'type': 'http.request.body',
+    'type': 'http.response.body',
     'body': b'Hello, world!',
 })
 ```

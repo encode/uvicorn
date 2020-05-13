@@ -17,7 +17,7 @@ from uvicorn.protocols.utils import (
 def _get_status_line(status_code):
     try:
         phrase = http.HTTPStatus(status_code).phrase.encode()
-    except ValueError as exc:
+    except ValueError:
         phrase = b""
     return b"".join([b"HTTP/1.1 ", str(status_code).encode(), b" ", phrase, b"\r\n"])
 
@@ -156,11 +156,11 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         try:
             self.parser.feed_data(data)
-        except httptools.parser.errors.HttpParserError as exc:
+        except httptools.HttpParserError:
             msg = "Invalid HTTP request received."
             self.logger.warning(msg)
             self.transport.close()
-        except httptools.HttpParserUpgrade as exc:
+        except httptools.HttpParserUpgrade:
             self.handle_upgrade()
 
     def handle_upgrade(self):
@@ -214,6 +214,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.headers = []
         self.scope = {
             "type": "http",
+            "asgi": {"version": self.config.asgi_version, "spec_version": "2.1"},
             "http_version": "1.1",
             "server": self.server,
             "client": self.client,

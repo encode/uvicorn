@@ -25,7 +25,7 @@ from uvicorn.config import (
     WS_PROTOCOLS,
     Config,
 )
-from uvicorn.supervisors import Multiprocess, StatReload
+from uvicorn.supervisors import ChangeReload, Multiprocess
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
@@ -186,6 +186,12 @@ def print_version(ctx, param, value):
     help="Maximum number of concurrent connections or tasks to allow, before issuing HTTP 503 responses.",
 )
 @click.option(
+    "--backlog",
+    type=int,
+    default=2048,
+    help="Maximum number of connections to hold in backlog",
+)
+@click.option(
     "--limit-max-requests",
     type=int,
     default=None,
@@ -273,6 +279,7 @@ def main(
     forwarded_allow_ips: str,
     root_path: str,
     limit_concurrency: int,
+    backlog: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
     ssl_keyfile: str,
@@ -309,6 +316,7 @@ def main(
         "forwarded_allow_ips": forwarded_allow_ips,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
+        "backlog": backlog,
         "limit_max_requests": limit_max_requests,
         "timeout_keep_alive": timeout_keep_alive,
         "ssl_keyfile": ssl_keyfile,
@@ -336,7 +344,7 @@ def run(app, **kwargs):
 
     if config.should_reload:
         sock = config.bind_socket()
-        supervisor = StatReload(config, target=server.run, sockets=[sock])
+        supervisor = ChangeReload(config, target=server.run, sockets=[sock])
         supervisor.run()
     elif config.workers > 1:
         sock = config.bind_socket()
@@ -403,6 +411,11 @@ class Server:
         )
 
     async def startup(self, sockets=None):
+        await self.lifespan.startup()
+        if self.lifespan.should_exit:
+            self.should_exit = True
+            return
+
         config = self.config
 
         create_protocol = functools.partial(
@@ -417,7 +430,7 @@ class Server:
             self.servers = []
             for sock in sockets:
                 server = await loop.create_server(
-                    create_protocol, sock=sock, ssl=config.ssl
+                    create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
                 )
                 self.servers.append(server)
 
@@ -425,7 +438,7 @@ class Server:
             # Use an existing socket, from a file descriptor.
             sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
             server = await loop.create_server(
-                create_protocol, sock=sock, ssl=config.ssl
+                create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
             )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
             logger.info(message % str(sock.getsockname()))
@@ -437,7 +450,7 @@ class Server:
             if os.path.exists(config.uds):
                 uds_perms = os.stat(config.uds).st_mode
             server = await loop.create_unix_server(
-                create_protocol, path=config.uds, ssl=config.ssl
+                create_protocol, path=config.uds, ssl=config.ssl, backlog=config.backlog
             )
             os.chmod(config.uds, uds_perms)
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
@@ -448,10 +461,15 @@ class Server:
             # Standard case. Create a socket from a host/port pair.
             try:
                 server = await loop.create_server(
-                    create_protocol, host=config.host, port=config.port, ssl=config.ssl
+                    create_protocol,
+                    host=config.host,
+                    port=config.port,
+                    ssl=config.ssl,
+                    backlog=config.backlog,
                 )
             except OSError as exc:
                 logger.error(exc)
+                await self.lifespan.shutdown()
                 sys.exit(1)
             port = config.port
             if port == 0:
@@ -472,11 +490,7 @@ class Server:
             )
             self.servers = [server]
 
-        await self.lifespan.startup()
-        if self.lifespan.should_exit:
-            self.should_exit = True
-        else:
-            self.started = True
+        self.started = True
 
     async def main_loop(self):
         counter = 0
@@ -513,10 +527,10 @@ class Server:
         logger.info("Shutting down")
 
         # Stop accepting new connections.
-        for socket in sockets or []:
-            socket.close()
         for server in self.servers:
             server.close()
+        for sock in sockets or []:
+            sock.close()
         for server in self.servers:
             await server.wait_closed()
 
@@ -549,7 +563,7 @@ class Server:
         try:
             for sig in HANDLED_SIGNALS:
                 loop.add_signal_handler(sig, self.handle_exit, sig, None)
-        except NotImplementedError as exc:
+        except NotImplementedError:
             # Windows
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)

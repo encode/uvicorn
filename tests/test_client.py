@@ -1,5 +1,3 @@
-import pytest
-
 from tests.client import TestClient
 
 

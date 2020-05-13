@@ -1,5 +1,25 @@
 # Change Log
 
+## 0.11.5
+
+* Revert "Watch all files, not just .py" due to unexpected side effects.
+* Revert "Pass through gunicorn timeout config." due to unexpected side effects.
+
+## 0.11.4
+
+* Use `watchgod`, if installed, for watching code changes.
+* Watch all files, not just .py.
+* Pass through gunicorn timeout config.
+
+## 0.11.3
+
+* Update dependencies.
+
+## 0.11.2
+
+* Don't open socket until after application startup.
+* Support `--backlog`.
+
 ## 0.11.1
 
 * Use a more liberal `h11` dependency. Either `0.8.*` or `0.9.*``.

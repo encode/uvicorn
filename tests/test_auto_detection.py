@@ -28,7 +28,7 @@ except ImportError:  # pragma: no cover
 
 
 def test_loop_auto():
-    loop = auto_loop_setup()
+    auto_loop_setup()
     policy = asyncio.get_event_loop_policy()
     assert isinstance(policy, asyncio.events.BaseDefaultEventLoopPolicy)
     expected_loop = "asyncio" if uvloop is None else "uvloop"

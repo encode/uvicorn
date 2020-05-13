@@ -1,14 +1,12 @@
 import asyncio
 import logging
 
-import h11
 import pytest
 
 from tests.response import Response
 from uvicorn.config import Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
-from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
@@ -676,3 +674,29 @@ def test_supported_upgrade_request(protocol_cls):
     protocol.data_received(UPGRADE_REQUEST)
 
     assert b"HTTP/1.1 426 " in protocol.transport.buffer
+
+
+async def asgi3app(scope, receive, send):
+    pass
+
+
+def asgi2app(scope):
+    async def asgi(receive, send):
+        pass
+
+    return asgi
+
+
+asgi_scope_data = [
+    (asgi3app, {"version": "3.0", "spec_version": "2.1"}),
+    (asgi2app, {"version": "2.0", "spec_version": "2.1"}),
+]
+
+
+@pytest.mark.parametrize("asgi2or3_app, expected_scopes", asgi_scope_data)
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+def test_scopes(asgi2or3_app, expected_scopes, protocol_cls):
+    protocol = get_connected_protocol(asgi2or3_app, protocol_cls,)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.loop.run_one()
+    assert expected_scopes == protocol.scope.get("asgi")

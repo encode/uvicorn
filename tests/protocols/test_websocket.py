@@ -228,7 +228,7 @@ def test_send_and_close_connection(protocol_cls):
             is_open = True
             try:
                 await websocket.recv()
-            except:
+            except Exception:
                 is_open = False
             return (data, is_open)
 
@@ -300,7 +300,7 @@ def test_send_after_protocol_close(protocol_cls):
             is_open = True
             try:
                 await websocket.recv()
-            except:
+            except Exception:
                 is_open = False
             return (data, is_open)
 
@@ -364,7 +364,7 @@ def test_duplicate_handshake(protocol_cls):
 
     async def connect(url):
         async with websockets.connect(url) as websocket:
-            data = await websocket.recv()
+            _ = await websocket.recv()
 
     with run_server(App, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
@@ -387,7 +387,7 @@ def test_asgi_return_value(protocol_cls):
 
     async def connect(url):
         async with websockets.connect(url) as websocket:
-            data = await websocket.recv()
+            _ = await websocket.recv()
 
     with run_server(app, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()

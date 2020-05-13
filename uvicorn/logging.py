@@ -1,6 +1,7 @@
 import http
 import logging
 import sys
+from copy import copy
 
 import click
 
@@ -43,15 +44,16 @@ class ColourizedFormatter(logging.Formatter):
         return True
 
     def formatMessage(self, record):
-        levelname = record.levelname
-        seperator = " " * (8 - len(record.levelname))
+        recordcopy = copy(record)
+        levelname = recordcopy.levelname
+        seperator = " " * (8 - len(recordcopy.levelname))
         if self.use_colors:
-            levelname = self.color_level_name(levelname, record.levelno)
-            if "color_message" in record.__dict__:
-                record.msg = record.__dict__["color_message"]
-                record.__dict__["message"] = record.getMessage()
-        record.__dict__["levelprefix"] = levelname + ":" + seperator
-        return super().formatMessage(record)
+            levelname = self.color_level_name(levelname, recordcopy.levelno)
+            if "color_message" in recordcopy.__dict__:
+                recordcopy.msg = recordcopy.__dict__["color_message"]
+                recordcopy.__dict__["message"] = recordcopy.getMessage()
+        recordcopy.__dict__["levelprefix"] = levelname + ":" + seperator
+        return super().formatMessage(recordcopy)
 
 
 class DefaultFormatter(ColourizedFormatter):
@@ -99,17 +101,18 @@ class AccessFormatter(ColourizedFormatter):
         return status_and_phrase
 
     def formatMessage(self, record):
-        scope = record.__dict__["scope"]
+        recordcopy = copy(record)
+        scope = recordcopy.__dict__["scope"]
         method = scope["method"]
         path = self.get_path(scope)
         full_path = self.get_full_path(scope)
         client_addr = self.get_client_addr(scope)
-        status_code = self.get_status_code(record)
+        status_code = self.get_status_code(recordcopy)
         http_version = scope["http_version"]
         request_line = "%s %s HTTP/%s" % (method, full_path, http_version)
         if self.use_colors:
             request_line = click.style(request_line, bold=True)
-        record.__dict__.update(
+        recordcopy.__dict__.update(
             {
                 "method": method,
                 "path": path,
@@ -120,4 +123,4 @@ class AccessFormatter(ColourizedFormatter):
                 "http_version": http_version,
             }
         )
-        return super().formatMessage(record)
+        return super().formatMessage(recordcopy)
