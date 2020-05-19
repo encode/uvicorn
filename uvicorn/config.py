@@ -114,7 +114,7 @@ class Config:
         loop="auto",
         http="auto",
         ws="auto",
-        websocket_max_message_size=16 * 1024 * 1024,
+        ws_max_size=16 * 1024 * 1024,
         lifespan="auto",
         env_file=None,
         log_config=LOGGING_CONFIG,
@@ -151,7 +151,7 @@ class Config:
         self.loop = loop
         self.http = http
         self.ws = ws
-        self.websocket_max_message_size = websocket_max_message_size
+        self.ws_max_size = ws_max_size
         self.lifespan = lifespan
         self.log_config = log_config
         self.log_level = log_level
