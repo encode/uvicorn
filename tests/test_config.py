@@ -82,3 +82,9 @@ def test_asgi_version(app, expected_interface):
     config = Config(app=app)
     config.load()
     assert config.asgi_version == expected_interface
+
+
+def test_ws_max_size():
+    config = Config(app=asgi_app, ws_max_size=1000)
+    config.load()
+    assert config.ws_max_size == 1000
