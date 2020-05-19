@@ -83,7 +83,7 @@ LOGGING_CONFIG = {
         },
     },
     "loggers": {
-        "": {"handlers": ["default"], "level": "INFO"},
+        "uvicorn": {"handlers": ["default"], "level": "INFO"},
         "uvicorn.error": {"level": "INFO"},
         "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
     },
@@ -199,6 +199,10 @@ class Config:
             )
         else:
             self.forwarded_allow_ips = forwarded_allow_ips
+
+    @property
+    def asgi_version(self) -> str:
+        return {"asgi2": "2.0", "asgi3": "3.0"}[self.interface]
 
     @property
     def is_ssl(self) -> bool:
