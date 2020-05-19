@@ -1,9 +1,10 @@
 import socket
 
-if hasattr(socket, 'AF_UNIX'):
+if hasattr(socket, "AF_UNIX"):
     SUPPORTED_SOCKET_FAMILIES = (socket.AF_INET, socket.AF_INET6, socket.AF_UNIX)
 else:
     SUPPORTED_SOCKET_FAMILIES = (socket.AF_INET, socket.AF_INET6)
+
 
 def get_remote_addr(transport):
     socket_info = transport.get_extra_info("socket")
