@@ -5,7 +5,7 @@ import threading
 
 import click
 
-from uvicorn.subprocess import get_subprocess
+from uvicorn.subprocess import get_subprocess, shutdown_subprocess
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -22,11 +22,19 @@ class BaseReload:
         self.sockets = sockets
         self.should_exit = threading.Event()
         self.pid = os.getpid()
+        self.process = None
+        self.reloader_name = None
 
     def signal_handler(self, sig, frame):
         """
         A signal handler that is registered with the parent process.
         """
+        if self.process is not None:
+            try:
+                shutdown_subprocess(self.process.pid)
+            except Exception as exc:
+                logger.error(f"Could not stop child process {self.process.pid}: {exc}")
+
         self.should_exit.set()
 
     def run(self):
@@ -36,17 +44,11 @@ class BaseReload:
                 self.restart()
         self.shutdown()
 
-    def run(self):
-        self.startup()
-        while not self.should_exit.wait(0.25):
-            if self.should_restart():
-                self.restart()
-        self.shutdown()
-
     def startup(self):
-        message = "Started reloader process [{}]".format(str(self.pid))
-        color_message = "Started reloader process [{}]".format(
-            click.style(str(self.pid), fg="cyan", bold=True)
+        message = f"Started reloader process [{self.pid}] using {self.reloader_name}"
+        color_message = "Started reloader process [{}] using {}".format(
+            click.style(str(self.pid), fg="cyan", bold=True),
+            click.style(str(self.reloader_name), fg="cyan", bold=True),
         )
         logger.info(message, extra={"color_message": color_message})
 
