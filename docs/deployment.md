@@ -256,7 +256,7 @@ To run uvicorn with https, a certificate and a private key are required.
 The recommended way to get them is using [Let's Encrypt][letsencrypt].
 
 For local development with https, it's possible to use [mkcert][mkcert]
-to generate a valid certificat and private key.
+to generate a valid certificate and private key.
 
 ```bash
 $ uvicorn example:app --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.pem
