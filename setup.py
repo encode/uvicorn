@@ -48,7 +48,7 @@ requirements = [
     "uvloop>=0.14.0 ;" + env_marker,
 ]
 
-extras_require = {"watchgodreload": ["watchgod>=0.6,<0.7"], "yamllogconfig": ["PyYAML>=5.1"]}
+extras_require = {"watchgodreload": ["watchgod>=0.6,<0.7"]}
 
 
 setup(

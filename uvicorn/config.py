@@ -15,8 +15,7 @@ try:
     import yaml
 except ImportError:
     # If the code below that depends on yaml is exercised, it will raise a NameError.
-    # Clients should install the PyYAML package to enable this functionality:
-    #     pip install uvicorn[yamllogconfig]
+    # Install the PyYAML package to enable this functionality.
     pass
 
 from uvicorn.importer import ImportFromStringError, import_from_string
