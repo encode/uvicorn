@@ -21,12 +21,12 @@ jobs:
       - uses: "actions/setup-python@v1"
         with:
           python-version: "${{ matrix.python-version }}"
-      - name: "Set PATH"
-        run:
-          # Prepend newly installed Python to the PATH of this build (this cannot be
-          # done from inside the powershell script as it would require to restart
-          # the parent CMD process).
-          - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+#      - name: "Set PATH"
+#        run:
+#          # Prepend newly installed Python to the PATH of this build (this cannot be
+#          # done from inside the powershell script as it would require to restart
+#          # the parent CMD process).
+#          - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
       - name: "Check python version"
         run:
           - "python --version"
