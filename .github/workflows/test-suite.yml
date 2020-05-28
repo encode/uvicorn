@@ -23,7 +23,6 @@ jobs:
           python-version: "${{ matrix.python-version }}"
       - name: "Install dependencies"
         run: |
-          SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
           python --version
           python -m pip install --upgrade pip
           python -m pip install -U click h11 wsproto==0.13.* websockets==8.* autoflake black codecov flake8 isort pytest pytest-cov requests watchgod
