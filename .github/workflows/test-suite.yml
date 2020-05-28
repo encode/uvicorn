@@ -21,19 +21,12 @@ jobs:
       - uses: "actions/setup-python@v1"
         with:
           python-version: "${{ matrix.python-version }}"
-#      - name: "Set PATH"
-#        run:
-#          # Prepend newly installed Python to the PATH of this build (this cannot be
-#          # done from inside the powershell script as it would require to restart
-#          # the parent CMD process).
-#          - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-      - name: "Check python version"
-        run:
-          - "python --version"
-          - "python -m pip install --upgrade pip"
       - name: "Install dependencies"
-        run:
-          - "python -m pip install -U click h11 wsproto==0.13.* websockets==8.* autoflake black codecov flake8 isort pytest pytest-cov requests watchgod"
+        run: |
+          SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
+          python --version
+          python -m pip install --upgrade pip
+          python -m pip install -U click h11 wsproto==0.13.* websockets==8.* autoflake black codecov flake8 isort pytest pytest-cov requests watchgod
       - name: "Run tests"
         run:
           - pytest
