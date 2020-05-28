@@ -8,6 +8,23 @@ on:
     branches: ["master"]
 
 jobs:
+  tests_windows:
+    name: "Python ${{ matrix.python-version }}"
+    runs-on: "windows-latest"
+
+    strategy:
+      matrix:
+        python-version: ["3.6", "3.7", "3.8"]
+
+    steps:
+      - uses: "actions/checkout@v2"
+      - uses: "actions/setup-python@v1"
+        with:
+          python-version: "${{ matrix.python-version }}"
+      - name: "Install dependencies"
+        run: "scripts/install"
+      - name: "Run tests"
+        run: "scripts/test"
   tests:
     name: "Python ${{ matrix.python-version }}"
     runs-on: "ubuntu-latest"
