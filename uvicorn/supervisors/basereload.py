@@ -62,7 +62,10 @@ class BaseReload:
 
     def restart(self):
         self.mtimes = {}
-        os.kill(self.process.pid, signal.SIGTERM)
+        try:
+            os.kill(self.process.pid, signal.SIGTERM)
+        except OSError:
+            pass
         self.process.join()
 
         self.process = get_subprocess(
