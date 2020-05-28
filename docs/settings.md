@@ -71,7 +71,7 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 
 * `--limit-concurrency <int>` - Maximum number of concurrent connections or tasks to allow, before issuing HTTP 503 responses. Useful for ensuring known memory usage patterns even under over-resourced loads.
 * `--limit-max-requests <int>` - Maximum number of requests to service before terminating the process. Useful when running together with a process manager, for preventing memory leaks from impacting long-running processes.
-* `--backlog <int>` - Maximum number of connections to hold in backlog. Relevant for heavy incoming traffic.
+* `--backlog <int>` - Maximum number of connections to hold in backlog. Relevant for heavy incoming traffic. **Default:** *2048*
 
 ## Timeouts
 
