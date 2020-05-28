@@ -22,9 +22,18 @@ jobs:
         with:
           python-version: "${{ matrix.python-version }}"
       - name: "Install dependencies"
-        run: "scripts/install"
+        run:
+          # Prepend newly installed Python to the PATH of this build (this cannot be
+          # done from inside the powershell script as it would require to restart
+          # the parent CMD process).
+          - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+          - "python --version"
+          - "python -m pip install --upgrade pip"
+          - "python -m pip install -U click h11 wsproto==0.13.* websockets==8.*"
+          - "python -m pip install -U autoflake black codecov flake8 isort pytest pytest-cov requests watchgod"
       - name: "Run tests"
-        run: "scripts/test"
+        run:
+          - pytest
   tests:
     name: "Python ${{ matrix.python-version }}"
     runs-on: "ubuntu-latest"
