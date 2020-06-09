@@ -261,7 +261,7 @@ def print_version(ctx, param, value):
     "app_dir",
     default=".",
     show_default=True,
-    help="Look for APP in the specified directory. Defaults to the current working directory",
+    help="Look for APP in the specified directory, by adding this to the PYTHONPATH. Defaults to the current working directory.",
 )
 def main(
     app,
