@@ -256,6 +256,13 @@ def print_version(ctx, param, value):
     is_eager=True,
     help="Display the uvicorn version and exit.",
 )
+@click.option(
+    "--app-dir",
+    "app_dir",
+    default=".",
+    show_default=True,
+    help="Look for APP in the specified directory, by adding this to the PYTHONPATH. Defaults to the current working directory.",
+)
 def main(
     app,
     host: str,
@@ -290,8 +297,9 @@ def main(
     ssl_ciphers: str,
     headers: typing.List[str],
     use_colors: bool,
+    app_dir: str,
 ):
-    sys.path.insert(0, ".")
+    sys.path.insert(0, app_dir)
 
     kwargs = {
         "app": app,
