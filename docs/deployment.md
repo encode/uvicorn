@@ -87,6 +87,9 @@ Options:
                                   [default: TLSv1]
   --header TEXT                   Specify custom default HTTP response headers
                                   as a Name:Value pair
+  --app-dir TEXT                  Look for APP in the specified directory, by
+                                  adding this to the PYTHONPATH. Defaults to
+                                  the current working directory.
   --help                          Show this message and exit.
 ```
 
