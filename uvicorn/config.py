@@ -141,6 +141,8 @@ class Config:
         ssl_ca_certs=None,
         ssl_ciphers="TLSv1",
         headers=None,
+        protocol_name="auto",
+        server_name="Uvicorn",
     ):
         self.app = app
         self.host = host
@@ -175,7 +177,8 @@ class Config:
         self.ssl_ciphers = ssl_ciphers
         self.headers = headers if headers else []  # type: List[str]
         self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
-
+        self.protocol_name = protocol_name
+        self.server_name = server_name
         self.loaded = False
         self.configure_logging()
 
@@ -322,15 +325,19 @@ class Config:
             sys.exit(1)
         sock.set_inheritable(True)
 
-        message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
+        message = "%s running on %s://%s:%d (Press CTRL+C to quit)"
         color_message = (
-            "Uvicorn running on "
+            "%s running on "
             + click.style("%s://%s:%d", bold=True)
             + " (Press CTRL+C to quit)"
         )
-        protocol_name = "https" if self.is_ssl else "http"
+        if self.protocol_name == "auto":
+            protocol_name = "https" if self.is_ssl else "http"
+        else:
+            protocol_name = self.protocol_name
         logger.info(
             message,
+            self.server_name,
             protocol_name,
             self.host,
             self.port,
