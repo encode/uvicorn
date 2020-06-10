@@ -3,10 +3,10 @@ import socket
 import pytest
 
 from uvicorn import protocols
-from uvicorn_core.config import Config
-from uvicorn_core.middleware.debug import DebugMiddleware
-from uvicorn_core.middleware.proxy_headers import ProxyHeadersMiddleware
-from uvicorn_core.middleware.wsgi import WSGIMiddleware
+from uvicorn.config import Config
+from uvicorn.middleware.debug import DebugMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+from uvicorn.middleware.wsgi import WSGIMiddleware
 
 
 async def asgi_app():
