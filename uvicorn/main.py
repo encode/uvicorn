@@ -129,6 +129,20 @@ def print_version(ctx, param, value):
     show_default=True,
 )
 @click.option(
+    "--protocol-name",
+    type=str,
+    default="auto",
+    help="Protocol name to display in logs.",
+    show_default=True,
+)
+@click.option(
+    "--server-name",
+    type=str,
+    default="auto",
+    help="Server name ot display in logs.",
+    show_default=True,
+)
+@click.option(
     "--env-file",
     type=click.Path(exists=True),
     default=None,
@@ -298,6 +312,8 @@ def main(
     headers: typing.List[str],
     use_colors: bool,
     app_dir: str,
+    server_name: str,
+    protocol_name: str,
 ):
     sys.path.insert(0, app_dir)
 
@@ -335,6 +351,8 @@ def main(
         "ssl_ciphers": ssl_ciphers,
         "headers": list([header.split(":") for header in headers]),
         "use_colors": use_colors,
+        "server_name": server_name,
+        "protocol_name": protocol_name
     }
     run(**kwargs)
 
@@ -493,8 +511,8 @@ class Server:
                 + " (Press CTRL+C to quit)"
             )
             logger.info(
-                config.server_name,
                 message,
+                config.server_name,
                 protocol_name,
                 config.host,
                 port,

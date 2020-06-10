@@ -50,7 +50,7 @@ LOOP_SETUPS = {
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
 }
 INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
-PROTOCOLS = ["auto", "http", "https"]
+PROTOCOL_NAMES = ["auto", "http", "https"]
 
 
 # Fallback to 'ssl.PROTOCOL_SSLv23' in order to support Python < 3.5.3.
