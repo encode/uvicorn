@@ -352,7 +352,7 @@ def main(
         "headers": list([header.split(":") for header in headers]),
         "use_colors": use_colors,
         "server_name": server_name,
-        "protocol_name": protocol_name
+        "protocol_name": protocol_name,
     }
     run(**kwargs)
 
