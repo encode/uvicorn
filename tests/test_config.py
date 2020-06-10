@@ -3,10 +3,10 @@ import socket
 import pytest
 
 from uvicorn import protocols
-from uvicorn.config import Config
-from uvicorn.middleware.debug import DebugMiddleware
-from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-from uvicorn.middleware.wsgi import WSGIMiddleware
+from uvicorn_core.config import Config
+from uvicorn_core.middleware.debug import DebugMiddleware
+from uvicorn_core.middleware.proxy_headers import ProxyHeadersMiddleware
+from uvicorn_core.middleware.wsgi import WSGIMiddleware
 
 
 async def asgi_app():
@@ -50,7 +50,7 @@ def test_app_unimportable():
 def test_concrete_http_class():
     config = Config(app=asgi_app, http=protocols.http.h11_impl.H11Protocol)
     config.load()
-    assert config.protocol_class is protocols.http.h11_impl.H11Protocol
+    assert config.http_protocol_class is protocols.http.h11_impl.H11Protocol
 
 
 def test_socket_bind():

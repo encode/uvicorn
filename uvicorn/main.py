@@ -445,7 +445,7 @@ class Server:
         config = self.config
 
         create_protocol = functools.partial(
-            config.protocol_class, config=config, server_state=self.server_state
+            config.http_protocol_class, config=config, server_state=self.server_state
         )
 
         loop = asyncio.get_event_loop()

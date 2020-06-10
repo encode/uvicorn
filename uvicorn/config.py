@@ -266,9 +266,9 @@ class Config:
         )  # type: List[Tuple[bytes, bytes]]
 
         if isinstance(self.http, str):
-            self.protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
+            self.http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
         else:
-            self.protocol_class = self.http
+            self.http_protocol_class = self.http
 
         if isinstance(self.ws, str):
             self.ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
