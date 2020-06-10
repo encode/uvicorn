@@ -39,7 +39,7 @@ Options:
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
                                   available. Not valid with --reload.
-  --loop [auto|asyncio|uvloop|iocp]
+  --loop [auto|asyncio|uvloop]
                                   Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
                                   auto]
