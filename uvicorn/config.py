@@ -50,7 +50,6 @@ LOOP_SETUPS = {
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
 }
 INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
-PROTOCOL_NAMES = ["auto", "http", "https"]
 
 
 # Fallback to 'ssl.PROTOCOL_SSLv23' in order to support Python < 3.5.3.
@@ -142,7 +141,6 @@ class Config:
         ssl_ca_certs=None,
         ssl_ciphers="TLSv1",
         headers=None,
-        protocol_class="auto",
         protocol_name="auto",
         server_name="Uvicorn",
     ):
@@ -181,7 +179,6 @@ class Config:
         self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
         self.protocol_name = protocol_name
         self.server_name = server_name
-        self.protocol_class = protocol_class
         self.loaded = False
         self.configure_logging()
 
@@ -268,11 +265,10 @@ class Config:
             else [(b"server", b"uvicorn")] + encoded_headers
         )  # type: List[Tuple[bytes, bytes]]
 
-        if self.protocol_class == "auto":
-            if isinstance(self.http, str):
-                self.protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
-            else:
-                self.protocol_class = self.http
+        if isinstance(self.http, str):
+            self.protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
+        else:
+            self.protocol_class = self.http
 
         if isinstance(self.ws, str):
             self.ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
