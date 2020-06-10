@@ -427,7 +427,7 @@ class Server:
         config = self.config
 
         create_protocol = functools.partial(
-            config.http_protocol_class, config=config, server_state=self.server_state
+            config.protocol_class, config=config, server_state=self.server_state
         )
 
         loop = asyncio.get_event_loop()
@@ -448,8 +448,8 @@ class Server:
             server = await loop.create_server(
                 create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
             )
-            message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
-            logger.info(message % str(sock.getsockname()))
+            message = "%s running on socket %s (Press CTRL+C to quit)"
+            logger.info(message, config.server_name, str(sock.getsockname()))
             self.servers = [server]
 
         elif config.uds is not None:
@@ -461,8 +461,8 @@ class Server:
                 create_protocol, path=config.uds, ssl=config.ssl, backlog=config.backlog
             )
             os.chmod(config.uds, uds_perms)
-            message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
-            logger.info(message % config.uds)
+            message = "%s running on unix socket %s (Press CTRL+C to quit)"
+            logger.info(message, config.server_name, config.uds)
             self.servers = [server]
 
         else:
@@ -482,14 +482,18 @@ class Server:
             port = config.port
             if port == 0:
                 port = server.sockets[0].getsockname()[1]
-            protocol_name = "https" if config.ssl else "http"
-            message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
+            if config.protocol_name == "auto":
+                protocol_name = "https" if config.ssl else "http"
+            else:
+                protocol_name = config.protocol_name
+            message = "%s running on %s://%s:%d (Press CTRL+C to quit)"
             color_message = (
-                "Uvicorn running on "
+                "%s running on "
                 + click.style("%s://%s:%d", bold=True)
                 + " (Press CTRL+C to quit)"
             )
             logger.info(
+                config.server_name,
                 message,
                 protocol_name,
                 config.host,

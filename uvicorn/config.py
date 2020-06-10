@@ -50,6 +50,7 @@ LOOP_SETUPS = {
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
 }
 INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
+PROTOCOLS = ["auto", "http", "https"]
 
 
 # Fallback to 'ssl.PROTOCOL_SSLv23' in order to support Python < 3.5.3.
@@ -141,6 +142,9 @@ class Config:
         ssl_ca_certs=None,
         ssl_ciphers="TLSv1",
         headers=None,
+        protocol_class="auto",
+        protocol_name="auto",
+        server_name="Uvicorn",
     ):
         self.app = app
         self.host = host
@@ -175,7 +179,9 @@ class Config:
         self.ssl_ciphers = ssl_ciphers
         self.headers = headers if headers else []  # type: List[str]
         self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
-
+        self.protocol_name = protocol_name
+        self.server_name = server_name
+        self.protocol_class = protocol_class
         self.loaded = False
         self.configure_logging()
 
@@ -262,10 +268,11 @@ class Config:
             else [(b"server", b"uvicorn")] + encoded_headers
         )  # type: List[Tuple[bytes, bytes]]
 
-        if isinstance(self.http, str):
-            self.http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
-        else:
-            self.http_protocol_class = self.http
+        if self.protocol_class == "auto":
+            if isinstance(self.http, str):
+                self.protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
+            else:
+                self.protocol_class = self.http
 
         if isinstance(self.ws, str):
             self.ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
@@ -322,15 +329,19 @@ class Config:
             sys.exit(1)
         sock.set_inheritable(True)
 
-        message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
+        message = "%s running on %s://%s:%d (Press CTRL+C to quit)"
         color_message = (
-            "Uvicorn running on "
+            "%s running on "
             + click.style("%s://%s:%d", bold=True)
             + " (Press CTRL+C to quit)"
         )
-        protocol_name = "https" if self.is_ssl else "http"
+        if self.protocol_name == "auto":
+            protocol_name = "https" if self.is_ssl else "http"
+        else:
+            protocol_name = self.protocol_name
         logger.info(
             message,
+            self.server_name,
             protocol_name,
             self.host,
             self.port,
