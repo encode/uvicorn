@@ -3,8 +3,6 @@
 
 import os
 import re
-import sys
-import platform
 
 from setuptools import setup
 
@@ -50,6 +48,8 @@ requirements = [
     "uvloop>=0.14.0 ;" + env_marker,
 ]
 
+extras_require = {"watchgodreload": ["watchgod>=0.6,<0.7"]}
+
 
 setup(
     name="uvicorn",
@@ -63,7 +63,8 @@ setup(
     author_email="tom@tomchristie.com",
     packages=get_packages("uvicorn"),
     install_requires=requirements,
-    data_files=[("", ["LICENSE.md"])],
+    extras_require=extras_require,
+    include_package_data=True,
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Web Environment",

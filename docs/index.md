@@ -6,6 +6,15 @@
 <em>The lightning-fast ASGI server.</em>
 </p>
 
+<p align="center">
+<a href="https://github.com/encode/uvicorn/actions">
+    <img src="https://github.com/encode/uvicorn/workflows/Test%20Suite/badge.svg" alt="Test Suite">
+</a>
+<a href="https://pypi.org/project/uvicorn/">
+    <img src="https://badge.fury.io/py/uvicorn.svg" alt="Package version">
+</a>
+</p>
+
 ---
 
 # Introduction
@@ -81,7 +90,7 @@ Options:
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
                                   available. Not valid with --reload.
-  --loop [auto|asyncio|uvloop|iocp]
+  --loop [auto|asyncio|uvloop]
                                   Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
                                   auto]
@@ -234,14 +243,14 @@ The instance coroutine communicates back to the server by sending messages to th
 
 ```python
 await send({
-    'type': 'http.request.start',
+    'type': 'http.response.start',
     'status': 200,
     'headers': [
         [b'content-type', b'text/plain'],
     ]
 })
 await send({
-    'type': 'http.request.body',
+    'type': 'http.response.body',
     'body': b'Hello, world!',
 })
 ```

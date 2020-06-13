@@ -39,7 +39,7 @@ Options:
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
                                   available. Not valid with --reload.
-  --loop [auto|asyncio|uvloop|iocp]
+  --loop [auto|asyncio|uvloop]
                                   Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
                                   auto]
@@ -87,6 +87,9 @@ Options:
                                   [default: TLSv1]
   --header TEXT                   Specify custom default HTTP response headers
                                   as a Name:Value pair
+  --app-dir TEXT                  Look for APP in the specified directory, by
+                                  adding this to the PYTHONPATH. Defaults to
+                                  the current working directory.
   --help                          Show this message and exit.
 ```
 
@@ -255,7 +258,7 @@ To run uvicorn with https, a certificate and a private key are required.
 The recommended way to get them is using [Let's Encrypt][letsencrypt].
 
 For local development with https, it's possible to use [mkcert][mkcert]
-to generate a valid certificat and private key.
+to generate a valid certificate and private key.
 
 ```bash
 $ uvicorn example:app --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.pem

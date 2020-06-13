@@ -1,6 +1,6 @@
+import asyncio
 import threading
 import time
-import asyncio
 
 import requests
 
