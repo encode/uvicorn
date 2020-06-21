@@ -39,7 +39,7 @@ Options:
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
                                   available. Not valid with --reload.
-  --loop [auto|asyncio|uvloop|iocp]
+  --loop [auto|asyncio|uvloop]
                                   Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
                                   auto]
@@ -88,6 +88,9 @@ Options:
                                   [default: TLSv1]
   --header TEXT                   Specify custom default HTTP response headers
                                   as a Name:Value pair
+  --app-dir TEXT                  Look for APP in the specified directory, by
+                                  adding this to the PYTHONPATH. Defaults to
+                                  the current working directory.
   --help                          Show this message and exit.
 ```
 
