@@ -2,10 +2,7 @@
 
 ## 0.11.6
 
-* Remove `iocp` mentions from documentation.
-* Document default backlog settings.
 * Fix overriding the root logger.
-* Remove Python 3.6 specific leftover.
 
 ## 0.11.5
 
