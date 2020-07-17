@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.11.6
+
+* Fix overriding the root logger.
+
 ## 0.11.5
 
 * Revert "Watch all files, not just .py" due to unexpected side effects.
