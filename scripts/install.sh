@@ -3,9 +3,9 @@
 # Use the Python executable provided from the `-p` option, or a default.
 [ "$1" = "-p" ] && PYTHON=$2 || PYTHON="python3"
 
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+if [ "$OSTYPE" = "linux-gnu" ]; then
   REQUIREMENTS="requirements.txt"
-elif [[ "$OSTYPE" == "win32" ]]; then
+elif [ "$OSTYPE" = "win32" ]; then
   REQUIREMENTS="requirements_windows.txt"
 fi
 
