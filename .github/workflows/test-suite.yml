@@ -16,10 +16,10 @@ jobs:
         python-version: ["3.6", "3.7", "3.8"]
         os: [windows-latest, ubuntu-latest]
         include:
-          - os: windows-latest
-            script_install: "scripts/install.ps1"
-            script_test: "scripts/test.ps1"
-          - os: ubuntu-latest
+#          - os: windows-latest
+#            script_install: "scripts/install.ps1"
+#            script_test: "scripts/test.ps1"
+#          - os: ubuntu-latest
             script_install: "scripts/install.sh"
             script_test: "scripts/test.sh"
     steps:
@@ -29,5 +29,7 @@ jobs:
           python-version: "${{ matrix.python-version }}"
       - name: "Install dependencies"
         run: "${{ matrix.script_install }}"
+        shell: bash
       - name: "Run tests"
         run: "${{ matrix.script_test }}"
+        shell: bash
