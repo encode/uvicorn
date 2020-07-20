@@ -3,16 +3,21 @@
 # Use the Python executable provided from the `-p` option, or a default.
 [ "$1" = "-p" ] && PYTHON=$2 || PYTHON="python3"
 
-REQUIREMENTS="requirements.txt"
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  REQUIREMENTS="requirements.txt"
+elif [[ "$OSTYPE" == "win32" ]]; then
+  REQUIREMENTS="requirements_windows.txt"
+fi
+
 VENV="venv"
 
 set -x
 
 if [ -z "$GITHUB_ACTIONS" ]; then
-    "$PYTHON" -m venv "$VENV"
-    PIP="$VENV/bin/pip"
+  "$PYTHON" -m venv "$VENV"
+  PIP="$VENV/bin/pip"
 else
-    PIP="pip"
+  PIP="pip"
 fi
 
 "$PIP" install -r "$REQUIREMENTS"
