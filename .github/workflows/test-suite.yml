@@ -17,11 +17,11 @@ jobs:
         os: [windows-latest, ubuntu-latest]
         include:
           - os: windows-latest
-            script_install: "scripts/install.ps1"
-            script_test: "scripts/test.ps1"
+            script_install: "./scripts/install.ps1"
+            script_test: "./scripts/test.ps1"
           - os: ubuntu-latest
-            script_install: "scripts/install.sh"
-            script_test: "scripts/test.sh"
+            script_install: "./scripts/install.sh"
+            script_test: "./scripts/test.sh"
     steps:
       - uses: "actions/checkout@v2"
       - uses: "actions/setup-python@v1"
