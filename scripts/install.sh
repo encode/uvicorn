@@ -9,6 +9,8 @@ if [ "$OSTYPE" = "linux-gnu" ]; then
   REQUIREMENTS="requirements.txt"
 elif [ "$OSTYPE" = "win32" ]; then
   REQUIREMENTS="requirements_windows.txt"
+else
+  echo "SHIT"
 fi
 
 echo "$REQUIREMENTS"
