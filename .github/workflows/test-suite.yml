@@ -9,8 +9,7 @@ on:
 
 jobs:
   tests:
-    name: "Python ${{ matrix.python-version }}"
-    runs-on: "ubuntu-latest"
+    name: "Python ${{ matrix.python-version }} ${{ matrix.os }}"
     strategy:
       matrix:
         python-version: ["3.6", "3.7", "3.8"]
