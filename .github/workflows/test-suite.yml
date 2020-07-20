@@ -8,40 +8,26 @@ on:
     branches: ["master"]
 
 jobs:
-  tests_windows:
-    name: "Python ${{ matrix.python-version }}"
-    runs-on: "windows-latest"
-
-    strategy:
-      matrix:
-        python-version: ["3.6", "3.7", "3.8"]
-
-    steps:
-      - uses: "actions/checkout@v2"
-      - uses: "actions/setup-python@v1"
-        with:
-          python-version: "${{ matrix.python-version }}"
-      - name: "Install dependencies"
-        run: |
-          python --version
-          python -m pip install --upgrade pip
-          python -m pip install -U click h11 wsproto==0.13.* websockets==8.* autoflake black codecov flake8 isort pytest pytest-cov requests watchgod
-      - name: "Run tests"
-        run: pytest
   tests:
     name: "Python ${{ matrix.python-version }}"
     runs-on: "ubuntu-latest"
-
     strategy:
       matrix:
-        python-version: ["3.6", "3.7", "3.8"]
-
+      python-version: ["3.6", "3.7", "3.8"]
+      os: [windows-latest, ubuntu-latest]
+      include:
+        - os: windows-latest
+          script_install: "scripts/install.ps1"
+          script_test: "scripts/test.ps1"
+        - os: ubuntu-latest
+          script_install: "scripts/install.sh"
+          script_test: "scripts/test.sh"
     steps:
       - uses: "actions/checkout@v2"
       - uses: "actions/setup-python@v1"
         with:
           python-version: "${{ matrix.python-version }}"
       - name: "Install dependencies"
-        run: "scripts/install"
+        run: ${{ matrix.script_install }}
       - name: "Run tests"
-        run: "scripts/test"
+        run: ${{ matrix.script_test }}
