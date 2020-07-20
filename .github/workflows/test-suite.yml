@@ -15,21 +15,14 @@ jobs:
       matrix:
         python-version: ["3.6", "3.7", "3.8"]
         os: [windows-latest, ubuntu-latest]
-        include:
-          - os: windows-latest
-            script_install: "scripts/install.sh"
-            script_test: "scripts/test.sh"
-          - os: ubuntu-latest
-            script_install: "scripts/install.sh"
-            script_test: "scripts/test.sh"
     steps:
       - uses: "actions/checkout@v2"
       - uses: "actions/setup-python@v1"
         with:
           python-version: "${{ matrix.python-version }}"
       - name: "Install dependencies"
-        run: "${{ matrix.script_install }}"
+        run: "scripts/install"
         shell: bash
       - name: "Run tests"
-        run: "${{ matrix.script_test }}"
+        run: "scripts/test"
         shell: bash
