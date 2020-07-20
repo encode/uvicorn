@@ -1,4 +1,4 @@
-#!/bin/sh -exo
+#!/bin/sh -e
 
 # Use the Python executable provided from the `-p` option, or a default.
 [ "$1" = "-p" ] && PYTHON=$2 || PYTHON="python3"
