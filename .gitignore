@@ -6,5 +6,3 @@ uvicorn.egg-info/
 venv/
 htmlcov/
 site/
-!/scripts/test.ps1
-!/scripts/install.ps1
