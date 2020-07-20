@@ -11,6 +11,8 @@ elif [ "$OSTYPE" = "win32" ]; then
   REQUIREMENTS="requirements_windows.txt"
 fi
 
+echo "$REQUIREMENTS"
+
 VENV="venv"
 
 set -x
