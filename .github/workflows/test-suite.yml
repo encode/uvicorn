@@ -16,10 +16,10 @@ jobs:
         python-version: ["3.6", "3.7", "3.8"]
         os: [windows-latest, ubuntu-latest]
         include:
-#          - os: windows-latest
-#            script_install: "scripts/install.ps1"
-#            script_test: "scripts/test.ps1"
-#          - os: ubuntu-latest
+          - os: windows-latest
+            script_install: "scripts/install.sh"
+            script_test: "scripts/test.sh"
+          - os: ubuntu-latest
             script_install: "scripts/install.sh"
             script_test: "scripts/test.sh"
     steps:
