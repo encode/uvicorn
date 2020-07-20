@@ -1,5 +1,5 @@
 PYTHON="python3"
-REQUIREMENTS="requirements.txt"
+REQUIREMENTS="requirements_windows.txt"
 VENV="venv"
 "$PYTHON" -m venv "$VENV"
 PIP="$VENV/bin/pip"
