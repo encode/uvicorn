@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -exo pipefail
-
 # Use the Python executable provided from the `-p` option, or a default.
 [ "$1" = "-p" ] && PYTHON=$2 || PYTHON="python3"
 
@@ -11,6 +9,7 @@ elif [ "$OSTYPE" = "msys" ]; then
     REQUIREMENTS="requirements_windows.txt"
 fi
 
+set -x
 VENV="venv"
 
 if [ -z "$GITHUB_ACTIONS" ]; then
