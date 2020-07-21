@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set euxo -pipefail
+set -euxo pipefail
 
 # Use the Python executable provided from the `-p` option, or a default.
 [ "$1" = "-p" ] && PYTHON=$2 || PYTHON="python3"
@@ -12,8 +12,6 @@ elif [ "$OSTYPE" = "msys" ]; then
 fi
 
 VENV="venv"
-
-set -x
 
 if [ -z "$GITHUB_ACTIONS" ]; then
     "$PYTHON" -m venv "$VENV"
