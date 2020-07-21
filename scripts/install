@@ -6,24 +6,20 @@ set euxo -pipefail
 [ "$1" = "-p" ] && PYTHON=$2 || PYTHON="python3"
 
 if [ "$OSTYPE" = "linux-gnu" ]; then
-  REQUIREMENTS="requirements.txt"
+    REQUIREMENTS="requirements.txt"
 elif [ "$OSTYPE" = "msys" ]; then
-  REQUIREMENTS="requirements_windows.txt"
-else
-  echo "SHIT"
+    REQUIREMENTS="requirements_windows.txt"
 fi
-
-echo "$REQUIREMENTS"
 
 VENV="venv"
 
 set -x
 
 if [ -z "$GITHUB_ACTIONS" ]; then
-  "$PYTHON" -m venv "$VENV"
-  PIP="$VENV/bin/pip"
+    "$PYTHON" -m venv "$VENV"
+    PIP="$VENV/bin/pip"
 else
-  PIP="pip"
+    PIP="pip"
 fi
 
 "$PIP" install -r "$REQUIREMENTS"
