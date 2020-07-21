@@ -443,6 +443,7 @@ class RequestResponseCycle:
 
             status_code = message["status"]
             headers = self.default_headers + list(message.get("headers", []))
+            self.scope["response_headers"] = headers
 
             if self.access_log:
                 self.access_logger.info(
