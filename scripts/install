@@ -8,9 +8,9 @@ if [ "$OSTYPE" = "linux-gnu" ]; then
 elif [ "$OSTYPE" = "msys" ]; then
     REQUIREMENTS="requirements_windows.txt"
 fi
+VENV="venv"
 
 set -x
-VENV="venv"
 
 if [ -z "$GITHUB_ACTIONS" ]; then
     "$PYTHON" -m venv "$VENV"
