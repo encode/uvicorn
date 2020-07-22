@@ -30,14 +30,14 @@ class ProxyHeadersMiddleware:
                 if b"x-forwarded-proto" in headers:
                     # Determine if the incoming request was http or https based on
                     # the X-Forwarded-Proto header.
-                    x_forwarded_proto = headers[b"x-forwarded-proto"].decode("ascii")
+                    x_forwarded_proto = headers[b"x-forwarded-proto"].decode("latin1")
                     scope["scheme"] = x_forwarded_proto.strip()
 
                 if b"x-forwarded-for" in headers:
                     # Determine the client address from the last trusted IP in the
                     # X-Forwarded-For header. We've lost the connecting client's port
                     # information by now, so only include the host.
-                    x_forwarded_for = headers[b"x-forwarded-for"].decode("ascii")
+                    x_forwarded_for = headers[b"x-forwarded-for"].decode("latin1")
                     host = x_forwarded_for.split(",")[-1].strip()
                     port = 0
                     scope["client"] = (host, port)
