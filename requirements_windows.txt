@@ -1,0 +1,19 @@
+click
+h11
+
+# Optional
+websockets==8.*
+wsproto==0.13.*
+
+# Testing
+autoflake
+black
+codecov
+flake8
+isort
+pytest
+pytest-cov
+requests
+
+# Efficient debug reload
+watchgod>=0.6,<0.7
