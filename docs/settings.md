@@ -19,12 +19,12 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 ## Development
 
 * `--reload` - Enable auto-reload.
-* `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default all directories in `sys.path` will be watched.
+* `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default all directories in current directory will be watched.
 
-By default Uvicorn uses simple changes detection strategy that compares python files modification times few times a second. If this approach doesn't work for your project (eg. because of its complexity), you can install Uvicorn with optional `watchdog` dependency to use filesystem events instead:
+By default Uvicorn uses simple changes detection strategy that compares python files modification times few times a second. If this approach doesn't work for your project (eg. because of its complexity), you can install Uvicorn with optional `watchgod` dependency to use filesystem events instead:
 
 ```
-$ pip install uvicorn[watchdogreload]
+$ pip install uvicorn[watchgodreload]
 ```
 
 ## Production
@@ -40,7 +40,7 @@ $ pip install uvicorn[watchdogreload]
 
 ## Implementation
 
-* `--loop <str>` - Set the event loop implementation. The uvloop implementation provides greater performance, but is not compatible with Windows or PyPy. But you can use IOCP in windows. **Options:** *'auto', 'asyncio', 'uvloop', 'iocp'.* **Default:** *'auto'*.
+* `--loop <str>` - Set the event loop implementation. The uvloop implementation provides greater performance, but is not compatible with Windows or PyPy. **Options:** *'auto', 'asyncio', 'uvloop'.* **Default:** *'auto'*.
 * `--http <str>` - Set the HTTP protocol implementation. The httptools implementation provides greater performance, but it not compatible with PyPy, and requires compilation on Windows. **Options:** *'auto', 'h11', 'httptools'.* **Default:** *'auto'*.
 * `--ws <str>` - Set the WebSockets protocol implementation. Either of the `websockets` and `wsproto` packages are supported. Use `'none'` to deny all websocket requests. **Options:** *'auto', 'none', 'websockets', 'wsproto'.* **Default:** *'auto'*.
 * `--lifespan <str>` - Set the Lifespan protocol implementation. **Options:** *'auto', 'on', 'off'.* **Default:** *'auto'*.
@@ -71,7 +71,7 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 
 * `--limit-concurrency <int>` - Maximum number of concurrent connections or tasks to allow, before issuing HTTP 503 responses. Useful for ensuring known memory usage patterns even under over-resourced loads.
 * `--limit-max-requests <int>` - Maximum number of requests to service before terminating the process. Useful when running together with a process manager, for preventing memory leaks from impacting long-running processes.
-* `--backlog <int>` - Maximum number of connections to hold in backlog. Relevant for heavy incoming traffic.
+* `--backlog <int>` - Maximum number of connections to hold in backlog. Relevant for heavy incoming traffic. **Default:** *2048*
 
 ## Timeouts
 

@@ -258,6 +258,13 @@ def print_version(ctx, param, value):
     is_eager=True,
     help="Display the uvicorn version and exit.",
 )
+@click.option(
+    "--app-dir",
+    "app_dir",
+    default=".",
+    show_default=True,
+    help="Look for APP in the specified directory, by adding this to the PYTHONPATH. Defaults to the current working directory.",
+)
 def main(
     app,
     host: str,
@@ -292,8 +299,9 @@ def main(
     ssl_ciphers: str,
     headers: typing.List[str],
     use_colors: bool,
+    app_dir: str,
 ):
-    sys.path.insert(0, ".")
+    sys.path.insert(0, app_dir)
 
     kwargs = {
         "app": app,
@@ -530,8 +538,8 @@ class Server:
         # Stop accepting new connections.
         for server in self.servers:
             server.close()
-        for socket in sockets or []:
-            socket.close()
+        for sock in sockets or []:
+            sock.close()
         for server in self.servers:
             await server.wait_closed()
 
@@ -564,7 +572,7 @@ class Server:
         try:
             for sig in HANDLED_SIGNALS:
                 loop.add_signal_handler(sig, self.handle_exit, sig, None)
-        except NotImplementedError as exc:
+        except NotImplementedError:
             # Windows
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)

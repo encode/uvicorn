@@ -8,7 +8,7 @@ TRACE_LOG_LEVEL = 5
 
 def test_message_logger(caplog):
     async def app(scope, receive, send):
-        message = await receive()
+        await receive()
         await send({"type": "http.response.start", "status": 200, "headers": []})
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 

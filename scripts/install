@@ -1,5 +1,25 @@
-#!/bin/sh -ex
+#!/usr/bin/env bash
 
-python3 -m venv venv
-venv/bin/pip install -U -r requirements.txt
-venv/bin/pip install -e .
+set -e
+
+# Use the Python executable provided from the `-p` option, or a default.
+[ "$1" = "-p" ] && PYTHON=$2 || PYTHON="python3"
+
+if [ "$OSTYPE" = "linux-gnu" ]; then
+    REQUIREMENTS="requirements.txt"
+elif [ "$OSTYPE" = "msys" ]; then
+    REQUIREMENTS="requirements_windows.txt"
+fi
+VENV="venv"
+
+set -x
+
+if [ -z "$GITHUB_ACTIONS" ]; then
+    "$PYTHON" -m venv "$VENV"
+    PIP="$VENV/bin/pip"
+else
+    PIP="pip"
+fi
+
+"$PIP" install -r "$REQUIREMENTS"
+"$PIP" install -e .
