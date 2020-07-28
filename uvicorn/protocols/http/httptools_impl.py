@@ -1,4 +1,5 @@
 import asyncio
+import re
 import http
 import logging
 import urllib
@@ -12,6 +13,10 @@ from uvicorn.protocols.utils import (
     get_remote_addr,
     is_ssl,
 )
+
+
+HEADER_RE = re.compile(b"[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\\"]")
+HEADER_VALUE_RE = re.compile(b'[\x00-\x1F\x7F]')
 
 
 def _get_status_line(status_code):
@@ -459,6 +464,11 @@ class RequestResponseCycle:
             content = [STATUS_LINE[status_code]]
 
             for name, value in headers:
+                if HEADER_RE.search(name):
+                    raise RuntimeError("Invalid HTTP header name.")
+                if HEADER_VALUE_RE.search(value):
+                    raise RuntimeError("Invalid HTTP header value.")
+
                 name = name.lower()
                 if name == b"content-length" and self.chunked_encoding is None:
                     self.expected_content_length = int(value.decode())
