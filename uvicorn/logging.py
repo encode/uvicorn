@@ -1,6 +1,7 @@
 import http
 import logging
 import sys
+import urllib
 from copy import copy
 
 import click
@@ -77,14 +78,14 @@ class AccessFormatter(ColourizedFormatter):
         return "%s:%d" % (client[0], client[1])
 
     def get_path(self, scope):
-        return scope.get("root_path", "") + scope["path"]
+        return urllib.parse.quote(scope.get("root_path", "") + scope["path"])
 
     def get_full_path(self, scope):
         path = scope.get("root_path", "") + scope["path"]
         query_string = scope.get("query_string", b"").decode("ascii")
         if query_string:
-            return path + "?" + query_string
-        return path
+            return urllib.parse.quote(path) + "?" + query_string
+        return urllib.parse.quote(path)
 
     def get_status_code(self, record):
         status_code = record.__dict__["status_code"]
