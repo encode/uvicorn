@@ -14,7 +14,7 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 
-HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:\[\]={} \t\\"]')
+HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")
 
 
