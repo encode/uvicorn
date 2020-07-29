@@ -29,12 +29,12 @@ def test_get_local_addr_with_socket():
     assert get_local_addr(transport) is None
 
     transport = MockTransport(
-        {"socket": MockSocket(family=socket.AF_INET6, sockname=["::1", 123])}
+        {"socket": MockSocket(family=socket.AF_INET6, sockname=("::1", 123))}
     )
     assert get_local_addr(transport) == ("::1", 123)
 
     transport = MockTransport(
-        {"socket": MockSocket(family=socket.AF_INET, sockname=["123.45.6.7", 123])}
+        {"socket": MockSocket(family=socket.AF_INET, sockname=("123.45.6.7", 123))}
     )
     assert get_local_addr(transport) == ("123.45.6.7", 123)
 
@@ -44,21 +44,24 @@ def test_get_remote_addr_with_socket():
     assert get_remote_addr(transport) is None
 
     transport = MockTransport(
-        {"socket": MockSocket(family=socket.AF_INET6, peername=["::1", 123])}
+        {"socket": MockSocket(family=socket.AF_INET6, peername=("::1", 123))}
     )
     assert get_remote_addr(transport) == ("::1", 123)
 
     transport = MockTransport(
-        {"socket": MockSocket(family=socket.AF_INET, peername=["123.45.6.7", 123])}
+        {"socket": MockSocket(family=socket.AF_INET, peername=("123.45.6.7", 123))}
     )
     assert get_remote_addr(transport) == ("123.45.6.7", 123)
+
+    transport = MockTransport({"socket": MockSocket(family=socket.AF_UNIX, peername=("127.0.0.1", 8000))})
+    assert get_remote_addr(transport) == ("127.0.0.1", 8000)
 
 
 def test_get_local_addr():
     transport = MockTransport({"sockname": "path/to/unix-domain-socket"})
     assert get_local_addr(transport) is None
 
-    transport = MockTransport({"sockname": ["123.45.6.7", 123]})
+    transport = MockTransport({"sockname": ("123.45.6.7", 123)})
     assert get_local_addr(transport) == ("123.45.6.7", 123)
 
 
@@ -66,5 +69,5 @@ def test_get_remote_addr():
     transport = MockTransport({"peername": None})
     assert get_remote_addr(transport) is None
 
-    transport = MockTransport({"peername": ["123.45.6.7", 123]})
+    transport = MockTransport({"peername": ("123.45.6.7", 123)})
     assert get_remote_addr(transport) == ("123.45.6.7", 123)
