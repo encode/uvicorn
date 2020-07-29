@@ -40,6 +40,15 @@ def get_local_addr(transport):
         family = socket_info.family
         if family in (socket.AF_INET, socket.AF_INET6):
             return (str(info[0]), int(info[1]))
+        elif hasattr(socket, "AF_UNIX") and family is socket.AF_UNIX:
+            if isinstance(info, tuple):
+                # fd case
+                # <uvloop.PseudoSocket fd=13, family=AddressFamily.AF_UNIX, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 8000), raddr=('127.0.0.1', 38634)>
+                return (str(info[0]), int(info[1]))
+            else:
+                # unix socket case
+                # <uvloop.PseudoSocket fd=21, family=AddressFamily.AF_UNIX, type=SocketKind.SOCK_STREAM, proto=0, laddr=/tmp/gunicorn.sock>
+                return None
         return None
     info = transport.get_extra_info("sockname")
     if info is not None and isinstance(info, (list, tuple)) and len(info) == 2:
