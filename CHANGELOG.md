@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.11.7
+
+* SECURITY FIX: Prevent sending invalid HTTP header names and values.
+* SECURITY FIX: Ensure path value is escaped before logging to the console.
+
 ## 0.11.6
 
 * Fix overriding the root logger.
