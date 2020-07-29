@@ -31,6 +31,7 @@ def test_wsgi_app():
 
     assert isinstance(config.loaded_app, WSGIMiddleware)
     assert config.interface == "wsgi"
+    assert config.asgi_version == "2.0"
 
 
 def test_proxy_headers():
