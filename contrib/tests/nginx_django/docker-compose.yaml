@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+
+  django:
+    build:
+      context: .
+      dockerfile: django.Dockerfile
+    command: >
+      uvicorn --uds /socket/socket.sock --log-level=trace --use-colors --proxy-headers example.asgi:application
+    environment:
+      FORWARDED_ALLOW_IPS: "0.0.0.0/0"
+    volumes:
+    - django-socket:/socket
+    - ./uvicorn:/app/uvicorn
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx.Dockerfile
+    environment:
+      LISTEN_PORT: "9000"
+      SOCKET_PATH: "/socket/socket.sock"
+    volumes:
+    - django-socket:/socket
+    depends_on:
+      - django
+    ports:
+    - 9000:9000
+
+volumes:
+  django-socket:
