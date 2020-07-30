@@ -202,7 +202,7 @@ class Config:
 
     @property
     def asgi_version(self) -> str:
-        return {"asgi2": "2.0", "asgi3": "3.0"}[self.interface]
+        return {"asgi2": "2.0", "asgi3": "3.0", "wsgi": "3.0"}[self.interface]
 
     @property
     def is_ssl(self) -> bool:
