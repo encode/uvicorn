@@ -12,4 +12,5 @@ RUN django-admin startproject example
 WORKDIR /app/example
 
 COPY django.entrypoint.sh .
+RUN chmod +x ./django.entrypoint.sh
 ENTRYPOINT ["./django.entrypoint.sh"]
