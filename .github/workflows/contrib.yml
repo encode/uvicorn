@@ -12,8 +12,8 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
-    - name: nginx + django
-      run:
-        - cd ./contrib/tests/nginx_django
-        - chmod +x ./runtests/sh
-        - ./runtests.sh
+    - name: nginx_django
+      run: |
+        cd ./contrib/tests/nginx_django
+        chmod +x ./runtests/sh
+        ./runtests.sh
