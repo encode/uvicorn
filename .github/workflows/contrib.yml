@@ -1,0 +1,19 @@
+---
+name: Test Integration
+
+on:
+  push:
+  pull_request:
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: nginx + django
+      run:
+        - cd ./contrib/tests/nginx_django
+        - chmod +x ./runtests/sh
+        - ./runtests.sh
