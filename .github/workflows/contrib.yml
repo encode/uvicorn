@@ -15,5 +15,5 @@ jobs:
     - name: nginx_django
       working-directory: ./contrib/tests/nginx_django
       run: |
-        chmod +x ./runtests/sh
+        chmod +x ./runtests.sh
         ./runtests.sh
