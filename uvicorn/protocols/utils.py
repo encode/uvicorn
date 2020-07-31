@@ -3,9 +3,6 @@ import urllib
 
 def get_remote_addr(transport):
     socket_info = transport.get_extra_info("socket")
-    peer_info = transport.get_extra_info("peername")
-    print(socket_info)
-    print(peer_info)
     if socket_info is not None:
         try:
             info = socket_info.getpeername()
