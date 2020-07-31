@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.11.8 - 2020-07-30
+
+* Fix a regression that caused Uvicorn to crash when using `--interface=wsgi`. (Pull #730)
+* Fix a regression that caused Uvicorn to crash when using unix domain sockets. (Pull #729)
+
 ## 0.11.7 - 2020-28-07
 
 * SECURITY FIX: Prevent sending invalid HTTP header names and values. (Pull #725)
