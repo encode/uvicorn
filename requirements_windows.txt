@@ -20,5 +20,9 @@ pytest-cov
 requests
 seed-isort-config
 
+# Documentation
+mkdocs
+mkdocs-material
+
 # Efficient debug reload
 watchgod>=0.6,<0.7
