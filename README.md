@@ -41,7 +41,7 @@ $ pip install uvicorn[standard]
 
 This will install uvicorn with "fast" dependencies (where possible) and other "goodies".
 
-Fast meaning in that context that:
+In this context, "fast" means the following:
 
 - the event loop `uvloop` will be installed and used if possible.
 - the http protocol will be handled by `httptools` if possible.
