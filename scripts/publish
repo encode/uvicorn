@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-VERSION_FILE="uvicorn/__version__.py"
+VERSION_FILE="uvicorn/__init__.py"
 
 if [ -d 'venv' ] ; then
     PREFIX="venv/bin/"
