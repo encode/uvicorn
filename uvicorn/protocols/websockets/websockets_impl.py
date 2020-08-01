@@ -199,7 +199,10 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 self.closed_event.set()
 
             else:
-                msg = "Expected ASGI message 'websocket.accept' or 'websocket.close', but got '%s'."
+                msg = (
+                    "Expected ASGI message 'websocket.accept' or 'websocket.close', "
+                    "but got '%s'."
+                )
                 raise RuntimeError(msg % message_type)
 
         elif not self.closed_event.is_set():
@@ -217,7 +220,10 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 self.closed_event.set()
 
             else:
-                msg = "Expected ASGI message 'websocket.send' or 'websocket.close', but got '%s'."
+                msg = (
+                    "Expected ASGI message 'websocket.send' or 'websocket.close',"
+                    " but got '%s'."
+                )
                 raise RuntimeError(msg % message_type)
 
         else:

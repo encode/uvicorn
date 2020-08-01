@@ -14,6 +14,7 @@ isort
 pytest
 pytest-cov
 requests
+seed-isort-config
 
 # Efficient debug reload
 watchgod>=0.6,<0.7
