@@ -5,6 +5,10 @@ h11
 websockets==8.*
 wsproto==0.13.*
 
+# Packaging
+twine
+wheel
+
 # Testing
 autoflake
 black
