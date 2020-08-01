@@ -1,5 +1,7 @@
 #!/bin/sh -e
 
+VERSION_FILE="uvicorn/__version__.py"
+
 if [ -d 'venv' ] ; then
     PREFIX="venv/bin/"
 else
@@ -10,7 +12,7 @@ if [ ! -z "$GITHUB_ACTIONS" ]; then
   git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
   git config --local user.name "GitHub Action"
 
-  VERSION=`grep __version__ ./uvicorn/__init__.py | grep -o '[0-9][^"]*'`
+  VERSION=`grep __version__ ${VERSION_FILE} | grep -o '[0-9][^"]*'`
 
   if [ "refs/tags/${VERSION}" != "${GITHUB_REF}" ] ; then
     echo "GitHub Ref '${GITHUB_REF}' did not match package version '${VERSION}'"
@@ -20,10 +22,5 @@ fi
 
 set -x
 
-find uvicorn -type f -name "*.py[co]" -delete
-find uvicorn -type d -name __pycache__ -delete
-
-${PREFIX}pip install twine wheel mkdocs mkdocs-material mkautodoc
-${PREFIX}python setup.py sdist bdist_wheel
 ${PREFIX}twine upload dist/*
 ${PREFIX}mkdocs gh-deploy --force
