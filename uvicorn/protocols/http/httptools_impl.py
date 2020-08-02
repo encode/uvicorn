@@ -6,6 +6,7 @@ import urllib
 
 import httptools
 
+from uvicorn._types import Scope
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -18,7 +19,7 @@ HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")
 
 
-def _get_status_line(status_code):
+def _get_status_line(status_code: int) -> bytes:
     try:
         phrase = http.HTTPStatus(status_code).phrase.encode()
     except ValueError:
@@ -36,7 +37,7 @@ TRACE_LOG_LEVEL = 5
 
 
 class FlowControl:
-    def __init__(self, transport):
+    def __init__(self, transport) -> None:
         self._transport = transport
         self.read_paused = False
         self.write_paused = False
@@ -67,7 +68,7 @@ class FlowControl:
             self._is_writable_event.set()
 
 
-async def service_unavailable(scope, receive, send):
+async def service_unavailable(scope: Scope, receive, send):
     await send(
         {
             "type": "http.response.start",

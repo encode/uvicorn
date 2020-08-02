@@ -1,6 +1,7 @@
 import socket
 from os import PathLike
-from typing import (  # TYPE_CHECKING,
+from typing import (
+    TYPE_CHECKING,
     Any,
     Awaitable,
     Callable,
@@ -15,13 +16,11 @@ from typing import (  # TYPE_CHECKING,
     Union,
 )
 
-from uvicorn.protocols.http.h11_impl import H11Protocol
-from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
-from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
-from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
-
-# if TYPE_CHECKING:  # pragma: no cover
-#     from uvloop.loop import TCPTransport
+if TYPE_CHECKING:  # pragma: no cover
+    from uvicorn.protocols.http.h11_impl import H11Protocol
+    from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
+    from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 
 class ASGI2Protocol(Protocol):
@@ -55,9 +54,9 @@ HeaderTypes = Union[
     Sequence[Tuple[bytes, bytes]],
 ]
 
-AutoHTTPProtocolType = Type[Union[H11Protocol, HttpToolsProtocol]]
+AutoHTTPProtocolType = Type[Union["H11Protocol", "HttpToolsProtocol"]]
 
-AutoWebSocketsProtocolType = Type[Union[WebSocketProtocol, WSProtocol]]
+AutoWebSocketsProtocolType = Type[Union["WebSocketProtocol", "WSProtocol"]]
 
 
 StrPath = Union[str, "PathLike[str]"]
