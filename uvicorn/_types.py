@@ -21,8 +21,6 @@ if TYPE_CHECKING:  # pragma: no cover
 
     from uvloop.loop import TCPTransport
 
-    from uvicorn import Config
-    from uvicorn.main import ServerState
     from uvicorn.protocols.http.h11_impl import H11Protocol
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol

@@ -2,14 +2,14 @@ import asyncio
 import http
 import logging
 from asyncio import AbstractEventLoop, Task
-from typing import TYPE_CHECKING, Optional, List, Tuple, Sequence
+from typing import TYPE_CHECKING, Optional, Sequence
 from urllib.parse import unquote
 
 import websockets
 from websockets import Subprotocol, WebSocketServerProtocol
 from websockets.http import Headers
 
-from uvicorn._types import AutoWebSocketsProtocolType, TransportType, Scope, Message
+from uvicorn._types import Message, Scope, TransportType
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 if TYPE_CHECKING:
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from uvicorn.main import ServerState
 
 
-class Server():
+class Server:
     closing = False
 
     def register(self, ws: websockets.WebSocketServerProtocol) -> None:
@@ -123,7 +123,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         return self.initial_response
 
     def process_subprotocol(
-            self, headers: Headers, available_subprotocols: Optional[Sequence[Subprotocol]]
+        self, headers: Headers, available_subprotocols: Optional[Sequence[Subprotocol]]
     ) -> Optional[Subprotocol]:
         """
         We override the standard 'process_subprotocol' behavior here so that
