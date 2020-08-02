@@ -1,5 +1,5 @@
 import sys
-from typing import List
+from typing import List, Callable, Type
 
 import pytest
 
@@ -7,7 +7,7 @@ from tests.client import TestClient
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
 
-def hello_world(environ: dict, start_response) -> List[bytes]:
+def hello_world(environ: dict, start_response: Callable) -> List[bytes]:
     status = "200 OK"
     output = b"Hello World!\n"
     headers = [
@@ -18,7 +18,7 @@ def hello_world(environ: dict, start_response) -> List[bytes]:
     return [output]
 
 
-def echo_body(environ, start_response):
+def echo_body(environ: dict, start_response: Callable) -> List[bytes]:
     status = "200 OK"
     output = environ["wsgi.input"].read()
     headers = [
@@ -29,11 +29,11 @@ def echo_body(environ, start_response):
     return [output]
 
 
-def raise_exception(environ, start_response):
+def raise_exception(environ: dict, start_response: Callable) -> Type[Exception]:
     raise RuntimeError("Something went wrong")
 
 
-def return_exc_info(environ, start_response):
+def return_exc_info(environ: dict, start_response: Callable) -> List[bytes]:
     try:
         raise RuntimeError("Something went wrong")
     except RuntimeError:
