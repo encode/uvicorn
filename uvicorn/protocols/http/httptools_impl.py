@@ -284,7 +284,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.pipeline.insert(0, (self.cycle, app))
 
     def on_body(self, body: bytes) -> None:
-        # assert self.cycle
+        assert self.cycle
         if self.parser.should_upgrade() or self.cycle.response_complete:
             return
         self.cycle.body += body
