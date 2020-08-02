@@ -1,19 +1,13 @@
 import asyncio
 import http
 import logging
-from asyncio import AbstractEventLoop, TimerHandle, Event
-from typing import Optional, List, Tuple, Callable, TYPE_CHECKING
+from asyncio import AbstractEventLoop, Event, TimerHandle
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
 from urllib.parse import unquote
 
 import h11
 
-from uvicorn._types import (
-    Receive,
-    Scope,
-    Send,
-    TransportType,
-    ASGIApp, Message,
-)
+from uvicorn._types import ASGIApp, Message, Receive, Scope, Send, TransportType
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -21,7 +15,6 @@ from uvicorn.protocols.utils import (
     get_remote_addr,
     is_ssl,
 )
-
 
 if TYPE_CHECKING:
     from uvicorn import Config
@@ -120,11 +113,6 @@ class H11Protocol(asyncio.Protocol):
         self.connections = server_state.connections
         self.tasks = server_state.tasks
         self.default_headers = server_state.default_headers
-
-        # Per-connection state
-        # self.transport = None
-        # self.flow: Optional[FlowControl] = None
-        # self.scheme: Optional[str] = None
 
         # Per-request state
         self.cycle: Optional[RequestResponseCycle] = None

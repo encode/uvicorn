@@ -11,12 +11,12 @@ import time
 from asyncio import Task
 from email.utils import formatdate
 from types import FrameType
-from typing import Any, List, Optional, Sequence, Set, Union, Tuple
+from typing import Any, List, Optional, Set, Tuple, Union
 
 import click
 
 import uvicorn
-from uvicorn._types import ASGIApp, HeaderTypes, Sockets
+from uvicorn._types import ASGIApp, Sockets
 from uvicorn.config import (
     HTTP_PROTOCOLS,
     INTERFACES,
@@ -30,6 +30,8 @@ from uvicorn.config import (
 )
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
+from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
@@ -384,7 +386,9 @@ class ServerState:
 
     def __init__(self) -> None:
         self.total_requests = 0
-        self.connections: Set[Union[HttpToolsProtocol, H11Protocol]] = set()
+        self.connections: Set[
+            Union[HttpToolsProtocol, H11Protocol, WSProtocol, WebSocketProtocol]
+        ] = set()
         self.tasks: Set[Task] = set()
         self.default_headers: List[Tuple[bytes, bytes]] = []
 

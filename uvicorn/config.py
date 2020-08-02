@@ -11,7 +11,7 @@ from typing import Any, Coroutine, Dict, List, Optional, Union
 
 import click
 
-from uvicorn._types import HeaderTypes, StrPath, App, AutoHTTPProtocolType
+from uvicorn._types import App, AutoHTTPProtocolType, HeaderTypes, StrPath
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.debug import DebugMiddleware

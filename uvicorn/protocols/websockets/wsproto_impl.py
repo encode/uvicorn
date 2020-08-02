@@ -1,22 +1,36 @@
 import asyncio
 import logging
+from asyncio import AbstractEventLoop, Queue, Task
+from typing import Optional
 from urllib.parse import unquote
 
 import h11
 import wsproto
+from typing_extensions import TYPE_CHECKING
 from wsproto import ConnectionType, events
 from wsproto.connection import ConnectionState
+from wsproto.events import BytesMessage, CloseConnection, Ping, TextMessage
 from wsproto.extensions import PerMessageDeflate
 from wsproto.utilities import RemoteProtocolError
 
+from uvicorn._types import Message, Scope, TransportType
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+
+if TYPE_CHECKING:
+    from uvicorn import Config
+    from uvicorn.main import ServerState
 
 # Check wsproto version. We've build against 0.13. We don't know about 0.14 yet.
 assert wsproto.__version__ > "0.13", "Need wsproto version 0.13"
 
 
 class WSProtocol(asyncio.Protocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(
+        self,
+        config: "Config",
+        server_state: "ServerState",
+        _loop: Optional[AbstractEventLoop] = None,
+    ):
         if not config.loaded:
             config.load()
 
@@ -30,15 +44,9 @@ class WSProtocol(asyncio.Protocol):
         self.connections = server_state.connections
         self.tasks = server_state.tasks
 
-        # Connection state
-        self.transport = None
-        self.server = None
-        self.client = None
-        self.scheme = None
-
         # WebSocket state
         self.connect_event = None
-        self.queue = asyncio.Queue()
+        self.queue: Queue = asyncio.Queue()
         self.handshake_complete = False
         self.close_sent = False
 
@@ -54,14 +62,14 @@ class WSProtocol(asyncio.Protocol):
 
     # Protocol interface
 
-    def connection_made(self, transport):
+    def connection_made(self, transport: TransportType) -> None:
         self.connections.add(self)
         self.transport = transport
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
         self.scheme = "wss" if is_ssl(transport) else "ws"
 
-    def connection_lost(self, exc):
+    def connection_lost(self, exc: Optional[Exception]) -> None:
         if exc is not None:
             self.queue.put_nowait({"type": "websocket.disconnect"})
         self.connections.remove(self)
@@ -69,7 +77,7 @@ class WSProtocol(asyncio.Protocol):
     def eof_received(self) -> None:
         pass
 
-    def data_received(self, data):
+    def data_received(self, data: bytes) -> None:
         try:
             self.conn.receive_data(data)
         except RemoteProtocolError as err:
@@ -116,17 +124,17 @@ class WSProtocol(asyncio.Protocol):
         self.transport.write(output)
         self.transport.close()
 
-    def on_task_complete(self, task):
+    def on_task_complete(self, task: Task) -> None:
         self.tasks.discard(task)
 
     # Event handlers
 
-    def handle_connect(self, event):
+    def handle_connect(self, event: h11._events.Request) -> None:
         self.connect_event = event
         headers = [(b"host", event.host.encode())]
         headers += [(key.lower(), value) for key, value in event.extra_headers]
         raw_path, _, query_string = event.target.partition("?")
-        self.scope = {
+        self.scope: Scope = {
             "type": "websocket",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.1"},
             "http_version": "1.1",
@@ -145,7 +153,7 @@ class WSProtocol(asyncio.Protocol):
         task.add_done_callback(self.on_task_complete)
         self.tasks.add(task)
 
-    def handle_no_connect(self, event):
+    def handle_no_connect(self, event: h11._events.Request) -> None:
         headers = [
             (b"content-type", b"text/plain; charset=utf-8"),
             (b"connection", b"close"),
@@ -159,7 +167,7 @@ class WSProtocol(asyncio.Protocol):
         self.transport.write(output)
         self.transport.close()
 
-    def handle_text(self, event):
+    def handle_text(self, event: TextMessage) -> None:
         self.text += event.data
         if event.message_finished:
             self.queue.put_nowait({"type": "websocket.receive", "text": self.text})
@@ -168,7 +176,7 @@ class WSProtocol(asyncio.Protocol):
                 self.read_paused = True
                 self.transport.pause_reading()
 
-    def handle_bytes(self, event):
+    def handle_bytes(self, event: BytesMessage) -> None:
         self.bytes += event.data
         # todo: we may want to guard the size of self.bytes and self.text
         if event.message_finished:
@@ -178,13 +186,13 @@ class WSProtocol(asyncio.Protocol):
                 self.read_paused = True
                 self.transport.pause_reading()
 
-    def handle_close(self, event):
+    def handle_close(self, event: CloseConnection) -> None:
         if self.conn.state == ConnectionState.REMOTE_CLOSING:
             self.transport.write(self.conn.send(event.response()))
         self.queue.put_nowait({"type": "websocket.disconnect", "code": event.code})
         self.transport.close()
 
-    def handle_ping(self, event):
+    def handle_ping(self, event: Ping) -> None:
         self.transport.write(self.conn.send(event.response()))
 
     def send_500_response(self) -> None:
@@ -225,7 +233,7 @@ class WSProtocol(asyncio.Protocol):
                 self.logger.error(msg, result)
                 self.transport.close()
 
-    async def send(self, message):
+    async def send(self, message: Message) -> None:
         await self.writable.wait()
 
         message_type = message["type"]
@@ -298,7 +306,7 @@ class WSProtocol(asyncio.Protocol):
             msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
             raise RuntimeError(msg % message_type)
 
-    async def receive(self):
+    async def receive(self) -> Message:
         message = await self.queue.get()
         if self.read_paused and self.queue.empty():
             self.read_paused = False

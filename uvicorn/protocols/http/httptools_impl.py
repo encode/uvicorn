@@ -4,18 +4,11 @@ import logging
 import re
 import urllib
 from asyncio import AbstractEventLoop, Event, TimerHandle
-from typing import Callable, List, Optional, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
 
 import httptools
 
-from uvicorn._types import (
-    ASGIApp,
-    Message,
-    Receive,
-    Scope,
-    Send,
-    TransportType,
-)
+from uvicorn._types import ASGIApp, Message, Receive, Scope, Send, TransportType
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,

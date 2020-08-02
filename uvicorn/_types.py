@@ -17,6 +17,8 @@ from typing import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover
+    from asyncio.selector_events import _SelectorSocketTransport
+
     from uvloop.loop import TCPTransport
 
     from uvicorn import Config
@@ -67,5 +69,4 @@ AutoWebSocketsProtocolType = Type[Union["WebSocketProtocol", "WSProtocol"]]
 
 StrPath = Union[str, "PathLike[str]"]
 
-TransportType = Union["TCPTransport"]
-
+TransportType = Union["TCPTransport", "_SelectorSocketTransport"]

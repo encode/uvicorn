@@ -1,6 +1,7 @@
 import asyncio
 import http
 import logging
+from asyncio import Task
 from urllib.parse import unquote
 
 import websockets
@@ -73,7 +74,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.ws_server.closing = True
         self.transport.close()
 
-    def on_task_complete(self, task):
+    def on_task_complete(self, task: Task) -> None:
         self.tasks.discard(task)
 
     async def process_request(self, path, headers):
