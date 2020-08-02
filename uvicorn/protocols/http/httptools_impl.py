@@ -10,7 +10,6 @@ import httptools
 
 from uvicorn._types import (
     ASGIApp,
-    HeaderTypes,
     Message,
     Receive,
     Scope,
@@ -102,7 +101,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         _loop: Optional[AbstractEventLoop] = None,
     ):
         if not config.loaded:
-            config.load()
+            config.load()  # type: ignore
 
         self.config = config
         self.app = config.loaded_app
@@ -126,8 +125,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.default_headers = server_state.default_headers
 
         # Per-connection state
-        self.server = None
-        self.client = None
         self.pipeline: List[Tuple[RequestResponseCycle, ASGIApp]] = []
 
         # Per-request state
@@ -147,7 +144,8 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             if self.client:
-                prefix = "%s:%d - " % tuple(self.client)
+                host, port = self.client
+                prefix = f"{host}:{port} - "
             else:
                 prefix = ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
@@ -157,7 +155,8 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             if self.client:
-                prefix = "%s:%d - " % tuple(self.client)
+                host, port = self.client
+                prefix = f"{host}:{port} - "
             else:
                 prefix = ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection lost", prefix)
@@ -232,7 +231,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             path = urllib.parse.unquote(path)
         self.url: bytes = url
         self.expect_100_continue = False
-        self.headers: List[HeaderTypes] = []
+        self.headers: List[Tuple[bytes, bytes]] = []
         self.scope: Scope = {
             "type": "http",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.1"},
@@ -373,7 +372,7 @@ class RequestResponseCycle:
         logger: logging.Logger,
         access_logger: logging.Logger,
         access_log: bool,
-        default_headers: List[HeaderTypes],
+        default_headers: List[Tuple[bytes, bytes]],
         message_event: Event,
         expect_100_continue: bool,
         keep_alive: int,

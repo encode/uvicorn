@@ -113,6 +113,8 @@ def create_ssl_context(
 
 
 class Config:
+    loaded = False
+
     def __init__(
         self,
         app: Union[str, ASGIApp],

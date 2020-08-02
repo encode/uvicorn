@@ -11,7 +11,7 @@ import time
 from asyncio import Task
 from email.utils import formatdate
 from types import FrameType
-from typing import Any, List, Optional, Sequence, Set, Union
+from typing import Any, List, Optional, Sequence, Set, Union, Tuple
 
 import click
 
@@ -386,7 +386,7 @@ class ServerState:
         self.total_requests = 0
         self.connections: Set[Union[HttpToolsProtocol, H11Protocol]] = set()
         self.tasks: Set[Task] = set()
-        self.default_headers: Sequence[HeaderTypes] = []
+        self.default_headers: List[Tuple[bytes, bytes]] = []
 
 
 class Server:
