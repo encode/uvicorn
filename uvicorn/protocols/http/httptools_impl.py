@@ -3,7 +3,7 @@ import http
 import logging
 import re
 import urllib
-from asyncio import AbstractEventLoop, Event
+from asyncio import AbstractEventLoop, Event, Task, TimerHandle
 from typing import Optional, List, Tuple, Callable
 
 import httptools
@@ -102,7 +102,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.limit_concurrency = config.limit_concurrency
 
         # Timeouts
-        self.timeout_keep_alive_task = None
+        self.timeout_keep_alive_task: Optional[TimerHandle] = None
         self.timeout_keep_alive = config.timeout_keep_alive
 
         # Global state
@@ -293,10 +293,11 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.message_event.set()
 
     def on_message_complete(self) -> None:
-        if self.parser.should_upgrade() or self.cycle.response_complete:
-            return
-        self.cycle.more_body = False
-        self.message_event.set()
+        if self.cycle:
+            if self.parser.should_upgrade() or self.cycle.response_complete:
+                return
+            self.cycle.more_body = False
+            self.message_event.set()
 
     def on_response_complete(self) -> None:
         # Callback for pipelined HTTP requests to be started.
