@@ -15,6 +15,8 @@ from typing import (
     Union,
 )
 
+from uvloop.handles.tcp import TCPTransport
+
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
@@ -58,3 +60,5 @@ AutoWebSocketsProtocolType = Type[Union[WebSocketProtocol, WSProtocol]]
 
 
 StrPath = Union[str, "PathLike[str]"]
+
+TransportType = Union[TCPTransport]

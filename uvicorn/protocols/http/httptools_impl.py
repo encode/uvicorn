@@ -43,25 +43,25 @@ class FlowControl:
         self._is_writable_event = asyncio.Event()
         self._is_writable_event.set()
 
-    async def drain(self):
+    async def drain(self) -> None:
         await self._is_writable_event.wait()
 
-    def pause_reading(self):
+    def pause_reading(self) -> None:
         if not self.read_paused:
             self.read_paused = True
             self._transport.pause_reading()
 
-    def resume_reading(self):
+    def resume_reading(self) -> None:
         if self.read_paused:
             self.read_paused = False
             self._transport.resume_reading()
 
-    def pause_writing(self):
+    def pause_writing(self) -> None:
         if not self.write_paused:
             self.write_paused = True
             self._is_writable_event.clear()
 
-    def resume_writing(self):
+    def resume_writing(self) -> None:
         if self.write_paused:
             self.write_paused = False
             self._is_writable_event.set()
@@ -150,7 +150,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.flow is not None:
             self.flow.resume_writing()
 
-    def eof_received(self):
+    def eof_received(self) -> None:
         pass
 
     def data_received(self, data):
@@ -167,7 +167,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         except httptools.HttpParserUpgrade:
             self.handle_upgrade()
 
-    def handle_upgrade(self):
+    def handle_upgrade(self) -> None:
         upgrade_value = None
         for name, value in self.headers:
             if name == b"upgrade":
@@ -237,7 +237,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.expect_100_continue = True
         self.headers.append((name, value))
 
-    def on_headers_complete(self):
+    def on_headers_complete(self) -> None:
         http_version = self.parser.get_http_version()
         if http_version != "1.1":
             self.scope["http_version"] = http_version
@@ -287,13 +287,13 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.flow.pause_reading()
         self.message_event.set()
 
-    def on_message_complete(self):
+    def on_message_complete(self) -> None:
         if self.parser.should_upgrade() or self.cycle.response_complete:
             return
         self.cycle.more_body = False
         self.message_event.set()
 
-    def on_response_complete(self):
+    def on_response_complete(self) -> None:
         # Callback for pipelined HTTP requests to be started.
         self.server_state.total_requests += 1
 
@@ -315,7 +315,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             task.add_done_callback(self.tasks.discard)
             self.tasks.add(task)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """
         Called by the server to commence a graceful shutdown.
         """
@@ -324,19 +324,19 @@ class HttpToolsProtocol(asyncio.Protocol):
         else:
             self.cycle.keep_alive = False
 
-    def pause_writing(self):
+    def pause_writing(self) -> None:
         """
         Called by the transport when the write buffer exceeds the high water mark.
         """
         self.flow.pause_writing()
 
-    def resume_writing(self):
+    def resume_writing(self) -> None:
         """
         Called by the transport when the write buffer drops below the low water mark.
         """
         self.flow.resume_writing()
 
-    def timeout_keep_alive_handler(self):
+    def timeout_keep_alive_handler(self) -> None:
         """
         Called on a keep-alive connection if no new data is received after a short
         delay.
@@ -412,7 +412,7 @@ class RequestResponseCycle:
         finally:
             self.on_response = None
 
-    async def send_500_response(self):
+    async def send_500_response(self) -> None:
         await self.send(
             {
                 "type": "http.response.start",

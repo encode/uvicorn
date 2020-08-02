@@ -37,14 +37,14 @@ class BaseReload:
 
         self.should_exit.set()
 
-    def run(self):
+    def run(self) -> None:
         self.startup()
         while not self.should_exit.wait(0.25):
             if self.should_restart():
                 self.restart()
         self.shutdown()
 
-    def startup(self):
+    def startup(self) -> None:
         message = f"Started reloader process [{self.pid}] using {self.reloader_name}"
         color_message = "Started reloader process [{}] using {}".format(
             click.style(str(self.pid), fg="cyan", bold=True),
@@ -60,7 +60,7 @@ class BaseReload:
         )
         self.process.start()
 
-    def restart(self):
+    def restart(self) -> None:
         self.mtimes = {}
         os.kill(self.process.pid, signal.SIGTERM)
         self.process.join()
@@ -70,7 +70,7 @@ class BaseReload:
         )
         self.process.start()
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.process.join()
         message = "Stopping reloader process [{}]".format(str(self.pid))
         color_message = "Stopping reloader process [{}]".format(
@@ -78,5 +78,5 @@ class BaseReload:
         )
         logger.info(message, extra={"color_message": color_message})
 
-    def should_restart(self):
+    def should_restart(self) -> None:
         raise NotImplementedError("Reload strategies should override should_restart()")

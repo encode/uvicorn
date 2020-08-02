@@ -1,7 +1,10 @@
 import urllib
+from typing import Optional, Tuple
+
+from uvicorn._types import TransportType
 
 
-def get_remote_addr(transport):
+def get_remote_addr(transport: TransportType) -> Optional[Tuple[str, int]]:
     socket_info = transport.get_extra_info("socket")
     if socket_info is not None:
         try:
@@ -18,7 +21,7 @@ def get_remote_addr(transport):
     return None
 
 
-def get_local_addr(transport):
+def get_local_addr(transport: TransportType) -> Optional[Tuple[str, int]]:
     socket_info = transport.get_extra_info("socket")
     if socket_info is not None:
         info = socket_info.getsockname()

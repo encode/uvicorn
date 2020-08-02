@@ -66,7 +66,7 @@ class WSProtocol(asyncio.Protocol):
             self.queue.put_nowait({"type": "websocket.disconnect"})
         self.connections.remove(self)
 
-    def eof_received(self):
+    def eof_received(self) -> None:
         pass
 
     def data_received(self, data):
@@ -81,7 +81,7 @@ class WSProtocol(asyncio.Protocol):
         else:
             self.handle_events()
 
-    def handle_events(self):
+    def handle_events(self) -> None:
         for event in self.conn.events():
             if isinstance(event, events.Request):
                 self.handle_connect(event)
@@ -98,19 +98,19 @@ class WSProtocol(asyncio.Protocol):
             elif isinstance(event, events.Ping):
                 self.handle_ping(event)
 
-    def pause_writing(self):
+    def pause_writing(self) -> None:
         """
         Called by the transport when the write buffer exceeds the high water mark.
         """
         self.writable.clear()
 
-    def resume_writing(self):
+    def resume_writing(self) -> None:
         """
         Called by the transport when the write buffer drops below the low water mark.
         """
         self.writable.set()
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
         output = self.conn.send(wsproto.events.CloseConnection(code=1012))
         self.transport.write(output)
@@ -187,7 +187,7 @@ class WSProtocol(asyncio.Protocol):
     def handle_ping(self, event):
         self.transport.write(self.conn.send(event.response()))
 
-    def send_500_response(self):
+    def send_500_response(self) -> None:
         headers = [
             (b"content-type", b"text/plain; charset=utf-8"),
             (b"connection", b"close"),
@@ -205,7 +205,7 @@ class WSProtocol(asyncio.Protocol):
             output += self.conn.send(msg)
         self.transport.write(output)
 
-    async def run_asgi(self):
+    async def run_asgi(self) -> None:
         try:
             result = await self.app(self.scope, self.receive, self.send)
         except BaseException as exc:
