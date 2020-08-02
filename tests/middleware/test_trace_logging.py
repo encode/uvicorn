@@ -52,7 +52,7 @@ test_logging_config = {
     sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
     reason="Skipping test on Windows and PyPy",
 )
-def test_trace_logging(capsys):
+def test_trace_logging(capsys) -> None:
     class App:
         def __init__(self, scope):
             if scope["type"] != "http":
@@ -91,7 +91,7 @@ def test_trace_logging(capsys):
     reason="Skipping test on Windows and PyPy",
 )
 @pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
-def test_access_logging(capsys, http_protocol):
+def test_access_logging(capsys, http_protocol) -> None:
     class App:
         def __init__(self, scope):
             if scope["type"] != "http":

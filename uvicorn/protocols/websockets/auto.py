@@ -1,3 +1,8 @@
+from typing import Optional
+
+from uvicorn._types import AutoWebSocketsProtocolType
+
+AutoWebSocketsProtocol: Optional[AutoWebSocketsProtocolType]
 try:
     import websockets  # noqa
 except ImportError:  # pragma: no cover

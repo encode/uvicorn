@@ -1,3 +1,6 @@
+from uvicorn._types import AutoHTTPProtocolType
+
+AutoHTTPProtocol: AutoHTTPProtocolType
 try:
     import httptools  # noqa
 except ImportError:  # pragma: no cover

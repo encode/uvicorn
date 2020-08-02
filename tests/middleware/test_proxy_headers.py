@@ -1,9 +1,10 @@
 from tests.client import TestClient
 from tests.response import Response
+from uvicorn._types import ASGIApp, Send, Receive, Scope
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 
-async def app(scope, receive, send):
+async def app(scope: Scope, receive: Receive, send: Send) -> None:
     scheme = scope["scheme"]
     host, port = scope["client"]
     addr = "%s://%s:%d" % (scheme, host, port)
@@ -14,7 +15,7 @@ async def app(scope, receive, send):
 app = ProxyHeadersMiddleware(app, trusted_hosts="*")
 
 
-def test_proxy_headers():
+def test_proxy_headers() -> None:
     client = TestClient(app)
     headers = {"X-Forwarded-Proto": "https", "X-Forwarded-For": "1.2.3.4"}
     response = client.get("/", headers=headers)
@@ -22,7 +23,7 @@ def test_proxy_headers():
     assert response.text == "Remote: https://1.2.3.4:0"
 
 
-def test_proxy_headers_no_port():
+def test_proxy_headers_no_port() -> None:
     client = TestClient(app)
     headers = {"X-Forwarded-Proto": "https", "X-Forwarded-For": "1.2.3.4"}
     response = client.get("/", headers=headers)

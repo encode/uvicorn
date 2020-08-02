@@ -22,7 +22,7 @@ class ProxyHeadersMiddleware:
             self.trusted_hosts = trusted_hosts
         self.always_trust = "*" in self.trusted_hosts
 
-    async def __call__(self, scope: dict, receive: Callable, send: Callable):
+    async def __call__(self, scope: dict, receive: Callable, send: Callable) -> None:
         if scope["type"] in ("http", "websocket"):
             client_addr = scope.get("client")
             client_host = client_addr[0] if client_addr else None

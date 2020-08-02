@@ -2,9 +2,13 @@ import asyncio
 import concurrent.futures
 import io
 import sys
+from asyncio import AbstractEventLoop
+from typing import Callable, List, Optional, Dict, Union, Type
+
+from uvicorn._types import Scope, Message, Receive, Send, HeaderTypes
 
 
-def build_environ(scope, message, body):
+def build_environ(scope: Scope, message: Message, body: bytes) -> dict:
     """
     Builds a scope and request message into a WSGI environ object.
     """
@@ -54,30 +58,30 @@ def build_environ(scope, message, body):
 
 
 class WSGIMiddleware:
-    def __init__(self, app, workers=10):
+    def __init__(self, app: Callable, workers: int=10) -> None:
         self.app = app
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         assert scope["type"] == "http"
         instance = WSGIResponder(self.app, self.executor, scope)
         await instance(receive, send)
 
 
 class WSGIResponder:
-    def __init__(self, app, executor, scope):
+    def __init__(self, app: Callable, executor: concurrent.futures.ThreadPoolExecutor, scope: Scope):
         self.app = app
         self.executor = executor
         self.scope = scope
         self.status = None
         self.response_headers = None
         self.send_event = asyncio.Event()
-        self.send_queue = []
-        self.loop = None
+        self.send_queue: List[Optional[Dict[str, Union[str, bytes, int, HeaderTypes]]]]= []
+        self.loop: Optional[AbstractEventLoop] = None
         self.response_started = False
-        self.exc_info = None
+        self.exc_info: Optional[Type[Exception]] = None
 
-    async def __call__(self, receive, send):
+    async def __call__(self, receive: Receive, send: Send) -> None:
         message = await receive()
         body = message.get("body", b"")
         more_body = message.get("more_body", False)
@@ -100,7 +104,7 @@ class WSGIResponder:
         if self.exc_info is not None:
             raise self.exc_info[0].with_traceback(self.exc_info[1], self.exc_info[2])
 
-    async def sender(self, send):
+    async def sender(self, send: Send) -> None:
         while True:
             if self.send_queue:
                 message = self.send_queue.pop(0)
@@ -111,12 +115,12 @@ class WSGIResponder:
                 await self.send_event.wait()
                 self.send_event.clear()
 
-    def start_response(self, status, response_headers, exc_info=None):
+    def start_response(self, status: str, response_headers: HeaderTypes, exc_info: Optional[Type[Exception]]=None) -> None:
         self.exc_info = exc_info
         if not self.response_started:
             self.response_started = True
-            status_code, _ = status.split(" ", 1)
-            status_code = int(status_code)
+            status_code_split, _ = status.split(" ", 1)
+            status_code = int(status_code_split)
             headers = [
                 (name.encode("ascii"), value.encode("ascii"))
                 for name, value in response_headers
@@ -128,9 +132,10 @@ class WSGIResponder:
                     "headers": headers,
                 }
             )
-            self.loop.call_soon_threadsafe(self.send_event.set)
+            if self.loop:
+                self.loop.call_soon_threadsafe(self.send_event.set)
 
-    def wsgi(self, environ, start_response):
+    def wsgi(self, environ: dict, start_response) -> None:
         for chunk in self.app(environ, start_response):
             self.send_queue.append(
                 {"type": "http.response.body", "body": chunk, "more_body": True}

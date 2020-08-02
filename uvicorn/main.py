@@ -8,12 +8,15 @@ import socket
 import ssl
 import sys
 import time
-import typing
+from asyncio import Task
 from email.utils import formatdate
+from types import FrameType
+from typing import Any, List, Optional, Sequence, Set, Union
 
 import click
 
 import uvicorn
+from uvicorn._types import ASGIApp, HeaderTypes, Sockets
 from uvicorn.config import (
     HTTP_PROTOCOLS,
     INTERFACES,
@@ -25,6 +28,8 @@ from uvicorn.config import (
     WS_PROTOCOLS,
     Config,
 )
+from uvicorn.protocols.http.h11_impl import H11Protocol
+from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
@@ -42,7 +47,9 @@ HANDLED_SIGNALS = (
 logger = logging.getLogger("uvicorn.error")
 
 
-def print_version(ctx, param, value):
+def print_version(
+    ctx: click.core.Context, param: Union[click.Option, click.Parameter], value: Any
+) -> None:
     if not value or ctx.resilient_parsing:
         return
     click.echo(
@@ -270,7 +277,7 @@ def print_version(ctx, param, value):
     " Defaults to the current working directory.",
 )
 def main(
-    app,
+    app: Union[str, ASGIApp],
     host: str,
     port: int,
     uds: str,
@@ -282,7 +289,7 @@ def main(
     interface: str,
     debug: bool,
     reload: bool,
-    reload_dirs: typing.List[str],
+    reload_dirs: List[str],
     workers: int,
     env_file: str,
     log_config: str,
@@ -301,10 +308,10 @@ def main(
     ssl_cert_reqs: int,
     ssl_ca_certs: str,
     ssl_ciphers: str,
-    headers: typing.List[str],
+    headers: List[str],
     use_colors: bool,
     app_dir: str,
-):
+) -> None:
     sys.path.insert(0, app_dir)
 
     kwargs = {
@@ -345,7 +352,7 @@ def main(
     run(**kwargs)
 
 
-def run(app, **kwargs):
+def run(app, **kwargs) -> None:
     config = Config(app, **kwargs)
     server = Server(config=config)
 
@@ -357,6 +364,7 @@ def run(app, **kwargs):
         )
         sys.exit(1)
 
+    supervisor: Union[Multiprocess, ChangeReload]
     if config.should_reload:
         sock = config.bind_socket()
         supervisor = ChangeReload(config, target=server.run, sockets=[sock])
@@ -374,29 +382,29 @@ class ServerState:
     Shared servers state that is available between all protocol instances.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.total_requests = 0
-        self.connections = set()
-        self.tasks = set()
-        self.default_headers = []
+        self.connections: Set[Union[HttpToolsProtocol, H11Protocol]] = set()
+        self.tasks: Set[Task] = set()
+        self.default_headers: Sequence[HeaderTypes] = []
 
 
 class Server:
-    def __init__(self, config):
+    def __init__(self, config: Config) -> None:
         self.config = config
         self.server_state = ServerState()
 
         self.started = False
         self.should_exit = False
         self.force_exit = False
-        self.last_notified = 0
+        self.last_notified = 0.0
 
-    def run(self, sockets=None):
+    def run(self, sockets: Sockets = None) -> None:
         self.config.setup_event_loop()
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.serve(sockets=sockets))
 
-    async def serve(self, sockets=None):
+    async def serve(self, sockets: Sockets = None) -> None:
         process_id = os.getpid()
 
         config = self.config
@@ -425,7 +433,7 @@ class Server:
             extra={"color_message": color_message},
         )
 
-    async def startup(self, sockets=None):
+    async def startup(self, sockets: Sockets = None) -> None:
         await self.lifespan.startup()
         if self.lifespan.should_exit:
             self.should_exit = True
@@ -488,7 +496,8 @@ class Server:
                 sys.exit(1)
             port = config.port
             if port == 0:
-                port = server.sockets[0].getsockname()[1]
+                if server.sockets:
+                    port = server.sockets[0].getsockname()[1]
             protocol_name = "https" if config.ssl else "http"
             message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
             color_message = (
@@ -507,7 +516,7 @@ class Server:
 
         self.started = True
 
-    async def main_loop(self):
+    async def main_loop(self) -> None:
         counter = 0
         should_exit = await self.on_tick(counter)
         while not should_exit:
@@ -516,7 +525,7 @@ class Server:
             await asyncio.sleep(0.1)
             should_exit = await self.on_tick(counter)
 
-    async def on_tick(self, counter) -> bool:
+    async def on_tick(self, counter: int) -> bool:
         # Update the default headers, once per second.
         if counter % 10 == 0:
             current_time = time.time()
@@ -538,7 +547,7 @@ class Server:
             return self.server_state.total_requests >= self.config.limit_max_requests
         return False
 
-    async def shutdown(self, sockets=None):
+    async def shutdown(self, sockets: Sockets = None) -> None:
         logger.info("Shutting down")
 
         # Stop accepting new connections.
@@ -572,7 +581,7 @@ class Server:
         if not self.force_exit:
             await self.lifespan.shutdown()
 
-    def install_signal_handlers(self):
+    def install_signal_handlers(self) -> None:
         loop = asyncio.get_event_loop()
 
         try:
@@ -583,7 +592,7 @@ class Server:
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)
 
-    def handle_exit(self, sig, frame):
+    def handle_exit(self, sig: int, frame: Optional[FrameType]) -> None:
         if self.should_exit:
             self.force_exit = True
         else:

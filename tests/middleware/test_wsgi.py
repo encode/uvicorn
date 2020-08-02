@@ -1,4 +1,5 @@
 import sys
+from typing import List
 
 import pytest
 
@@ -6,7 +7,7 @@ from tests.client import TestClient
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
 
-def hello_world(environ, start_response):
+def hello_world(environ: dict, start_response) -> List[bytes]:
     status = "200 OK"
     output = b"Hello World!\n"
     headers = [
@@ -46,7 +47,7 @@ def return_exc_info(environ, start_response):
         return [output]
 
 
-def test_wsgi_get():
+def test_wsgi_get() -> None:
     app = WSGIMiddleware(hello_world)
     client = TestClient(app)
     response = client.get("/")
@@ -54,7 +55,7 @@ def test_wsgi_get():
     assert response.text == "Hello World!\n"
 
 
-def test_wsgi_post():
+def test_wsgi_post() -> None:
     app = WSGIMiddleware(echo_body)
     client = TestClient(app)
     response = client.post("/", json={"example": 123})
@@ -62,7 +63,7 @@ def test_wsgi_post():
     assert response.text == '{"example": 123}'
 
 
-def test_wsgi_exception():
+def test_wsgi_exception() -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
     app = WSGIMiddleware(raise_exception)
@@ -71,7 +72,7 @@ def test_wsgi_exception():
         client.get("/")
 
 
-def test_wsgi_exc_info():
+def test_wsgi_exc_info() -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
     app = WSGIMiddleware(return_exc_info)
