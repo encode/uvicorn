@@ -3,13 +3,13 @@ import http
 import logging
 import re
 import urllib
-from asyncio import AbstractEventLoop
-from typing import Optional, List, Tuple
+from asyncio import AbstractEventLoop, Event
+from typing import Optional, List, Tuple, Callable
 
 import httptools
 
 from uvicorn._types import Scope, TransportType, Receive, Send, UvicornConfigType, \
-    ServerStateType, ASGIApp
+    ServerStateType, ASGIApp, HeaderTypes, Message
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -112,19 +112,14 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.default_headers = server_state.default_headers
 
         # Per-connection state
-        self.transport: Optional[TransportType] = None
-        self.flow: Optional[FlowControl] = None
         self.server = None
         self.client = None
-        self.scheme: Optional[str] = None
+        # self.scheme: Optional[str] = None
         self.pipeline: List[Tuple[RequestResponseCycle, ASGIApp]] = []
 
         # Per-request state
-        self.url = None
-        self.scope: Optional[Scope] = None
-        self.headers = None
         self.expect_100_continue = False
-        self.cycle = None
+        self.cycle: Optional[RequestResponseCycle] = None
         self.message_event = asyncio.Event()
 
     # Protocol interface
@@ -157,8 +152,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
         self.message_event.set()
-        if self.flow is not None:
-            self.flow.resume_writing()
+        self.flow.resume_writing()
 
     def eof_received(self) -> None:
         pass
@@ -173,17 +167,15 @@ class HttpToolsProtocol(asyncio.Protocol):
         except httptools.HttpParserError:
             msg = "Invalid HTTP request received."
             self.logger.warning(msg)
-            if self.transport:
-                self.transport.close()
+            self.transport.close()
         except httptools.HttpParserUpgrade:
             self.handle_upgrade()
 
     def handle_upgrade(self) -> None:
         upgrade_value = None
-        if self.headers:
-            for name, value in self.headers:
-                if name == b"upgrade":
-                    upgrade_value = value.lower()
+        for name, value in self.headers:
+            if name == b"upgrade":
+                upgrade_value = value.lower()
 
         if upgrade_value != b"websocket" or self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
@@ -200,38 +192,35 @@ class HttpToolsProtocol(asyncio.Protocol):
                     msg.encode("ascii"),
                 ]
             )
-            if self.transport:
-                self.transport.write(b"".join(content))
-                self.transport.close()
+            self.transport.write(b"".join(content))
+            self.transport.close()
             return
 
         self.connections.discard(self)
-        if self.scope:
-            method = self.scope["method"].encode()
-            output = [method, b" ", self.url, b" HTTP/1.1\r\n"]
-            for name, value in self.scope["headers"]:
-                output += [name, b": ", value, b"\r\n"]
-            output.append(b"\r\n")
-            protocol = self.ws_protocol_class(
-                config=self.config, server_state=self.server_state
-            )
-            protocol.connection_made(self.transport)
-            protocol.data_received(b"".join(output))
-            if self.transport:
-                self.transport.set_protocol(protocol)
+        method = self.scope["method"].encode()
+        output = [method, b" ", self.url, b" HTTP/1.1\r\n"]
+        for name, value in self.scope["headers"]:
+            output += [name, b": ", value, b"\r\n"]
+        output.append(b"\r\n")
+        protocol = self.ws_protocol_class(
+            config=self.config, server_state=self.server_state
+        )
+        protocol.connection_made(self.transport)
+        protocol.data_received(b"".join(output))
+        self.transport.set_protocol(protocol)
 
     # Parser callbacks
-    def on_url(self, url):
+    def on_url(self, url: bytes) -> None:
         method = self.parser.get_method()
         parsed_url = httptools.parse_url(url)
         raw_path = parsed_url.path
         path = raw_path.decode("ascii")
         if "%" in path:
             path = urllib.parse.unquote(path)
-        self.url = url
+        self.url: bytes = url
         self.expect_100_continue = False
-        self.headers = []
-        self.scope = {
+        self.headers: List[HeaderTypes] = []
+        self.scope: Scope = {
             "type": "http",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.1"},
             "http_version": "1.1",
@@ -246,7 +235,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             "headers": self.headers,
         }
 
-    def on_header(self, name: bytes, value: bytes):
+    def on_header(self, name: bytes, value: bytes) -> None:
         name = name.lower()
         if name == b"expect" and value.lower() == b"100-continue":
             self.expect_100_continue = True
@@ -294,7 +283,8 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.flow.pause_reading()
             self.pipeline.insert(0, (self.cycle, app))
 
-    def on_body(self, body: bytes):
+    def on_body(self, body: bytes) -> None:
+        # assert self.cycle
         if self.parser.should_upgrade() or self.cycle.response_complete:
             return
         self.cycle.body += body
@@ -363,17 +353,17 @@ class HttpToolsProtocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
-        scope,
-        transport,
-        flow,
-        logger,
-        access_logger,
-        access_log,
-        default_headers,
-        message_event,
-        expect_100_continue,
-        keep_alive,
-        on_response,
+        scope: Scope,
+        transport: TransportType,
+        flow: FlowControl,
+        logger: logging.Logger,
+        access_logger: logging.Logger,
+        access_log: bool,
+        default_headers: List[HeaderTypes],
+        message_event: Event,
+        expect_100_continue: bool,
+        keep_alive: int,
+        on_response: Optional[Callable],
     ):
         self.scope = scope
         self.transport = transport
@@ -397,11 +387,11 @@ class RequestResponseCycle:
         # Response state
         self.response_started = False
         self.response_complete = False
-        self.chunked_encoding = None
+        self.chunked_encoding: Optional[bool] = None
         self.expected_content_length = 0
 
     # ASGI exception wrapper
-    async def run_asgi(self, app):
+    async def run_asgi(self, app: ASGIApp) -> None:
         try:
             result = await app(self.scope, self.receive, self.send)
         except BaseException as exc:
@@ -443,7 +433,7 @@ class RequestResponseCycle:
         )
 
     # ASGI interface
-    async def send(self, message):
+    async def send(self, message: Message) -> None:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
@@ -542,6 +532,7 @@ class RequestResponseCycle:
                 self.response_complete = True
                 if not self.keep_alive:
                     self.transport.close()
+                assert self.on_response
                 self.on_response()
 
         else:
@@ -549,7 +540,7 @@ class RequestResponseCycle:
             msg = "Unexpected ASGI message '%s' sent, after response already completed."
             raise RuntimeError(msg % message_type)
 
-    async def receive(self):
+    async def receive(self) -> Message:
         if self.waiting_for_100_continue and not self.transport.is_closing():
             self.transport.write(b"HTTP/1.1 100 Continue\r\n\r\n")
             self.waiting_for_100_continue = False
@@ -559,6 +550,7 @@ class RequestResponseCycle:
             await self.message_event.wait()
             self.message_event.clear()
 
+        message: Message
         if self.disconnected or self.response_complete:
             message = {"type": "http.disconnect"}
         else:
