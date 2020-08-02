@@ -1,5 +1,5 @@
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from uvicorn._types import ASGIApp, Message, Receive, Scope, Send

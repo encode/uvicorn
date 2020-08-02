@@ -3,7 +3,7 @@ import concurrent.futures
 import io
 import sys
 from asyncio import AbstractEventLoop
-from typing import Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Type, Union
 
 if TYPE_CHECKING:
     from uvicorn._types import HeaderTypes, Message, Receive, Scope, Send

@@ -1,5 +1,5 @@
 import urllib
-from typing import Optional, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from uvloop.loop import TCPTransport
 

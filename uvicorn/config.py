@@ -7,7 +7,7 @@ import socket
 import ssl
 import sys
 from os import PathLike
-from typing import Any, Coroutine, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Coroutine, Dict, List, Optional, Union
 
 import click
 
