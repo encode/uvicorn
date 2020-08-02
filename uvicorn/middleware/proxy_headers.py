@@ -8,10 +8,13 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
+from typing import Callable
+
+from uvicorn._types import ASGIApp
 
 
 class ProxyHeadersMiddleware:
-    def __init__(self, app, trusted_hosts="127.0.0.1"):
+    def __init__(self, app: ASGIApp, trusted_hosts: str = "127.0.0.1") -> None:
         self.app = app
         if isinstance(trusted_hosts, str):
             self.trusted_hosts = [item.strip() for item in trusted_hosts.split(",")]
@@ -19,7 +22,7 @@ class ProxyHeadersMiddleware:
             self.trusted_hosts = trusted_hosts
         self.always_trust = "*" in self.trusted_hosts
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: dict, receive: Callable, send: Callable):
         if scope["type"] in ("http", "websocket"):
             client_addr = scope.get("client")
             client_host = client_addr[0] if client_addr else None
