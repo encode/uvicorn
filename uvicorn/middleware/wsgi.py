@@ -3,13 +3,12 @@ import concurrent.futures
 import io
 import sys
 from asyncio import AbstractEventLoop
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Type, Union
+from typing import Callable, Dict, List, Optional, Type, Union
 
-if TYPE_CHECKING:
-    from uvicorn._types import HeaderTypes, Message, Receive, Scope, Send
+from uvicorn._types import HeaderTypes, Message, Receive, Scope, Send
 
 
-def build_environ(scope: "Scope", message: "Message", body: bytes) -> dict:
+def build_environ(scope: Scope, message: Message, body: bytes) -> dict:
     """
     Builds a scope and request message into a WSGI environ object.
     """
@@ -63,7 +62,7 @@ class WSGIMiddleware:
         self.app = app
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
-    async def __call__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         assert scope["type"] == "http"
         instance = WSGIResponder(self.app, self.executor, scope)
         await instance(receive, send)
@@ -74,7 +73,7 @@ class WSGIResponder:
         self,
         app: Callable,
         executor: concurrent.futures.ThreadPoolExecutor,
-        scope: "Scope",
+        scope: Scope,
     ):
         self.app = app
         self.executor = executor
@@ -89,7 +88,7 @@ class WSGIResponder:
         self.response_started = False
         self.exc_info: Optional[Type[Exception]] = None
 
-    async def __call__(self, receive: "Receive", send: "Send") -> None:
+    async def __call__(self, receive: Receive, send: Send) -> None:
         message = await receive()
         body = message.get("body", b"")
         more_body = message.get("more_body", False)
@@ -112,7 +111,7 @@ class WSGIResponder:
         if self.exc_info is not None:
             raise self.exc_info[0].with_traceback(self.exc_info[1], self.exc_info[2])
 
-    async def sender(self, send: "Send") -> None:
+    async def sender(self, send: Send) -> None:
         while True:
             if self.send_queue:
                 message = self.send_queue.pop(0)
@@ -126,7 +125,7 @@ class WSGIResponder:
     def start_response(
         self,
         status: str,
-        response_headers: "HeaderTypes",
+        response_headers: HeaderTypes,
         exc_info: Optional[Type[Exception]] = None,
     ) -> None:
         self.exc_info = exc_info

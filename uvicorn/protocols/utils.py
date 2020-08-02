@@ -1,10 +1,9 @@
 import urllib
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import Optional, Tuple
 
 from uvloop.loop import TCPTransport
 
-if TYPE_CHECKING:
-    from uvicorn._types import Scope
+from uvicorn._types import Scope
 
 
 def get_remote_addr(transport: TCPTransport) -> Optional[Tuple[str, int]]:
@@ -40,14 +39,14 @@ def is_ssl(transport: TCPTransport) -> bool:
     return bool(transport.get_extra_info("sslcontext"))
 
 
-def get_client_addr(scope: "Scope") -> str:
+def get_client_addr(scope: Scope) -> str:
     client = scope.get("client")
     if not client:
         return ""
     return "%s:%d" % client
 
 
-def get_path_with_query_string(scope: "Scope") -> str:
+def get_path_with_query_string(scope: Scope) -> str:
     path_with_query_string = urllib.parse.quote(
         scope.get("root_path", "") + scope["path"]
     )

@@ -22,6 +22,9 @@ if TYPE_CHECKING:  # pragma: no cover
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
+# if TYPE_CHECKING:  # pragma: no cover
+#     from uvloop.loop import TCPTransport
+
 
 class ASGI2Protocol(Protocol):
     # Should replace with a Protocol when PEP 544 is accepted.
