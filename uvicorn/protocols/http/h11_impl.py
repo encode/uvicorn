@@ -1,10 +1,14 @@
 import asyncio
 import http
 import logging
+from asyncio import AbstractEventLoop
+from typing import Optional, Type
 from urllib.parse import unquote
 
 import h11
 
+from uvicorn._types import TransportType, Send, Receive, Scope, UvicornConfigType, \
+    ServerStateType
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -14,7 +18,7 @@ from uvicorn.protocols.utils import (
 )
 
 
-def _get_status_phrase(status_code):
+def _get_status_phrase(status_code: int) -> bytes:
     try:
         return http.HTTPStatus(status_code).phrase.encode()
     except ValueError:
@@ -31,7 +35,7 @@ TRACE_LOG_LEVEL = 5
 
 
 class FlowControl:
-    def __init__(self, transport):
+    def __init__(self, transport: TransportType) -> None:
         self._transport = transport
         self.read_paused = False
         self.write_paused = False
@@ -62,7 +66,7 @@ class FlowControl:
             self._is_writable_event.set()
 
 
-async def service_unavailable(scope, receive, send):
+async def service_unavailable(scope: Scope, receive: Receive, send: Send) -> None:
     await send(
         {
             "type": "http.response.start",
@@ -77,7 +81,7 @@ async def service_unavailable(scope, receive, send):
 
 
 class H11Protocol(asyncio.Protocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(self, config: UvicornConfigType, server_state: ServerStateType, _loop: Optional[AbstractEventLoop]=None):
         if not config.loaded:
             config.load()
 
@@ -104,10 +108,10 @@ class H11Protocol(asyncio.Protocol):
 
         # Per-connection state
         self.transport = None
-        self.flow = None
+        self.flow: Optional[FlowControl] = None
         self.server = None
         self.client = None
-        self.scheme = None
+        self.scheme: Optional[str] = None
 
         # Per-request state
         self.scope = None
@@ -116,7 +120,7 @@ class H11Protocol(asyncio.Protocol):
         self.message_event = asyncio.Event()
 
     # Protocol interface
-    def connection_made(self, transport):
+    def connection_made(self, transport: TransportType) -> None:
         self.connections.add(self)
 
         self.transport = transport
@@ -129,7 +133,7 @@ class H11Protocol(asyncio.Protocol):
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
 
-    def connection_lost(self, exc):
+    def connection_lost(self, exc: Type[Exception]) -> None:
         self.connections.discard(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
@@ -168,7 +172,8 @@ class H11Protocol(asyncio.Protocol):
             except h11.RemoteProtocolError:
                 msg = "Invalid HTTP request received."
                 self.logger.warning(msg)
-                self.transport.close()
+                if self.transport:
+                    self.transport.close()
                 return
             event_type = type(event)
 
@@ -180,8 +185,9 @@ class H11Protocol(asyncio.Protocol):
                 # stop reading any more data, and ensure that at the end
                 # of the active request/response cycle we handle any
                 # events that have been buffered up.
-                self.flow.pause_reading()
-                break
+                if self.flow:
+                    self.flow.pause_reading()
+                    break
 
             elif event_type is h11.Request:
                 self.headers = [(key.lower(), value) for key, value in event.headers]

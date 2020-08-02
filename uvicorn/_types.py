@@ -16,14 +16,18 @@ from typing import (
     Union,
 )
 
+
 if TYPE_CHECKING:  # pragma: no cover
     from uvicorn.protocols.http.h11_impl import H11Protocol
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
-# if TYPE_CHECKING:  # pragma: no cover
-#     from uvloop.loop import TCPTransport
+    from uvloop.loop import TCPTransport
+
+    from uvicorn import Config
+    from uvicorn.main import ServerState
+
 
 
 class ASGI2Protocol(Protocol):
@@ -64,4 +68,7 @@ AutoWebSocketsProtocolType = Type[Union["WebSocketProtocol", "WSProtocol"]]
 
 StrPath = Union[str, "PathLike[str]"]
 
-# TransportType = Union["TCPTransport"]
+TransportType = Union["TCPTransport"]
+
+UvicornConfigType = Type["Config"]
+ServerStateType = Type["ServerState"]

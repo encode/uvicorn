@@ -3,10 +3,13 @@ import http
 import logging
 import re
 import urllib
+from asyncio import AbstractEventLoop
+from typing import Optional, List, Tuple
 
 import httptools
 
-from uvicorn._types import Scope
+from uvicorn._types import Scope, TransportType, Receive, Send, UvicornConfigType, \
+    ServerStateType, ASGIApp
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -37,7 +40,7 @@ TRACE_LOG_LEVEL = 5
 
 
 class FlowControl:
-    def __init__(self, transport) -> None:
+    def __init__(self, transport: TransportType) -> None:
         self._transport = transport
         self.read_paused = False
         self.write_paused = False
@@ -68,7 +71,7 @@ class FlowControl:
             self._is_writable_event.set()
 
 
-async def service_unavailable(scope: Scope, receive, send):
+async def service_unavailable(scope: Scope, receive: Receive, send: Send) -> None:
     await send(
         {
             "type": "http.response.start",
@@ -83,7 +86,7 @@ async def service_unavailable(scope: Scope, receive, send):
 
 
 class HttpToolsProtocol(asyncio.Protocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(self, config: UvicornConfigType, server_state: ServerStateType, _loop: Optional[AbstractEventLoop]=None):
         if not config.loaded:
             config.load()
 
@@ -109,23 +112,23 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.default_headers = server_state.default_headers
 
         # Per-connection state
-        self.transport = None
-        self.flow = None
+        self.transport: Optional[TransportType] = None
+        self.flow: Optional[FlowControl] = None
         self.server = None
         self.client = None
-        self.scheme = None
-        self.pipeline = []
+        self.scheme: Optional[str] = None
+        self.pipeline: List[Tuple[RequestResponseCycle, ASGIApp]] = []
 
         # Per-request state
         self.url = None
-        self.scope = None
+        self.scope: Optional[Scope] = None
         self.headers = None
         self.expect_100_continue = False
         self.cycle = None
         self.message_event = asyncio.Event()
 
     # Protocol interface
-    def connection_made(self, transport):
+    def connection_made(self, transport: TransportType) -> None:
         self.connections.add(self)
 
         self.transport = transport
@@ -135,14 +138,20 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.scheme = "https" if is_ssl(transport) else "http"
 
         if self.logger.level <= TRACE_LOG_LEVEL:
-            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            if self.client:
+                prefix = "%s:%d - " % tuple(self.client)
+            else:
+                prefix = ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
 
-    def connection_lost(self, exc):
+    def connection_lost(self, exc: Optional[Exception]) -> None:
         self.connections.discard(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
-            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            if self.client:
+                prefix = "%s:%d - " % tuple(self.client)
+            else:
+                prefix = ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection lost", prefix)
 
         if self.cycle and not self.cycle.response_complete:
@@ -154,7 +163,7 @@ class HttpToolsProtocol(asyncio.Protocol):
     def eof_received(self) -> None:
         pass
 
-    def data_received(self, data):
+    def data_received(self, data: bytes) -> None:
         if self.timeout_keep_alive_task is not None:
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
@@ -164,15 +173,17 @@ class HttpToolsProtocol(asyncio.Protocol):
         except httptools.HttpParserError:
             msg = "Invalid HTTP request received."
             self.logger.warning(msg)
-            self.transport.close()
+            if self.transport:
+                self.transport.close()
         except httptools.HttpParserUpgrade:
             self.handle_upgrade()
 
     def handle_upgrade(self) -> None:
         upgrade_value = None
-        for name, value in self.headers:
-            if name == b"upgrade":
-                upgrade_value = value.lower()
+        if self.headers:
+            for name, value in self.headers:
+                if name == b"upgrade":
+                    upgrade_value = value.lower()
 
         if upgrade_value != b"websocket" or self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
@@ -189,22 +200,25 @@ class HttpToolsProtocol(asyncio.Protocol):
                     msg.encode("ascii"),
                 ]
             )
-            self.transport.write(b"".join(content))
-            self.transport.close()
+            if self.transport:
+                self.transport.write(b"".join(content))
+                self.transport.close()
             return
 
         self.connections.discard(self)
-        method = self.scope["method"].encode()
-        output = [method, b" ", self.url, b" HTTP/1.1\r\n"]
-        for name, value in self.scope["headers"]:
-            output += [name, b": ", value, b"\r\n"]
-        output.append(b"\r\n")
-        protocol = self.ws_protocol_class(
-            config=self.config, server_state=self.server_state
-        )
-        protocol.connection_made(self.transport)
-        protocol.data_received(b"".join(output))
-        self.transport.set_protocol(protocol)
+        if self.scope:
+            method = self.scope["method"].encode()
+            output = [method, b" ", self.url, b" HTTP/1.1\r\n"]
+            for name, value in self.scope["headers"]:
+                output += [name, b": ", value, b"\r\n"]
+            output.append(b"\r\n")
+            protocol = self.ws_protocol_class(
+                config=self.config, server_state=self.server_state
+            )
+            protocol.connection_made(self.transport)
+            protocol.data_received(b"".join(output))
+            if self.transport:
+                self.transport.set_protocol(protocol)
 
     # Parser callbacks
     def on_url(self, url):
