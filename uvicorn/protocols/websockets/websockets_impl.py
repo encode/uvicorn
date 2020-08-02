@@ -1,29 +1,42 @@
 import asyncio
 import http
 import logging
-from asyncio import Task
+from asyncio import AbstractEventLoop, Task
+from typing import TYPE_CHECKING, Optional, List, Tuple, Sequence
 from urllib.parse import unquote
 
 import websockets
+from websockets import Subprotocol, WebSocketServerProtocol
+from websockets.http import Headers
 
+from uvicorn._types import AutoWebSocketsProtocolType, TransportType, Scope, Message
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
+if TYPE_CHECKING:
+    from uvicorn import Config
+    from uvicorn.main import ServerState
 
-class Server:
+
+class Server():
     closing = False
 
-    def register(self, ws):
+    def register(self, ws: websockets.WebSocketServerProtocol) -> None:
         pass
 
-    def unregister(self, ws):
+    def unregister(self, ws: websockets.WebSocketServerProtocol) -> None:
         pass
 
-    def is_serving(self):
+    def is_serving(self) -> bool:
         return not self.closing
 
 
 class WebSocketProtocol(websockets.WebSocketServerProtocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(
+        self,
+        config: "Config",
+        server_state: "ServerState",
+        _loop: Optional[AbstractEventLoop] = None,
+    ):
         if not config.loaded:
             config.load()
 
@@ -37,27 +50,18 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.connections = server_state.connections
         self.tasks = server_state.tasks
 
-        # Connection state
-        self.transport = None
-        self.server = None
-        self.client = None
-        self.scheme = None
-
         # Connection events
-        self.scope = None
         self.handshake_started_event = asyncio.Event()
         self.handshake_completed_event = asyncio.Event()
         self.closed_event = asyncio.Event()
-        self.initial_response = None
         self.connect_sent = False
         self.accepted_subprotocol = None
-        self.transfer_data_task = None
 
-        self.ws_server = Server()
+        self.ws_server: websockets.WebSocketServer = Server()
 
         super().__init__(ws_handler=self.ws_handler, ws_server=self.ws_server)
 
-    def connection_made(self, transport):
+    def connection_made(self, transport: TransportType) -> None:
         self.connections.add(self)
         self.transport = transport
         self.server = get_local_addr(transport)
@@ -65,7 +69,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.scheme = "wss" if is_ssl(transport) else "ws"
         super().connection_made(transport)
 
-    def connection_lost(self, exc):
+    def connection_lost(self, exc: Optional[Exception]) -> None:
         self.connections.remove(self)
         self.handshake_completed_event.set()
         super().connection_lost(exc)
@@ -77,7 +81,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
     def on_task_complete(self, task: Task) -> None:
         self.tasks.discard(task)
 
-    async def process_request(self, path, headers):
+    async def process_request(self, path: str, headers: Headers) -> None:
         """
         This hook is called to determine if the websocket should return
         an HTTP response and close.
@@ -99,7 +103,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             for name, value in headers.raw_items()
         ]
 
-        self.scope = {
+        self.scope: Scope = {
             "type": "websocket",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.1"},
             "scheme": self.scheme,
@@ -118,7 +122,9 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         await self.handshake_started_event.wait()
         return self.initial_response
 
-    def process_subprotocol(self, headers, available_subprotocols):
+    def process_subprotocol(
+            self, headers: Headers, available_subprotocols: Optional[Sequence[Subprotocol]]
+    ) -> Optional[Subprotocol]:
         """
         We override the standard 'process_subprotocol' behavior here so that
         we return whatever subprotocol is sent in the 'accept' message.
@@ -137,7 +143,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         ]
         self.transport.write(b"".join(content))
 
-    async def ws_handler(self, protocol, path):
+    async def ws_handler(self, protocol: WebSocketServerProtocol, path: str) -> None:
         """
         This is the main handler function for the 'websockets' implementation
         to call into. We just wait for close then return, and instead allow
@@ -175,7 +181,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 await self.handshake_completed_event.wait()
                 self.transport.close()
 
-    async def asgi_send(self, message):
+    async def asgi_send(self, message: Message) -> None:
         message_type = message["type"]
 
         if not self.handshake_started_event.is_set():
@@ -231,7 +237,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
             raise RuntimeError(msg % message_type)
 
-    async def asgi_receive(self):
+    async def asgi_receive(self) -> Message:
         if not self.connect_sent:
             self.connect_sent = True
             return {"type": "websocket.connect"}
@@ -242,6 +248,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         except websockets.ConnectionClosed as exc:
             return {"type": "websocket.disconnect", "code": exc.code}
 
+        msg: Message
         msg = {"type": "websocket.receive"}
 
         if isinstance(data, str):
