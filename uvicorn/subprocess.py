@@ -31,6 +31,7 @@ def get_subprocess(
     """
     # We pass across the stdin fileno, and reopen it in the child process.
     # This is required for some debugging environments.
+    stdin_fileno: Optional[int]
     try:
         stdin_fileno = sys.stdin.fileno()
     except OSError:
@@ -46,7 +47,12 @@ def get_subprocess(
     return spawn.Process(target=subprocess_started, kwargs=kwargs)
 
 
-def subprocess_started(config, target, sockets, stdin_fileno):
+def subprocess_started(
+    config: Config,
+    target: Callable,
+    sockets: Optional[List[socket.socket]],
+    stdin_fileno: Optional[int],
+) -> None:
     """
     Called when the child process starts.
 
@@ -69,7 +75,7 @@ def subprocess_started(config, target, sockets, stdin_fileno):
     target(sockets=sockets)
 
 
-def shutdown_subprocess(pid):
+def shutdown_subprocess(pid: int) -> None:
     """
     Helper to attempt cleanly shutting down a subprocess. May fail with an exception.
 
