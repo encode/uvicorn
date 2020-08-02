@@ -5,8 +5,10 @@ import time
 
 import pytest
 import requests
+from _pytest.capture import CaptureFixture
 
 from uvicorn import Config, Server
+from uvicorn._types import Scope, Receive, Send
 
 test_logging_config = {
     "version": 1,
@@ -52,18 +54,18 @@ test_logging_config = {
     sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
     reason="Skipping test on Windows and PyPy",
 )
-def test_trace_logging(capsys) -> None:
+def test_trace_logging(capsys: CaptureFixture) -> None:
     class App:
-        def __init__(self, scope):
+        def __init__(self, scope: Scope):
             if scope["type"] != "http":
                 raise Exception()
 
-        async def __call__(self, receive, send):
+        async def __call__(self, receive: Receive, send: Send) -> None:
             await send({"type": "http.response.start", "status": 204, "headers": []})
             await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     class CustomServer(Server):
-        def install_signal_handlers(self):
+        def install_signal_handlers(self) -> None:
             pass
 
     config = Config(
@@ -91,18 +93,18 @@ def test_trace_logging(capsys) -> None:
     reason="Skipping test on Windows and PyPy",
 )
 @pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
-def test_access_logging(capsys, http_protocol) -> None:
+def test_access_logging(capsys: CaptureFixture, http_protocol: str) -> None:
     class App:
-        def __init__(self, scope):
+        def __init__(self, scope: Scope) -> None:
             if scope["type"] != "http":
                 raise Exception()
 
-        async def __call__(self, receive, send):
+        async def __call__(self, receive: Receive, send: Send) -> None:
             await send({"type": "http.response.start", "status": 204, "headers": []})
             await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     class CustomServer(Server):
-        def install_signal_handlers(self):
+        def install_signal_handlers(self) -> None:
             pass
 
     config = Config(
