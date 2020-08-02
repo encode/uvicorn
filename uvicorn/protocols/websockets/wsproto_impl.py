@@ -1,5 +1,7 @@
 import asyncio
 import logging
+from asyncio import AbstractEventLoop
+from typing import Optional, TYPE_CHECKING
 from urllib.parse import unquote
 
 import h11
@@ -14,9 +16,18 @@ from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 # Check wsproto version. We've build against 0.13. We don't know about 0.14 yet.
 assert wsproto.__version__ > "0.13", "Need wsproto version 0.13"
 
+if TYPE_CHECKING:
+    from uvicorn import Config
+    from uvicorn.main import ServerState
+
 
 class WSProtocol(asyncio.Protocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(
+        self,
+        config: "Config",
+        server_state: "ServerState",
+        _loop: Optional[AbstractEventLoop] = None,
+    ):
         if not config.loaded:
             config.load()
 

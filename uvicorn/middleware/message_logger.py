@@ -1,7 +1,8 @@
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
-from uvicorn._types import ASGIApp, Message, Receive, Scope, Send
+if TYPE_CHECKING:
+    from uvicorn._types import ASGIApp, Message, Receive, Scope, Send
 
 PLACEHOLDER_FORMAT = {
     "body": "<{length} bytes>",
@@ -12,7 +13,7 @@ PLACEHOLDER_FORMAT = {
 TRACE_LOG_LEVEL = 5
 
 
-def message_with_placeholders(message: Message) -> Message:
+def message_with_placeholders(message: "Message") -> "Message":
     """
     Return an ASGI message, with any body-type content omitted and replaced
     with a placeholder.
@@ -27,7 +28,7 @@ def message_with_placeholders(message: Message) -> Message:
 
 
 class MessageLoggerMiddleware:
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(self, app: "ASGIApp") -> None:
         self.task_counter = 0
         self.app = app
         self.logger = logging.getLogger("uvicorn.asgi")
@@ -37,14 +38,14 @@ class MessageLoggerMiddleware:
 
         self.logger.trace = trace  # type: ignore
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
         self.task_counter += 1
 
         task_counter = self.task_counter
         client = scope.get("client")
         prefix = "%s:%d - ASGI" % (client[0], client[1]) if client else "ASGI"
 
-        async def inner_receive() -> Message:
+        async def inner_receive() -> "Message":
             message = await receive()
             logged_message = message_with_placeholders(message)
             log_text = "%s [%d] Receive %s"
@@ -53,7 +54,7 @@ class MessageLoggerMiddleware:
             )  # type: ignore
             return message
 
-        async def inner_send(message: Message) -> None:
+        async def inner_send(message: "Message") -> None:
             logged_message = message_with_placeholders(message)
             log_text = "%s [%d] Send %s"
             self.logger.trace(

@@ -5,6 +5,9 @@ from urllib.parse import unquote, urljoin, urlparse
 
 import requests
 
+if typing.TYPE_CHECKING:
+    from uvicorn._types import Message
+
 
 class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):
     def get_all(self, key, default):
@@ -75,7 +78,10 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 body_bytes = body
             return {"type": "http.request", "body": body_bytes}
 
-        async def send(message):
+        raw_kwargs = {}
+        response_started = None
+
+        async def send(message: "Message"):
             nonlocal raw_kwargs, response_started
 
             if message["type"] == "http.response.start":

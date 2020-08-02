@@ -1,7 +1,6 @@
 import socket
 from os import PathLike
-from typing import (
-    # TYPE_CHECKING,
+from typing import (  # TYPE_CHECKING,
     Any,
     Awaitable,
     Callable,

@@ -1,8 +1,9 @@
 import html
 import traceback
-from typing import Union
+from typing import Union, TYPE_CHECKING
 
-from uvicorn._types import ASGIApp, Message, Receive, Scope, Send
+if TYPE_CHECKING:
+    from uvicorn._types import ASGIApp, Message, Receive, Scope, Send
 
 
 class HTMLResponse:
@@ -10,7 +11,7 @@ class HTMLResponse:
         self.content = content
         self.status_code = status_code
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
         await send(
             {
                 "type": "http.response.start",
@@ -32,7 +33,7 @@ class PlainTextResponse:
         self.content = content
         self.status_code = status_code
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
         await send(
             {
                 "type": "http.response.start",
@@ -49,7 +50,7 @@ class PlainTextResponse:
         )
 
 
-def get_accept_header(scope: Scope) -> str:
+def get_accept_header(scope: "Scope") -> str:
     accept = "*/*"
 
     for key, value in scope.get("headers", []):
@@ -61,16 +62,16 @@ def get_accept_header(scope: Scope) -> str:
 
 
 class DebugMiddleware:
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(self, app: "ASGIApp") -> None:
         self.app = app
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(self, scope: "Scope", receive: "Receive", send: "Send") -> None:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
 
         response_started = False
 
-        async def inner_send(message: Message) -> None:
+        async def inner_send(message: "Message") -> None:
             nonlocal response_started, send
 
             if message["type"] == "http.response.start":

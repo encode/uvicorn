@@ -7,17 +7,20 @@ import socket
 import ssl
 import sys
 from os import PathLike
-from typing import Any, Coroutine, Dict, List, Optional, Union
+from typing import Any, Coroutine, Dict, List, Optional, Union, TYPE_CHECKING
 
 import click
 
-from uvicorn._types import ASGIApp, HeaderTypes, StrPath
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
+
+if TYPE_CHECKING:
+    from uvicorn._types import ASGIApp, HeaderTypes, StrPath
+
 
 TRACE_LOG_LEVEL = 5
 
@@ -95,11 +98,11 @@ logger = logging.getLogger("uvicorn.error")
 
 
 def create_ssl_context(
-    certfile: StrPath,
-    keyfile: Optional[StrPath],
+    certfile: "StrPath",
+    keyfile: Optional["StrPath"],
     ssl_version: int,
     cert_reqs: int,
-    ca_certs: Optional[StrPath],
+    ca_certs: Optional["StrPath"],
     ciphers: str,
 ) -> Optional[ssl.SSLContext]:
     ctx = ssl.SSLContext(ssl_version)
@@ -115,7 +118,7 @@ def create_ssl_context(
 class Config:
     def __init__(
         self,
-        app: Union[str, ASGIApp],
+        app: Union[str, "ASGIApp"],
         host: str = "127.0.0.1",
         port: int = 8000,
         uds: Optional[str] = None,
@@ -147,9 +150,9 @@ class Config:
         ssl_certfile: Optional[str] = None,
         ssl_version: int = SSL_PROTOCOL_VERSION,
         ssl_cert_reqs: int = ssl.CERT_NONE,
-        ssl_ca_certs: Optional[StrPath] = None,
+        ssl_ca_certs: Optional["StrPath"] = None,
         ssl_ciphers: str = "TLSv1",
-        headers: Optional[HeaderTypes] = None,
+        headers: Optional["HeaderTypes"] = None,
     ) -> None:
         self.app = app
         self.host = host

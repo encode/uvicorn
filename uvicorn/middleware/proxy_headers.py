@@ -8,13 +8,14 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 
-from uvicorn._types import ASGIApp
+if TYPE_CHECKING:
+    from uvicorn._types import ASGIApp
 
 
 class ProxyHeadersMiddleware:
-    def __init__(self, app: ASGIApp, trusted_hosts: str = "127.0.0.1") -> None:
+    def __init__(self, app: "ASGIApp", trusted_hosts: str = "127.0.0.1") -> None:
         self.app = app
         if isinstance(trusted_hosts, str):
             self.trusted_hosts = [item.strip() for item in trusted_hosts.split(",")]
