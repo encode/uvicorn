@@ -1,13 +1,16 @@
 import html
 import traceback
+from typing import Union
+
+from uvicorn._types import Scope, Receive, Send, ASGIApp, Message
 
 
 class HTMLResponse:
-    def __init__(self, content, status_code):
+    def __init__(self, content: str, status_code: int) -> None:
         self.content = content
         self.status_code = status_code
 
-    async def __call__(self, scope, recieve, send):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         await send(
             {
                 "type": "http.response.start",
@@ -25,11 +28,11 @@ class HTMLResponse:
 
 
 class PlainTextResponse:
-    def __init__(self, content, status_code):
+    def __init__(self, content: str, status_code: int) -> None:
         self.content = content
         self.status_code = status_code
 
-    async def __call__(self, scope, recieve, send):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         await send(
             {
                 "type": "http.response.start",
@@ -46,7 +49,7 @@ class PlainTextResponse:
         )
 
 
-def get_accept_header(scope):
+def get_accept_header(scope: Scope) -> str:
     accept = "*/*"
 
     for key, value in scope.get("headers", []):
@@ -58,16 +61,16 @@ def get_accept_header(scope):
 
 
 class DebugMiddleware:
-    def __init__(self, app):
+    def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
 
         response_started = False
 
-        async def inner_send(message):
+        async def inner_send(message: Message) -> None:
             nonlocal response_started, send
 
             if message["type"] == "http.response.start":
@@ -81,6 +84,7 @@ class DebugMiddleware:
                 raise exc from None
 
             accept = get_accept_header(scope)
+            response: Union[PlainTextResponse, HTMLResponse]
             if "text/html" in accept:
                 exc_html = html.escape(traceback.format_exc())
                 content = (

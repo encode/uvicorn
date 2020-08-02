@@ -1,5 +1,5 @@
-from os import PathLike
 import socket
+from os import PathLike
 from typing import (
     Awaitable,
     Callable,
@@ -10,7 +10,7 @@ from typing import (
     Sequence,
     Tuple,
     Type,
-    Union,
+    Union, MutableMapping, Any,
 )
 
 from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -20,6 +20,8 @@ from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 
 class ASGI2Protocol(Protocol):
+    # Should replace with a Protocol when PEP 544 is accepted.
+
     def __init__(self, scope: dict) -> None:
         ...
 
@@ -27,9 +29,17 @@ class ASGI2Protocol(Protocol):
         ...
 
 
-ASGIApp_v2 = Type[ASGI2Protocol]
-ASGIApp_v3 = Callable[[dict, Callable, Callable], Awaitable[None]]
-ASGIApp = Union[ASGIApp_v3, ASGIApp_v2]
+ASGI2App = Type[ASGI2Protocol]
+
+Scope = MutableMapping[str, Any]
+Message = MutableMapping[str, Any]
+
+Receive = Callable[[], Awaitable[Message]]
+Send = Callable[[Message], Awaitable[None]]
+
+ASGI3App = Callable[[Scope, Receive, Send], Awaitable[None]]
+
+ASGIApp = Union[ASGI2App, ASGI3App]
 
 Sockets = Optional[List[socket.socket]]
 
