@@ -1,10 +1,13 @@
 import http
 import logging
 import sys
-import urllib
 from copy import copy
+from typing import Optional
+from urllib import parse
 
 import click
+
+from uvicorn._types import Scope
 
 TRACE_LOG_LEVEL = 5
 
@@ -29,24 +32,30 @@ class ColourizedFormatter(logging.Formatter):
         ),
     }
 
-    def __init__(self, fmt=None, datefmt=None, style="%", use_colors=None):
+    def __init__(
+        self,
+        fmt: Optional[str] = None,
+        datefmt: Optional[str] = None,
+        style: str = "%",
+        use_colors: Optional[bool] = None,
+    ):
         if use_colors in (True, False):
             self.use_colors = use_colors
         else:
             self.use_colors = sys.stdout.isatty()
         super().__init__(fmt=fmt, datefmt=datefmt, style=style)
 
-    def color_level_name(self, level_name, level_no):
-        def default(level_name):
+    def color_level_name(self, level_name: str, level_no: int) -> str:
+        def default(level_name: str) -> str:
             return str(level_name)
 
         func = self.level_name_colors.get(level_no, default)
         return func(level_name)
 
-    def should_use_colors(self):
+    def should_use_colors(self) -> bool:
         return True
 
-    def formatMessage(self, record):
+    def formatMessage(self, record: logging.LogRecord) -> str:
         recordcopy = copy(record)
         levelname = recordcopy.levelname
         seperator = " " * (8 - len(recordcopy.levelname))
@@ -60,7 +69,7 @@ class ColourizedFormatter(logging.Formatter):
 
 
 class DefaultFormatter(ColourizedFormatter):
-    def should_use_colors(self):
+    def should_use_colors(self) -> bool:
         return sys.stderr.isatty()
 
 
@@ -73,23 +82,23 @@ class AccessFormatter(ColourizedFormatter):
         5: lambda code: click.style(str(code), fg="bright_red"),
     }
 
-    def get_client_addr(self, scope):
+    def get_client_addr(self, scope: Scope) -> str:
         client = scope.get("client")
         if not client:
             return ""
         return "%s:%d" % (client[0], client[1])
 
-    def get_path(self, scope):
-        return urllib.parse.quote(scope.get("root_path", "") + scope["path"])
+    def get_path(self, scope: Scope) -> str:
+        return parse.quote(scope.get("root_path", "") + scope["path"])
 
-    def get_full_path(self, scope):
+    def get_full_path(self, scope: Scope) -> str:
         path = scope.get("root_path", "") + scope["path"]
         query_string = scope.get("query_string", b"").decode("ascii")
         if query_string:
-            return urllib.parse.quote(path) + "?" + query_string
-        return urllib.parse.quote(path)
+            return parse.quote(path) + "?" + query_string
+        return parse.quote(path)
 
-    def get_status_code(self, record):
+    def get_status_code(self, record: logging.LogRecord) -> str:
         status_code = record.__dict__["status_code"]
         try:
             status_phrase = http.HTTPStatus(status_code).phrase
@@ -99,14 +108,14 @@ class AccessFormatter(ColourizedFormatter):
 
         if self.use_colors:
 
-            def default(code):
+            def default(code: int) -> str:
                 return status_and_phrase
 
             func = self.status_code_colours.get(status_code // 100, default)
             return func(status_and_phrase)
         return status_and_phrase
 
-    def formatMessage(self, record):
+    def formatMessage(self, record: logging.LogRecord) -> str:
         recordcopy = copy(record)
         scope = recordcopy.__dict__["scope"]
         method = scope["method"]

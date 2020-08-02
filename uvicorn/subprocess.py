@@ -5,13 +5,20 @@ starting child processes.
 import multiprocessing
 import os
 import signal
+import socket
 import sys
+from multiprocessing.context import SpawnProcess
+from typing import Callable, List, Optional
+
+from uvicorn import Config
 
 multiprocessing.allow_connection_pickling()
 spawn = multiprocessing.get_context("spawn")
 
 
-def get_subprocess(config, target, sockets):
+def get_subprocess(
+    config: Config, target: Callable, sockets: Optional[List[socket.socket]]
+) -> SpawnProcess:
     """
     Called in the parent process, to instantiate a new child process instance.
     The child is not yet started at this point.

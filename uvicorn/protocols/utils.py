@@ -1,10 +1,12 @@
 import urllib
 from typing import Optional, Tuple
 
-from uvicorn._types import TransportType
+from uvloop.loop import TCPTransport
+
+from uvicorn._types import Scope
 
 
-def get_remote_addr(transport: TransportType) -> Optional[Tuple[str, int]]:
+def get_remote_addr(transport: TCPTransport) -> Optional[Tuple[str, int]]:
     socket_info = transport.get_extra_info("socket")
     if socket_info is not None:
         try:
@@ -21,7 +23,7 @@ def get_remote_addr(transport: TransportType) -> Optional[Tuple[str, int]]:
     return None
 
 
-def get_local_addr(transport: TransportType) -> Optional[Tuple[str, int]]:
+def get_local_addr(transport: TCPTransport) -> Optional[Tuple[str, int]]:
     socket_info = transport.get_extra_info("socket")
     if socket_info is not None:
         info = socket_info.getsockname()
@@ -33,18 +35,18 @@ def get_local_addr(transport: TransportType) -> Optional[Tuple[str, int]]:
     return None
 
 
-def is_ssl(transport):
+def is_ssl(transport: TCPTransport) -> bool:
     return bool(transport.get_extra_info("sslcontext"))
 
 
-def get_client_addr(scope):
+def get_client_addr(scope: Scope) -> str:
     client = scope.get("client")
     if not client:
         return ""
     return "%s:%d" % client
 
 
-def get_path_with_query_string(scope):
+def get_path_with_query_string(scope: Scope) -> str:
     path_with_query_string = urllib.parse.quote(
         scope.get("root_path", "") + scope["path"]
     )
