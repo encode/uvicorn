@@ -11,7 +11,7 @@ from typing import Any, Coroutine, Dict, List, Optional, Union
 
 import click
 
-from uvicorn._types import ASGIApp, HeaderTypes, StrPath
+from uvicorn._types import HeaderTypes, StrPath, App, AutoHTTPProtocolType
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.debug import DebugMiddleware
@@ -117,13 +117,13 @@ class Config:
 
     def __init__(
         self,
-        app: Union[str, ASGIApp],
+        app: Optional[Union[str, App]],
         host: str = "127.0.0.1",
         port: int = 8000,
         uds: Optional[str] = None,
         fd: Optional[int] = None,
         loop: str = "auto",
-        http: str = "auto",
+        http: Union[str, AutoHTTPProtocolType] = "auto",
         ws: str = "auto",
         lifespan: str = "auto",
         env_file: Optional[PathLike] = None,

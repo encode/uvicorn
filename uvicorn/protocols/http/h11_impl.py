@@ -2,7 +2,7 @@ import asyncio
 import http
 import logging
 from asyncio import AbstractEventLoop, TimerHandle, Event
-from typing import Optional, Type, List, Tuple, Callable
+from typing import Optional, List, Tuple, Callable, TYPE_CHECKING
 from urllib.parse import unquote
 
 import h11
@@ -11,9 +11,8 @@ from uvicorn._types import (
     Receive,
     Scope,
     Send,
-    ServerStateType,
     TransportType,
-    UvicornConfigType, ASGIApp, Message,
+    ASGIApp, Message,
 )
 from uvicorn.protocols.utils import (
     get_client_addr,
@@ -22,6 +21,11 @@ from uvicorn.protocols.utils import (
     get_remote_addr,
     is_ssl,
 )
+
+
+if TYPE_CHECKING:
+    from uvicorn import Config
+    from uvicorn.main import ServerState
 
 
 def _get_status_phrase(status_code: int) -> bytes:
@@ -89,8 +93,8 @@ async def service_unavailable(scope: Scope, receive: Receive, send: Send) -> Non
 class H11Protocol(asyncio.Protocol):
     def __init__(
         self,
-        config: UvicornConfigType,
-        server_state: ServerStateType,
+        config: "Config",
+        server_state: "ServerState",
         _loop: Optional[AbstractEventLoop] = None,
     ):
         if not config.loaded:

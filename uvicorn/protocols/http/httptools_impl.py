@@ -4,7 +4,7 @@ import logging
 import re
 import urllib
 from asyncio import AbstractEventLoop, Event, TimerHandle
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, TYPE_CHECKING
 
 import httptools
 
@@ -14,9 +14,7 @@ from uvicorn._types import (
     Receive,
     Scope,
     Send,
-    ServerStateType,
     TransportType,
-    UvicornConfigType,
 )
 from uvicorn.protocols.utils import (
     get_client_addr,
@@ -25,6 +23,11 @@ from uvicorn.protocols.utils import (
     get_remote_addr,
     is_ssl,
 )
+
+if TYPE_CHECKING:
+    from uvicorn import Config
+    from uvicorn.main import ServerState
+
 
 HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")
@@ -96,8 +99,8 @@ async def service_unavailable(scope: Scope, receive: Receive, send: Send) -> Non
 class HttpToolsProtocol(asyncio.Protocol):
     def __init__(
         self,
-        config: UvicornConfigType,
-        server_state: ServerStateType,
+        config: "Config",
+        server_state: "ServerState",
         _loop: Optional[AbstractEventLoop] = None,
     ):
         if not config.loaded:

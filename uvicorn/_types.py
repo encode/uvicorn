@@ -49,6 +49,8 @@ ASGI3App = Callable[[Scope, Receive, Send], Awaitable[None]]
 
 ASGIApp = Union[ASGI2App, ASGI3App]
 
+App = Union[ASGIApp, Callable]
+
 Sockets = Optional[List[socket.socket]]
 
 HeaderTypes = Union[
@@ -67,5 +69,3 @@ StrPath = Union[str, "PathLike[str]"]
 
 TransportType = Union["TCPTransport"]
 
-UvicornConfigType = Type["Config"]
-ServerStateType = Type["ServerState"]
