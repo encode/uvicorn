@@ -3,7 +3,7 @@ import asyncio
 import pytest
 
 from tests.client import TestClient
-from uvicorn._types import Scope, Receive, Send, ASGIApp
+from uvicorn._types import ASGIApp, Receive, Scope, Send
 from uvicorn.middleware.debug import DebugMiddleware
 
 

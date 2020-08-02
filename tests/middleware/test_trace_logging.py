@@ -8,7 +8,7 @@ import requests
 from _pytest.capture import CaptureFixture
 
 from uvicorn import Config, Server
-from uvicorn._types import Scope, Receive, Send
+from uvicorn._types import Receive, Scope, Send
 
 test_logging_config = {
     "version": 1,

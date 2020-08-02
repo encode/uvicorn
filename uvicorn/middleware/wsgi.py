@@ -3,9 +3,9 @@ import concurrent.futures
 import io
 import sys
 from asyncio import AbstractEventLoop
-from typing import Callable, List, Optional, Dict, Union, Type
+from typing import Callable, Dict, List, Optional, Type, Union
 
-from uvicorn._types import Scope, Message, Receive, Send, HeaderTypes
+from uvicorn._types import HeaderTypes, Message, Receive, Scope, Send
 
 
 def build_environ(scope: Scope, message: Message, body: bytes) -> dict:
@@ -58,7 +58,7 @@ def build_environ(scope: Scope, message: Message, body: bytes) -> dict:
 
 
 class WSGIMiddleware:
-    def __init__(self, app: Callable, workers: int=10) -> None:
+    def __init__(self, app: Callable, workers: int = 10) -> None:
         self.app = app
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
@@ -69,14 +69,21 @@ class WSGIMiddleware:
 
 
 class WSGIResponder:
-    def __init__(self, app: Callable, executor: concurrent.futures.ThreadPoolExecutor, scope: Scope):
+    def __init__(
+        self,
+        app: Callable,
+        executor: concurrent.futures.ThreadPoolExecutor,
+        scope: Scope,
+    ):
         self.app = app
         self.executor = executor
         self.scope = scope
         self.status = None
         self.response_headers = None
         self.send_event = asyncio.Event()
-        self.send_queue: List[Optional[Dict[str, Union[str, bytes, int, HeaderTypes]]]]= []
+        self.send_queue: List[
+            Optional[Dict[str, Union[str, bytes, int, HeaderTypes]]]
+        ] = []
         self.loop: Optional[AbstractEventLoop] = None
         self.response_started = False
         self.exc_info: Optional[Type[Exception]] = None
@@ -115,7 +122,12 @@ class WSGIResponder:
                 await self.send_event.wait()
                 self.send_event.clear()
 
-    def start_response(self, status: str, response_headers: HeaderTypes, exc_info: Optional[Type[Exception]]=None) -> None:
+    def start_response(
+        self,
+        status: str,
+        response_headers: HeaderTypes,
+        exc_info: Optional[Type[Exception]] = None,
+    ) -> None:
         self.exc_info = exc_info
         if not self.response_started:
             self.response_started = True

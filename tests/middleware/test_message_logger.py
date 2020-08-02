@@ -2,7 +2,7 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 
 from tests.client import TestClient
-from uvicorn._types import Send, Receive, Scope, ASGIApp
+from uvicorn._types import ASGIApp, Receive, Scope, Send
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 
 TRACE_LOG_LEVEL = 5

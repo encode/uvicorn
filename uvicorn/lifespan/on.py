@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from asyncio import Queue
-from typing import Coroutine, Dict, Awaitable
+from typing import Awaitable, Coroutine, Dict
 
 from uvicorn import Config
 

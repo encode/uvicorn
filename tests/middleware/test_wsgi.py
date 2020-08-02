@@ -1,5 +1,5 @@
 import sys
-from typing import List, Callable, Type
+from typing import Callable, List, Type
 
 import pytest
 

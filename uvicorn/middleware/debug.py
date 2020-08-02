@@ -2,7 +2,7 @@ import html
 import traceback
 from typing import Union
 
-from uvicorn._types import Scope, Receive, Send, ASGIApp, Message
+from uvicorn._types import ASGIApp, Message, Receive, Scope, Send
 
 
 class HTMLResponse:

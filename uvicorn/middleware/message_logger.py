@@ -1,7 +1,7 @@
 import logging
-from typing import MutableMapping, Any
+from typing import Any
 
-from uvicorn._types import ASGIApp, Scope, Receive, Send, Message
+from uvicorn._types import ASGIApp, Message, Receive, Scope, Send
 
 PLACEHOLDER_FORMAT = {
     "body": "<{length} bytes>",
@@ -48,13 +48,17 @@ class MessageLoggerMiddleware:
             message = await receive()
             logged_message = message_with_placeholders(message)
             log_text = "%s [%d] Receive %s"
-            self.logger.trace(log_text, prefix, task_counter, logged_message)  # type: ignore
+            self.logger.trace(
+                log_text, prefix, task_counter, logged_message
+            )  # type: ignore
             return message
 
         async def inner_send(message: Message) -> None:
             logged_message = message_with_placeholders(message)
             log_text = "%s [%d] Send %s"
-            self.logger.trace(log_text, prefix, task_counter, logged_message)  # type: ignore
+            self.logger.trace(
+                log_text, prefix, task_counter, logged_message
+            )  # type: ignore
             await send(message)
 
         logged_scope = message_with_placeholders(scope)

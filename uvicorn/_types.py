@@ -1,16 +1,18 @@
 import socket
 from os import PathLike
 from typing import (
+    Any,
     Awaitable,
     Callable,
     Dict,
     List,
+    MutableMapping,
     Optional,
     Protocol,
     Sequence,
     Tuple,
     Type,
-    Union, MutableMapping, Any,
+    Union,
 )
 
 from uvicorn.protocols.http.h11_impl import H11Protocol

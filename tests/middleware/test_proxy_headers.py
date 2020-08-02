@@ -1,6 +1,6 @@
 from tests.client import TestClient
 from tests.response import Response
-from uvicorn._types import ASGIApp, Send, Receive, Scope
+from uvicorn._types import Receive, Scope, Send
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 
