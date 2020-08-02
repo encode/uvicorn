@@ -21,7 +21,7 @@ from uvicorn.middleware.wsgi import WSGIMiddleware
 
 TRACE_LOG_LEVEL = 5
 
-LOG_LEVELS = {
+LOG_LEVELS: Dict[str, int] = {
     "critical": logging.CRITICAL,
     "error": logging.ERROR,
     "warning": logging.WARNING,
@@ -29,33 +29,33 @@ LOG_LEVELS = {
     "debug": logging.DEBUG,
     "trace": TRACE_LOG_LEVEL,
 }
-HTTP_PROTOCOLS = {
+HTTP_PROTOCOLS: Dict[str, str] = {
     "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
     "h11": "uvicorn.protocols.http.h11_impl:H11Protocol",
     "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
 }
-WS_PROTOCOLS = {
+WS_PROTOCOLS: Dict[str, Optional[str]] = {
     "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",
     "none": None,
     "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
     "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
 }
-LIFESPAN = {
+LIFESPAN: Dict[str, str] = {
     "auto": "uvicorn.lifespan.on:LifespanOn",
     "on": "uvicorn.lifespan.on:LifespanOn",
     "off": "uvicorn.lifespan.off:LifespanOff",
 }
-LOOP_SETUPS = {
+LOOP_SETUPS: Dict[str, Optional[str]] = {
     "none": None,
     "auto": "uvicorn.loops.auto:auto_loop_setup",
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
 }
-INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
+INTERFACES: List[str] = ["auto", "asgi3", "asgi2", "wsgi"]
 
 
 # Fallback to 'ssl.PROTOCOL_SSLv23' in order to support Python < 3.5.3.
-SSL_PROTOCOL_VERSION = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
+SSL_PROTOCOL_VERSION: str = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
 
 
 LOGGING_CONFIG = {
