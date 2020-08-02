@@ -3,13 +3,22 @@ import http
 import logging
 import re
 import urllib
-from asyncio import AbstractEventLoop, Event, Task, TimerHandle
-from typing import Optional, List, Tuple, Callable
+from asyncio import AbstractEventLoop, Event, TimerHandle
+from typing import Callable, List, Optional, Tuple
 
 import httptools
 
-from uvicorn._types import Scope, TransportType, Receive, Send, UvicornConfigType, \
-    ServerStateType, ASGIApp, HeaderTypes, Message
+from uvicorn._types import (
+    ASGIApp,
+    HeaderTypes,
+    Message,
+    Receive,
+    Scope,
+    Send,
+    ServerStateType,
+    TransportType,
+    UvicornConfigType,
+)
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -86,7 +95,12 @@ async def service_unavailable(scope: Scope, receive: Receive, send: Send) -> Non
 
 
 class HttpToolsProtocol(asyncio.Protocol):
-    def __init__(self, config: UvicornConfigType, server_state: ServerStateType, _loop: Optional[AbstractEventLoop]=None):
+    def __init__(
+        self,
+        config: UvicornConfigType,
+        server_state: ServerStateType,
+        _loop: Optional[AbstractEventLoop] = None,
+    ):
         if not config.loaded:
             config.load()
 
@@ -114,7 +128,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Per-connection state
         self.server = None
         self.client = None
-        # self.scheme: Optional[str] = None
         self.pipeline: List[Tuple[RequestResponseCycle, ASGIApp]] = []
 
         # Per-request state
