@@ -1,9 +1,12 @@
 import logging
 import re
-from os import path
+import socket
+from os import DirEntry, path
+from typing import Callable, List, Optional
 
 from watchgod import DefaultWatcher
 
+from uvicorn import Config
 from uvicorn.supervisors.basereload import BaseReload
 
 logger = logging.getLogger("uvicorn.error")
@@ -11,21 +14,23 @@ logger = logging.getLogger("uvicorn.error")
 
 class CustomWatcher(DefaultWatcher):
     ignore_dotted_file_regex = r"^\/?(?:\w+\/)*(\.\w+)"
-    ignored = []
+    ignored: List[str] = []
 
-    def __init__(self, root_path):
+    def __init__(self, root_path: str) -> None:
         for t in self.ignored_file_regexes:
             self.ignored.append(t)
         self.ignored.append(self.ignore_dotted_file_regex)
         self._ignored = tuple(re.compile(r) for r in self.ignored)
         super().__init__(root_path)
 
-    def should_watch_file(self, entry):
+    def should_watch_file(self, entry: DirEntry) -> bool:
         return not any(r.search(entry.name) for r in self._ignored)
 
 
 class WatchGodReload(BaseReload):
-    def __init__(self, config, target, sockets):
+    def __init__(
+        self, config: Config, target: Callable, sockets: Optional[List[socket.socket]]
+    ) -> None:
         super().__init__(config, target, sockets)
         self.reloader_name = "watchgod"
         self.watchers = []
@@ -51,7 +56,7 @@ class WatchGodReload(BaseReload):
         for w in watch_dirs_set:
             self.watchers.append(CustomWatcher(w))
 
-    def should_restart(self):
+    def should_restart(self) -> bool:
         for watcher in self.watchers:
             change = watcher.check()
             if change != set():
