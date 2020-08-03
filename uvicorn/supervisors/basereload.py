@@ -1,10 +1,14 @@
 import logging
 import os
 import signal
+import socket
 import threading
+from types import FrameType
+from typing import Callable, Dict, List, Optional
 
 import click
 
+from uvicorn import Config
 from uvicorn.subprocess import get_subprocess, shutdown_subprocess
 
 HANDLED_SIGNALS = (
@@ -16,21 +20,23 @@ logger = logging.getLogger("uvicorn.error")
 
 
 class BaseReload:
-    def __init__(self, config, target, sockets):
+    def __init__(
+        self, config: Config, target: Callable, sockets: Optional[List[socket.socket]]
+    ):
         self.config = config
         self.target = target
         self.sockets = sockets
         self.should_exit = threading.Event()
         self.pid = os.getpid()
-        self.process = None
-        self.reloader_name = None
+        self.reloader_name: Optional[str] = None
 
-    def signal_handler(self, sig, frame):
+    def signal_handler(self, sig: int, frame: FrameType) -> None:
         """
         A signal handler that is registered with the parent process.
         """
         if self.process is not None:
             try:
+                assert self.process.pid
                 shutdown_subprocess(self.process.pid)
             except Exception as exc:
                 logger.error(f"Could not stop child process {self.process.pid}: {exc}")
@@ -61,7 +67,8 @@ class BaseReload:
         self.process.start()
 
     def restart(self) -> None:
-        self.mtimes = {}
+        self.mtimes: Dict[str, float] = {}
+        assert self.process.pid
         os.kill(self.process.pid, signal.SIGTERM)
         self.process.join()
 

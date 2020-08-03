@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import Any
 
 from gunicorn.workers.base import Worker
 
@@ -15,7 +16,7 @@ class UvicornWorker(Worker):
 
     CONFIG_KWARGS = {"loop": "uvloop", "http": "httptools"}
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(UvicornWorker, self).__init__(*args, **kwargs)
 
         logger = logging.getLogger("uvicorn.error")

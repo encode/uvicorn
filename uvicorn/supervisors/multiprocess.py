@@ -1,10 +1,15 @@
 import logging
 import os
 import signal
+import socket
 import threading
+from multiprocessing.context import SpawnProcess
+from types import FrameType
+from typing import Callable, List, Optional
 
 import click
 
+from uvicorn import Config
 from uvicorn.subprocess import get_subprocess, shutdown_subprocess
 
 HANDLED_SIGNALS = (
@@ -16,21 +21,24 @@ logger = logging.getLogger("uvicorn.error")
 
 
 class Multiprocess:
-    def __init__(self, config, target, sockets):
+    def __init__(
+        self, config: Config, target: Callable, sockets: Optional[List[socket.socket]]
+    ):
         self.config = config
         self.target = target
         self.sockets = sockets
-        self.processes = []
+        self.processes: List[SpawnProcess] = []
         self.should_exit = threading.Event()
         self.pid = os.getpid()
 
-    def signal_handler(self, sig, frame):
+    def signal_handler(self, sig: int, frame: FrameType) -> None:
         """
         A signal handler that is registered with the parent process.
         """
 
         for process in self.processes:
             try:
+                assert process.pid
                 shutdown_subprocess(process.pid)
             except Exception as exc:
                 logger.error(f"Could not stop child process {process.pid}: {exc}")
