@@ -12,7 +12,7 @@ PLACEHOLDER_FORMAT = {
 TRACE_LOG_LEVEL = 5
 
 
-def message_with_placeholders(message: Message) -> Message:
+def message_with_placeholders(message: dict) -> dict:
     """
     Return an ASGI message, with any body-type content omitted and replaced
     with a placeholder.
@@ -48,17 +48,17 @@ class MessageLoggerMiddleware:
             message = await receive()
             logged_message = message_with_placeholders(message)
             log_text = "%s [%d] Receive %s"
-            self.logger.trace(
+            self.logger.trace(  # type: ignore
                 log_text, prefix, task_counter, logged_message
-            )  # type: ignore
+            )
             return message
 
         async def inner_send(message: Message) -> None:
             logged_message = message_with_placeholders(message)
             log_text = "%s [%d] Send %s"
-            self.logger.trace(
+            self.logger.trace(  # type: ignore
                 log_text, prefix, task_counter, logged_message
-            )  # type: ignore
+            )
             await send(message)
 
         logged_scope = message_with_placeholders(scope)
