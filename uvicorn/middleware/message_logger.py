@@ -12,11 +12,12 @@ PLACEHOLDER_FORMAT = {
 TRACE_LOG_LEVEL = 5
 
 
-def message_with_placeholders(message: dict) -> dict:
+def message_with_placeholders(message: Message) -> Message:
     """
     Return an ASGI message, with any body-type content omitted and replaced
     with a placeholder.
     """
+    assert isinstance(message, dict)
     new_message = message.copy()
     for attr in PLACEHOLDER_FORMAT.keys():
         if message.get(attr) is not None:
