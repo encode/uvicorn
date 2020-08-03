@@ -3,6 +3,7 @@ import os
 import signal
 import socket
 import threading
+from multiprocessing.context import SpawnProcess
 from types import FrameType
 from typing import Callable, Dict, List, Optional
 
@@ -28,6 +29,7 @@ class BaseReload:
         self.sockets = sockets
         self.should_exit = threading.Event()
         self.pid = os.getpid()
+        self.process: Optional[SpawnProcess] = None
         self.reloader_name: Optional[str] = None
 
     def signal_handler(self, sig: int, frame: FrameType) -> None:
@@ -68,8 +70,9 @@ class BaseReload:
 
     def restart(self) -> None:
         self.mtimes: Dict[str, float] = {}
-        assert self.process.pid
-        os.kill(self.process.pid, signal.SIGTERM)
+        assert self.process is not None
+        if self.process.pid:
+            os.kill(self.process.pid, signal.SIGTERM)
         self.process.join()
 
         self.process = get_subprocess(
@@ -78,7 +81,8 @@ class BaseReload:
         self.process.start()
 
     def shutdown(self) -> None:
-        self.process.join()
+        if self.process:
+            self.process.join()
         message = "Stopping reloader process [{}]".format(str(self.pid))
         color_message = "Stopping reloader process [{}]".format(
             click.style(str(self.pid), fg="cyan", bold=True)

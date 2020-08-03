@@ -65,6 +65,6 @@ AutoHTTPProtocolType = Type[Union["H11Protocol", "HttpToolsProtocol"]]
 AutoWebSocketsProtocolType = Type[Union["WebSocketProtocol", "WSProtocol"]]
 
 
-StrPath = Union[str, "PathLike[str]"]
+StrPath = Union[str, PathLike]
 
 TransportType = Union["TCPTransport", "_SelectorSocketTransport"]
