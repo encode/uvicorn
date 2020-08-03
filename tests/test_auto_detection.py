@@ -20,7 +20,7 @@ try:
     import websockets
 except ImportError:  # pragma: no cover
     # Note that we skip the websocket tests completely in this case.
-    websockets = None
+    websockets = None  # type: ignore
 
 
 # TODO: Add pypy to our testing matrix, and assert we get the correct classes
@@ -46,6 +46,8 @@ def test_http_auto():
 def test_websocket_auto():
     config = Config(app=None)
     server_state = ServerState()
-    protocol = AutoWebSocketsProtocol(config=config, server_state=server_state)
+    protocol = AutoWebSocketsProtocol(  # type: ignore
+        config=config, server_state=server_state
+    )
     expected_websockets = "WSProtocol" if websockets is None else "WebSocketProtocol"
     assert type(protocol).__name__ == expected_websockets
