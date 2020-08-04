@@ -1,6 +1,7 @@
 import logging
 import os
 import signal
+import sys
 import threading
 
 import click
@@ -62,7 +63,10 @@ class BaseReload:
 
     def restart(self):
         self.mtimes = {}
-        os.kill(self.process.pid, signal.SIGTERM)
+        if sys.platform == 'win32':
+            os.kill(self.process.pid, signal.CTRL_C_EVENT)
+        else:
+            os.kill(self.process.pid, signal.SIGTERM)
         self.process.join()
 
         self.process = get_subprocess(
