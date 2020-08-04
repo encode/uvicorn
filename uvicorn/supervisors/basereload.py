@@ -63,7 +63,7 @@ class BaseReload:
 
     def restart(self):
         self.mtimes = {}
-        if sys.platform == 'win32':
+        if sys.platform == "win32":
             os.kill(self.process.pid, signal.CTRL_C_EVENT)
         else:
             os.kill(self.process.pid, signal.SIGTERM)
