@@ -7,11 +7,11 @@ import socket
 import ssl
 import sys
 from os import PathLike
-from typing import Any, Coroutine, Dict, List, Optional, Union
+from typing import Any, Coroutine, Dict, List, Optional, Union, Callable
 
 import click
 
-from uvicorn._types import App, AutoHTTPProtocolType, HeaderTypes, StrPath
+from uvicorn._types import App, AutoHTTPProtocolType, HeaderTypes, StrPath, ASGIApp
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.debug import DebugMiddleware
@@ -285,6 +285,7 @@ class Config:
 
         self.lifespan_class = import_from_string(LIFESPAN[self.lifespan])
 
+        self.loaded_app: Union[Callable, ASGIApp]
         try:
             self.loaded_app = import_from_string(self.app)
         except ImportFromStringError as exc:
