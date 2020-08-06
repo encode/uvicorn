@@ -53,7 +53,6 @@ class WSProtocol(asyncio.Protocol):
         self.tasks = server_state.tasks
 
         # WebSocket state
-        self.connect_event = None
         self.queue: Queue = asyncio.Queue()
         self.handshake_complete = False
         self.close_sent = False
@@ -161,7 +160,9 @@ class WSProtocol(asyncio.Protocol):
         task.add_done_callback(self.on_task_complete)
         self.tasks.add(task)
 
-    def handle_no_connect(self, event: Union[RejectData, RejectConnection]) -> None:
+    def handle_no_connect(
+        self, event: Union[RejectData, RejectConnection, CloseConnection]
+    ) -> None:
         headers = [
             (b"content-type", b"text/plain; charset=utf-8"),
             (b"connection", b"close"),
