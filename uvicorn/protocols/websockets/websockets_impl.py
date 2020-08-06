@@ -2,11 +2,11 @@ import asyncio
 import http
 import logging
 from asyncio import AbstractEventLoop, Task
-from typing import TYPE_CHECKING, Optional, Sequence
+from typing import TYPE_CHECKING, Optional, Sequence, Union
 from urllib.parse import unquote
 
 import websockets
-from websockets import Subprotocol, WebSocketServerProtocol
+from websockets import Subprotocol, WebSocketServer, WebSocketServerProtocol
 from websockets.http import Headers
 
 from uvicorn._types import Message, Scope, TransportType
@@ -17,8 +17,10 @@ if TYPE_CHECKING:
     from uvicorn.main import ServerState
 
 
-class Server:
-    closing = False
+class Server(WebSocketServer):
+    def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
+        self.closing: bool = False
+        super().__init__(loop)
 
     def register(self, ws: websockets.WebSocketServerProtocol) -> None:
         pass
@@ -57,7 +59,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.connect_sent = False
         self.accepted_subprotocol = None
 
-        self.ws_server: websockets.WebSocketServer = Server()
+        self.ws_server = Server(loop=self.loop)
 
         super().__init__(ws_handler=self.ws_handler, ws_server=self.ws_server)
 
@@ -75,7 +77,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         super().connection_lost(exc)
 
     def shutdown(self) -> None:
-        self.ws_server.closing = True
+        # self.ws_server.closing = True
         self.transport.close()
 
     def on_task_complete(self, task: Task) -> None:
@@ -216,9 +218,11 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             await self.handshake_completed_event.wait()
 
             if message_type == "websocket.send":
-                bytes_data = message.get("bytes")
-                text_data = message.get("text")
-                data = text_data if bytes_data is None else bytes_data
+                bytes_data: bytes = message.get("bytes")
+                text_data: str = message.get("text")
+                data: Union[
+                    str, bytes
+                ] = text_data if bytes_data is None else bytes_data
                 await self.send(data)
 
             elif message_type == "websocket.close":

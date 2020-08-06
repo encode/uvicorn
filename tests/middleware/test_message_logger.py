@@ -2,14 +2,14 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 
 from tests.client import TestClient
-from uvicorn._types import ASGIApp, Receive, Scope, Send
+from uvicorn._types import ASGI3App, Receive, Scope, Send
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 
 TRACE_LOG_LEVEL = 5
 
 
 def test_message_logger(caplog: LogCaptureFixture) -> None:
-    async def app(scope: Scope, receive: Receive, send: Send) -> ASGIApp:
+    async def app(scope: Scope, receive: Receive, send: Send) -> ASGI3App:
         await receive()
         await send({"type": "http.response.start", "status": 200, "headers": []})
         await send({"type": "http.response.body", "body": b"", "more_body": False})
@@ -30,7 +30,7 @@ def test_message_logger(caplog: LogCaptureFixture) -> None:
 
 
 def test_message_logger_exc(caplog: LogCaptureFixture) -> None:
-    async def app(scope: Scope, receive: Receive, send: Send) -> ASGIApp:
+    async def app(scope: Scope, receive: Receive, send: Send) -> ASGI3App:
         raise RuntimeError()
 
     caplog.set_level(TRACE_LOG_LEVEL, logger="uvicorn.asgi")

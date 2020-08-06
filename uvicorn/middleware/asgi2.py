@@ -1,10 +1,8 @@
 from typing import Callable
 
-from uvicorn._types import ASGI2App
-
 
 class ASGI2Middleware:
-    def __init__(self, app: ASGI2App) -> None:
+    def __init__(self, app: Callable) -> None:
         self.app = app
 
     async def __call__(self, scope: dict, receive: Callable, send: Callable) -> None:

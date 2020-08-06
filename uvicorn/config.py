@@ -7,6 +7,7 @@ import socket
 import ssl
 import sys
 from os import PathLike
+from types import ModuleType
 from typing import Any, Coroutine, Dict, List, Optional, Union
 
 import click
@@ -95,7 +96,7 @@ logger = logging.getLogger("uvicorn.error")
 
 
 def create_ssl_context(
-    certfile: str,
+    certfile: Union[str, PathLike[str]],
     keyfile: Optional[str],
     ssl_version: str,
     cert_reqs: int,
@@ -146,7 +147,7 @@ class Config:
         timeout_notify: int = 30,
         callback_notify: Optional[Coroutine] = None,
         ssl_keyfile: Optional[str] = None,
-        ssl_certfile: Optional[str] = None,
+        ssl_certfile: Optional[Union[str, PathLike[str]]] = None,
         ssl_version: str = SSL_PROTOCOL_VERSION,
         ssl_cert_reqs: int = ssl.CERT_NONE,
         ssl_ca_certs: Optional[str] = None,
@@ -252,6 +253,7 @@ class Config:
         assert not self.loaded
 
         if self.is_ssl:
+            assert self.ssl_certfile
             self.ssl = create_ssl_context(
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
@@ -266,6 +268,7 @@ class Config:
         encoded_headers = [
             (key.lower().encode("latin1"), value.encode("latin1"))
             for key, value in self.headers
+            if isinstance(key, str) and isinstance(value, str)
         ]
         self.encoded_headers = (
             encoded_headers
@@ -273,6 +276,7 @@ class Config:
             else [(b"server", b"uvicorn")] + encoded_headers
         )
 
+        self.http_protocol_class: Union[ModuleType, AutoHTTPProtocolType]
         if isinstance(self.http, str):
             self.http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
         else:

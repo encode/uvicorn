@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from asyncio import Queue
-from typing import Coroutine, Dict
+from typing import Any, Awaitable, MutableMapping
 
 from uvicorn import Config
 
@@ -65,7 +65,7 @@ class LifespanOn:
             self.startup_event.set()
             self.shutdown_event.set()
 
-    async def send(self, message: Dict[str, str]) -> None:
+    async def send(self, message: MutableMapping[str, Any]) -> None:
         assert message["type"] in (
             "lifespan.startup.complete",
             "lifespan.startup.failed",
@@ -90,5 +90,5 @@ class LifespanOn:
             assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR
             self.shutdown_event.set()
 
-    async def receive(self) -> Coroutine:
+    async def receive(self) -> Awaitable[MutableMapping[str, Any]]:
         return await self.receive_queue.get()

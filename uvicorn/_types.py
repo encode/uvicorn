@@ -9,7 +9,6 @@ from typing import (
     List,
     MutableMapping,
     Optional,
-    Protocol,
     Sequence,
     Tuple,
     Type,
@@ -25,18 +24,6 @@ if TYPE_CHECKING:  # pragma: no cover
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 
-class ASGI2Protocol(Protocol):
-    # Should replace with a Protocol when PEP 544 is accepted.
-
-    def __init__(self, scope: dict) -> None:
-        ...
-
-    async def __call__(self, receive: Callable, send: Callable) -> None:
-        ...
-
-
-ASGI2App = Type[ASGI2Protocol]
-
 Scope = MutableMapping[str, Any]
 Message = MutableMapping[str, Any]
 
@@ -45,9 +32,7 @@ Send = Callable[[Message], Awaitable[None]]
 
 ASGI3App = Callable[[Scope, Receive, Send], Awaitable[None]]
 
-ASGIApp = Union[ASGI2App, ASGI3App]
-
-App = Union[ASGIApp, Callable]
+App = Union[ASGI3App, Callable]
 
 Sockets = Optional[List[socket.socket]]
 

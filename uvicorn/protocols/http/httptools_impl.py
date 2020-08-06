@@ -8,15 +8,7 @@ from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
 
 import httptools
 
-from uvicorn._types import (
-    ASGI3App,
-    ASGIApp,
-    Message,
-    Receive,
-    Scope,
-    Send,
-    TransportType,
-)
+from uvicorn._types import ASGI3App, Message, Receive, Scope, Send, TransportType
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -129,7 +121,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.default_headers = server_state.default_headers
 
         # Per-connection state
-        self.pipeline: List[Tuple[RequestResponseCycle, ASGIApp]] = []
+        self.pipeline: List[Tuple[RequestResponseCycle, ASGI3App]] = []
 
         # Per-request state
         self.expect_100_continue = False

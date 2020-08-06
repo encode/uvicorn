@@ -3,12 +3,12 @@ import asyncio
 import pytest
 
 from tests.client import TestClient
-from uvicorn._types import ASGIApp, Receive, Scope, Send
+from uvicorn._types import ASGI3App, Receive, Scope, Send
 from uvicorn.middleware.debug import DebugMiddleware
 
 
 def test_debug_text() -> None:
-    async def app(scope: Scope, receive: Receive, send: Send) -> ASGIApp:
+    async def app(scope: Scope, receive: Receive, send: Send) -> ASGI3App:
         raise RuntimeError("Something went wrong")
 
     app = DebugMiddleware(app)
@@ -20,7 +20,7 @@ def test_debug_text() -> None:
 
 
 def test_debug_html() -> None:
-    async def app(scope: Scope, receive: Receive, send: Send) -> ASGIApp:
+    async def app(scope: Scope, receive: Receive, send: Send) -> ASGI3App:
         raise RuntimeError("Something went wrong")
 
     app = DebugMiddleware(app)
@@ -32,7 +32,7 @@ def test_debug_html() -> None:
 
 
 def test_debug_after_response_sent() -> None:
-    async def app(scope: Scope, receive: Receive, send: Send) -> ASGIApp:
+    async def app(scope: Scope, receive: Receive, send: Send) -> ASGI3App:
         await send({"type": "http.response.start", "status": 204, "headers": []})
         await send({"type": "http.response.body", "body": b"", "more_body": False})
         raise RuntimeError("Something went wrong")
@@ -45,7 +45,7 @@ def test_debug_after_response_sent() -> None:
 
 
 def test_debug_not_http() -> None:
-    async def app(scope: Scope, receive: Receive, send: Send) -> ASGIApp:
+    async def app(scope: Scope, receive: Receive, send: Send) -> ASGI3App:
         raise RuntimeError("Something went wrong")
 
     app = DebugMiddleware(app)

@@ -16,7 +16,7 @@ from typing import Any, List, Optional, Set, Tuple, Union
 import click
 
 import uvicorn
-from uvicorn._types import ASGIApp, Sockets
+from uvicorn._types import ASGI3App, Sockets
 from uvicorn.config import (
     HTTP_PROTOCOLS,
     INTERFACES,
@@ -279,7 +279,7 @@ def print_version(
     " Defaults to the current working directory.",
 )
 def main(
-    app: Union[str, ASGIApp],
+    app: Union[str, ASGI3App],
     host: str,
     port: int,
     uds: str,
