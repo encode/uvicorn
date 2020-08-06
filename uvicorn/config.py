@@ -11,7 +11,7 @@ from typing import Any, Coroutine, Dict, List, Optional, Union
 
 import click
 
-from uvicorn._types import App, ASGI3App, AutoHTTPProtocolType, HeaderTypes, StrPath
+from uvicorn._types import App, ASGI3App, AutoHTTPProtocolType, HeaderTypes
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.debug import DebugMiddleware
@@ -95,14 +95,14 @@ logger = logging.getLogger("uvicorn.error")
 
 
 def create_ssl_context(
-    certfile: StrPath,
-    keyfile: Optional[StrPath],
-    ssl_version: int,
+    certfile: str,
+    keyfile: Optional[str],
+    ssl_version: str,
     cert_reqs: int,
-    ca_certs: Optional[StrPath],
+    ca_certs: Optional[str],
     ciphers: str,
 ) -> Optional[ssl.SSLContext]:
-    ctx = ssl.SSLContext(ssl_version)
+    ctx = ssl.SSLContext(int(ssl_version))
     ctx.load_cert_chain(certfile, keyfile)
     ctx.verify_mode = cert_reqs
     if ca_certs:
@@ -147,9 +147,9 @@ class Config:
         callback_notify: Optional[Coroutine] = None,
         ssl_keyfile: Optional[str] = None,
         ssl_certfile: Optional[str] = None,
-        ssl_version: int = SSL_PROTOCOL_VERSION,
+        ssl_version: str = SSL_PROTOCOL_VERSION,
         ssl_cert_reqs: int = ssl.CERT_NONE,
-        ssl_ca_certs: Optional[StrPath] = None,
+        ssl_ca_certs: Optional[str] = None,
         ssl_ciphers: str = "TLSv1",
         headers: Optional[HeaderTypes] = None,
     ) -> None:

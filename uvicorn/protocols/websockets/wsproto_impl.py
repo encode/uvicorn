@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from asyncio import AbstractEventLoop, Queue, Task
-from typing import Optional
+from typing import Optional, Union
 from urllib.parse import unquote
 
 import h11
@@ -9,7 +9,15 @@ import wsproto
 from typing_extensions import TYPE_CHECKING
 from wsproto import ConnectionType, events
 from wsproto.connection import ConnectionState
-from wsproto.events import BytesMessage, CloseConnection, Ping, TextMessage
+from wsproto.events import (
+    BytesMessage,
+    CloseConnection,
+    Ping,
+    RejectConnection,
+    RejectData,
+    Request,
+    TextMessage,
+)
 from wsproto.extensions import PerMessageDeflate
 from wsproto.utilities import RemoteProtocolError
 
@@ -129,7 +137,7 @@ class WSProtocol(asyncio.Protocol):
 
     # Event handlers
 
-    def handle_connect(self, event: h11._events.Request) -> None:
+    def handle_connect(self, event: Request) -> None:
         self.connect_event = event
         headers = [(b"host", event.host.encode())]
         headers += [(key.lower(), value) for key, value in event.extra_headers]
@@ -153,7 +161,7 @@ class WSProtocol(asyncio.Protocol):
         task.add_done_callback(self.on_task_complete)
         self.tasks.add(task)
 
-    def handle_no_connect(self, event: h11._events.Request) -> None:
+    def handle_no_connect(self, event: Union[RejectData, RejectConnection]) -> None:
         headers = [
             (b"content-type", b"text/plain; charset=utf-8"),
             (b"connection", b"close"),
