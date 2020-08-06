@@ -5,7 +5,6 @@ from typing import (
     Any,
     Awaitable,
     Callable,
-    Dict,
     List,
     MutableMapping,
     Optional,
@@ -17,8 +16,6 @@ from typing import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover
-    from asyncio.selector_events import _SelectorSocketTransport
-
     from uvloop.loop import TCPTransport
 
     from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -54,10 +51,7 @@ App = Union[ASGIApp, Callable]
 Sockets = Optional[List[socket.socket]]
 
 HeaderTypes = Union[
-    Dict[str, str],
-    Dict[bytes, bytes],
-    Sequence[Tuple[str, str]],
-    Sequence[Tuple[bytes, bytes]],
+    Sequence[Tuple[bytes, bytes]], Sequence[Tuple[str, str]],
 ]
 
 AutoHTTPProtocolType = Type[Union["H11Protocol", "HttpToolsProtocol"]]
@@ -67,4 +61,4 @@ AutoWebSocketsProtocolType = Type[Union["WebSocketProtocol", "WSProtocol"]]
 
 StrPath = Union[str, PathLike]
 
-TransportType = Union["TCPTransport", "_SelectorSocketTransport"]
+TransportType = Union["TCPTransport"]

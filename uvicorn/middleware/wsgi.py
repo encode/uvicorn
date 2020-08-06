@@ -3,7 +3,8 @@ import concurrent.futures
 import io
 import sys
 from asyncio import AbstractEventLoop
-from typing import Callable, Dict, List, Optional, Type, Union
+from types import TracebackType
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 from uvicorn._types import HeaderTypes, Message, Receive, Scope, Send
 
@@ -86,7 +87,7 @@ class WSGIResponder:
         ] = []
         self.loop: Optional[AbstractEventLoop] = None
         self.response_started = False
-        self.exc_info: Optional[Type[Exception]] = None
+        self.exc_info: Optional[Tuple[Type[Exception], Exception, TracebackType]] = None
 
     async def __call__(self, receive: Receive, send: Send) -> None:
         message = await receive()
@@ -125,8 +126,8 @@ class WSGIResponder:
     def start_response(
         self,
         status: str,
-        response_headers: HeaderTypes,
-        exc_info: Optional[Type[Exception]] = None,
+        response_headers: Sequence[Tuple[str, str]],
+        exc_info: Optional[Tuple[Type[Exception], Exception, TracebackType]] = None,
     ) -> None:
         self.exc_info = exc_info
         if not self.response_started:
@@ -147,12 +148,14 @@ class WSGIResponder:
             if self.loop:
                 self.loop.call_soon_threadsafe(self.send_event.set)
 
-    def wsgi(self, environ: dict, start_response) -> None:
+    def wsgi(self, environ: dict, start_response: Callable) -> None:
         for chunk in self.app(environ, start_response):
             self.send_queue.append(
                 {"type": "http.response.body", "body": chunk, "more_body": True}
             )
+            assert self.loop
             self.loop.call_soon_threadsafe(self.send_event.set)
 
         self.send_queue.append({"type": "http.response.body", "body": b""})
+        assert self.loop
         self.loop.call_soon_threadsafe(self.send_event.set)

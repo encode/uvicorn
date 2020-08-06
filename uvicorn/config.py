@@ -7,11 +7,11 @@ import socket
 import ssl
 import sys
 from os import PathLike
-from typing import Any, Coroutine, Dict, List, Optional, Union, Callable
+from typing import Any, Callable, Coroutine, Dict, List, Optional, Union
 
 import click
 
-from uvicorn._types import App, AutoHTTPProtocolType, HeaderTypes, StrPath, ASGIApp
+from uvicorn._types import App, ASGIApp, AutoHTTPProtocolType, HeaderTypes, StrPath
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.debug import DebugMiddleware
