@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from uvicorn._types import ASGIApp, Message, Receive, Scope, Send
+from uvicorn._types import ASGI3App, Message, Receive, Scope, Send
 
 PLACEHOLDER_FORMAT = {
     "body": "<{length} bytes>",
@@ -28,7 +28,7 @@ def message_with_placeholders(message: Message) -> Message:
 
 
 class MessageLoggerMiddleware:
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(self, app: ASGI3App) -> None:
         self.task_counter = 0
         self.app = app
         self.logger = logging.getLogger("uvicorn.asgi")

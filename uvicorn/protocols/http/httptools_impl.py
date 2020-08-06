@@ -8,7 +8,15 @@ from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
 
 import httptools
 
-from uvicorn._types import ASGIApp, Message, Receive, Scope, Send, TransportType
+from uvicorn._types import (
+    ASGI3App,
+    ASGIApp,
+    Message,
+    Receive,
+    Scope,
+    Send,
+    TransportType,
+)
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -400,7 +408,7 @@ class RequestResponseCycle:
         self.expected_content_length = 0
 
     # ASGI exception wrapper
-    async def run_asgi(self, app: ASGIApp) -> None:
+    async def run_asgi(self, app: ASGI3App) -> None:
         try:
             result = await app(self.scope, self.receive, self.send)
         except BaseException as exc:

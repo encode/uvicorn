@@ -4,7 +4,6 @@ from asyncio import Queue
 from typing import Coroutine, Dict
 
 from uvicorn import Config
-from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
 
@@ -48,7 +47,7 @@ class LifespanOn:
 
     async def main(self) -> None:
         try:
-            app: ProxyHeadersMiddleware = self.config.loaded_app
+            app = self.config.loaded_app
             scope = {"type": "lifespan"}
             await app(scope, self.receive, self.send)
         except BaseException as exc:

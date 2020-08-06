@@ -2,7 +2,7 @@ import html
 import traceback
 from typing import Union
 
-from uvicorn._types import ASGIApp, Message, Receive, Scope, Send
+from uvicorn._types import ASGI3App, Message, Receive, Scope, Send
 
 
 class HTMLResponse:
@@ -61,7 +61,7 @@ def get_accept_header(scope: Scope) -> str:
 
 
 class DebugMiddleware:
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(self, app: ASGI3App) -> None:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
