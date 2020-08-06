@@ -1,6 +1,7 @@
 import asyncio
 import threading
 import time
+from typing import Optional, Union
 
 import requests
 
@@ -100,7 +101,7 @@ def test_run_with_shutdown():
     config = Config(app=App, loop="asyncio", workers=2, limit_max_requests=1)
     server = CustomServer(config=config)
     sock = config.bind_socket()
-    exc = True
+    exc: Optional[Union[Exception, bool]] = True
 
     def safe_run():
         nonlocal exc, server

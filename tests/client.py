@@ -77,6 +77,9 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 body_bytes = body
             return {"type": "http.request", "body": body_bytes}
 
+        raw_kwargs = {"body": io.BytesIO()}
+        response_started = False
+
         async def send(message: Message):
             nonlocal raw_kwargs, response_started
 
@@ -97,9 +100,6 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 raw_kwargs["body"].write(body)
                 if not more_body:
                     raw_kwargs["body"].seek(0)
-
-        response_started = False
-        raw_kwargs = {"body": io.BytesIO()}
 
         loop = asyncio.get_event_loop()
 
