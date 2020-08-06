@@ -32,8 +32,6 @@ Send = Callable[[Message], Awaitable[None]]
 
 ASGI3App = Callable[[Scope, Receive, Send], Awaitable[None]]
 
-App = Union[ASGI3App, Callable]
-
 Sockets = Optional[List[socket.socket]]
 
 HeaderTypes = Union[

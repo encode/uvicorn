@@ -8,11 +8,11 @@ import ssl
 import sys
 from os import PathLike
 from types import ModuleType
-from typing import Any, Coroutine, Dict, List, Optional, Union
+from typing import Any, Coroutine, Dict, List, Optional, Union, Callable
 
 import click
 
-from uvicorn._types import App, ASGI3App, AutoHTTPProtocolType, HeaderTypes
+from uvicorn._types import ASGI3App, AutoHTTPProtocolType, HeaderTypes
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.debug import DebugMiddleware
@@ -96,7 +96,7 @@ logger = logging.getLogger("uvicorn.error")
 
 
 def create_ssl_context(
-    certfile: Union[str, PathLike[str]],
+    certfile: Union[str, "PathLike[str]"],
     keyfile: Optional[str],
     ssl_version: str,
     cert_reqs: int,
@@ -118,7 +118,7 @@ class Config:
 
     def __init__(
         self,
-        app: Optional[Union[str, App]],
+        app: Optional[Union[str, Callable]],
         host: str = "127.0.0.1",
         port: int = 8000,
         uds: Optional[str] = None,
@@ -147,7 +147,7 @@ class Config:
         timeout_notify: int = 30,
         callback_notify: Optional[Coroutine] = None,
         ssl_keyfile: Optional[str] = None,
-        ssl_certfile: Optional[Union[str, PathLike[str]]] = None,
+        ssl_certfile: Optional[Union[str, "PathLike[str]"]] = None,
         ssl_version: str = SSL_PROTOCOL_VERSION,
         ssl_cert_reqs: int = ssl.CERT_NONE,
         ssl_ca_certs: Optional[str] = None,
