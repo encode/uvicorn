@@ -5,6 +5,10 @@ h11
 websockets==8.*
 wsproto==0.13.*
 
+# Packaging
+twine
+wheel
+
 # Testing
 autoflake
 black
@@ -14,6 +18,11 @@ isort
 pytest
 pytest-cov
 requests
+seed-isort-config
+
+# Documentation
+mkdocs
+mkdocs-material
 
 # Efficient debug reload
 watchgod>=0.6,<0.7

@@ -338,7 +338,8 @@ class HttpToolsProtocol(asyncio.Protocol):
 
     def timeout_keep_alive_handler(self):
         """
-        Called on a keep-alive connection if no new data is received after a short delay.
+        Called on a keep-alive connection if no new data is received after a short
+        delay.
         """
         if not self.transport.is_closing():
             self.transport.close()

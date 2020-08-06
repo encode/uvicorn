@@ -7,6 +7,10 @@ uvloop>=0.14.0
 websockets==8.*
 wsproto==0.13.*
 
+# Packaging
+twine
+wheel
+
 # Testing
 autoflake
 black
@@ -16,6 +20,7 @@ isort
 pytest
 pytest-cov
 requests
+seed-isort-config
 
 # Documentation
 mkdocs

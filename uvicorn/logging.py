@@ -37,7 +37,9 @@ class ColourizedFormatter(logging.Formatter):
         super().__init__(fmt=fmt, datefmt=datefmt, style=style)
 
     def color_level_name(self, level_name, level_no):
-        default = lambda level_name: str(level_name)
+        def default(level_name):
+            return str(level_name)
+
         func = self.level_name_colors.get(level_no, default)
         return func(level_name)
 
@@ -96,7 +98,10 @@ class AccessFormatter(ColourizedFormatter):
         status_and_phrase = "%s %s" % (status_code, status_phrase)
 
         if self.use_colors:
-            default = lambda code: status_and_phrase
+
+            def default(code):
+                return status_and_phrase
+
             func = self.status_code_colours.get(status_code // 100, default)
             return func(status_and_phrase)
         return status_and_phrase
