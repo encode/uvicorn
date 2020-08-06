@@ -8,7 +8,15 @@ from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
 
 import httptools
 
-from uvicorn._types import ASGI3App, Message, Receive, Scope, Send, TransportType
+from uvicorn._types import (
+    ASGI3App,
+    HTTPConnectionScope,
+    Message,
+    Receive,
+    Scope,
+    Send,
+    TransportType,
+)
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -228,7 +236,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.url: bytes = url
         self.expect_100_continue = False
         self.headers: List[Tuple[bytes, bytes]] = []
-        self.scope: Scope = {
+        self.scope: HTTPConnectionScope = {
             "type": "http",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.1"},
             "http_version": "1.1",
@@ -362,7 +370,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
-        scope: Scope,
+        scope: HTTPConnectionScope,
         transport: TransportType,
         flow: FlowControl,
         logger: logging.Logger,

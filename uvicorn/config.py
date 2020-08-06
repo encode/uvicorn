@@ -8,7 +8,7 @@ import ssl
 import sys
 from os import PathLike
 from types import ModuleType
-from typing import Any, Coroutine, Dict, List, Optional, Union, Callable
+from typing import Any, Callable, Coroutine, Dict, List, Optional, Union
 
 import click
 

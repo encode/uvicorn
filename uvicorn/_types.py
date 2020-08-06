@@ -12,9 +12,11 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    TypedDict,
     Union,
 )
 
+# from typing_extensions import TypedDict
 from uvloop.loop import TCPTransport
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -25,12 +27,31 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 Scope = MutableMapping[str, Any]
+
+ASGIDict = TypedDict("ASGIDict", {"version": str, "spec_version": Union["2.0", "2.1"]})
+HTTPConnectionScope = TypedDict(
+    "HTTPConnectionScope",
+    {
+        "type": "http",
+        "asgi": ASGIDict,
+        "http_version": Union["1.0", "1.1", "2"],
+        "method": str,
+        "scheme": str,
+        "path": str,
+        "raw_path": bytes,
+        "query_string": bytes,
+        "root_path": str,
+        "headers": Sequence[Tuple[bytes, bytes]],
+        "client": Optional[Tuple[str, int]],
+        "server": Optional[Tuple[str, int]],
+    },
+)
 Message = MutableMapping[str, Any]
 
 Receive = Callable[[], Awaitable[Message]]
 Send = Callable[[Message], Awaitable[None]]
 
-ASGI3App = Callable[[Scope, Receive, Send], Awaitable[None]]
+ASGI3App = Callable[[Union[Scope, HTTPConnectionScope], Receive, Send], Awaitable[None]]
 
 Sockets = Optional[List[socket.socket]]
 
