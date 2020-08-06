@@ -4,7 +4,7 @@ import logging
 import re
 import urllib
 from asyncio import AbstractEventLoop, Event, TimerHandle
-from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, List, Literal, Optional, Tuple, Union
 
 import httptools
 
@@ -144,7 +144,9 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.flow = FlowControl(transport)
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
-        self.scheme = "https" if is_ssl(transport) else "http"
+        self.scheme: Union[Literal["http"], Literal["https"]] = "https" if is_ssl(
+            transport
+        ) else "http"
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             if self.client:

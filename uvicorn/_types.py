@@ -7,6 +7,7 @@ from typing import (
     Awaitable,
     Callable,
     List,
+    Literal,
     MutableMapping,
     Optional,
     Sequence,
@@ -28,15 +29,17 @@ if TYPE_CHECKING:  # pragma: no cover
 
 Scope = MutableMapping[str, Any]
 
-ASGIDict = TypedDict("ASGIDict", {"version": str, "spec_version": Union["2.0", "2.1"]})
+ASGIDict = TypedDict(
+    "ASGIDict", {"version": str, "spec_version": Union[Literal["2.0"], Literal["2.1"]]}
+)
 HTTPConnectionScope = TypedDict(
     "HTTPConnectionScope",
     {
-        "type": "http",
+        "type": Literal["http"],
         "asgi": ASGIDict,
-        "http_version": Union["1.0", "1.1", "2"],
+        "http_version": Union[Literal["1.0"], Literal["1.1"], Literal["2"]],
         "method": str,
-        "scheme": str,
+        "scheme": Union[Literal["http"], Literal["https"]],
         "path": str,
         "raw_path": bytes,
         "query_string": bytes,

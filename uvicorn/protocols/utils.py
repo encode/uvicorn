@@ -3,7 +3,7 @@ from typing import Optional, Tuple, Union
 
 from uvloop.loop import TCPTransport
 
-from uvicorn._types import Scope, HTTPConnectionScope
+from uvicorn._types import HTTPConnectionScope, Scope
 
 
 def get_remote_addr(transport: TCPTransport) -> Optional[Tuple[str, int]]:
