@@ -2,8 +2,8 @@ click
 h11
 
 # Optional
-httptools
-uvloop>=0.14.0
+httptools; sys_platform != 'win32'
+uvloop>=0.14.0; sys_platform != 'win32'
 websockets==8.*
 wsproto==0.13.*
 
