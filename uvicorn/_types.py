@@ -17,7 +17,6 @@ from typing import (
     Union,
 )
 
-# from typing_extensions import TypedDict
 from uvloop.loop import TCPTransport
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -32,6 +31,33 @@ Scope = MutableMapping[str, Any]
 ASGIDict = TypedDict(
     "ASGIDict", {"version": str, "spec_version": Union[Literal["2.0"], Literal["2.1"]]}
 )
+
+# useless until there is a possibility to add extra keys
+# https://github.com/python/mypy/issues/4617
+
+# EnvironType = TypedDict(
+#     "EnvironType",
+#     {
+#         "REQUEST_METHOD": str,
+#         "SCRIPT_NAME": str,
+#         "PATH_INFO": str,
+#         "QUERY_STRING": str,
+#         "SERVER_PROTOCOL": str,
+#         "wsgi.version": Tuple[int, int],
+#         "wsgi.url_scheme": str,
+#         "wsgi.input": BytesIO,
+#         "wsgi.errors": TextIO,
+#         "wsgi.multithread": bool,
+#         "wsgi.multiprocess": bool,
+#         "wsgi.run_once": bool,
+#         "SERVER_NAME": str,
+#         "SERVER_PORT": int,
+#         "REMOTE_ADDR": str,
+#         "CONTENT_LENGTH": str,
+#         "CONTENT_TYPE": str,
+#     },
+# )
+
 HTTPConnectionScope = TypedDict(
     "HTTPConnectionScope",
     {

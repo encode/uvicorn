@@ -4,12 +4,14 @@ import io
 import sys
 from asyncio import AbstractEventLoop
 from types import TracebackType
-from typing import Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, Type, Union, Any
 
-from uvicorn._types import HeaderTypes, Message, Receive, Scope, Send
+from uvicorn._types import HeaderTypes, HTTPConnectionScope, Message, Receive, Send
 
 
-def build_environ(scope: Scope, message: Message, body: bytes) -> dict:
+def build_environ(
+    scope: HTTPConnectionScope, message: Message, body: bytes
+) -> Dict[str, Any]:
     """
     Builds a scope and request message into a WSGI environ object.
     """
@@ -27,7 +29,6 @@ def build_environ(scope: Scope, message: Message, body: bytes) -> dict:
         "wsgi.multiprocess": True,
         "wsgi.run_once": False,
     }
-
     # Get server name and port - required in WSGI, not in ASGI
     server = scope.get("server")
     if server is None:
@@ -42,19 +43,19 @@ def build_environ(scope: Scope, message: Message, body: bytes) -> dict:
 
     # Go through headers and make them into environ entries
     for name, value in scope.get("headers", []):
-        name = name.decode("latin1")
-        if name == "content-length":
+        namestr = name.decode("latin1")
+        if namestr == "content-length":
             corrected_name = "CONTENT_LENGTH"
-        elif name == "content-type":
+        elif namestr == "content-type":
             corrected_name = "CONTENT_TYPE"
         else:
-            corrected_name = "HTTP_%s" % name.upper().replace("-", "_")
+            corrected_name = "HTTP_%s" % namestr.upper().replace("-", "_")
         # HTTPbis say only ASCII chars are allowed in headers, but we latin1
         # just in case
-        value = value.decode("latin1")
+        valuestr = value.decode("latin1")
         if corrected_name in environ:
-            value = environ[corrected_name] + "," + value
-        environ[corrected_name] = value
+            valuestr = str(environ[corrected_name]) + "," + valuestr
+        environ[corrected_name] = valuestr
     return environ
 
 
@@ -63,7 +64,9 @@ class WSGIMiddleware:
         self.app = app
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: HTTPConnectionScope, receive: Receive, send: Send
+    ) -> None:
         assert scope["type"] == "http"
         instance = WSGIResponder(self.app, self.executor, scope)
         await instance(receive, send)
@@ -74,7 +77,7 @@ class WSGIResponder:
         self,
         app: Callable,
         executor: concurrent.futures.ThreadPoolExecutor,
-        scope: Scope,
+        scope: HTTPConnectionScope,
     ):
         self.app = app
         self.executor = executor
