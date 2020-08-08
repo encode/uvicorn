@@ -90,13 +90,7 @@ async def service_unavailable(
             ],
         }
     )
-    await send(
-        {
-            "type": "http.response.body",
-            "body": b"Service Unavailable",
-            "more_body": False,
-        }
-    )
+    await send({"type": "http.response.body", "body": b"Service Unavailable"})
 
 
 class H11Protocol(asyncio.Protocol):
@@ -455,11 +449,7 @@ class RequestResponseCycle:
             }
         )
         await self.send(
-            {
-                "type": "http.response.body",
-                "body": b"Internal Server Error",
-                "more_body": False,
-            }
+            {"type": "http.response.body", "body": b"Internal Server Error"}
         )
 
     # ASGI interface
@@ -477,31 +467,31 @@ class RequestResponseCycle:
             if message_type != "http.response.start":
                 msg = "Expected ASGI message 'http.response.start', but got '%s'."
                 raise RuntimeError(msg % message_type)
-            elif message_type == "http.response.body":
-                self.response_started = True
-                self.waiting_for_100_continue = False
 
-                status_code = message["status"]
-                headers = self.default_headers + message.get("headers", [])
+            self.response_started = True
+            self.waiting_for_100_continue = False
 
-                if self.access_log:
-                    self.access_logger.info(
-                        '%s - "%s %s HTTP/%s" %d',
-                        get_client_addr(self.scope),
-                        self.scope["method"],
-                        get_path_with_query_string(self.scope),
-                        self.scope["http_version"],
-                        status_code,
-                        extra={"status_code": status_code, "scope": self.scope},
-                    )
+            status_code = message["status"]
+            headers = self.default_headers + message.get("headers", [])
 
-                # Write response status line and headers
-                reason = STATUS_PHRASES[status_code]
-                event = h11.Response(
-                    status_code=status_code, headers=headers, reason=reason
+            if self.access_log:
+                self.access_logger.info(
+                    '%s - "%s %s HTTP/%s" %d',
+                    get_client_addr(self.scope),
+                    self.scope["method"],
+                    get_path_with_query_string(self.scope),
+                    self.scope["http_version"],
+                    status_code,
+                    extra={"status_code": status_code, "scope": self.scope},
                 )
-                output = self.conn.send(event)
-                self.transport.write(output)
+
+            # Write response status line and headers
+            reason = STATUS_PHRASES[status_code]
+            event = h11.Response(
+                status_code=status_code, headers=headers, reason=reason
+            )
+            output = self.conn.send(event)
+            self.transport.write(output)
 
         elif not self.response_complete:
             # Sending response body
