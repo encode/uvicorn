@@ -9,7 +9,7 @@ import websockets
 from websockets import Subprotocol, WebSocketServer, WebSocketServerProtocol
 from websockets.http import Headers
 
-from uvicorn._types import Message, Scope, TransportType
+from uvicorn._types import Scope, TransportType, WSReceiveMessage, WSSendMessage
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 if TYPE_CHECKING:
@@ -183,7 +183,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 await self.handshake_completed_event.wait()
                 self.transport.close()
 
-    async def asgi_send(self, message: Message) -> None:
+    async def asgi_send(self, message: WSSendMessage) -> None:
         message_type = message["type"]
 
         if not self.handshake_started_event.is_set():
@@ -241,7 +241,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
             raise RuntimeError(msg % message_type)
 
-    async def asgi_receive(self) -> Message:
+    async def asgi_receive(self) -> WSReceiveMessage:
         if not self.connect_sent:
             self.connect_sent = True
             return {"type": "websocket.connect"}
@@ -252,7 +252,6 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         except websockets.ConnectionClosed as exc:
             return {"type": "websocket.disconnect", "code": exc.code}
 
-        msg: Message
         msg = {"type": "websocket.receive"}
 
         if isinstance(data, str):

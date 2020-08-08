@@ -1,7 +1,14 @@
 import logging
-from typing import Any
+from typing import Any, Union
 
-from uvicorn._types import ASGI3App, Message, Receive, Scope, Send
+from uvicorn._types import (
+    ASGI3App,
+    HTTPConnectionScope,
+    HTTPReceiveMessage,
+    HTTPSendMessage,
+    Receive,
+    Send,
+)
 
 PLACEHOLDER_FORMAT = {
     "body": "<{length} bytes>",
@@ -12,16 +19,18 @@ PLACEHOLDER_FORMAT = {
 TRACE_LOG_LEVEL = 5
 
 
-def message_with_placeholders(message: Message) -> Message:
+def message_with_placeholders(
+    scope_message: Union[HTTPConnectionScope, HTTPReceiveMessage]
+) -> HTTPReceiveMessage:
     """
     Return an ASGI message, with any body-type content omitted and replaced
     with a placeholder.
     """
-    assert isinstance(message, dict)
-    new_message = message.copy()
+    assert isinstance(scope_message, dict)
+    new_message = scope_message.copy()
     for attr in PLACEHOLDER_FORMAT.keys():
-        if message.get(attr) is not None:
-            content = message[attr]
+        if scope_message.get(attr) is not None:
+            content = scope_message[attr]
             placeholder = PLACEHOLDER_FORMAT[attr].format(length=len(content))
             new_message[attr] = placeholder
     return new_message
@@ -38,14 +47,16 @@ class MessageLoggerMiddleware:
 
         self.logger.trace = trace  # type: ignore
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: HTTPConnectionScope, receive: Receive, send: Send
+    ) -> None:
         self.task_counter += 1
 
         task_counter = self.task_counter
         client = scope.get("client")
         prefix = "%s:%d - ASGI" % (client[0], client[1]) if client else "ASGI"
 
-        async def inner_receive() -> Message:
+        async def inner_receive() -> HTTPReceiveMessage:
             message = await receive()
             logged_message = message_with_placeholders(message)
             log_text = "%s [%d] Receive %s"
@@ -54,7 +65,7 @@ class MessageLoggerMiddleware:
             )
             return message
 
-        async def inner_send(message: Message) -> None:
+        async def inner_send(message: HTTPSendMessage) -> None:
             logged_message = message_with_placeholders(message)
             log_text = "%s [%d] Send %s"
             self.logger.trace(  # type: ignore

@@ -11,7 +11,8 @@ import httptools
 from uvicorn._types import (
     ASGI3App,
     HTTPConnectionScope,
-    Message,
+    HTTPReceiveMessage,
+    HTTPSendMessage,
     Receive,
     Scope,
     Send,
@@ -452,7 +453,7 @@ class RequestResponseCycle:
         )
 
     # ASGI interface
-    async def send(self, message: Message) -> None:
+    async def send(self, message: HTTPSendMessage) -> None:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
@@ -559,7 +560,7 @@ class RequestResponseCycle:
             msg = "Unexpected ASGI message '%s' sent, after response already completed."
             raise RuntimeError(msg % message_type)
 
-    async def receive(self) -> Message:
+    async def receive(self) -> HTTPReceiveMessage:
         if self.waiting_for_100_continue and not self.transport.is_closing():
             self.transport.write(b"HTTP/1.1 100 Continue\r\n\r\n")
             self.waiting_for_100_continue = False
@@ -569,7 +570,6 @@ class RequestResponseCycle:
             await self.message_event.wait()
             self.message_event.clear()
 
-        message: Message
         if self.disconnected or self.response_complete:
             message = {"type": "http.disconnect"}
         else:

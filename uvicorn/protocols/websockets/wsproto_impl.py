@@ -21,7 +21,7 @@ from wsproto.events import (
 from wsproto.extensions import PerMessageDeflate
 from wsproto.utilities import RemoteProtocolError
 
-from uvicorn._types import Message, Scope, TransportType
+from uvicorn._types import Scope, TransportType, WSSendMessage, WSReceiveMessage
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 if TYPE_CHECKING:
@@ -242,7 +242,7 @@ class WSProtocol(asyncio.Protocol):
                 self.logger.error(msg, result)
                 self.transport.close()
 
-    async def send(self, message: Message) -> None:
+    async def send(self, message: WSSendMessage) -> None:
         await self.writable.wait()
 
         message_type = message["type"]
@@ -315,7 +315,7 @@ class WSProtocol(asyncio.Protocol):
             msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
             raise RuntimeError(msg % message_type)
 
-    async def receive(self) -> Message:
+    async def receive(self) -> WSReceiveMessage:
         message = await self.queue.get()
         if self.read_paused and self.queue.empty():
             self.read_paused = False

@@ -6,11 +6,17 @@ from asyncio import AbstractEventLoop
 from types import TracebackType
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
 
-from uvicorn._types import HeaderTypes, HTTPConnectionScope, Message, Receive, Send
+from uvicorn._types import (  # HTTPReceiveRequest,
+    HeaderTypes,
+    HTTPConnectionScope,
+    HTTPReceiveMessage,
+    Receive,
+    Send,
+)
 
 
 def build_environ(
-    scope: HTTPConnectionScope, message: Message, body: bytes
+    scope: HTTPConnectionScope, message: HTTPReceiveMessage, body: bytes
 ) -> Dict[str, Any]:
     """
     Builds a scope and request message into a WSGI environ object.
@@ -94,10 +100,12 @@ class WSGIResponder:
 
     async def __call__(self, receive: Receive, send: Send) -> None:
         message = await receive()
+        assert message["type"] == "http.request"
         body = message.get("body", b"")
         more_body = message.get("more_body", False)
         while more_body:
             body_message = await receive()
+            assert message["type"] == "http.request"
             body += body_message.get("body", b"")
             more_body = body_message.get("more_body", False)
         environ = build_environ(self.scope, message, body)

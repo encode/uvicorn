@@ -5,7 +5,7 @@ from urllib.parse import unquote, urljoin, urlparse
 
 import requests
 
-from uvicorn._types import Message
+from uvicorn._types import HTTPSendMessage
 
 
 class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):
@@ -80,7 +80,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         raw_kwargs = {"body": io.BytesIO()}
         response_started = False
 
-        async def send(message: Message):
+        async def send(message: HTTPSendMessage):
             nonlocal raw_kwargs, response_started
 
             if message["type"] == "http.response.start":

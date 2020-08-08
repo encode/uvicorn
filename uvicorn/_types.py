@@ -25,7 +25,6 @@ if TYPE_CHECKING:  # pragma: no cover
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
-
 Scope = MutableMapping[str, Any]
 
 ASGIDict = TypedDict(
@@ -65,7 +64,7 @@ HTTPConnectionScope = TypedDict(
         "asgi": ASGIDict,
         "http_version": Union[Literal["1.0"], Literal["1.1"], Literal["2"]],
         "method": str,
-        "scheme": Union[Literal["http"], Literal["https"]],
+        "scheme": str,
         "path": str,
         "raw_path": bytes,
         "query_string": bytes,
@@ -75,10 +74,62 @@ HTTPConnectionScope = TypedDict(
         "server": Optional[Tuple[str, int]],
     },
 )
-Message = MutableMapping[str, Any]
 
-Receive = Callable[[], Awaitable[Message]]
-Send = Callable[[Message], Awaitable[None]]
+
+class HTTPConnectionScopeExtended(HTTPConnectionScope):
+    body: str
+    bytes: str
+    text: str
+
+
+# Message = MutableMapping[str, Any]
+
+HTTPReceiveRequest = TypedDict(
+    "HTTPReceiveRequest",
+    {"type": Literal["http.request"], "body": bytes, "more_body": bool},
+)
+HTTPReceiveDisconnect = TypedDict(
+    "HTTPReceiveDisconnect", {"type": Literal["http.disconnect"]}
+)
+HTTPReceiveMessage = Union[HTTPReceiveRequest, HTTPReceiveDisconnect]
+WSReceiveConnect = TypedDict("WSReceiveConnect", {})
+WSReceive = TypedDict("WSReceive", {})
+WSReceiveDisconnect = TypedDict("WSReceiveDisconnect", {})
+WSReceiveMessage = Union[WSReceiveConnect, WSReceive, WSReceiveDisconnect]
+
+HTTPSendResponseStart = TypedDict(
+    "HTTPSendResponseStart",
+    {
+        "type": Literal["http.response.start"],
+        "status": int,
+        "headers": Sequence[Tuple[bytes, bytes]],
+    },
+)
+HTTPSendResponseBody = TypedDict(
+    "HTTPSendResponseBody",
+    {"type": Literal["http.response.body"], "body": bytes, "more_body": Optional[bool]},
+)
+
+HTTPSendMessage = Union[HTTPSendResponseBody, HTTPSendResponseStart]
+
+
+WSSendAccept = TypedDict(
+    "WSSendAccept",
+    {
+        "type": Literal["websocket.accept"],
+        "subprotocol": str,
+        "headers": Sequence[Tuple[bytes, bytes]],
+    },
+)
+
+WSSend = TypedDict("WSSend", {"type": Literal["websocket.disconnect"], "code": int})
+WSSendClose = TypedDict(
+    "WSSendClose", {"type": Literal["websocket.close"], "code": int}
+)
+WSSendMessage = Union[WSSendAccept, WSSend, WSSendClose]
+
+Receive = Callable[[], Awaitable[HTTPReceiveMessage]]
+Send = Callable[[HTTPSendMessage], Awaitable[None]]
 
 ASGI3App = Callable[[HTTPConnectionScope, Receive, Send], Awaitable[None]]
 
@@ -91,7 +142,6 @@ HeaderTypes = Union[
 AutoHTTPProtocolType = Type[Union["H11Protocol", "HttpToolsProtocol"]]
 
 AutoWebSocketsProtocolType = Type[Union["WebSocketProtocol", "WSProtocol"]]
-
 
 StrPath = Union[str, PathLike]
 

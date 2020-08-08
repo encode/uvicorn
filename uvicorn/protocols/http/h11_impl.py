@@ -2,7 +2,7 @@ import asyncio
 import http
 import logging
 from asyncio import AbstractEventLoop, Event, TimerHandle
-from typing import TYPE_CHECKING, Callable, List, Optional, Tuple, Union, Literal
+from typing import TYPE_CHECKING, Callable, List, Literal, Optional, Tuple, Union
 from urllib.parse import unquote
 
 import h11
@@ -10,7 +10,8 @@ import h11
 from uvicorn._types import (
     ASGI3App,
     HTTPConnectionScope,
-    Message,
+    HTTPReceiveMessage,
+    HTTPSendMessage,
     Receive,
     Send,
     TransportType,
@@ -89,7 +90,13 @@ async def service_unavailable(
             ],
         }
     )
-    await send({"type": "http.response.body", "body": b"Service Unavailable"})
+    await send(
+        {
+            "type": "http.response.body",
+            "body": b"Service Unavailable",
+            "more_body": False,
+        }
+    )
 
 
 class H11Protocol(asyncio.Protocol):
@@ -448,11 +455,15 @@ class RequestResponseCycle:
             }
         )
         await self.send(
-            {"type": "http.response.body", "body": b"Internal Server Error"}
+            {
+                "type": "http.response.body",
+                "body": b"Internal Server Error",
+                "more_body": False,
+            }
         )
 
     # ASGI interface
-    async def send(self, message: Message) -> None:
+    async def send(self, message: HTTPSendMessage) -> None:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
@@ -466,31 +477,31 @@ class RequestResponseCycle:
             if message_type != "http.response.start":
                 msg = "Expected ASGI message 'http.response.start', but got '%s'."
                 raise RuntimeError(msg % message_type)
+            elif message_type == "http.response.body":
+                self.response_started = True
+                self.waiting_for_100_continue = False
 
-            self.response_started = True
-            self.waiting_for_100_continue = False
+                status_code = message["status"]
+                headers = self.default_headers + message.get("headers", [])
 
-            status_code = message["status"]
-            headers = self.default_headers + message.get("headers", [])
+                if self.access_log:
+                    self.access_logger.info(
+                        '%s - "%s %s HTTP/%s" %d',
+                        get_client_addr(self.scope),
+                        self.scope["method"],
+                        get_path_with_query_string(self.scope),
+                        self.scope["http_version"],
+                        status_code,
+                        extra={"status_code": status_code, "scope": self.scope},
+                    )
 
-            if self.access_log:
-                self.access_logger.info(
-                    '%s - "%s %s HTTP/%s" %d',
-                    get_client_addr(self.scope),
-                    self.scope["method"],
-                    get_path_with_query_string(self.scope),
-                    self.scope["http_version"],
-                    status_code,
-                    extra={"status_code": status_code, "scope": self.scope},
+                # Write response status line and headers
+                reason = STATUS_PHRASES[status_code]
+                event = h11.Response(
+                    status_code=status_code, headers=headers, reason=reason
                 )
-
-            # Write response status line and headers
-            reason = STATUS_PHRASES[status_code]
-            event = h11.Response(
-                status_code=status_code, headers=headers, reason=reason
-            )
-            output = self.conn.send(event)
-            self.transport.write(output)
+                output = self.conn.send(event)
+                self.transport.write(output)
 
         elif not self.response_complete:
             # Sending response body
@@ -529,7 +540,7 @@ class RequestResponseCycle:
             assert self.on_response
             self.on_response()
 
-    async def receive(self) -> Message:
+    async def receive(self) -> HTTPReceiveMessage:
         if self.waiting_for_100_continue and not self.transport.is_closing():
             event = h11.InformationalResponse(
                 status_code=100, headers=[], reason="Continue"
@@ -543,7 +554,6 @@ class RequestResponseCycle:
             await self.message_event.wait()
             self.message_event.clear()
 
-        message: Message
         if self.disconnected or self.response_complete:
             message = {"type": "http.disconnect"}
         else:
