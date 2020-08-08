@@ -90,7 +90,13 @@ async def service_unavailable(
             ],
         }
     )
-    await send({"type": "http.response.body", "body": b"Service Unavailable"})
+    await send(
+        {
+            "type": "http.response.body",
+            "body": b"Service Unavailable",
+            "more_body": False,
+        }
+    )
 
 
 class H11Protocol(asyncio.Protocol):
@@ -449,7 +455,11 @@ class RequestResponseCycle:
             }
         )
         await self.send(
-            {"type": "http.response.body", "body": b"Internal Server Error"}
+            {
+                "type": "http.response.body",
+                "body": b"Internal Server Error",
+                "more_body": False,
+            }
         )
 
     # ASGI interface

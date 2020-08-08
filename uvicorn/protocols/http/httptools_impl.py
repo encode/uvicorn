@@ -11,7 +11,9 @@ import httptools
 from uvicorn._types import (
     ASGI3App,
     HTTPConnectionScope,
+    HTTPReceiveDisconnect,
     HTTPReceiveMessage,
+    HTTPReceiveRequest,
     HTTPSendMessage,
     Receive,
     Scope,
@@ -95,7 +97,13 @@ async def service_unavailable(scope: Scope, receive: Receive, send: Send) -> Non
             ],
         }
     )
-    await send({"type": "http.response.body", "body": b"Service Unavailable"})
+    await send(
+        {
+            "type": "http.response.body",
+            "body": b"Service Unavailable",
+            "more_body": False,
+        }
+    )
 
 
 class HttpToolsProtocol(asyncio.Protocol):
@@ -449,7 +457,11 @@ class RequestResponseCycle:
             }
         )
         await self.send(
-            {"type": "http.response.body", "body": b"Internal Server Error"}
+            {
+                "type": "http.response.body",
+                "body": b"Internal Server Error",
+                "more_body": False,
+            }
         )
 
     # ASGI interface
@@ -571,9 +583,9 @@ class RequestResponseCycle:
             self.message_event.clear()
 
         if self.disconnected or self.response_complete:
-            message = {"type": "http.disconnect"}
+            message: HTTPReceiveDisconnect = {"type": "http.disconnect"}
         else:
-            message = {
+            message: HTTPReceiveRequest = {
                 "type": "http.request",
                 "body": self.body,
                 "more_body": self.more_body,
