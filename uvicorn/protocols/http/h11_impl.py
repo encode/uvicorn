@@ -2,12 +2,19 @@ import asyncio
 import http
 import logging
 from asyncio import AbstractEventLoop, Event, TimerHandle
-from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple, Union, Literal
 from urllib.parse import unquote
 
 import h11
 
-from uvicorn._types import ASGI3App, Message, Receive, Scope, Send, TransportType
+from uvicorn._types import (
+    ASGI3App,
+    HTTPConnectionScope,
+    Message,
+    Receive,
+    Send,
+    TransportType,
+)
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -69,7 +76,9 @@ class FlowControl:
             self._is_writable_event.set()
 
 
-async def service_unavailable(scope: Scope, receive: Receive, send: Send) -> None:
+async def service_unavailable(
+    scope: HTTPConnectionScope, receive: Receive, send: Send
+) -> None:
     await send(
         {
             "type": "http.response.start",
@@ -126,7 +135,9 @@ class H11Protocol(asyncio.Protocol):
         self.flow = FlowControl(transport)
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
-        self.scheme = "https" if is_ssl(transport) else "http"
+        self.scheme: Union[Literal["http"], Literal["https"]] = "https" if is_ssl(
+            transport
+        ) else "http"
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             if self.client:
@@ -199,7 +210,7 @@ class H11Protocol(asyncio.Protocol):
             elif event_type is h11.Request:
                 self.headers = [(key.lower(), value) for key, value in event.headers]
                 raw_path, _, query_string = event.target.partition(b"?")
-                self.scope: Scope = {
+                self.scope: HTTPConnectionScope = {
                     "type": "http",
                     "asgi": {
                         "version": self.config.asgi_version,
@@ -363,7 +374,7 @@ class H11Protocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
-        scope: Scope,
+        scope: HTTPConnectionScope,
         conn: h11._connection.Connection,
         transport: TransportType,
         flow: FlowControl,

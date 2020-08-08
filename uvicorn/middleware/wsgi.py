@@ -4,7 +4,7 @@ import io
 import sys
 from asyncio import AbstractEventLoop
 from types import TracebackType
-from typing import Callable, Dict, List, Optional, Sequence, Tuple, Type, Union, Any
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 from uvicorn._types import HeaderTypes, HTTPConnectionScope, Message, Receive, Send
 

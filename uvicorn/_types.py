@@ -80,7 +80,7 @@ Message = MutableMapping[str, Any]
 Receive = Callable[[], Awaitable[Message]]
 Send = Callable[[Message], Awaitable[None]]
 
-ASGI3App = Callable[[Union[Scope, HTTPConnectionScope], Receive, Send], Awaitable[None]]
+ASGI3App = Callable[[HTTPConnectionScope, Receive, Send], Awaitable[None]]
 
 Sockets = Optional[List[socket.socket]]
 

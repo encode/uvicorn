@@ -12,7 +12,7 @@ from typing import Any, Callable, Coroutine, Dict, List, Optional, Union
 
 import click
 
-from uvicorn._types import ASGI3App, AutoHTTPProtocolType, HeaderTypes
+from uvicorn._types import AutoHTTPProtocolType, HeaderTypes
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.debug import DebugMiddleware
@@ -289,7 +289,6 @@ class Config:
 
         self.lifespan_class = import_from_string(LIFESPAN[self.lifespan])
 
-        self.loaded_app: ASGI3App
         try:
             self.loaded_app = import_from_string(self.app)
         except ImportFromStringError as exc:

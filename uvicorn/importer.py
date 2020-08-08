@@ -1,5 +1,4 @@
 import importlib
-from types import ModuleType
 from typing import Any
 
 
@@ -7,7 +6,7 @@ class ImportFromStringError(Exception):
     pass
 
 
-def import_from_string(import_str: Any) -> ModuleType:
+def import_from_string(import_str: Any) -> Any:
     if not isinstance(import_str, str):
         return import_str
 
