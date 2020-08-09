@@ -1,14 +1,7 @@
 import logging
 from typing import Any, Union
 
-from uvicorn._types import (
-    ASGI3App,
-    HTTPConnectionScope,
-    HTTPReceiveMessage,
-    HTTPSendMessage,
-    Receive,
-    Send,
-)
+from uvicorn._types import ASGI3App, Receive, ReceiveMessage, Scope, Send, SendMessage
 
 PLACEHOLDER_FORMAT = {
     "body": "<{length} bytes>",
@@ -20,13 +13,12 @@ TRACE_LOG_LEVEL = 5
 
 
 def message_with_placeholders(
-    scope_message: Union[HTTPConnectionScope, HTTPReceiveMessage]
-) -> HTTPReceiveMessage:
+    scope_message: Union[Scope, ReceiveMessage]
+) -> Union[Scope, ReceiveMessage]:
     """
     Return an ASGI message, with any body-type content omitted and replaced
     with a placeholder.
     """
-    assert isinstance(scope_message, dict)
     new_message = scope_message.copy()
     for attr in PLACEHOLDER_FORMAT.keys():
         if scope_message.get(attr) is not None:
@@ -47,16 +39,14 @@ class MessageLoggerMiddleware:
 
         self.logger.trace = trace  # type: ignore
 
-    async def __call__(
-        self, scope: HTTPConnectionScope, receive: Receive, send: Send
-    ) -> None:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         self.task_counter += 1
 
         task_counter = self.task_counter
         client = scope.get("client")
         prefix = "%s:%d - ASGI" % (client[0], client[1]) if client else "ASGI"
 
-        async def inner_receive() -> HTTPReceiveMessage:
+        async def inner_receive() -> ReceiveMessage:
             message = await receive()
             logged_message = message_with_placeholders(message)
             log_text = "%s [%d] Receive %s"
@@ -65,7 +55,7 @@ class MessageLoggerMiddleware:
             )
             return message
 
-        async def inner_send(message: HTTPSendMessage) -> None:
+        async def inner_send(message: SendMessage) -> None:
             logged_message = message_with_placeholders(message)
             log_text = "%s [%d] Send %s"
             self.logger.trace(  # type: ignore

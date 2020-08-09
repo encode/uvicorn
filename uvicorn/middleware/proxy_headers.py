@@ -10,7 +10,7 @@ https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
 from typing import Callable
 
-from uvicorn._types import ASGI3App, HTTPConnectionScope
+from uvicorn._types import ASGI3App, Scope
 
 
 class ProxyHeadersMiddleware:
@@ -22,9 +22,7 @@ class ProxyHeadersMiddleware:
             self.trusted_hosts = trusted_hosts
         self.always_trust = "*" in self.trusted_hosts
 
-    async def __call__(
-        self, scope: HTTPConnectionScope, receive: Callable, send: Callable
-    ) -> None:
+    async def __call__(self, scope: Scope, receive: Callable, send: Callable) -> None:
         if scope["type"] in ("http", "websocket"):
             client_addr = scope.get("client")
             client_host = client_addr[0] if client_addr else None

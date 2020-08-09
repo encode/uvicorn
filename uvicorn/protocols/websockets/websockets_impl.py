@@ -6,10 +6,15 @@ from typing import TYPE_CHECKING, Optional, Sequence, Union
 from urllib.parse import unquote
 
 import websockets
-from websockets import Subprotocol, WebSocketServer, WebSocketServerProtocol
+from websockets import WebSocketServer, WebSocketServerProtocol, Subprotocol
 from websockets.http import Headers
 
-from uvicorn._types import Scope, TransportType, WSReceiveMessage, WSSendMessage
+from uvicorn._types import (
+    TransportType,
+    WSConnectionScope,
+    WSReceiveMessage,
+    WSSendMessage,
+)
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 if TYPE_CHECKING:
@@ -57,7 +62,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.handshake_completed_event = asyncio.Event()
         self.closed_event = asyncio.Event()
         self.connect_sent = False
-        self.accepted_subprotocol = None
+        self.accepted_subprotocol: Optional[Subprotocol] = None
 
         self.ws_server = Server(loop=self.loop)
 
@@ -105,15 +110,16 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             for name, value in headers.raw_items()
         ]
 
-        self.scope: Scope = {
+        self.scope: WSConnectionScope = {
             "type": "websocket",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.1"},
+            "http_version": "1.1",
             "scheme": self.scheme,
             "server": self.server,
             "client": self.client,
             "root_path": self.root_path,
             "path": unquote(path_portion),
-            "raw_path": path_portion,
+            "raw_path": path_portion.encode("ascii"),
             "query_string": query_string.encode("ascii"),
             "headers": asgi_headers,
             "subprotocols": subprotocols,
@@ -125,7 +131,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         return self.initial_response
 
     def process_subprotocol(
-        self, headers: Headers, available_subprotocols: Optional[Sequence[Subprotocol]]
+        self, headers: Headers, available_subprotocols: Optional[Sequence[str]]
     ) -> Optional[Subprotocol]:
         """
         We override the standard 'process_subprotocol' behavior here so that
@@ -184,10 +190,9 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 self.transport.close()
 
     async def asgi_send(self, message: WSSendMessage) -> None:
-        message_type = message["type"]
 
         if not self.handshake_started_event.is_set():
-            if message_type == "websocket.accept":
+            if message["type"] == "websocket.accept":
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
                     self.scope["client"],
@@ -197,7 +202,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 self.accepted_subprotocol = message.get("subprotocol")
                 self.handshake_started_event.set()
 
-            elif message_type == "websocket.close":
+            elif message["type"] == "websocket.close":
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
                     self.scope["client"],
@@ -212,12 +217,12 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                     "Expected ASGI message 'websocket.accept' or 'websocket.close', "
                     "but got '%s'."
                 )
-                raise RuntimeError(msg % message_type)
+                raise RuntimeError(msg % message["type"])
 
         elif not self.closed_event.is_set():
             await self.handshake_completed_event.wait()
 
-            if message_type == "websocket.send":
+            if message["type"] == "websocket.send":
                 bytes_data: bytes = message.get("bytes")
                 text_data: str = message.get("text")
                 data: Union[
@@ -225,7 +230,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 ] = text_data if bytes_data is None else bytes_data
                 await self.send(data)
 
-            elif message_type == "websocket.close":
+            elif message["type"] == "websocket.close":
                 code = message.get("code", 1000)
                 await self.close(code)
                 self.closed_event.set()
@@ -235,11 +240,11 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                     "Expected ASGI message 'websocket.send' or 'websocket.close',"
                     " but got '%s'."
                 )
-                raise RuntimeError(msg % message_type)
+                raise RuntimeError(msg % message["type"])
 
         else:
             msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
-            raise RuntimeError(msg % message_type)
+            raise RuntimeError(msg % message["type"])
 
     async def asgi_receive(self) -> WSReceiveMessage:
         if not self.connect_sent:

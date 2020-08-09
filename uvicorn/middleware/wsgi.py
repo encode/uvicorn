@@ -6,18 +6,10 @@ from asyncio import AbstractEventLoop
 from types import TracebackType
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
 
-from uvicorn._types import (  # HTTPReceiveRequest,
-    HeaderTypes,
-    HTTPConnectionScope,
-    HTTPReceiveMessage,
-    Receive,
-    Send,
-)
+from uvicorn._types import HeaderTypes, Receive, ReceiveMessage, Scope, Send
 
 
-def build_environ(
-    scope: HTTPConnectionScope, message: HTTPReceiveMessage, body: bytes
-) -> Dict[str, Any]:
+def build_environ(scope: Scope, message: ReceiveMessage, body: bytes) -> Dict[str, Any]:
     """
     Builds a scope and request message into a WSGI environ object.
     """
@@ -70,10 +62,7 @@ class WSGIMiddleware:
         self.app = app
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
-    async def __call__(
-        self, scope: HTTPConnectionScope, receive: Receive, send: Send
-    ) -> None:
-        assert scope["type"] == "http"
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         instance = WSGIResponder(self.app, self.executor, scope)
         await instance(receive, send)
 
@@ -83,7 +72,7 @@ class WSGIResponder:
         self,
         app: Callable,
         executor: concurrent.futures.ThreadPoolExecutor,
-        scope: HTTPConnectionScope,
+        scope: Scope,
     ):
         self.app = app
         self.executor = executor
@@ -100,12 +89,10 @@ class WSGIResponder:
 
     async def __call__(self, receive: Receive, send: Send) -> None:
         message = await receive()
-        assert message["type"] == "http.request"
         body = message.get("body", b"")
         more_body = message.get("more_body", False)
         while more_body:
             body_message = await receive()
-            assert message["type"] == "http.request"
             body += body_message.get("body", b"")
             more_body = body_message.get("more_body", False)
         environ = build_environ(self.scope, message, body)

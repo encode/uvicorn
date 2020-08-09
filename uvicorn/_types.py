@@ -3,12 +3,10 @@ from asyncio import Transport
 from os import PathLike
 from typing import (
     TYPE_CHECKING,
-    Any,
     Awaitable,
     Callable,
     List,
     Literal,
-    MutableMapping,
     Optional,
     Sequence,
     Tuple,
@@ -18,6 +16,7 @@ from typing import (
 )
 
 from uvloop.loop import TCPTransport
+from websockets import Subprotocol
 
 if TYPE_CHECKING:  # pragma: no cover
     from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -25,11 +24,6 @@ if TYPE_CHECKING:  # pragma: no cover
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
-Scope = MutableMapping[str, Any]
-
-ASGIDict = TypedDict(
-    "ASGIDict", {"version": str, "spec_version": Union[Literal["2.0"], Literal["2.1"]]}
-)
 
 # useless until there is a possibility to add extra keys
 # https://github.com/python/mypy/issues/4617
@@ -57,13 +51,15 @@ ASGIDict = TypedDict(
 #     },
 # )
 
-HTTPConnectionScope = TypedDict(
-    "HTTPConnectionScope",
+ASGIDict = TypedDict(
+    "ASGIDict", {"version": str, "spec_version": Union[Literal["2.0"], Literal["2.1"]]}
+)
+
+BaseConnectionScope = TypedDict(
+    "BaseConnectionScope",
     {
-        "type": Literal["http"],
         "asgi": ASGIDict,
         "http_version": Union[Literal["1.0"], Literal["1.1"], Literal["2"]],
-        "method": str,
         "scheme": str,
         "path": str,
         "raw_path": bytes,
@@ -76,14 +72,19 @@ HTTPConnectionScope = TypedDict(
 )
 
 
-class HTTPConnectionScopeExtended(HTTPConnectionScope):
-    body: str
-    bytes: str
-    text: str
+class HTTPConnectionScope(BaseConnectionScope):
+    type: Literal["http"]
+    method: str
 
 
-# Message = MutableMapping[str, Any]
+class WSConnectionScope(BaseConnectionScope):
+    type: Literal["websocket"]
+    subprotocols: List[str]
 
+
+Scope = Union[HTTPConnectionScope, WSConnectionScope]
+
+# HTTP message
 HTTPReceiveRequest = TypedDict(
     "HTTPReceiveRequest",
     {"type": Literal["http.request"], "body": bytes, "more_body": bool},
@@ -92,14 +93,6 @@ HTTPReceiveDisconnect = TypedDict(
     "HTTPReceiveDisconnect", {"type": Literal["http.disconnect"]}
 )
 HTTPReceiveMessage = Union[HTTPReceiveRequest, HTTPReceiveDisconnect]
-WSReceiveConnect = TypedDict("WSReceiveConnect", {"type": Literal["websocket.connect"]})
-WSReceive = TypedDict(
-    "WSReceive", {"type": Literal["websocket.receive"], "bytes": bytes, "text": str}
-)
-WSReceiveDisconnect = TypedDict(
-    "WSReceiveDisconnect", {"type": Literal["websocket.disconnect"], "code": int}
-)
-WSReceiveMessage = Union[WSReceiveConnect, WSReceive, WSReceiveDisconnect]
 
 HTTPSendResponseStart = TypedDict(
     "HTTPSendResponseStart",
@@ -117,11 +110,22 @@ HTTPSendResponseBody = TypedDict(
 HTTPSendMessage = Union[HTTPSendResponseBody, HTTPSendResponseStart]
 
 
+# WS message
+
+WSReceiveConnect = TypedDict("WSReceiveConnect", {"type": Literal["websocket.connect"]})
+WSReceive = TypedDict(
+    "WSReceive", {"type": Literal["websocket.receive"], "bytes": bytes, "text": str}
+)
+WSReceiveDisconnect = TypedDict(
+    "WSReceiveDisconnect", {"type": Literal["websocket.disconnect"], "code": int}
+)
+WSReceiveMessage = Union[WSReceiveConnect, WSReceive, WSReceiveDisconnect]
+
 WSSendAccept = TypedDict(
     "WSSendAccept",
     {
         "type": Literal["websocket.accept"],
-        "subprotocol": str,
+        "subprotocol": Optional[Union[str, Subprotocol]],
         "headers": Sequence[Tuple[bytes, bytes]],
     },
 )
@@ -132,10 +136,13 @@ WSSendClose = TypedDict(
 )
 WSSendMessage = Union[WSSendAccept, WSSend, WSSendClose]
 
-Receive = Callable[[], Awaitable[HTTPReceiveMessage]]
-Send = Callable[[HTTPSendMessage], Awaitable[None]]
+ReceiveMessage = Union[HTTPReceiveMessage, WSReceiveMessage]
+SendMessage = Union[HTTPSendMessage, WSSendMessage]
 
-ASGI3App = Callable[[HTTPConnectionScope, Receive, Send], Awaitable[None]]
+Receive = Callable[[], Awaitable[ReceiveMessage]]
+Send = Callable[[SendMessage], Awaitable[None]]
+
+ASGI3App = Callable[[Scope, Receive, Send], Awaitable[None]]
 
 Sockets = Optional[List[socket.socket]]
 
