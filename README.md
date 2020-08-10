@@ -39,15 +39,15 @@ This will install uvicorn with minimal (pure Python) dependencies.
 $ pip install uvicorn[standard]
 ```
 
-This will install uvicorn with "fast" dependencies (where possible) and other "goodies".
+This will install uvicorn with "Cython-based" dependencies (where possible) and other "optional extras".
 
-In this context, "fast" means the following:
+In this context, "Cython-based" means the following:
 
 - the event loop `uvloop` will be installed and used if possible.
 - the http protocol will be handled by `httptools` if possible.
 - the websocket protocol will be handled by `websockets` (should you want to use `wsproto` you'd need to install it manually) if possible.
 
-Goodies meaning that:
+Moreover, "optional extras" means that:
 
 - the `--reloader` flag in development mode will use `watchgod`.
 - windows users will have `colorama` installed for the colored logs.
