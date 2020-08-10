@@ -34,21 +34,28 @@ def get_packages(package):
     ]
 
 
-env_marker = (
+env_marker_cpython = (
     "sys_platform != 'win32'"
     " and sys_platform != 'cygwin'"
     " and platform_python_implementation != 'PyPy'"
 )
 
-requirements = [
+env_marker_win = "sys_platform == 'win32'"
+
+
+minimal_requirements = [
     "click==7.*",
     "h11>=0.8,<0.10",
-    "websockets==8.*",
-    "httptools==0.1.* ;" + env_marker,
-    "uvloop>=0.14.0 ;" + env_marker,
 ]
 
-extras_require = {"watchgodreload": ["watchgod>=0.6,<0.7"]}
+extra_requirements = [
+    "websockets==8.*",
+    "httptools==0.1.* ;" + env_marker_cpython,
+    "uvloop>=0.14.0 ;" + env_marker_cpython,
+    "colorama>=0.4.*;" + env_marker_win,
+    "watchgod>=0.6,<0.7",
+    "python-dotenv==0.13.*",
+]
 
 
 setup(
@@ -62,8 +69,8 @@ setup(
     author="Tom Christie",
     author_email="tom@tomchristie.com",
     packages=get_packages("uvicorn"),
-    install_requires=requirements,
-    extras_require=extras_require,
+    install_requires=minimal_requirements,
+    extras_require={"standard": extra_requirements},
     include_package_data=True,
     classifiers=[
         "Development Status :: 4 - Beta",
