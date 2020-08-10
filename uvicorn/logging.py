@@ -1,6 +1,7 @@
 import http
 import logging
 import sys
+import urllib
 from copy import copy
 
 import click
@@ -36,7 +37,9 @@ class ColourizedFormatter(logging.Formatter):
         super().__init__(fmt=fmt, datefmt=datefmt, style=style)
 
     def color_level_name(self, level_name, level_no):
-        default = lambda level_name: str(level_name)
+        def default(level_name):
+            return str(level_name)
+
         func = self.level_name_colors.get(level_no, default)
         return func(level_name)
 
@@ -77,14 +80,14 @@ class AccessFormatter(ColourizedFormatter):
         return "%s:%d" % (client[0], client[1])
 
     def get_path(self, scope):
-        return scope.get("root_path", "") + scope["path"]
+        return urllib.parse.quote(scope.get("root_path", "") + scope["path"])
 
     def get_full_path(self, scope):
         path = scope.get("root_path", "") + scope["path"]
         query_string = scope.get("query_string", b"").decode("ascii")
         if query_string:
-            return path + "?" + query_string
-        return path
+            return urllib.parse.quote(path) + "?" + query_string
+        return urllib.parse.quote(path)
 
     def get_status_code(self, record):
         status_code = record.__dict__["status_code"]
@@ -95,7 +98,10 @@ class AccessFormatter(ColourizedFormatter):
         status_and_phrase = "%s %s" % (status_code, status_phrase)
 
         if self.use_colors:
-            default = lambda code: status_and_phrase
+
+            def default(code):
+                return status_and_phrase
+
             func = self.status_code_colours.get(status_code // 100, default)
             return func(status_and_phrase)
         return status_and_phrase
