@@ -45,10 +45,10 @@ In this context, "Cython-based" means the following:
 
 - the event loop `uvloop` will be installed and used if possible.
 - the http protocol will be handled by `httptools` if possible.
-- the websocket protocol will be handled by `websockets` (should you want to use `wsproto` you'd need to install it manually) if possible.
 
 Moreover, "optional extras" means that:
 
+- the websocket protocol will be handled by `websockets` (should you want to use `wsproto` you'd need to install it manually) if possible.
 - the `--reloader` flag in development mode will use `watchgod`.
 - windows users will have `colorama` installed for the colored logs.
 - `python-dotenv` will be install should you want to use the `--env-file` option. 
