@@ -4,12 +4,30 @@ import io
 import sys
 from asyncio import AbstractEventLoop
 from types import TracebackType
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 
-from uvicorn._types import HeaderTypes, Receive, ReceiveMessage, Scope, Send
+from uvicorn._types import (
+    HeaderTypes,
+    HTTPConnectionScope,
+    HTTPReceiveMessage,
+    HTTPSendMessage,
+)
 
 
-def build_environ(scope: Scope, message: ReceiveMessage, body: bytes) -> Dict[str, Any]:
+def build_environ(
+    scope: HTTPConnectionScope, message: HTTPReceiveMessage, body: bytes
+) -> Dict[str, Any]:
     """
     Builds a scope and request message into a WSGI environ object.
     """
@@ -62,7 +80,12 @@ class WSGIMiddleware:
         self.app = app
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self,
+        scope: HTTPConnectionScope,
+        receive: Callable[[], Awaitable[HTTPReceiveMessage]],
+        send: Callable[[HTTPSendMessage], Awaitable[None]],
+    ) -> None:
         instance = WSGIResponder(self.app, self.executor, scope)
         await instance(receive, send)
 
@@ -72,7 +95,7 @@ class WSGIResponder:
         self,
         app: Callable,
         executor: concurrent.futures.ThreadPoolExecutor,
-        scope: Scope,
+        scope: HTTPConnectionScope,
     ):
         self.app = app
         self.executor = executor
@@ -87,15 +110,20 @@ class WSGIResponder:
         self.response_started = False
         self.exc_info: Optional[Tuple[Type[Exception], Exception, TracebackType]] = None
 
-    async def __call__(self, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self,
+        receive: Callable[[], Awaitable[HTTPReceiveMessage]],
+        send: Callable[[HTTPSendMessage], Awaitable[None]],
+    ) -> None:
         message = await receive()
-        body = message.get("body", b"")
-        more_body = message.get("more_body", False)
-        while more_body:
-            body_message = await receive()
-            body += body_message.get("body", b"")
-            more_body = body_message.get("more_body", False)
-        environ = build_environ(self.scope, message, body)
+        if message["type"] == "http.request":
+            body = message.get("body", b"")
+            more_body = message.get("more_body", False)
+            while more_body:
+                body_message = await receive()
+                body += body_message.get("body", b"")
+                more_body = body_message.get("more_body", False)
+            environ = build_environ(self.scope, message, body)
         self.loop = asyncio.get_event_loop()
         wsgi = self.loop.run_in_executor(
             self.executor, self.wsgi, environ, self.start_response
@@ -110,7 +138,8 @@ class WSGIResponder:
         if self.exc_info is not None:
             raise self.exc_info[0].with_traceback(self.exc_info[1], self.exc_info[2])
 
-    async def sender(self, send: Send) -> None:
+    async def sender(self, send: Callable[[HTTPSendMessage], Awaitable[None]]) -> None:
+
         while True:
             if self.send_queue:
                 message = self.send_queue.pop(0)
