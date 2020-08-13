@@ -18,10 +18,11 @@ from typing import (
 )
 
 from uvicorn._types import (
-    HeaderTypes,
     HTTPConnectionScope,
     HTTPReceiveMessage,
     HTTPSendMessage,
+    HTTPSendResponseBody,
+    HTTPSendResponseStart,
 )
 
 
@@ -104,7 +105,7 @@ class WSGIResponder:
         self.response_headers = None
         self.send_event = asyncio.Event()
         self.send_queue: List[
-            Optional[Dict[str, Union[str, bytes, int, HeaderTypes]]]
+            Optional[Union[HTTPSendResponseBody, HTTPSendResponseStart]]
         ] = []
         self.loop: Optional[AbstractEventLoop] = None
         self.response_started = False
@@ -184,6 +185,8 @@ class WSGIResponder:
             assert self.loop
             self.loop.call_soon_threadsafe(self.send_event.set)
 
-        self.send_queue.append({"type": "http.response.body", "body": b""})
+        self.send_queue.append(
+            {"type": "http.response.body", "body": b"", "more_body": False}
+        )
         assert self.loop
         self.loop.call_soon_threadsafe(self.send_event.set)
