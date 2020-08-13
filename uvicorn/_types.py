@@ -51,6 +51,8 @@ if TYPE_CHECKING:  # pragma: no cover
 #     },
 # )
 
+
+# SCOPES
 ASGIDict = TypedDict(
     "ASGIDict", {"version": str, "spec_version": Union[Literal["2.0"], Literal["2.1"]]}
 )
@@ -84,7 +86,9 @@ class WSConnectionScope(BaseConnectionScope):
 
 Scope = Union[HTTPConnectionScope, WSConnectionScope]
 
-# HTTP message
+# HTTP messages
+
+## receive
 HTTPReceiveRequest = TypedDict(
     "HTTPReceiveRequest",
     {"type": Literal["http.request"], "body": bytes, "more_body": bool},
@@ -94,6 +98,7 @@ HTTPReceiveDisconnect = TypedDict(
 )
 HTTPReceiveMessage = Union[HTTPReceiveRequest, HTTPReceiveDisconnect]
 
+## send
 HTTPSendResponseStart = TypedDict(
     "HTTPSendResponseStart",
     {
@@ -110,8 +115,9 @@ HTTPSendResponseBody = TypedDict(
 HTTPSendMessage = Union[HTTPSendResponseBody, HTTPSendResponseStart]
 
 
-# WS message
+# WS messages
 
+## receive
 WSReceiveConnect = TypedDict("WSReceiveConnect", {"type": Literal["websocket.connect"]})
 WSReceive = TypedDict(
     "WSReceive", {"type": Literal["websocket.receive"], "bytes": bytes, "text": str}
@@ -121,6 +127,7 @@ WSReceiveDisconnect = TypedDict(
 )
 WSReceiveMessage = Union[WSReceiveConnect, WSReceive, WSReceiveDisconnect]
 
+## send
 WSSendAccept = TypedDict(
     "WSSendAccept",
     {
@@ -136,9 +143,11 @@ WSSendClose = TypedDict(
 )
 WSSendMessage = Union[WSSendAccept, WSSend, WSSendClose]
 
+## ALL messages
 ReceiveMessage = Union[HTTPReceiveMessage, WSReceiveMessage]
 SendMessage = Union[HTTPSendMessage, WSSendMessage]
 
+## ALL functions
 Receive = Callable[[], Awaitable[ReceiveMessage]]
 Send = Callable[[SendMessage], Awaitable[None]]
 
