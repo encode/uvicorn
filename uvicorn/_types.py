@@ -118,7 +118,7 @@ HTTPSendMessage = Union[HTTPSendResponseBody, HTTPSendResponseStart]
 # receive
 WSReceiveConnect = TypedDict("WSReceiveConnect", {"type": Literal["websocket.connect"]})
 WSReceive = TypedDict(
-    "WSReceive", {"type": Literal["websocket.receive"], "bytes": bytes, "text": str}
+    "WSReceive", {"type": Literal["websocket.receive"], "bytes": Optional[bytes], "text": Optional[str]}
 )
 WSReceiveDisconnect = TypedDict(
     "WSReceiveDisconnect", {"type": Literal["websocket.disconnect"], "code": int}
@@ -130,7 +130,7 @@ WSSendAccept = TypedDict(
     "WSSendAccept",
     {
         "type": Literal["websocket.accept"],
-        "subprotocol": Optional[Union[str, Subprotocol]],
+        "subprotocol": Optional[Subprotocol],
         "headers": Sequence[Tuple[bytes, bytes]],
     },
 )
