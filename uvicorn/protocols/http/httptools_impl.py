@@ -9,15 +9,14 @@ from typing import TYPE_CHECKING, Callable, List, Literal, Optional, Tuple, Unio
 import httptools
 
 from uvicorn._types import (
-    ASGI3App,
+    HTTPApp,
     HTTPConnectionScope,
+    HTTPReceive,
     HTTPReceiveDisconnect,
     HTTPReceiveMessage,
     HTTPReceiveRequest,
+    HTTPSend,
     HTTPSendMessage,
-    Receive,
-    Scope,
-    Send,
     TransportType,
 )
 from uvicorn.protocols.utils import (
@@ -86,7 +85,9 @@ class FlowControl:
             self._is_writable_event.set()
 
 
-async def service_unavailable(scope: Scope, receive: Receive, send: Send) -> None:
+async def service_unavailable(
+    scope: HTTPConnectionScope, receive: HTTPReceive, send: HTTPSend
+) -> None:
     await send(
         {
             "type": "http.response.start",
@@ -138,7 +139,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.default_headers = server_state.default_headers
 
         # Per-connection state
-        self.pipeline: List[Tuple[RequestResponseCycle, ASGI3App]] = []
+        self.pipeline: List[Tuple[RequestResponseCycle, HTTPApp]] = []
 
         # Per-request state
         self.expect_100_continue = False
@@ -419,7 +420,7 @@ class RequestResponseCycle:
         self.expected_content_length = 0
 
     # ASGI exception wrapper
-    async def run_asgi(self, app: ASGI3App) -> None:
+    async def run_asgi(self, app: HTTPApp) -> None:
         try:
             result = await app(self.scope, self.receive, self.send)
         except BaseException as exc:
@@ -483,51 +484,52 @@ class RequestResponseCycle:
             self.response_started = True
             self.waiting_for_100_continue = False
 
-            status_code = message["status"]
-            headers = self.default_headers + list(message.get("headers", []))
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+                headers = self.default_headers + list(message.get("headers", []))
 
-            if self.access_log:
-                self.access_logger.info(
-                    '%s - "%s %s HTTP/%s" %d',
-                    get_client_addr(self.scope),
-                    self.scope["method"],
-                    get_path_with_query_string(self.scope),
-                    self.scope["http_version"],
-                    status_code,
-                    extra={"status_code": status_code, "scope": self.scope},
-                )
+                if self.access_log:
+                    self.access_logger.info(
+                        '%s - "%s %s HTTP/%s" %d',
+                        get_client_addr(self.scope),
+                        self.scope["method"],
+                        get_path_with_query_string(self.scope),
+                        self.scope["http_version"],
+                        status_code,
+                        extra={"status_code": status_code, "scope": self.scope},
+                    )
 
-            # Write response status line and headers
-            content = [STATUS_LINE[status_code]]
+                # Write response status line and headers
+                content = [STATUS_LINE[status_code]]
 
-            for name, value in headers:
-                if HEADER_RE.search(name):
-                    raise RuntimeError("Invalid HTTP header name.")
-                if HEADER_VALUE_RE.search(value):
-                    raise RuntimeError("Invalid HTTP header value.")
+                for name, value in headers:
+                    if HEADER_RE.search(name):
+                        raise RuntimeError("Invalid HTTP header name.")
+                    if HEADER_VALUE_RE.search(value):
+                        raise RuntimeError("Invalid HTTP header value.")
 
-                name = name.lower()
-                if name == b"content-length" and self.chunked_encoding is None:
-                    self.expected_content_length = int(value.decode())
-                    self.chunked_encoding = False
-                elif name == b"transfer-encoding" and value.lower() == b"chunked":
-                    self.expected_content_length = 0
+                    name = name.lower()
+                    if name == b"content-length" and self.chunked_encoding is None:
+                        self.expected_content_length = int(value.decode())
+                        self.chunked_encoding = False
+                    elif name == b"transfer-encoding" and value.lower() == b"chunked":
+                        self.expected_content_length = 0
+                        self.chunked_encoding = True
+                    elif name == b"connection" and value.lower() == b"close":
+                        self.keep_alive = False
+                    content.extend([name, b": ", value, b"\r\n"])
+
+                if (
+                    self.chunked_encoding is None
+                    and self.scope["method"] != "HEAD"
+                    and status_code not in (204, 304)
+                ):
+                    # Neither content-length nor transfer-encoding specified
                     self.chunked_encoding = True
-                elif name == b"connection" and value.lower() == b"close":
-                    self.keep_alive = False
-                content.extend([name, b": ", value, b"\r\n"])
+                    content.append(b"transfer-encoding: chunked\r\n")
 
-            if (
-                self.chunked_encoding is None
-                and self.scope["method"] != "HEAD"
-                and status_code not in (204, 304)
-            ):
-                # Neither content-length nor transfer-encoding specified
-                self.chunked_encoding = True
-                content.append(b"transfer-encoding: chunked\r\n")
-
-            content.append(b"\r\n")
-            self.transport.write(b"".join(content))
+                content.append(b"\r\n")
+                self.transport.write(b"".join(content))
 
         elif not self.response_complete:
             # Sending response body
@@ -535,37 +537,42 @@ class RequestResponseCycle:
                 msg = "Expected ASGI message 'http.response.body', but got '%s'."
                 raise RuntimeError(msg % message_type)
 
-            body = message.get("body", b"")
-            more_body = message.get("more_body", False)
+            if message["type"] == "http.response.body":
+                body = message.get("body", b"")
+                more_body = message.get("more_body", False)
 
-            # Write response body
-            if self.scope["method"] == "HEAD":
-                self.expected_content_length = 0
-            elif self.chunked_encoding:
-                if body:
-                    content = [b"%x\r\n" % len(body), body, b"\r\n"]
+                # Write response body
+                if self.scope["method"] == "HEAD":
+                    self.expected_content_length = 0
+                elif self.chunked_encoding:
+                    if body:
+                        content = [b"%x\r\n" % len(body), body, b"\r\n"]
+                    else:
+                        content = []
+                    if not more_body:
+                        content.append(b"0\r\n\r\n")
+                    self.transport.write(b"".join(content))
                 else:
-                    content = []
+                    num_bytes = len(body)
+                    if num_bytes > self.expected_content_length:
+                        raise RuntimeError(
+                            "Response content longer than Content-Length"
+                        )
+                    else:
+                        self.expected_content_length -= num_bytes
+                    self.transport.write(body)
+
+                # Handle response completion
                 if not more_body:
-                    content.append(b"0\r\n\r\n")
-                self.transport.write(b"".join(content))
-            else:
-                num_bytes = len(body)
-                if num_bytes > self.expected_content_length:
-                    raise RuntimeError("Response content longer than Content-Length")
-                else:
-                    self.expected_content_length -= num_bytes
-                self.transport.write(body)
-
-            # Handle response completion
-            if not more_body:
-                if self.expected_content_length != 0:
-                    raise RuntimeError("Response content shorter than Content-Length")
-                self.response_complete = True
-                if not self.keep_alive:
-                    self.transport.close()
-                assert self.on_response
-                self.on_response()
+                    if self.expected_content_length != 0:
+                        raise RuntimeError(
+                            "Response content shorter than Content-Length"
+                        )
+                    self.response_complete = True
+                    if not self.keep_alive:
+                        self.transport.close()
+                    assert self.on_response
+                    self.on_response()
 
         else:
             # Response already sent
@@ -582,10 +589,11 @@ class RequestResponseCycle:
             await self.message_event.wait()
             self.message_event.clear()
 
+        message: Union[HTTPReceiveRequest, HTTPReceiveDisconnect]
         if self.disconnected or self.response_complete:
-            message: HTTPReceiveDisconnect = {"type": "http.disconnect"}
+            message = {"type": "http.disconnect"}
         else:
-            message: HTTPReceiveRequest = {
+            message = {
                 "type": "http.request",
                 "body": self.body,
                 "more_body": self.more_body,

@@ -118,7 +118,12 @@ HTTPSendMessage = Union[HTTPSendResponseBody, HTTPSendResponseStart]
 # receive
 WSReceiveConnect = TypedDict("WSReceiveConnect", {"type": Literal["websocket.connect"]})
 WSReceive = TypedDict(
-    "WSReceive", {"type": Literal["websocket.receive"], "bytes": Optional[bytes], "text": Optional[str]}
+    "WSReceive",
+    {
+        "type": Literal["websocket.receive"],
+        "bytes": Optional[bytes],
+        "text": Optional[str],
+    },
 )
 WSReceiveDisconnect = TypedDict(
     "WSReceiveDisconnect", {"type": Literal["websocket.disconnect"], "code": int}
@@ -146,9 +151,12 @@ ReceiveMessage = Union[HTTPReceiveMessage, WSReceiveMessage]
 SendMessage = Union[HTTPSendMessage, WSSendMessage]
 
 # ALL functions
+HTTPReceive = Callable[[], Awaitable[HTTPReceiveMessage]]
 Receive = Callable[[], Awaitable[ReceiveMessage]]
+HTTPSend = Callable[[HTTPSendMessage], Awaitable[None]]
 Send = Callable[[SendMessage], Awaitable[None]]
 
+HTTPApp = Callable[[HTTPConnectionScope, HTTPReceive, HTTPSend], Awaitable[None]]
 ASGI3App = Callable[[Scope, Receive, Send], Awaitable[None]]
 
 Sockets = Optional[List[socket.socket]]

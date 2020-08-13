@@ -12,8 +12,9 @@ from websockets.http import Headers
 from uvicorn._types import (
     TransportType,
     WSConnectionScope,
+    WSReceive,
     WSReceiveMessage,
-    WSSendMessage, WSReceive,
+    WSSendMessage,
 )
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 

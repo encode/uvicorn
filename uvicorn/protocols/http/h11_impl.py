@@ -8,12 +8,12 @@ from urllib.parse import unquote
 import h11
 
 from uvicorn._types import (
-    ASGI3App,
+    HTTPApp,
     HTTPConnectionScope,
+    HTTPReceive,
     HTTPReceiveMessage,
+    HTTPSend,
     HTTPSendMessage,
-    Receive,
-    Send,
     TransportType,
 )
 from uvicorn.protocols.utils import (
@@ -78,7 +78,7 @@ class FlowControl:
 
 
 async def service_unavailable(
-    scope: HTTPConnectionScope, receive: Receive, send: Send
+    scope: HTTPConnectionScope, receive: HTTPReceive, send: HTTPSend
 ) -> None:
     await send(
         {
@@ -417,7 +417,7 @@ class RequestResponseCycle:
         self.response_complete = False
 
     # ASGI exception wrapper
-    async def run_asgi(self, app: ASGI3App) -> None:
+    async def run_asgi(self, app: HTTPApp) -> None:
         try:
             result = await app(self.scope, self.receive, self.send)
         except BaseException as exc:
