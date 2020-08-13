@@ -11,7 +11,9 @@ from uvicorn._types import (
     HTTPApp,
     HTTPConnectionScope,
     HTTPReceive,
+    HTTPReceiveDisconnect,
     HTTPReceiveMessage,
+    HTTPReceiveRequest,
     HTTPSend,
     HTTPSendMessage,
     TransportType,
@@ -481,27 +483,28 @@ class RequestResponseCycle:
             self.response_started = True
             self.waiting_for_100_continue = False
 
-            status_code = message["status"]
-            headers = self.default_headers + message.get("headers", [])
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+                headers = self.default_headers + message.get("headers", [])
 
-            if self.access_log:
-                self.access_logger.info(
-                    '%s - "%s %s HTTP/%s" %d',
-                    get_client_addr(self.scope),
-                    self.scope["method"],
-                    get_path_with_query_string(self.scope),
-                    self.scope["http_version"],
-                    status_code,
-                    extra={"status_code": status_code, "scope": self.scope},
+                if self.access_log:
+                    self.access_logger.info(
+                        '%s - "%s %s HTTP/%s" %d',
+                        get_client_addr(self.scope),
+                        self.scope["method"],
+                        get_path_with_query_string(self.scope),
+                        self.scope["http_version"],
+                        status_code,
+                        extra={"status_code": status_code, "scope": self.scope},
+                    )
+
+                # Write response status line and headers
+                reason = STATUS_PHRASES[status_code]
+                event = h11.Response(
+                    status_code=status_code, headers=headers, reason=reason
                 )
-
-            # Write response status line and headers
-            reason = STATUS_PHRASES[status_code]
-            event = h11.Response(
-                status_code=status_code, headers=headers, reason=reason
-            )
-            output = self.conn.send(event)
-            self.transport.write(output)
+                output = self.conn.send(event)
+                self.transport.write(output)
 
         elif not self.response_complete:
             # Sending response body
@@ -509,23 +512,24 @@ class RequestResponseCycle:
                 msg = "Expected ASGI message 'http.response.body', but got '%s'."
                 raise RuntimeError(msg % message_type)
 
-            body = message.get("body", b"")
-            more_body = message.get("more_body", False)
+            if message["type"] == "http.response.body":
+                body = message.get("body", b"")
+                more_body = message.get("more_body", False)
 
-            # Write response body
-            if self.scope["method"] == "HEAD":
-                event = h11.Data(data=b"")
-            else:
-                event = h11.Data(data=body)
-            output = self.conn.send(event)
-            self.transport.write(output)
-
-            # Handle response completion
-            if not more_body:
-                self.response_complete = True
-                event = h11.EndOfMessage()
+                # Write response body
+                if self.scope["method"] == "HEAD":
+                    event = h11.Data(data=b"")
+                else:
+                    event = h11.Data(data=body)
                 output = self.conn.send(event)
                 self.transport.write(output)
+
+                # Handle response completion
+                if not more_body:
+                    self.response_complete = True
+                    event = h11.EndOfMessage()
+                    output = self.conn.send(event)
+                    self.transport.write(output)
 
         else:
             # Response already sent
@@ -554,6 +558,7 @@ class RequestResponseCycle:
             await self.message_event.wait()
             self.message_event.clear()
 
+        message: Union[HTTPReceiveRequest, HTTPReceiveDisconnect]
         if self.disconnected or self.response_complete:
             message = {"type": "http.disconnect"}
         else:

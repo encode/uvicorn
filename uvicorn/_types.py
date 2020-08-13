@@ -103,7 +103,7 @@ HTTPSendResponseStart = TypedDict(
     {
         "type": Literal["http.response.start"],
         "status": int,
-        "headers": Sequence[Tuple[bytes, bytes]],
+        "headers": List[Tuple[bytes, bytes]],
     },
 )
 HTTPSendResponseBody = TypedDict(
