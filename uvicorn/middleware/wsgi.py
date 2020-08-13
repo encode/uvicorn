@@ -121,8 +121,9 @@ class WSGIResponder:
             more_body = message.get("more_body", False)
             while more_body:
                 body_message = await receive()
-                body += body_message.get("body", b"")
-                more_body = body_message.get("more_body", False)
+                if body_message["type"] == "http.request":
+                    body += body_message.get("body", b"")
+                    more_body = body_message.get("more_body", False)
             environ = build_environ(self.scope, message, body)
         self.loop = asyncio.get_event_loop()
         wsgi = self.loop.run_in_executor(
