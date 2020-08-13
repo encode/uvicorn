@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional, Sequence, Union
 from urllib.parse import unquote
 
 import websockets
-from websockets import WebSocketServer, WebSocketServerProtocol, Subprotocol
+from websockets import Subprotocol, WebSocketServer, WebSocketServerProtocol
 from websockets.http import Headers
 
 from uvicorn._types import (
