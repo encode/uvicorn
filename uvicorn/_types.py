@@ -27,15 +27,15 @@ else:
     from typing import Literal
     from typing import TypedDict
 
-from uvloop.loop import TCPTransport
 from websockets import Subprotocol
 
 if TYPE_CHECKING:  # pragma: no cover
+    from uvloop.loop import TCPTransport
+
     from uvicorn.protocols.http.h11_impl import H11Protocol
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
-
 
 # useless until there is a possibility to add extra keys
 # https://github.com/python/mypy/issues/4617
@@ -190,4 +190,4 @@ AutoWebSocketsProtocolType = Type[Union["WebSocketProtocol", "WSProtocol"]]
 
 StrPath = Union[str, PathLike]
 
-TransportType = Union[TCPTransport, Transport]
+TransportType = Union["TCPTransport", Transport]
