@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Any
+from typing import Any, MutableMapping
 
 from gunicorn.workers.base import Worker
 
@@ -29,7 +29,7 @@ class UvicornWorker(Worker):
         logger.setLevel(self.log.access_log.level)
         logger.propagate = False
 
-        config_kwargs = {
+        config_kwargs: MutableMapping[str, Any] = {
             "app": None,
             "log_config": None,
             "timeout_keep_alive": self.cfg.keepalive,

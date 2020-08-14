@@ -8,7 +8,7 @@ import ssl
 import sys
 from os import PathLike
 from types import ModuleType
-from typing import Any, Callable, Coroutine, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import click
 
@@ -145,7 +145,7 @@ class Config:
         backlog: int = 2048,
         timeout_keep_alive: int = 5,
         timeout_notify: int = 30,
-        callback_notify: Optional[Coroutine] = None,
+        callback_notify: Optional[Callable] = None,
         ssl_keyfile: Optional[str] = None,
         ssl_certfile: Optional[Union[str, "PathLike[str]"]] = None,
         ssl_version: str = SSL_PROTOCOL_VERSION,
