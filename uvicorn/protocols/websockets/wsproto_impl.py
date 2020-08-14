@@ -172,8 +172,10 @@ class WSProtocol(asyncio.Protocol):
             (b"content-type", b"text/plain; charset=utf-8"),
             (b"connection", b"close"),
         ]
+        assert isinstance(event, CloseConnection)
         msg = h11.Response(status_code=400, headers=headers, reason="Bad Request")
         output = self.conn.send(msg)
+        assert isinstance(event.reason, str)
         msg = h11.Data(data=event.reason.encode("utf-8"))
         output += self.conn.send(msg)
         msg = h11.EndOfMessage()
