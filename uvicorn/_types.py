@@ -145,7 +145,9 @@ class WSSendAccept(TypedDict):
     headers: Sequence[Tuple[bytes, bytes]]
 
 
-WSSend = TypedDict("WSSend", {"type": Literal["websocket.disconnect"], "code": int})
+class WSSend(TypedDict):
+    type: Literal["websocket.disconnect"]
+    code: int
 
 
 class WSSendClose(TypedDict):
