@@ -170,10 +170,6 @@ ASGI3App = Callable[[Scope, Receive, Send], Awaitable[None]]
 
 Sockets = Optional[List[socket.socket]]
 
-HeaderTypes = Union[
-    Sequence[Tuple[bytes, bytes]], Sequence[Tuple[str, str]],
-]
-
 AutoHTTPProtocolType = Type[Union["H11Protocol", "HttpToolsProtocol"]]
 
 AutoWebSocketsProtocolType = Type[Union["WebSocketProtocol", "WSProtocol"]]

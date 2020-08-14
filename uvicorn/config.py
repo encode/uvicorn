@@ -8,11 +8,11 @@ import ssl
 import sys
 from os import PathLike
 from types import ModuleType
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, Tuple
 
 import click
 
-from uvicorn._types import AutoHTTPProtocolType, HeaderTypes
+from uvicorn._types import AutoHTTPProtocolType
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.debug import DebugMiddleware
@@ -152,7 +152,7 @@ class Config:
         ssl_cert_reqs: int = ssl.CERT_NONE,
         ssl_ca_certs: Optional[str] = None,
         ssl_ciphers: str = "TLSv1",
-        headers: Optional[HeaderTypes] = None,
+        headers: Optional[List[Tuple[str, str]]] = None,
     ) -> None:
         self.app = app
         self.host = host
@@ -186,7 +186,7 @@ class Config:
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
         self.headers = headers if headers else []
-        self.encoded_headers: Optional[HeaderTypes] = None
+        self.encoded_headers: Optional[List[Tuple[bytes, bytes]]] = None
 
         self.loaded = False
         self.configure_logging()

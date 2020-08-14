@@ -11,7 +11,7 @@ import time
 from asyncio import Task
 from email.utils import formatdate
 from types import FrameType
-from typing import Any, List, Optional, Set, Tuple, Union
+from typing import Any, List, Optional, Set, Tuple, Union, Dict
 
 import click
 
@@ -310,13 +310,13 @@ def main(
     ssl_cert_reqs: int,
     ssl_ca_certs: str,
     ssl_ciphers: str,
-    headers: List[str],
+    headers: Tuple[str],
     use_colors: bool,
     app_dir: str,
 ) -> None:
     sys.path.insert(0, app_dir)
 
-    kwargs = {
+    kwargs: Dict[str, Any] = {
         "app": app,
         "host": host,
         "port": port,
@@ -354,7 +354,7 @@ def main(
     run(**kwargs)
 
 
-def run(app, **kwargs) -> None:
+def run(app: Union[str, ASGI3App], **kwargs: Any) -> None:
     config = Config(app, **kwargs)
     server = Server(config=config)
 
@@ -534,6 +534,7 @@ class Server:
         if counter % 10 == 0:
             current_time = time.time()
             current_date = formatdate(current_time, usegmt=True).encode()
+            assert self.config.encoded_headers
             self.server_state.default_headers = [
                 (b"date", current_date)
             ] + self.config.encoded_headers
