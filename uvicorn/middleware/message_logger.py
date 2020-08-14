@@ -3,7 +3,10 @@ from typing import Any, Union
 
 from uvicorn._types import ASGI3App, Receive, ReceiveMessage, Scope, Send, SendMessage
 
-PLACEHOLDER_FORMAT = {
+SCOPE_PLACEHOLDER_FORMAT = {
+    "headers": "<...>",
+}
+MESSAGES_PLACEHOLDER_FORMAT = {
     "body": "<{length} bytes>",
     "bytes": "<{length} bytes>",
     "text": "<{length} chars>",
@@ -13,18 +16,22 @@ TRACE_LOG_LEVEL = 5
 
 
 def message_with_placeholders(
-    scope_message: Union[Scope, ReceiveMessage]
-) -> Union[Scope, ReceiveMessage]:
+    message: Union[Scope, ReceiveMessage, SendMessage]
+) -> Union[ReceiveMessage, SendMessage]:
     """
     Return an ASGI message, with any body-type content omitted and replaced
     with a placeholder.
     """
-    new_message = scope_message.copy()
-    for attr in PLACEHOLDER_FORMAT.keys():
-        if scope_message.get(attr) is not None:
-            content = scope_message[attr]
-            placeholder = PLACEHOLDER_FORMAT[attr].format(length=len(content))
-            new_message[attr] = placeholder
+    new_message: Union[Scope, ReceiveMessage, SendMessage] = message.copy()
+    if message["type"] in ["http", "websocket"]:
+        placeholder = SCOPE_PLACEHOLDER_FORMAT
+    else:
+        placeholder = MESSAGES_PLACEHOLDER_FORMAT
+    for attr in placeholder.keys():
+        if message.get(attr) is not None:
+            content = message[attr]
+            placeholder_replacement = placeholder[attr].format(length=len(content))
+            new_message[attr] = placeholder_replacement
     return new_message
 
 
