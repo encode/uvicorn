@@ -2,8 +2,6 @@ import socket
 import sys
 from asyncio import Transport
 from os import PathLike
-
-
 from typing import (
     TYPE_CHECKING,
     Awaitable,

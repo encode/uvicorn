@@ -2,10 +2,21 @@ import asyncio
 import http
 import logging
 import re
+import sys
 import urllib
 from asyncio import AbstractEventLoop, Event, TimerHandle
-from typing import TYPE_CHECKING, Callable, List, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple, Union
 
+if sys.version_info < (3, 8):
+    if TYPE_CHECKING:
+        from typing_extensions import Literal
+    else:  # due to different mypy warnings raised during CI for python 3.7 and 3.8
+        try:
+            from typing_extensions import Literal
+        except ImportError:
+            Literal = None
+else:
+    from typing import Literal
 import httptools
 
 from uvicorn._types import (
