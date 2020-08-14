@@ -58,16 +58,26 @@ HTTPSendMessage = Union[HTTPSendResponseBody, HTTPSendResponseStart]
 # WS messages
 # receive
 class WSReceiveConnect(TypedDict):
+    """
+    https://asgi.readthedocs.io/en/latest/specs/www.html#connect-receive-event
+    """
     type: Literal["websocket.connect"]
 
 
 class WSReceive(TypedDict):
+    """
+    https://asgi.readthedocs.io/en/latest/specs/www.html#receive-receive-event
+    """
     type: Literal["websocket.receive"]
     bytes: Optional[bytes]
     text: Optional[str]
 
 
 class WSReceiveDisconnect(TypedDict):
+    """
+    yeah I know this link looks off but it is the one !
+    https://asgi.readthedocs.io/en/latest/specs/www.html#id2
+    """
     type: Literal["websocket.disconnect"]
     code: int
 
@@ -78,12 +88,18 @@ WSReceiveMessage = Union[WSReceiveConnect, WSReceive, WSReceiveDisconnect]
 
 
 class WSSendAccept(TypedDict):
+    """
+    https://asgi.readthedocs.io/en/latest/specs/www.html#accept-send-event
+    """
     type: Literal["websocket.accept"]
     subprotocol: Optional[Subprotocol]
-    headers: Sequence[Tuple[bytes, bytes]]
+    headers: Optional[List[Tuple[bytes, bytes]]]
 
 
 class WSSend(TypedDict):
+    """
+    https://asgi.readthedocs.io/en/latest/specs/www.html#send-send-event
+    """
     type: Literal["websocket.send"]
     bytes: Optional[bytes]
     text: Optional[str]
@@ -91,6 +107,9 @@ class WSSend(TypedDict):
 
 
 class WSSendClose(TypedDict):
+    """
+    https://asgi.readthedocs.io/en/latest/specs/www.html#close-send-event
+    """
     type: Literal["websocket.close"]
     code: int
 
