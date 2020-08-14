@@ -7,8 +7,7 @@ import socket
 import ssl
 import sys
 from os import PathLike
-from types import ModuleType
-from typing import Any, Callable, Dict, List, Optional, Union, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import click
 
@@ -278,7 +277,6 @@ class Config:
             else [(b"server", b"uvicorn")] + encoded_headers
         )
 
-        self.http_protocol_class: Union[ModuleType, AutoHTTPProtocolType]
         if isinstance(self.http, str):
             self.http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
         else:

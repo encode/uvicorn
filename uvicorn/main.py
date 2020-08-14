@@ -11,7 +11,7 @@ import time
 from asyncio import Task
 from email.utils import formatdate
 from types import FrameType
-from typing import Any, List, Optional, Set, Tuple, Union, Dict
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
 
 import click
 
@@ -32,7 +32,14 @@ from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
-from uvicorn.supervisors import ChangeReload, Multiprocess
+
+if TYPE_CHECKING:
+    from uvicorn.supervisors import (
+        ChangeReload,
+        Multiprocess,
+        StatReload,
+        WatchGodReload,
+    )
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
@@ -366,7 +373,7 @@ def run(app: Union[str, ASGI3App], **kwargs: Any) -> None:
         )
         sys.exit(1)
 
-    supervisor: Union[Multiprocess, ChangeReload]
+    supervisor: Union[Multiprocess, WatchGodReload, StatReload]
     if config.should_reload:
         sock = config.bind_socket()
         supervisor = ChangeReload(config, target=server.run, sockets=[sock])
