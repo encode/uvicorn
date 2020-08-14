@@ -14,12 +14,18 @@ from websockets import Subprotocol
 
 
 class HTTPReceiveRequest(TypedDict):
+    """
+    https://asgi.readthedocs.io/en/latest/specs/www.html#request-receive-event
+    """
     type: Literal["http.request"]
-    body: bytes
-    more_body: bool
+    body: Optional[bytes]
+    more_body: Optional[bool]
 
 
 class HTTPReceiveDisconnect(TypedDict):
+    """
+    https://asgi.readthedocs.io/en/latest/specs/www.html#disconnect-receive-event
+    """
     type: Literal["http.disconnect"]
 
 
@@ -29,15 +35,21 @@ HTTPReceiveMessage = Union[HTTPReceiveRequest, HTTPReceiveDisconnect]
 
 
 class HTTPSendResponseStart(TypedDict):
+    """
+    https://asgi.readthedocs.io/en/latest/specs/www.html#response-start-send-event
+    """
     type: Literal["http.response.start"]
     status: int
-    headers: List[Tuple[bytes, bytes]]
+    headers: Optional[List[Tuple[bytes, bytes]]]
 
 
 class HTTPSendResponseBody(TypedDict):
+    """
+    https://asgi.readthedocs.io/en/latest/specs/www.html#response-body-send-event
+    """
     type: Literal["http.response.body"]
-    body: bytes
-    more_body: bool
+    body: Optional[bytes]
+    more_body: Optional[bool]
 
 
 HTTPSendMessage = Union[HTTPSendResponseBody, HTTPSendResponseStart]
