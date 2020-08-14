@@ -1,12 +1,14 @@
 import socket
+import sys
 from asyncio import Transport
 from os import PathLike
+
+
 from typing import (
     TYPE_CHECKING,
     Awaitable,
     Callable,
     List,
-    Literal,
     Optional,
     Sequence,
     Tuple,
@@ -14,6 +16,17 @@ from typing import (
     TypedDict,
     Union,
 )
+
+if sys.version_info < (3, 8):
+    if TYPE_CHECKING:
+        from typing_extensions import Literal
+    else:  # due to different mypy warnings raised during CI for python 3.7 and 3.8
+        try:
+            from typing_extensions import Literal
+        except ImportError:
+            Literal = None
+else:
+    from typing import Literal
 
 from uvloop.loop import TCPTransport
 from websockets import Subprotocol
