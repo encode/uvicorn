@@ -53,25 +53,22 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 # SCOPES
-ASGIDict = TypedDict(
-    "ASGIDict", {"version": str, "spec_version": Union[Literal["2.0"], Literal["2.1"]]}
-)
+class ASGIDict(TypedDict):
+    version: str
+    spec_version: Union[Literal["2.0"], Literal["2.1"]]
 
-BaseConnectionScope = TypedDict(
-    "BaseConnectionScope",
-    {
-        "asgi": ASGIDict,
-        "http_version": Union[Literal["1.0"], Literal["1.1"], Literal["2"]],
-        "scheme": str,
-        "path": str,
-        "raw_path": bytes,
-        "query_string": bytes,
-        "root_path": str,
-        "headers": Sequence[Tuple[bytes, bytes]],
-        "client": Optional[Tuple[str, int]],
-        "server": Optional[Tuple[str, int]],
-    },
-)
+
+class BaseConnectionScope(TypedDict):
+    asgi: ASGIDict
+    http_version: Union[Literal["1.0"], Literal["1.1"], Literal["2"]]
+    scheme: str
+    path: str
+    raw_path: bytes
+    query_string: bytes
+    root_path: str
+    headers: Sequence[Tuple[bytes, bytes]]
+    client: Optional[Tuple[str, int]]
+    server: Optional[Tuple[str, int]]
 
 
 class HTTPConnectionScope(BaseConnectionScope):
@@ -88,62 +85,74 @@ Scope = Union[HTTPConnectionScope, WSConnectionScope]
 
 # HTTP messages
 # receive
-HTTPReceiveRequest = TypedDict(
-    "HTTPReceiveRequest",
-    {"type": Literal["http.request"], "body": bytes, "more_body": bool},
-)
-HTTPReceiveDisconnect = TypedDict(
-    "HTTPReceiveDisconnect", {"type": Literal["http.disconnect"]}
-)
+
+
+class HTTPReceiveRequest(TypedDict):
+    type: Literal["http.request"]
+    body: bytes
+    more_body: bool
+
+
+class HTTPReceiveDisconnect(TypedDict):
+    type: Literal["http.disconnect"]
+
+
 HTTPReceiveMessage = Union[HTTPReceiveRequest, HTTPReceiveDisconnect]
 
 # send
-HTTPSendResponseStart = TypedDict(
-    "HTTPSendResponseStart",
-    {
-        "type": Literal["http.response.start"],
-        "status": int,
-        "headers": List[Tuple[bytes, bytes]],
-    },
-)
-HTTPSendResponseBody = TypedDict(
-    "HTTPSendResponseBody",
-    {"type": Literal["http.response.body"], "body": bytes, "more_body": bool},
-)
+
+
+class HTTPSendResponseStart(TypedDict):
+    type: Literal["http.response.start"]
+    status: int
+    headers: List[Tuple[bytes, bytes]]
+
+
+class HTTPSendResponseBody(TypedDict):
+    type: Literal["http.response.body"]
+    body: bytes
+    more_body: bool
+
 
 HTTPSendMessage = Union[HTTPSendResponseBody, HTTPSendResponseStart]
 
 
 # WS messages
 # receive
-WSReceiveConnect = TypedDict("WSReceiveConnect", {"type": Literal["websocket.connect"]})
-WSReceive = TypedDict(
-    "WSReceive",
-    {
-        "type": Literal["websocket.receive"],
-        "bytes": Optional[bytes],
-        "text": Optional[str],
-    },
-)
-WSReceiveDisconnect = TypedDict(
-    "WSReceiveDisconnect", {"type": Literal["websocket.disconnect"], "code": int}
-)
+class WSReceiveConnect(TypedDict):
+    type: Literal["websocket.connect"]
+
+
+class WSReceive(TypedDict):
+    type: Literal["websocket.receive"]
+    bytes: Optional[bytes]
+    text: Optional[str]
+
+
+class WSReceiveDisconnect(TypedDict):
+    type: Literal["websocket.disconnect"]
+    code: int
+
+
 WSReceiveMessage = Union[WSReceiveConnect, WSReceive, WSReceiveDisconnect]
 
 # send
-WSSendAccept = TypedDict(
-    "WSSendAccept",
-    {
-        "type": Literal["websocket.accept"],
-        "subprotocol": Optional[Subprotocol],
-        "headers": Sequence[Tuple[bytes, bytes]],
-    },
-)
+
+
+class WSSendAccept(TypedDict):
+    type: Literal["websocket.accept"]
+    subprotocol: Optional[Subprotocol]
+    headers: Sequence[Tuple[bytes, bytes]]
+
 
 WSSend = TypedDict("WSSend", {"type": Literal["websocket.disconnect"], "code": int})
-WSSendClose = TypedDict(
-    "WSSendClose", {"type": Literal["websocket.close"], "code": int}
-)
+
+
+class WSSendClose(TypedDict):
+    type: Literal["websocket.close"]
+    code: int
+
+
 WSSendMessage = Union[WSSendAccept, WSSend, WSSendClose]
 
 # ALL messages
