@@ -1,15 +1,8 @@
 import sys
-from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 if sys.version_info < (3, 8):
-    if TYPE_CHECKING:
-        from typing_extensions import Literal, TypedDict
-    else:  # due to different mypy warnings raised during CI for python 3.7 and 3.8
-        try:
-            from typing_extensions import Literal, TypedDict
-        except ImportError:
-            Literal = None
-            TypedDict = None
+    from typing_extensions import Literal, TypedDict
 else:
     from typing import Literal
     from typing import TypedDict
