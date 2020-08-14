@@ -8,9 +8,7 @@ export SOURCE_FILES="uvicorn tests"
 
 set -x
 
-TEMP_MYPY="uvicorn/lifespan tests/test_lifespan.py"
-
 ${PREFIX}black --check --diff --target-version=py36 $SOURCE_FILES
 ${PREFIX}flake8 $SOURCE_FILES
-${PREFIX}mypy $TEMP_MYPY
+${PREFIX}mypy
 ${PREFIX}isort --check --diff --project=uvicorn $SOURCE_FILES
