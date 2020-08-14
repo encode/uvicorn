@@ -77,7 +77,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 body_bytes = body
             return {"type": "http.request", "body": body_bytes}
 
-        raw_kwargs = {"body": io.BytesIO()}
+        raw_kwargs: typing.Dict[str, typing.Any] = {"body": io.BytesIO()}
         response_started = False
 
         async def send(message: HTTPSendMessage):
@@ -124,7 +124,8 @@ class _TestClient(requests.Session):
         self.headers.update({"user-agent": "testclient"})
         self.base_url = base_url
 
-    def request(self, method: str, url: str, **kwargs) -> requests.Response:
+    def request(self, *args, **kwargs) -> requests.Response:
+        method, url = args
         url = urljoin(self.base_url, url)
         return super().request(method, url, **kwargs)
 
