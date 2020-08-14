@@ -72,8 +72,10 @@ class WSSendAccept(TypedDict):
 
 
 class WSSend(TypedDict):
-    type: Literal["websocket.disconnect"]
-    code: int
+    type: Literal["websocket.send"]
+    bytes: Optional[bytes]
+    text: Optional[str]
+
 
 
 class WSSendClose(TypedDict):
