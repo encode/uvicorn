@@ -44,7 +44,10 @@ class LifespanOn:
     async def main(self):
         try:
             app = self.config.loaded_app
-            scope = {"type": "lifespan"}
+            scope = {
+                "type": "lifespan",
+                "asgi": {"version": self.config.asgi_version, "spec_version": "2.0"},
+            }
             await app(scope, self.receive, self.send)
         except BaseException as exc:
             self.asgi = None
