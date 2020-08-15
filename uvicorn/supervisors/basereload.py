@@ -5,7 +5,7 @@ import threading
 
 import click
 
-from uvicorn.subprocess import get_subprocess, shutdown_subprocess
+from uvicorn.subprocess import get_subprocess
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -22,19 +22,12 @@ class BaseReload:
         self.sockets = sockets
         self.should_exit = threading.Event()
         self.pid = os.getpid()
-        self.process = None
         self.reloader_name = None
 
     def signal_handler(self, sig, frame):
         """
         A signal handler that is registered with the parent process.
         """
-        if self.process is not None:
-            try:
-                shutdown_subprocess(self.process.pid)
-            except Exception as exc:
-                logger.error(f"Could not stop child process {self.process.pid}: {exc}")
-
         self.should_exit.set()
 
     def run(self):

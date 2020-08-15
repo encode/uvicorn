@@ -5,7 +5,7 @@ import threading
 
 import click
 
-from uvicorn.subprocess import get_subprocess, shutdown_subprocess
+from uvicorn.subprocess import get_subprocess
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -28,13 +28,6 @@ class Multiprocess:
         """
         A signal handler that is registered with the parent process.
         """
-
-        for process in self.processes:
-            try:
-                shutdown_subprocess(process.pid)
-            except Exception as exc:
-                logger.error(f"Could not stop child process {process.pid}: {exc}")
-
         self.should_exit.set()
 
     def run(self):
