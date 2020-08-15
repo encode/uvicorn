@@ -1,130 +1,87 @@
 import sys
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Union
 
 if sys.version_info < (3, 8):
     from typing_extensions import Literal, TypedDict
 else:
-    from typing import Literal
-    from typing import TypedDict
+    from typing import Literal, TypedDict
 
-from websockets import Subprotocol
-
-# HTTP messages
-# receive
+# SCOPES
 
 
-class HTTPReceiveRequest(TypedDict):
+class ASGIDict(TypedDict):
+    version: str
+    spec_version: Optional[Union[Literal["2.0"], Literal["2.1"]]]
+
+
+class LifespanScope(TypedDict):
     """
-    https://asgi.readthedocs.io/en/latest/specs/www.html#request-receive-event
-    """
-
-    type: Literal["http.request"]
-    body: Optional[bytes]
-    more_body: Optional[bool]
-
-
-class HTTPReceiveDisconnect(TypedDict):
-    """
-    https://asgi.readthedocs.io/en/latest/specs/www.html#disconnect-receive-event
+    https://asgi.readthedocs.io/en/latest/specs/lifespan.html#scope
     """
 
-    type: Literal["http.disconnect"]
+    type: Literal["lifespan"]
+    asgi: ASGIDict
 
 
-HTTPReceiveMessage = Union[HTTPReceiveRequest, HTTPReceiveDisconnect]
-
-# send
-
-
-class HTTPSendResponseStart(TypedDict):
+# lifespan messages receive
+class LifespanReceiveStartup(TypedDict):
     """
-    https://asgi.readthedocs.io/en/latest/specs/www.html#response-start-send-event
+    https://asgi.readthedocs.io/en/latest/specs/lifespan.html#startup-receive-event
     """
 
-    type: Literal["http.response.start"]
-    status: int
-    headers: Optional[List[Tuple[bytes, bytes]]]
+    type: Literal["lifespan.startup"]
 
 
-class HTTPSendResponseBody(TypedDict):
+class LifeSpanReceiveShutdown(TypedDict):
     """
-    https://asgi.readthedocs.io/en/latest/specs/www.html#response-body-send-event
+    https://asgi.readthedocs.io/en/latest/specs/lifespan.html#shutdown-receive-event
     """
 
-    type: Literal["http.response.body"]
-    body: Optional[bytes]
-    more_body: Optional[bool]
+    type: Literal["lifespan.shutdown"]
 
 
-HTTPSendMessage = Union[HTTPSendResponseBody, HTTPSendResponseStart]
+LifespanReceiveMessage = Union[LifespanReceiveStartup, LifeSpanReceiveShutdown]
+
+# lifespan messages send
 
 
-# WS messages
-# receive
-class WSReceiveConnect(TypedDict):
+class LifespanSendStartupComplete(TypedDict):
     """
-    https://asgi.readthedocs.io/en/latest/specs/www.html#connect-receive-event
+    https://asgi.readthedocs.io/en/latest/specs/lifespan.html#startup-complete-send-event
     """
 
-    type: Literal["websocket.connect"]
+    type: Literal["lifespan.startup.complete"]
 
 
-class WSReceive(TypedDict):
+class LifespanSendStartupFailed(TypedDict):
     """
-    https://asgi.readthedocs.io/en/latest/specs/www.html#receive-receive-event
-    """
-
-    type: Literal["websocket.receive"]
-    bytes: Optional[bytes]
-    text: Optional[str]
-
-
-class WSReceiveDisconnect(TypedDict):
-    """
-    yeah I know this link looks off but it is the one !
-    https://asgi.readthedocs.io/en/latest/specs/www.html#id2
+    https://asgi.readthedocs.io/en/latest/specs/lifespan.html#startup-failed-send-event
     """
 
-    type: Literal["websocket.disconnect"]
-    code: int
+    type: Literal["lifespan.startup.failed"]
+    message: Optional[str]
 
 
-WSReceiveMessage = Union[WSReceiveConnect, WSReceive, WSReceiveDisconnect]
-
-# send
-
-
-class WSSendAccept(TypedDict):
+class LifespanSendShutdownComplete(TypedDict):
     """
-    https://asgi.readthedocs.io/en/latest/specs/www.html#accept-send-event
+    https://asgi.readthedocs.io/en/latest/specs/lifespan.html#shutdown-complete-send-event
     """
 
-    type: Literal["websocket.accept"]
-    subprotocol: Optional[Subprotocol]
-    headers: Optional[List[Tuple[bytes, bytes]]]
+    type: Literal["lifespan.shutdown.complete"]
 
 
-class WSSend(TypedDict):
+class LifespanSendShutdownFailed(TypedDict):
     """
-    https://asgi.readthedocs.io/en/latest/specs/www.html#send-send-event
+    https://asgi.readthedocs.io/en/latest/specs/lifespan.html#shutdown-failed-send-event
     """
 
-    type: Literal["websocket.send"]
-    bytes: Optional[bytes]
-    text: Optional[str]
+    type: Literal["lifespan.shutdown.failed"]
+    message: Optional[str]
 
 
-class WSSendClose(TypedDict):
-    """
-    https://asgi.readthedocs.io/en/latest/specs/www.html#close-send-event
-    """
-
-    type: Literal["websocket.close"]
-    code: int
-
-
-WSSendMessage = Union[WSSendAccept, WSSend, WSSendClose]
-
-# ALL messages
-ReceiveMessage = Union[HTTPReceiveMessage, WSReceiveMessage]
-SendMessage = Union[HTTPSendMessage, WSSendMessage]
+LifespanSendMessage = Union[
+    LifespanSendStartupComplete,
+    LifespanSendStartupFailed,
+    LifespanSendShutdownComplete,
+    LifespanSendShutdownFailed,
+]

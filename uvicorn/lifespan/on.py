@@ -3,7 +3,7 @@ import logging
 from asyncio import Queue
 
 from uvicorn import Config
-from uvicorn._types import ReceiveMessage, SendMessage
+from uvicorn._types import LifespanReceiveMessage, LifespanScope, LifespanSendMessage
 
 STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
 
@@ -48,7 +48,10 @@ class LifespanOn:
     async def main(self) -> None:
         try:
             app = self.config.loaded_app
-            scope = {"type": "lifespan"}
+            scope: LifespanScope = {
+                "type": "lifespan",
+                "asgi": {"version": self.config.asgi_version, "spec_version": "2.0"},
+            }
             await app(scope, self.receive, self.send)
         except BaseException as exc:
             self.asgi = None
@@ -65,7 +68,7 @@ class LifespanOn:
             self.startup_event.set()
             self.shutdown_event.set()
 
-    async def send(self, message: SendMessage) -> None:
+    async def send(self, message: LifespanSendMessage) -> None:
         assert message["type"] in (
             "lifespan.startup.complete",
             "lifespan.startup.failed",
@@ -90,5 +93,5 @@ class LifespanOn:
             assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR
             self.shutdown_event.set()
 
-    async def receive(self) -> ReceiveMessage:
+    async def receive(self) -> LifespanReceiveMessage:
         return await self.receive_queue.get()
