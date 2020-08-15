@@ -20,6 +20,7 @@ class LifespanOn:
         self.receive_queue: "Queue[LifespanReceiveMessage]" = asyncio.Queue()
         self.error_occured = False
         self.startup_failed = False
+        self.shutdown_failed = False
         self.should_exit = False
 
     async def startup(self) -> None:
@@ -43,7 +44,14 @@ class LifespanOn:
         self.logger.info("Waiting for application shutdown.")
         await self.receive_queue.put({"type": "lifespan.shutdown"})
         await self.shutdown_event.wait()
-        self.logger.info("Application shutdown complete.")
+
+        if self.shutdown_failed or (
+            self.error_occured and self.config.lifespan == "on"
+        ):
+            self.logger.error("Application shutdown failed. Exiting.")
+            self.should_exit = True
+        else:
+            self.logger.info("Application shutdown complete.")
 
     async def main(self) -> None:
         try:
@@ -56,7 +64,7 @@ class LifespanOn:
         except BaseException as exc:
             self.asgi = None
             self.error_occured = True
-            if self.startup_failed:
+            if self.startup_failed or self.shutdown_failed:
                 return
             if self.config.lifespan == "auto":
                 msg = "ASGI 'lifespan' protocol appears unsupported."
@@ -73,6 +81,7 @@ class LifespanOn:
             "lifespan.startup.complete",
             "lifespan.startup.failed",
             "lifespan.shutdown.complete",
+            "lifespan.shutdown.failed",
         )
 
         if message["type"] == "lifespan.startup.complete":
@@ -92,6 +101,14 @@ class LifespanOn:
             assert self.startup_event.is_set(), STATE_TRANSITION_ERROR
             assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR
             self.shutdown_event.set()
+
+        elif message["type"] == "lifespan.shutdown.failed":
+            assert self.startup_event.is_set(), STATE_TRANSITION_ERROR
+            assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR
+            self.shutdown_event.set()
+            self.shutdown_failed = True
+            if message.get("message"):
+                self.logger.error(message["message"])
 
     async def receive(self) -> LifespanReceiveMessage:
         return await self.receive_queue.get()
