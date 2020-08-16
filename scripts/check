@@ -10,4 +10,5 @@ set -x
 
 ${PREFIX}black --check --diff --target-version=py36 $SOURCE_FILES
 ${PREFIX}flake8 $SOURCE_FILES
+${PREFIX}mypy
 ${PREFIX}isort --check --diff --project=uvicorn $SOURCE_FILES
