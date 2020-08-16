@@ -1,5 +1,5 @@
 import sys
-from typing import Optional, Union
+from typing import Optional
 
 if sys.version_info < (3, 8):
     from typing_extensions import Literal, TypedDict
@@ -9,7 +9,7 @@ else:
 
 class ASGISpecInfo(TypedDict):
     version: str
-    spec_version: Optional[Union[Literal["2.0"], Literal["2.1"]]]
+    spec_version: Optional[Literal["2.0", "2.1"]]
 
 
 class LifespanScope(TypedDict):
