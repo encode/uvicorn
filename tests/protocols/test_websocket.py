@@ -293,6 +293,7 @@ def test_send_after_protocol_close(protocol_cls):
             await self.send({"type": "websocket.accept"})
             await self.send({"type": "websocket.send", "text": "123"})
             await self.send({"type": "websocket.close"})
+            assert False
             with pytest.raises(Exception):
                 await self.send({"type": "websocket.send", "text": "123"})
 
