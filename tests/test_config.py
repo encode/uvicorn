@@ -100,7 +100,7 @@ def asgi2_app(scope):
 
 
 @pytest.mark.parametrize(
-    "app, expected_interface", [(asgi_app, "3.0",), (asgi2_app, "2.0",)]
+    "app, expected_interface", [(asgi_app, "3.0"), (asgi2_app, "2.0")]
 )
 def test_asgi_version(app, expected_interface):
     config = Config(app=app)
@@ -119,14 +119,15 @@ def test_asgi_version(app, expected_interface):
 )
 def test_log_config_default(mocked_logging_config_module, use_colors, expected):
     """
-    Test that one can specify the use_colors option when using the default logging config.
+    Test that one can specify the use_colors option when using the default logging
+    config.
     """
     config = Config(app=asgi_app, use_colors=use_colors)
     config.load()
 
     mocked_logging_config_module.dictConfig.assert_called_once_with(LOGGING_CONFIG)
 
-    (provided_dict_config,), _ = mocked_logging_config_module.dictConfig.call_args
+    ((provided_dict_config,), _,) = mocked_logging_config_module.dictConfig.call_args
     assert provided_dict_config["formatters"]["default"]["use_colors"] == expected
 
 
@@ -171,4 +172,6 @@ def test_log_config_file(mocked_logging_config_module):
     config = Config(app=asgi_app, log_config="log_config")
     config.load()
 
-    mocked_logging_config_module.fileConfig.assert_called_once_with("log_config")
+    mocked_logging_config_module.fileConfig.assert_called_once_with(
+        "log_config", disable_existing_loggers=False
+    )

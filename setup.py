@@ -46,7 +46,7 @@ env_marker_below_38 = "python_version < '3.8'"
 minimal_requirements = [
     "click==7.*",
     "h11>=0.8,<0.10",
-    "typing-extensions;" + env_marker_below_38
+    "typing-extensions;" + env_marker_below_38,
 ]
 
 extra_requirements = [
@@ -56,6 +56,7 @@ extra_requirements = [
     "colorama>=0.4.*;" + env_marker_win,
     "watchgod>=0.6,<0.7",
     "python-dotenv==0.13.*",
+    "PyYAML>=5.1",
 ]
 
 
