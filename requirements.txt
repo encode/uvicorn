@@ -9,6 +9,7 @@ websockets==8.*
 wsproto==0.15.*
 watchgod>=0.6,<0.7
 python_dotenv==0.13.*
+PyYAML>=5.1
 
 # Packaging
 twine
@@ -22,6 +23,7 @@ flake8
 isort
 pytest
 pytest-cov
+pytest-mock
 requests
 seed-isort-config
 mypy

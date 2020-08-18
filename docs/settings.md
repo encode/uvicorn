@@ -33,10 +33,12 @@ $ pip install uvicorn[watchgodreload]
 
 ## Logging
 
-* `--log-config <path>` - Logging configuration file.
+* `--log-config <path>` - Logging configuration file. **Options:** *`dictConfig()` formats: .json, .yaml*. Any other format will be processed with `fileConfig()`. Set the `formatters.default.use_colors` and `formatters.access.use_colors` values to override the auto-detected behavior.
+    * If you wish to use a YAML file for your logging config, you will need to include PyYAML as a dependency for your project or install uvicorn with the `[standard]` optional extras.
 * `--log-level <str>` - Set the log level. **Options:** *'critical', 'error', 'warning', 'info', 'debug', 'trace'.* **Default:** *'info'*.
 * `--no-access-log` - Disable access log only, without changing log level.
-* `--use-colors / --no-use-colors` - Enable / disable colorized formatting of the log records, in case this is not set it will be auto-detected.
+* `--use-colors / --no-use-colors` - Enable / disable colorized formatting of the log records, in case this is not set it will be auto-detected. This option is ignored if the `--log-config` CLI option is used.
+
 
 ## Implementation
 

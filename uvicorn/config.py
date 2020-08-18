@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import json
 import logging
 import logging.config
 import os
@@ -9,6 +10,14 @@ import sys
 from typing import List, Tuple
 
 import click
+
+try:
+    import yaml
+except ImportError:
+    # If the code below that depends on yaml is exercised, it will raise a NameError.
+    # Install the PyYAML package or the uvicorn[standard] optional dependencies to
+    # enable this functionality.
+    pass
 
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
@@ -221,7 +230,17 @@ class Config:
                         "use_colors"
                     ] = self.use_colors
                 logging.config.dictConfig(self.log_config)
+            elif self.log_config.endswith(".json"):
+                with open(self.log_config) as file:
+                    loaded_config = json.load(file)
+                    logging.config.dictConfig(loaded_config)
+            elif self.log_config.endswith(".yaml"):
+                with open(self.log_config) as file:
+                    loaded_config = yaml.safe_load(file)
+                    logging.config.dictConfig(loaded_config)
             else:
+                # See the note about fileConfig() here:
+                # https://docs.python.org/3/library/logging.config.html#configuration-file-format
                 logging.config.fileConfig(
                     self.log_config, disable_existing_loggers=False
                 )
