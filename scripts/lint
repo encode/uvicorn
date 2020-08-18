@@ -4,9 +4,11 @@ export PREFIX=""
 if [ -d 'venv' ] ; then
     export PREFIX="venv/bin/"
 fi
+export SOURCE_FILES="uvicorn tests"
 
 set -x
 
-${PREFIX}autoflake --in-place --recursive uvicorn tests
-${PREFIX}black uvicorn tests
-${PREFIX}isort --multi-line=3 --trailing-comma --force-grid-wrap=0 --combine-as --line-width 88 --recursive --apply uvicorn tests
+${PREFIX}autoflake --in-place --recursive $SOURCE_FILES
+${PREFIX}seed-isort-config --application-directories=uvicorn
+${PREFIX}isort --project=uvicorn $SOURCE_FILES
+${PREFIX}black --target-version=py36 $SOURCE_FILES

@@ -1,14 +1,18 @@
-#!/bin/sh -e
+#!/bin/sh
 
 export PREFIX=""
 if [ -d 'venv' ] ; then
     export PREFIX="venv/bin/"
 fi
 
-set -x
+set -ex
 
-PYTHONPATH=. ${PREFIX}pytest --ignore venv --cov=uvicorn --cov=tests --cov-report=term-missing ${@}
-${PREFIX}coverage html
-${PREFIX}autoflake --recursive uvicorn tests
-${PREFIX}flake8 uvicorn tests --ignore=W503,E203,E501,E731
-${PREFIX}black uvicorn tests --check
+if [ -z $GITHUB_ACTIONS ]; then
+    scripts/check
+fi
+
+${PREFIX}pytest $@
+
+if [ -z $GITHUB_ACTIONS ]; then
+    scripts/coverage
+fi

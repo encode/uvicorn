@@ -13,10 +13,10 @@ test_logging_config = {
     "disable_existing_loggers": False,
     "formatters": {
         "test_formatter_default": {
-            "format": "[TEST_DEFAULT] %(levelname)-9s %(name)s - %(lineno)d - %(message)s"
+            "format": "[TEST_DEFAULT] %(levelname)-9s %(name)s - %(lineno)d - %(message)s"  # noqa: E501
         },
         "test_formatter_access": {
-            "format": "[TEST_ACCESS] %(levelname)-9s %(name)s - %(lineno)d - %(message)s"
+            "format": "[TEST_ACCESS] %(levelname)-9s %(name)s - %(lineno)d - %(message)s"  # noqa: E501
         },
         "test_formatter_asgi": {
             "format": "[TEST_ASGI] %(levelname)-9s %(name)s - %(lineno)d - %(message)s"

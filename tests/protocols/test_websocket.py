@@ -14,6 +14,7 @@ from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 try:
     import websockets
+
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 except ImportError:  # pragma: nocover
     websockets = None
@@ -78,8 +79,8 @@ def run_server(app, protocol_cls, path="/"):
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_invalid_upgrade(protocol_cls):
-
-    app = lambda scope: None
+    def app(scope):
+        return None
 
     with run_server(app, protocol_cls=protocol_cls) as url:
         url = url.replace("ws://", "http://")
@@ -95,8 +96,10 @@ def test_invalid_upgrade(protocol_cls):
                 "missing sec-websocket-key header",
                 "missing sec-websocket-version header",  # websockets
                 "missing or empty sec-websocket-key header",  # wsproto
-                "failed to open a websocket connection: missing sec-websocket-key header",
-                "failed to open a websocket connection: missing or empty sec-websocket-key header",
+                "failed to open a websocket connection: missing "
+                "sec-websocket-key header",
+                "failed to open a websocket connection: missing or empty "
+                "sec-websocket-key header",
             ]
 
 

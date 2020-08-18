@@ -144,3 +144,40 @@ def test_lifespan_with_failed_startup(mode, raise_exception):
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+
+
+@pytest.mark.parametrize("mode", ("auto", "on"))
+def test_lifespan_scope_asgi3app(mode):
+    async def asgi3app(scope, receive, send):
+        assert scope == {"version": "3.0", "spec_version": "2.0"}
+
+    async def test():
+        config = Config(app=asgi3app, lifespan=mode)
+        lifespan = LifespanOn(config)
+
+        await lifespan.startup()
+        await lifespan.shutdown()
+
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(test())
+
+
+@pytest.mark.parametrize("mode", ("auto", "on"))
+def test_lifespan_scope_asgi2app(mode):
+    def asgi2app(scope):
+        assert scope == {"version": "2.0", "spec_version": "2.0"}
+
+        async def asgi(receive, send):
+            pass
+
+        return asgi
+
+    async def test():
+        config = Config(app=asgi2app, lifespan=mode)
+        lifespan = LifespanOn(config)
+
+        await lifespan.startup()
+        await lifespan.shutdown()
+
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(test())
