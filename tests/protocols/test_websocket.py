@@ -469,7 +469,7 @@ def test_subprotocols(protocol_cls, subprotocol):
 
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
-def test_server_lost_connection(protocol_cls):
+def test_server_lost_connection(protocol_cls, reraise):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.accept"})
@@ -479,10 +479,8 @@ def test_server_lost_connection(protocol_cls):
             # without receiving a close frame
             self.send.__self__.connection_lost(None)
 
-            with pytest.raises(Exception) as exc:
+            with reraise:
                 await self.send({"type": "websocket.send", "text": "123"})
-
-            assert exc.value.code == 1006
 
     async def websocket_session(url):
         async with websockets.connect(url) as websocket:

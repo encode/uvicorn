@@ -4,6 +4,7 @@ import logging
 from urllib.parse import unquote
 
 import websockets
+from websockets import ConnectionClosedError
 
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
@@ -212,8 +213,11 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 bytes_data = message.get("bytes")
                 text_data = message.get("text")
                 data = text_data if bytes_data is None else bytes_data
-                await self.send(data)
-
+                try:
+                    await self.send(data)
+                except ConnectionClosedError as exc:
+                    self.logger.error(exc.args[0])
+                    self.closed_event.set()
             elif message_type == "websocket.close":
                 code = message.get("code", 1000)
                 await self.close(code)
