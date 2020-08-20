@@ -24,6 +24,7 @@ isort
 pytest
 pytest-cov
 pytest-mock
+pytest-reraise
 requests
 seed-isort-config
 mypy
