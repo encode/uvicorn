@@ -490,8 +490,7 @@ def test_server_lost_connection(protocol_cls, reraise):
             # to avoid sending a close frame before server attempts send
             await asyncio.sleep(1)
 
-    if protocol_cls is WebSocketProtocol:
-        with run_server(App, protocol_cls=protocol_cls) as url:
-            loop = asyncio.new_event_loop()
-            loop.run_until_complete(websocket_session(url))
-            loop.close()
+    with run_server(App, protocol_cls=protocol_cls) as url:
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(websocket_session(url))
+        loop.close()
