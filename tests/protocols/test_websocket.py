@@ -7,11 +7,13 @@ from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 try:
     import websockets
+    from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
 
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 except ImportError:  # pragma: nocover
     websockets = None
     WebSocketProtocol = None
+    ClientPerMessageDeflateFactory = None
 
 
 WS_PROTOCOLS = [p for p in [WSProtocol, WebSocketProtocol] if p is not None]
@@ -85,6 +87,24 @@ async def test_accept_connection(protocol_cls):
     async with run_server(config):
         is_open = await open_connection("ws://127.0.0.1:8000")
         assert is_open
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
+async def test_supports_permessage_deflate_extension(protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+    async def open_connection(url):
+        extension_factories = [ClientPerMessageDeflateFactory()]
+        async with websockets.connect(url, extensions=extension_factories) as websocket:
+            return [extension.name for extension in websocket.extensions]
+
+    config = Config(app=App, ws=protocol_cls, lifespan="off")
+    async with run_server(config):
+        extension_names = await open_connection("ws://127.0.0.1:8000")
+        assert "permessage-deflate" in extension_names
 
 
 @pytest.mark.asyncio
