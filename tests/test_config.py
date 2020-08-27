@@ -127,7 +127,10 @@ def test_log_config_default(mocked_logging_config_module, use_colors, expected):
 
     mocked_logging_config_module.dictConfig.assert_called_once_with(LOGGING_CONFIG)
 
-    ((provided_dict_config,), _,) = mocked_logging_config_module.dictConfig.call_args
+    (
+        (provided_dict_config,),
+        _,
+    ) = mocked_logging_config_module.dictConfig.call_args
     assert provided_dict_config["formatters"]["default"]["use_colors"] == expected
 
 
