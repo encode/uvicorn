@@ -25,7 +25,6 @@ pytest
 pytest-cov
 pytest-mock
 requests
-seed-isort-config
 mypy
 
 # Documentation
