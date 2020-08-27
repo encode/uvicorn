@@ -696,7 +696,7 @@ asgi_scope_data = [
 @pytest.mark.parametrize("asgi2or3_app, expected_scopes", asgi_scope_data)
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_scopes(asgi2or3_app, expected_scopes, protocol_cls):
-    protocol = get_connected_protocol(asgi2or3_app, protocol_cls,)
+    protocol = get_connected_protocol(asgi2or3_app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert expected_scopes == protocol.scope.get("asgi")
