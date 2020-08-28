@@ -250,7 +250,6 @@ class Config:
                 log_level = LOG_LEVELS[self.log_level]
             else:
                 log_level = self.log_level
-            logging.getLogger("").setLevel(log_level)
             logging.getLogger("uvicorn.error").setLevel(log_level)
             logging.getLogger("uvicorn.access").setLevel(log_level)
             logging.getLogger("uvicorn.asgi").setLevel(log_level)
