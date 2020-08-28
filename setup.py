@@ -45,7 +45,7 @@ env_marker_below_38 = "python_version < '3.8'"
 
 minimal_requirements = [
     "click==7.*",
-    "h11>=0.8,<0.10",
+    "h11>=0.8,<0.11",
     "typing-extensions;" + env_marker_below_38,
 ]
 
