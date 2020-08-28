@@ -1,5 +1,21 @@
 # Change Log
 
+## 0.11.9 - 2020-08-28
+
+### Added
+- Allow .json or .yaml --log-config files (#665) 8/18/20 093a1f7c
+- Added asgi dict to the lifespan scope (#754) 8/15/20 8150c3eb
+- Upgrade wsproto to 0.15.0 (#750) 8/13/20 fbce393f
+- Use optional package installs (#666) 8/10/20 5fa99a11
+
+### Changed
+- Dont set log level for root logger (#767) 8/28/20 df81b168
+
+### Fixed
+- Revert "Improve shutdown robustness when using `--reload` or multiprocessing (#620)" (#756) 8/28/20 ff4af12d
+- Fix terminate error in windows (#744) 8/27/20 dd3b842d
+- Fixes bug where --log-config disables uvicorn loggers (#512) 8/11/20 a9c37cc4
+
 ## 0.11.8 - 2020-07-30
 
 * Fix a regression that caused Uvicorn to crash when using `--interface=wsgi`. (Pull #730)
