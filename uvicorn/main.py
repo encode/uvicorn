@@ -89,6 +89,13 @@ def print_version(ctx, param, value):
     " directory.",
 )
 @click.option(
+    "--reload-delay",
+    type=float,
+    default=0.25,
+    show_default=True,
+    help="Delay between previous and next check if application needs to be. Defaults to 0.25s.",
+)
+@click.option(
     "--workers",
     default=None,
     type=int,

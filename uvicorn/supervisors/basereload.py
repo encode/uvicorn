@@ -32,9 +32,10 @@ class BaseReload:
 
     def run(self):
         self.startup()
-        while not self.should_exit.wait(0.25):
+        while not self.should_exit.wait(self.config.reload_delay):
             if self.should_restart():
                 self.restart()
+
         self.shutdown()
 
     def startup(self):
