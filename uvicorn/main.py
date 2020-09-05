@@ -93,7 +93,8 @@ def print_version(ctx, param, value):
     type=float,
     default=0.25,
     show_default=True,
-    help="Delay between previous and next check if application needs to be. Defaults to 0.25s.",
+    help="Delay between previous and next check if application needs to be."
+    " Defaults to 0.25s.",
 )
 @click.option(
     "--workers",
@@ -290,6 +291,7 @@ def main(
     debug: bool,
     reload: bool,
     reload_dirs: typing.List[str],
+    reload_delay: float,
     workers: int,
     env_file: str,
     log_config: str,
@@ -332,6 +334,7 @@ def main(
         "debug": debug,
         "reload": reload,
         "reload_dirs": reload_dirs if reload_dirs else None,
+        "reload_delay": reload_delay,
         "workers": workers,
         "proxy_headers": proxy_headers,
         "forwarded_allow_ips": forwarded_allow_ips,
