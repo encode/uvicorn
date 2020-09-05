@@ -5,7 +5,7 @@
 ### Added
 - Upgrade maximum h11 dependency version to 0.10 (#772) 8/28/20 54d729cc
 - Allow .json or .yaml --log-config files (#665) 8/18/20 093a1f7c
-- Added asgi dict to the lifespan scope (#754) 8/15/20 8150c3eb
+- Add ASGI dict to the lifespan scope (#754) 8/15/20 8150c3eb
 - Upgrade wsproto to 0.15.0 (#750) 8/13/20 fbce393f
 - Use optional package installs (#666) 8/10/20 5fa99a11
 
