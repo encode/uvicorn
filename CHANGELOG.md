@@ -15,7 +15,7 @@
 ### Fixed
 - Revert "Improve shutdown robustness when using `--reload` or multiprocessing (#620)" (#756) 8/28/20 ff4af12d
 - Fix terminate error in windows (#744) 8/27/20 dd3b842d
-- Fixes bug where --log-config disables uvicorn loggers (#512) 8/11/20 a9c37cc4
+- Fix bug where --log-config disables uvicorn loggers (#512) 8/11/20 a9c37cc4
 
 ## 0.11.8 - 2020-07-30
 
