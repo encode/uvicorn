@@ -1,6 +1,6 @@
 # Change Log
 
-## 0.11.9 - 2020-08-28
+## 0.11.9 - 2020-09-07
 
 ### Added
 - Upgrade maximum h11 dependency version to 0.10 (#772) 8/28/20 54d729cc
