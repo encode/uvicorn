@@ -116,7 +116,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.pipeline = []
 
         # Per-request state
-        self.url = None
+        self.url = b""
         self.scope = None
         self.headers = None
         self.expect_100_continue = False
@@ -206,14 +206,9 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.transport.set_protocol(protocol)
 
     # Parser callbacks
-    def on_url(self, url):
+    def on_message_begin(self):
+        self.url = b""
         method = self.parser.get_method()
-        parsed_url = httptools.parse_url(url)
-        raw_path = parsed_url.path
-        path = raw_path.decode("ascii")
-        if "%" in path:
-            path = urllib.parse.unquote(path)
-        self.url = url
         self.expect_100_continue = False
         self.headers = []
         self.scope = {
@@ -225,11 +220,11 @@ class HttpToolsProtocol(asyncio.Protocol):
             "scheme": self.scheme,
             "method": method.decode("ascii"),
             "root_path": self.root_path,
-            "path": path,
-            "raw_path": raw_path,
-            "query_string": parsed_url.query if parsed_url.query else b"",
             "headers": self.headers,
         }
+
+    def on_url(self, url):
+        self.url += url
 
     def on_header(self, name: bytes, value: bytes):
         name = name.lower()
@@ -243,6 +238,16 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.scope["http_version"] = http_version
         if self.parser.should_upgrade():
             return
+
+        # Handle finished URL
+        parsed_url = httptools.parse_url(self.url)
+        raw_path = parsed_url.path
+        path = raw_path.decode("ascii")
+        if "%" in path:
+            path = urllib.parse.unquote(path)
+        self.scope["path"] = path
+        self.scope["raw_path"] = raw_path
+        self.scope["query_string"] = parsed_url.query if parsed_url.query else b""
 
         # Handle 503 responses when 'limit_concurrency' is exceeded.
         if self.limit_concurrency is not None and (
