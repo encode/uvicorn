@@ -103,11 +103,7 @@ logger = logging.getLogger("uvicorn.error")
 
 def create_ssl_context(certfile, keyfile, password, ssl_version, cert_reqs, ca_certs, ciphers):
     ctx = ssl.SSLContext(ssl_version)
-    if password:
-        getpassword = lambda _: password
-        ctx.load_cert_chain(certfile, keyfile, getpassword)
-    else:
-        ctx.load_cert_chain(certfile, keyfile)
+    ctx.load_cert_chain(certfile, keyfile)
     ctx.verify_mode = cert_reqs
     if ca_certs:
         ctx.load_verify_locations(ca_certs)
@@ -270,7 +266,6 @@ class Config:
             self.ssl = create_ssl_context(
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
-                password=self.ssl_password,
                 ssl_version=self.ssl_version,
                 cert_reqs=self.ssl_cert_reqs,
                 ca_certs=self.ssl_ca_certs,
