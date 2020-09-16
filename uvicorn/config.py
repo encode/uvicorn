@@ -106,7 +106,7 @@ def create_ssl_context(
 ):
     ctx = ssl.SSLContext(ssl_version)
     if password:
-        getpassword = lambda _: password
+        def getpassword() : return password
         ctx.load_cert_chain(certfile, keyfile, getpassword)
     else:
         ctx.load_cert_chain(certfile, keyfile)
