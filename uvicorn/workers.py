@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 
 from gunicorn.workers.base import Worker
 
@@ -65,12 +66,22 @@ class UvicornWorker(Worker):
 
     def run(self):
         self.config.app = self.wsgi
-        server = Server(config=self.config)
+        self.server = Server(config=self.config)
+        asyncio.ensure_future(self.watchdog())
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(server.serve(sockets=self.sockets))
+        loop.run_until_complete(self.server.serve(sockets=self.sockets))
 
     async def callback_notify(self):
         self.notify()
+
+    async def watchdog(self):
+        while self.alive:
+            await asyncio.sleep(1)
+            if self.ppid != os.getppid():
+                self.log.info("Parent changed, shutting down: %s", self)
+                self.alive = False
+            if not self.alive:
+                self.server.should_exit = True
 
 
 class UvicornH11Worker(UvicornWorker):
