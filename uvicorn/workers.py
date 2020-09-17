@@ -61,9 +61,6 @@ class UvicornWorker(Worker):
         self.config.setup_event_loop()
         super(UvicornWorker, self).init_process()
 
-    def init_signals(self):
-        pass
-
     def run(self):
         self.config.app = self.wsgi
         self.server = Server(config=self.config)
