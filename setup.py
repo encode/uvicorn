@@ -45,17 +45,17 @@ env_marker_below_38 = "python_version < '3.8'"
 
 minimal_requirements = [
     "click==7.*",
-    "h11>=0.8,<0.11",
+    "h11>=0.8",
     "typing-extensions;" + env_marker_below_38,
 ]
 
 extra_requirements = [
-    "websockets==8.*",
-    "httptools==0.1.* ;" + env_marker_cpython,
+    "websockets>=8.*",
+    "httptools>=0.1.* ;" + env_marker_cpython,
     "uvloop>=0.14.0 ;" + env_marker_cpython,
     "colorama>=0.4.*;" + env_marker_win,
-    "watchgod>=0.6,<0.7",
-    "python-dotenv==0.13.*",
+    "watchgod>=0.6",
+    "python-dotenv>=0.13.*",
     "PyYAML>=5.1",
 ]
 
