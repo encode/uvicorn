@@ -133,6 +133,7 @@ class Config:
         debug=False,
         reload=False,
         reload_dirs=None,
+        reload_delay=None,
         workers=None,
         proxy_headers=True,
         forwarded_allow_ips=None,
@@ -167,6 +168,7 @@ class Config:
         self.interface = interface
         self.debug = debug
         self.reload = reload
+        self.reload_delay = reload_delay or 0.25
         self.workers = workers or 1
         self.proxy_headers = proxy_headers
         self.root_path = root_path
