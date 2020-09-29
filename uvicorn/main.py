@@ -87,13 +87,23 @@ def print_version(ctx, param, value):
     "--reload-dir",
     "reload_dirs",
     multiple=True,
-    help="Set reload directories explicitly, instead of using the current working directory.",
+    help="Set reload directories explicitly, instead of using the current working"
+    " directory.",
+)
+@click.option(
+    "--reload-delay",
+    type=float,
+    default=0.25,
+    show_default=True,
+    help="Delay between previous and next check if application needs to be."
+    " Defaults to 0.25s.",
 )
 @click.option(
     "--workers",
     default=None,
     type=int,
-    help="Number of worker processes. Defaults to the $WEB_CONCURRENCY environment variable if available. Not valid with --reload.",
+    help="Number of worker processes. Defaults to the $WEB_CONCURRENCY environment"
+    " variable if available. Not valid with --reload.",
 )
 @click.option(
     "--loop",
@@ -167,13 +177,15 @@ def print_version(ctx, param, value):
     "--proxy-headers/--no-proxy-headers",
     is_flag=True,
     default=True,
-    help="Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to populate remote address info.",
+    help="Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to "
+    "populate remote address info.",
 )
 @click.option(
     "--forwarded-allow-ips",
     type=str,
     default=None,
-    help="Comma seperated list of IPs to trust with proxy headers. Defaults to the $FORWARDED_ALLOW_IPS environment variable if available, or '127.0.0.1'.",
+    help="Comma seperated list of IPs to trust with proxy headers. Defaults to"
+    " the $FORWARDED_ALLOW_IPS environment variable if available, or '127.0.0.1'.",
 )
 @click.option(
     "--root-path",
@@ -185,7 +197,8 @@ def print_version(ctx, param, value):
     "--limit-concurrency",
     type=int,
     default=None,
-    help="Maximum number of concurrent connections or tasks to allow, before issuing HTTP 503 responses.",
+    help="Maximum number of concurrent connections or tasks to allow, before issuing"
+    " HTTP 503 responses.",
 )
 @click.option(
     "--backlog",
@@ -263,7 +276,8 @@ def print_version(ctx, param, value):
     "app_dir",
     default=".",
     show_default=True,
-    help="Look for APP in the specified directory, by adding this to the PYTHONPATH. Defaults to the current working directory.",
+    help="Look for APP in the specified directory, by adding this to the PYTHONPATH."
+    " Defaults to the current working directory.",
 )
 def main(
     app,
@@ -279,6 +293,7 @@ def main(
     debug: bool,
     reload: bool,
     reload_dirs: typing.List[str],
+    reload_delay: float,
     workers: int,
     env_file: str,
     log_config: str,
@@ -321,6 +336,7 @@ def main(
         "debug": debug,
         "reload": reload,
         "reload_dirs": reload_dirs if reload_dirs else None,
+        "reload_delay": reload_delay,
         "workers": workers,
         "proxy_headers": proxy_headers,
         "forwarded_allow_ips": forwarded_allow_ips,
@@ -347,8 +363,9 @@ def run(app, **kwargs):
 
     if (config.reload or config.workers > 1) and not isinstance(app, str):
         logger = logging.getLogger("uvicorn.error")
-        logger.warn(
-            "You must pass the application as an import string to enable 'reload' or 'workers'."
+        logger.warning(
+            "You must pass the application as an import string to enable 'reload' or "
+            "'workers'."
         )
         sys.exit(1)
 

@@ -1,11 +1,11 @@
-click
-h11
+-e .[standard]
 
-# Optional
-httptools
-uvloop>=0.14.0
-websockets==8.*
-wsproto==0.13.*
+# Explicit optionals
+wsproto==0.15.*
+
+# Packaging
+twine
+wheel
 
 # Testing
 autoflake
@@ -15,11 +15,11 @@ flake8
 isort
 pytest
 pytest-cov
+pytest-mock
 requests
+mypy
 
 # Documentation
 mkdocs
 mkdocs-material
 
-# Efficient debug reload
-watchgod>=0.6,<0.7

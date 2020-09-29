@@ -1,15 +1,9 @@
-#!/usr/bin/env bash
-
-set -e
+#!/bin/sh -e
 
 # Use the Python executable provided from the `-p` option, or a default.
 [ "$1" = "-p" ] && PYTHON=$2 || PYTHON="python3"
 
-if [ "$OSTYPE" = "linux-gnu" ]; then
-    REQUIREMENTS="requirements.txt"
-elif [ "$OSTYPE" = "msys" ]; then
-    REQUIREMENTS="requirements_windows.txt"
-fi
+REQUIREMENTS="requirements.txt"
 VENV="venv"
 
 set -x
@@ -22,4 +16,3 @@ else
 fi
 
 "$PIP" install -r "$REQUIREMENTS"
-"$PIP" install -e .

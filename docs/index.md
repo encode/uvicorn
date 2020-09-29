@@ -19,11 +19,11 @@
 
 # Introduction
 
-Uvicorn is a lightning-fast ASGI server, built on [uvloop][uvloop] and [httptools][httptools].
+Uvicorn is a lightning-fast ASGI server implementation, using [uvloop][uvloop] and [httptools][httptools].
 
 Until recently Python has lacked a minimal low-level server/application interface for
-asyncio frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to start building
-a common set of tooling usable across all asyncio frameworks.
+asyncio frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
+start building a common set of tooling usable across all asyncio frameworks.
 
 ASGI should help enable an ecosystem of Python web frameworks that are highly competitive against Node
 and Go in terms of achieving high throughput in IO-bound contexts. It also provides support for HTTP/2 and
@@ -31,29 +31,47 @@ WebSockets, which cannot be handled by WSGI.
 
 Uvicorn currently supports HTTP/1.1 and WebSockets. Support for HTTP/2 is planned.
 
----
-
 ## Quickstart
-
-Requirements: Python 3.5, 3.6, 3.7, 3.8
 
 Install using `pip`:
 
-```
+```shell
 $ pip install uvicorn
 ```
+
+This will install uvicorn with minimal (pure Python) dependencies.
+
+```shell
+$ pip install uvicorn[standard]
+```
+
+This will install uvicorn with "Cython-based" dependencies (where possible) and other "optional extras".
+
+In this context, "Cython-based" means the following:
+
+- the event loop `uvloop` will be installed and used if possible.
+- the http protocol will be handled by `httptools` if possible.
+
+Moreover, "optional extras" means that:
+
+- the websocket protocol will be handled by `websockets` (should you want to use `wsproto` you'd need to install it manually) if possible.
+- the `--reloader` flag in development mode will use `watchgod`.
+- windows users will have `colorama` installed for the colored logs.
+- `python-dotenv` will be installed should you want to use the `--env-file` option.
+- `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
 
 Create an application, in `example.py`:
 
 ```python
 async def app(scope, receive, send):
     assert scope['type'] == 'http'
+
     await send({
         'type': 'http.response.start',
         'status': 200,
         'headers': [
             [b'content-type', b'text/plain'],
-        ]
+        ],
     })
     await send({
         'type': 'http.response.body',
@@ -63,7 +81,7 @@ async def app(scope, receive, send):
 
 Run the server:
 
-```
+```shell
 $ uvicorn example:app
 ```
 
@@ -103,6 +121,7 @@ Options:
                                   application interface.  [default: auto]
   --env-file PATH                 Environment configuration file.
   --log-config PATH               Logging configuration file.
+                                  Supported formats (.ini, .json, .yaml)
   --log-level [critical|error|warning|info|debug|trace]
                                   Log level. [default: info]
   --access-log / --no-access-log  Enable/Disable access log.

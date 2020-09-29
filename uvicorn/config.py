@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import json
 import logging
 import logging.config
 import os
@@ -9,6 +10,14 @@ import sys
 from typing import List, Tuple
 
 import click
+
+try:
+    import yaml
+except ImportError:
+    # If the code below that depends on yaml is exercised, it will raise a NameError.
+    # Install the PyYAML package or the uvicorn[standard] optional dependencies to
+    # enable this functionality.
+    pass
 
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
@@ -67,7 +76,7 @@ LOGGING_CONFIG = {
         },
         "access": {
             "()": "uvicorn.logging.AccessFormatter",
-            "fmt": '%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',
+            "fmt": '%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',  # noqa: E501
         },
     },
     "handlers": {
@@ -138,6 +147,7 @@ class Config:
         debug=False,
         reload=False,
         reload_dirs=None,
+        reload_delay=None,
         workers=None,
         proxy_headers=True,
         forwarded_allow_ips=None,
@@ -172,6 +182,7 @@ class Config:
         self.interface = interface
         self.debug = debug
         self.reload = reload
+        self.reload_delay = reload_delay or 0.25
         self.workers = workers or 1
         self.proxy_headers = proxy_headers
         self.root_path = root_path
@@ -216,7 +227,7 @@ class Config:
 
     @property
     def asgi_version(self) -> str:
-        return {"asgi2": "2.0", "asgi3": "3.0"}[self.interface]
+        return {"asgi2": "2.0", "asgi3": "3.0", "wsgi": "3.0"}[self.interface]
 
     @property
     def is_ssl(self) -> bool:
@@ -235,15 +246,26 @@ class Config:
                         "use_colors"
                     ] = self.use_colors
                 logging.config.dictConfig(self.log_config)
+            elif self.log_config.endswith(".json"):
+                with open(self.log_config) as file:
+                    loaded_config = json.load(file)
+                    logging.config.dictConfig(loaded_config)
+            elif self.log_config.endswith(".yaml"):
+                with open(self.log_config) as file:
+                    loaded_config = yaml.safe_load(file)
+                    logging.config.dictConfig(loaded_config)
             else:
-                logging.config.fileConfig(self.log_config)
+                # See the note about fileConfig() here:
+                # https://docs.python.org/3/library/logging.config.html#configuration-file-format
+                logging.config.fileConfig(
+                    self.log_config, disable_existing_loggers=False
+                )
 
         if self.log_level is not None:
             if isinstance(self.log_level, str):
                 log_level = LOG_LEVELS[self.log_level]
             else:
                 log_level = self.log_level
-            logging.getLogger("").setLevel(log_level)
             logging.getLogger("uvicorn.error").setLevel(log_level)
             logging.getLogger("uvicorn.access").setLevel(log_level)
             logging.getLogger("uvicorn.asgi").setLevel(log_level)

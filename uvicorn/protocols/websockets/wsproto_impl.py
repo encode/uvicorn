@@ -263,7 +263,10 @@ class WSProtocol(asyncio.Protocol):
                 self.transport.close()
 
             else:
-                msg = "Expected ASGI message 'websocket.accept' or 'websocket.close', but got '%s'."
+                msg = (
+                    "Expected ASGI message 'websocket.accept' or 'websocket.close', "
+                    "but got '%s'."
+                )
                 raise RuntimeError(msg % message_type)
 
         elif not self.close_sent:
@@ -285,7 +288,10 @@ class WSProtocol(asyncio.Protocol):
                     self.transport.close()
 
             else:
-                msg = "Expected ASGI message 'websocket.send' or 'websocket.close', but got '%s'."
+                msg = (
+                    "Expected ASGI message 'websocket.send' or 'websocket.close',"
+                    " but got '%s'."
+                )
                 raise RuntimeError(msg % message_type)
 
         else:

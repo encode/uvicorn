@@ -1,5 +1,34 @@
 # Change Log
 
+## 0.12.0 - 2020-09-28
+
+### Added
+- Make reload delay configurable (#774) 9/28/20 98010027
+- Upgrade maximum h11 dependency version to 0.10 (#772) 8/28/20 54d729cc
+- Allow .json or .yaml --log-config files (#665) 8/18/20 093a1f7c
+- Add ASGI dict to the lifespan scope (#754) 8/15/20 8150c3eb
+- Upgrade wsproto to 0.15.0 (#750) 8/13/20 fbce393f
+- Use optional package installs (#666) 8/10/20 5fa99a11
+
+### Changed
+- Dont set log level for root logger (#767) 8/28/20 df81b168
+
+### Fixed
+- Revert "Improve shutdown robustness when using `--reload` or multiprocessing (#620)" (#756) 8/28/20 ff4af12d
+- Fix terminate error in windows (#744) 8/27/20 dd3b842d
+- Fix bug where --log-config disables uvicorn loggers (#512) 8/11/20 a9c37cc4
+
+## 0.11.8 - 2020-07-30
+
+* Fix a regression that caused Uvicorn to crash when using `--interface=wsgi`. (Pull #730)
+* Fix a regression that caused Uvicorn to crash when using unix domain sockets. (Pull #729)
+
+## 0.11.7 - 2020-28-07
+
+* SECURITY FIX: Prevent sending invalid HTTP header names and values. (Pull #725)
+* SECURITY FIX: Ensure path value is escaped before logging to the console. (Pull #724)
+* Fix `--proxy-headers` client IP and host when using a Unix socket. (Pull #636)
+
 ## 0.11.6
 
 * Fix overriding the root logger.
