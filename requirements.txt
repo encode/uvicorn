@@ -5,9 +5,9 @@ h11
 # Optional
 httptools; sys_platform != 'win32'
 uvloop>=0.14.0; sys_platform != 'win32'
-websockets>=8.*
-wsproto>=0.15.*
-watchgod>=0.6
+websockets==8.*
+wsproto==0.15.*
+watchgod>=0.6,<0.7
 python_dotenv>=0.13.*
 PyYAML>=5.1
 
