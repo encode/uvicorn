@@ -1,5 +1,8 @@
 -e .[standard]
 
+# Explicit optionals
+wsproto==0.15.*
+
 # Packaging
 twine
 wheel
