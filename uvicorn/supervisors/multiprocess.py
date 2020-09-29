@@ -2,6 +2,7 @@ import logging
 import os
 import signal
 import threading
+import time
 
 import click
 
@@ -50,6 +51,7 @@ class Multiprocess:
                 config=self.config, target=self.target, sockets=self.sockets
             )
             process.start()
+            time.sleep(1)
             self.processes.append(process)
 
     def shutdown(self):
