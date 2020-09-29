@@ -12,6 +12,9 @@
 
 ### Changed
 - Dont set log level for root logger (#767) 8/28/20 df81b168
+- Uvicorn no longer ships extra dependencies `uvloop`, `websockets` and
+  `httptools` as default. To install these dependencies use
+  `uvicorn[standard]`.
 
 ### Fixed
 - Revert "Improve shutdown robustness when using `--reload` or multiprocessing (#620)" (#756) 8/28/20 ff4af12d
