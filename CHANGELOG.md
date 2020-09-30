@@ -1,5 +1,14 @@
 # Change Log
 
+## 0.12.1 - 2020-09-30
+
+### Changed
+- Pinning h11 and python-dotenv to min versions (#789) 9/29/20 bbf19c66
+- Get docs/index.md in sync with README.md (#784) 9/29/20 70ebcfdf
+
+### Fixed
+- Improve changelog by pointing out breaking changes (#792) 9/29/20 e2b75064
+
 ## 0.12.0 - 2020-09-28
 
 ### Added
