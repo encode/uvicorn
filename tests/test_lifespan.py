@@ -123,11 +123,15 @@ def test_lifespan_on_with_error():
 
 @pytest.mark.parametrize("mode", ("auto", "on"))
 @pytest.mark.parametrize("raise_exception", (True, False))
-def test_lifespan_with_failed_startup(mode, raise_exception):
+@pytest.mark.parametrize("add_message", (True, False))
+def test_lifespan_with_failed_startup(mode, raise_exception, add_message):
     async def app(scope, receive, send):
         message = await receive()
         assert message["type"] == "lifespan.startup"
-        await send({"type": "lifespan.startup.failed"})
+        if add_message:
+            await send({"type": "lifespan.startup.failed", "message": "it failed"})
+        else:
+            await send({"type": "lifespan.startup.failed"})
         if raise_exception:
             # App should be able to re-raise an exception if startup failed.
             raise RuntimeError()
