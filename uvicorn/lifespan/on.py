@@ -37,11 +37,11 @@ class LifespanOn:
         else:
             self.logger.info("Application startup complete.")
 
-    async def before_shutdown(self) -> None:
+    async def shutdown_notice(self) -> None:
         if self.error_occured:
             return
         self.logger.info("Beginning application shutdown.")
-        await self.receive_queue.put({"type": "lifespan.shutdown.before"})
+        await self.receive_queue.put({"type": "lifespan.shutdown.notice"})
 
     async def shutdown(self) -> None:
         if self.error_occured:

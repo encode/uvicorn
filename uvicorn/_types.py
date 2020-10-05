@@ -18,7 +18,7 @@ class LifespanScope(TypedDict):
 
 
 class LifespanReceiveMessage(TypedDict):
-    type: Literal["lifespan.startup", "lifespan.shutdown.before", "lifespan.shutdown"]
+    type: Literal["lifespan.startup", "lifespan.shutdown.notice", "lifespan.shutdown"]
 
 
 class LifespanSendMessage(TypedDict):

@@ -8,7 +8,7 @@ class LifespanOff:
     async def startup(self) -> None:
         pass
 
-    async def before_shutdown(self) -> None:
+    async def shutdown_notice(self) -> None:
         pass
 
     async def shutdown(self) -> None:

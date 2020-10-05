@@ -560,7 +560,7 @@ class Server:
             await server.wait_closed()
 
         # Send the lifespan shutdown before event, allowing looping requests to exit
-        await self.lifespan.before_shutdown()
+        await self.lifespan.shutdown_notice()
 
         # Request shutdown on all existing connections.
         for connection in list(self.server_state.connections):
