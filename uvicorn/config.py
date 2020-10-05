@@ -236,7 +236,7 @@ class Config:
                 with open(self.log_config) as file:
                     loaded_config = json.load(file)
                     logging.config.dictConfig(loaded_config)
-            elif self.log_config.endswith(".yaml"):
+            elif self.log_config.endswith((".yaml", ".yml")):
                 with open(self.log_config) as file:
                     loaded_config = yaml.safe_load(file)
                     logging.config.dictConfig(loaded_config)
