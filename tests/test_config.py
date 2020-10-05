@@ -165,6 +165,23 @@ def test_log_config_yaml(
     mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
 
 
+def test_log_config_yml(
+    mocked_logging_config_module, logging_config, yaml_logging_config, mocker
+):
+    """
+    Test that one can load a .yml config from disk.
+    """
+    mocked_open = mocker.patch(
+        "uvicorn.config.open", mocker.mock_open(read_data=yaml_logging_config)
+    )
+
+    config = Config(app=asgi_app, log_config="log_config.yml")
+    config.load()
+
+    mocked_open.assert_called_once_with("log_config.yml")
+    mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
+
+
 def test_log_config_file(mocked_logging_config_module):
     """
     Test that one can load a configparser config from disk.
