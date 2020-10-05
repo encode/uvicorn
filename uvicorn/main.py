@@ -559,6 +559,9 @@ class Server:
         for server in self.servers:
             await server.wait_closed()
 
+        # Send the lifespan shutdown before event, allowing looping requests to exit
+        await self.lifespan.before_shutdown()
+
         # Request shutdown on all existing connections.
         for connection in list(self.server_state.connections):
             connection.shutdown()

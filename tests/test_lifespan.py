@@ -18,6 +18,8 @@ def test_lifespan_on():
         startup_complete = True
         await send({"type": "lifespan.startup.complete"})
         message = await receive()
+        assert message["type"] == "lifespan.shutdown.before"
+        message = await receive()
         assert message["type"] == "lifespan.shutdown"
         shutdown_complete = True
         await send({"type": "lifespan.shutdown.complete"})
@@ -31,6 +33,7 @@ def test_lifespan_on():
         await lifespan.startup()
         assert startup_complete
         assert not shutdown_complete
+        await lifespan.before_shutdown()
         await lifespan.shutdown()
         assert startup_complete
         assert shutdown_complete
@@ -48,6 +51,7 @@ def test_lifespan_off():
         lifespan = LifespanOff(config)
 
         await lifespan.startup()
+        await lifespan.before_shutdown()
         await lifespan.shutdown()
 
     loop = asyncio.new_event_loop()
@@ -65,6 +69,8 @@ def test_lifespan_auto():
         startup_complete = True
         await send({"type": "lifespan.startup.complete"})
         message = await receive()
+        assert message["type"] == "lifespan.shutdown.before"
+        message = await receive()
         assert message["type"] == "lifespan.shutdown"
         shutdown_complete = True
         await send({"type": "lifespan.shutdown.complete"})
@@ -78,6 +84,7 @@ def test_lifespan_auto():
         await lifespan.startup()
         assert startup_complete
         assert not shutdown_complete
+        await lifespan.before_shutdown()
         await lifespan.shutdown()
         assert startup_complete
         assert shutdown_complete
