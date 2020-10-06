@@ -559,7 +559,7 @@ class Server:
         for server in self.servers:
             await server.wait_closed()
 
-        # Send the lifespan shutdown before event, allowing looping requests to exit
+        # Send the lifespan shutdown notice event.
         await self.lifespan.shutdown_notice()
 
         # Request shutdown on all existing connections.
