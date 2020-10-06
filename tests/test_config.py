@@ -150,8 +150,11 @@ def test_log_config_json(
 
 @pytest.mark.parametrize("config_filename", ["log_config.yml", "log_config.yaml"])
 def test_log_config_yaml(
-    mocked_logging_config_module, logging_config, yaml_logging_config, mocker,
-    config_filename
+    mocked_logging_config_module,
+    logging_config,
+    yaml_logging_config,
+    mocker,
+    config_filename,
 ):
     """
     Test that one can load a yaml config from disk.
