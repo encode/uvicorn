@@ -549,9 +549,6 @@ class Server:
         return False
 
     async def shutdown(self, sockets=None):
-        # Send the lifespan shutdown before event, allowing looping requests to exit
-        await self.lifespan.shutdown_notice()
-
         logger.info("Shutting down")
 
         # Stop accepting new connections.
@@ -561,6 +558,9 @@ class Server:
             sock.close()
         for server in self.servers:
             await server.wait_closed()
+
+        # Send the lifespan shutdown before event, allowing looping requests to exit
+        await self.lifespan.shutdown_notice()
 
         # Request shutdown on all existing connections.
         for connection in list(self.server_state.connections):
