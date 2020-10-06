@@ -148,8 +148,13 @@ def test_log_config_json(
     mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
 
 
+@pytest.mark.parametrize("config_filename", ["log_config.yml", "log_config.yaml"])
 def test_log_config_yaml(
-    mocked_logging_config_module, logging_config, yaml_logging_config, mocker
+    mocked_logging_config_module,
+    logging_config,
+    yaml_logging_config,
+    mocker,
+    config_filename,
 ):
     """
     Test that one can load a yaml config from disk.
@@ -158,10 +163,10 @@ def test_log_config_yaml(
         "uvicorn.config.open", mocker.mock_open(read_data=yaml_logging_config)
     )
 
-    config = Config(app=asgi_app, log_config="log_config.yaml")
+    config = Config(app=asgi_app, log_config=config_filename)
     config.load()
 
-    mocked_open.assert_called_once_with("log_config.yaml")
+    mocked_open.assert_called_once_with(config_filename)
     mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
 
 
