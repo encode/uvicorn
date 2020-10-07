@@ -95,6 +95,16 @@ def test_ssl_config(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_
     assert config.is_ssl is True
 
 
+def test_ssl_config_combined(tls_certificate_pem_path):
+    config = Config(
+        app=asgi_app,
+        ssl_certfile=tls_certificate_pem_path,
+    )
+    config.load()
+
+    assert config.is_ssl is True
+
+
 def asgi2_app(scope):
     async def asgi(receive, send):
         pass
