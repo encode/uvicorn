@@ -3,7 +3,7 @@ import trustme
 
 
 @pytest.fixture
-def tls_certificate_authority():
+def tls_certificate_authority() -> trustme.CA:
     return trustme.CA()
 
 
@@ -26,3 +26,9 @@ def tls_ca_certificate_pem_path(tls_certificate_authority):
 def tls_ca_certificate_private_key_path(tls_certificate_authority):
     with tls_certificate_authority.private_key_pem.tempfile() as private_key:
         yield private_key
+
+
+@pytest.fixture
+def tls_certificate_pem_path(tls_certificate):
+    with tls_certificate.private_key_and_cert_chain_pem.tempfile() as cert_pem:
+        yield cert_pem
