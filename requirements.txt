@@ -10,13 +10,13 @@ wheel
 # Testing
 autoflake
 black
-codecov
 flake8
 isort
 pytest
 pytest-mock
 requests
 mypy
+coverage
 
 # Documentation
 mkdocs
