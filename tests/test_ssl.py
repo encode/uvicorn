@@ -28,8 +28,7 @@ def no_ssl_verification(session=requests.Session):
 @pytest.mark.skipif(
     sys.platform.startswith("win"), reason="Skipping SSL test on Windows"
 )
-def test_run(certfile_and_keyfile):
-    certfile, keyfile = certfile_and_keyfile
+def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
 
     class App:
         def __init__(self, scope):
@@ -48,8 +47,8 @@ def test_run(certfile_and_keyfile):
         app=App,
         loop="asyncio",
         limit_max_requests=1,
-        ssl_keyfile=keyfile,
-        ssl_certfile=certfile,
+        ssl_keyfile=tls_ca_certificate_private_key_path,
+        ssl_certfile=tls_ca_certificate_pem_path,
     )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
