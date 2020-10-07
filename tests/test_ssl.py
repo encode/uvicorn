@@ -29,7 +29,6 @@ def no_ssl_verification(session=requests.Session):
     sys.platform.startswith("win"), reason="Skipping SSL test on Windows"
 )
 def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
-
     class App:
         def __init__(self, scope):
             if scope["type"] != "http":

@@ -10,9 +10,9 @@ def tls_certificate_authority():
 @pytest.fixture
 def tls_certificate(tls_certificate_authority):
     return tls_certificate_authority.issue_server_cert(
-        'localhost',
-        '127.0.0.1',
-        '::1',
+        "localhost",
+        "127.0.0.1",
+        "::1",
     )
 
 

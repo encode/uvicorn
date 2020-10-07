@@ -84,9 +84,12 @@ def test_socket_bind():
     assert isinstance(config.bind_socket(), socket.socket)
 
 
-def test_ssl_config(certfile_and_keyfile):
-    certfile, keyfile = certfile_and_keyfile
-    config = Config(app=asgi_app, ssl_certfile=certfile, ssl_keyfile=keyfile)
+def test_ssl_config(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
+    config = Config(
+        app=asgi_app,
+        ssl_certfile=tls_ca_certificate_pem_path,
+        ssl_keyfile=tls_ca_certificate_private_key_path,
+    )
     config.load()
 
     assert config.is_ssl is True
