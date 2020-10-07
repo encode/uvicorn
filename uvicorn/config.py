@@ -105,14 +105,8 @@ def create_ssl_context(
     certfile, keyfile, password, ssl_version, cert_reqs, ca_certs, ciphers
 ):
     ctx = ssl.SSLContext(ssl_version)
-    if password:
-
-        def getpassword():
-            return password
-
-        ctx.load_cert_chain(certfile, keyfile, getpassword)
-    else:
-        ctx.load_cert_chain(certfile, keyfile)
+    get_password = (lambda: password) if password else None
+    ctx.load_cert_chain(certfile, keyfile, get_password)
     ctx.verify_mode = cert_reqs
     if ca_certs:
         ctx.load_verify_locations(ca_certs)
@@ -155,7 +149,7 @@ class Config:
         callback_notify=None,
         ssl_keyfile=None,
         ssl_certfile=None,
-        ssl_password=None,
+        ssl_keyfile_password=None,
         ssl_version=SSL_PROTOCOL_VERSION,
         ssl_cert_reqs=ssl.CERT_NONE,
         ssl_ca_certs=None,
@@ -190,7 +184,7 @@ class Config:
         self.callback_notify = callback_notify
         self.ssl_keyfile = ssl_keyfile
         self.ssl_certfile = ssl_certfile
-        self.ssl_password = ssl_password
+        self.ssl_keyfile_password = ssl_keyfile_password
         self.ssl_version = ssl_version
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
@@ -277,7 +271,7 @@ class Config:
             self.ssl = create_ssl_context(
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
-                password=self.ssl_password,
+                password=self.ssl_keyfile_password,
                 ssl_version=self.ssl_version,
                 cert_reqs=self.ssl_cert_reqs,
                 ca_certs=self.ssl_ca_certs,

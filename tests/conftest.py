@@ -33,7 +33,9 @@ def tls_ca_certificate_private_key_path(tls_certificate_authority):
 @pytest.fixture
 def tls_ca_certificate_private_key_encrypted_path(tls_certificate_authority):
     private_key = serialization.load_pem_private_key(
-        tls_certificate_authority.private_key_pem.bytes(), password=None, backend=default_backend()
+        tls_certificate_authority.private_key_pem.bytes(),
+        password=None,
+        backend=default_backend(),
     )
     encrypted_key = private_key.private_bytes(
         serialization.Encoding.PEM,

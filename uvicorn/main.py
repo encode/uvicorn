@@ -228,7 +228,11 @@ def print_version(ctx, param, value):
     show_default=True,
 )
 @click.option(
-    "--ssl-password", type=str, default=None, help="SSL key password", show_default=True
+    "--ssl-keyfile-password",
+    type=str,
+    default=None,
+    help="SSL keyfile password",
+    show_default=True,
 )
 @click.option(
     "--ssl-version",
@@ -309,7 +313,7 @@ def main(
     timeout_keep_alive: int,
     ssl_keyfile: str,
     ssl_certfile: str,
-    ssl_password: str,
+    ssl_keyfile_password: str,
     ssl_version: int,
     ssl_cert_reqs: int,
     ssl_ca_certs: str,
@@ -349,7 +353,7 @@ def main(
         "timeout_keep_alive": timeout_keep_alive,
         "ssl_keyfile": ssl_keyfile,
         "ssl_certfile": ssl_certfile,
-        "ssl_password": ssl_password,
+        "ssl_keyfile_password": ssl_keyfile_password,
         "ssl_version": ssl_version,
         "ssl_cert_reqs": ssl_cert_reqs,
         "ssl_ca_certs": ssl_ca_certs,
