@@ -18,6 +18,7 @@ pytest-cov
 pytest-mock
 requests
 mypy
+trustme
 
 # Documentation
 mkdocs
