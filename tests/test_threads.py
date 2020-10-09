@@ -1,9 +1,9 @@
 import asyncio
 import functools
 import threading
+from contextlib import contextmanager
 
 import pytest
-import requests
 import websockets
 
 from tests.protocols.test_websocket import WebSocketResponse
@@ -13,8 +13,18 @@ from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
+# import logging
+# logger = logging.getLogger('websockets')
+# logger.setLevel(logging.DEBUG)
+# logger.addHandler(logging.StreamHandler())
+#
+# logger1 = logging.getLogger('wsproto')
+# logger1.setLevel(logging.DEBUG)
+# logger1.addHandler(logging.StreamHandler())
+
 
 class UvicornInnaThread(threading.Thread):
+
     def __init__(self, *args, loop=None, app=None, protocol_cls=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.loop = loop or asyncio.new_event_loop()
@@ -29,6 +39,25 @@ class UvicornInnaThread(threading.Thread):
         url = "ws://127.0.0.1:{port}{path}".format(port=self.port, path="/")
         return url
 
+    def __enter__(self):
+        self._cm_obj = self._cm()
+        self._cm_obj.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return self._cm_obj.__exit__(exc_type, exc_val, exc_tb)
+
+    @contextmanager
+    def _cm(self):
+        try:
+            self.start()
+            self.run_server()
+            yield
+        except BaseException as exc:
+            raise exc  # comment to suppess exception
+        finally:
+            self.stop()
+
     def run(self):
         self.running = True
         self.loop.run_forever()
@@ -39,7 +68,10 @@ class UvicornInnaThread(threading.Thread):
         return result
 
     def run_coro(self, coro):
-        result = asyncio.run_coroutine_threadsafe(coro, loop=self.loop).result()
+        try:
+            result = asyncio.run_coroutine_threadsafe(coro, loop=self.loop).result()
+        except Exception as e:
+            raise e
         return result
 
     def stop(self):
@@ -52,54 +84,20 @@ WS_PROTOCOLS = [p for p in [WSProtocol, WebSocketProtocol] if p is not None]
 
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
-def test_invalid_upgrade(protocol_cls):
-    def app(scope):
-        pass
-
-    thr = UvicornInnaThread(app=app, protocol_cls=protocol_cls)
-    thr.start()
-    try:
-        thr.run_server()
-        url = thr.url.replace("ws://", "http://")
-        response = requests.get(
-            url, headers={"upgrade": "websocket", "connection": "upgrade"}, timeout=5
-        )
-        if response.status_code == 426:
-            # response.text == ""
-            pass  # ok, wsproto 0.13
-        else:
-            assert response.status_code == 400
-            assert response.text.lower().strip().rstrip(".") in [
-                "missing sec-websocket-key header",
-                "missing sec-websocket-version header",  # websockets
-                "missing or empty sec-websocket-key header",  # wsproto
-                "failed to open a websocket connection: missing "
-                "sec-websocket-key header",
-                "failed to open a websocket connection: missing or empty "
-                "sec-websocket-key header",
-            ]
-    except Exception as e:
-        raise e
-    finally:
-        thr.stop()
-
-@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
-def test_accept_connection(protocol_cls):
+def test_accept_connection_should_raise(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.accept"})
-            assert False
+            raise RuntimeWarning
 
     async def open_connection(url):
         async with websockets.connect(url) as websocket:
             return websocket.open
 
-    thr = UvicornInnaThread(app=App, protocol_cls=protocol_cls)
-    thr.start()
-    try:
-        thr.run_server()
-        thr.run_coro(open_connection(thr.url))
-    except Exception as e:
-        raise e
-    finally:
-        thr.stop()
+    with UvicornInnaThread(app=App, protocol_cls=protocol_cls) as thr:
+        try:
+            thr.run_coro(open_connection(thr.url))
+        except Exception as e:
+            raise e
+        finally:
+            print('finally')
