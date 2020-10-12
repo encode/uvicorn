@@ -17,6 +17,7 @@ pytest-mock
 requests
 mypy
 trustme
+cryptography
 coverage
 
 # Documentation
