@@ -11,7 +11,9 @@ def run(sockets):
     pass
 
 
-def test_watchgodreload(certfile_and_keyfile):
+def test_watchgodreload(
+    tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path
+):
     config = Config(app=None)
     reloader = WatchGodReload(config, target=run, sockets=[])
     reloader.signal_handler(sig=signal.SIGINT, frame=None)

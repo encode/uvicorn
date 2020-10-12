@@ -16,6 +16,7 @@ pytest
 pytest-mock
 requests
 mypy
+trustme
 coverage
 
 # Documentation
