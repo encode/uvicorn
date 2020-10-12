@@ -7,8 +7,9 @@ import os
 import socket
 import ssl
 import sys
+from collections.abc import Mapping
 from enum import Enum
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import click
 
@@ -28,6 +29,7 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
 TRACE_LOG_LEVEL = 5
+
 
 LOG_LEVELS = {
     "critical": logging.CRITICAL,
@@ -66,38 +68,8 @@ INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
 SSL_PROTOCOL_VERSION = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
 
 
-LOGGING_CONFIG = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "default": {
-            "()": "uvicorn.logging.DefaultFormatter",
-            "fmt": "%(levelprefix)s %(message)s",
-            "use_colors": None,
-        },
-        "access": {
-            "()": "uvicorn.logging.AccessFormatter",
-            "fmt": '%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',  # noqa: E501
-        },
-    },
-    "handlers": {
-        "default": {
-            "formatter": "default",
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stderr",
-        },
-        "access": {
-            "formatter": "access",
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stdout",
-        },
-    },
-    "loggers": {
-        "uvicorn": {"handlers": ["default"], "level": "INFO"},
-        "uvicorn.error": {"level": "INFO"},
-        "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
-    },
-}
+_this_file_dir = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_LOGGING_CONFIG = os.path.join(_this_file_dir, "default_logging_config.json")
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -150,7 +122,7 @@ class Config:
         ws="auto",
         lifespan="auto",
         env_file=None,
-        log_config=LOGGING_CONFIG,
+        log_config: Union[str, dict, None] = DEFAULT_LOGGING_CONFIG,
         log_level=None,
         access_log=True,
         use_colors=None,
@@ -187,7 +159,6 @@ class Config:
         self.http = http
         self.ws = ws
         self.lifespan = lifespan
-        self.log_config = log_config
         self.log_level = log_level
         self.access_log = access_log
         self.use_colors = use_colors
@@ -215,6 +186,17 @@ class Config:
         self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
 
         self.loaded = False
+
+        if log_config is DEFAULT_LOGGING_CONFIG:
+            # we have to pre-load default config
+            # to be able to change use_colors option
+            with open(log_config) as fi:
+                self.log_config = json.load(fi)
+        else:
+            self.log_config = (
+                dict(**log_config) if isinstance(log_config, Mapping) else log_config
+            )
+
         self.configure_logging()
 
         if reload_dirs is None:

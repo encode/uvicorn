@@ -16,11 +16,11 @@ import click
 
 import uvicorn
 from uvicorn.config import (
+    DEFAULT_LOGGING_CONFIG,
     HTTP_PROTOCOLS,
     INTERFACES,
     LIFESPAN,
     LOG_LEVELS,
-    LOGGING_CONFIG,
     LOOP_SETUPS,
     SSL_PROTOCOL_VERSION,
     WS_PROTOCOLS,
@@ -338,7 +338,7 @@ def main(
         "ws": ws,
         "lifespan": lifespan,
         "env_file": env_file,
-        "log_config": LOGGING_CONFIG if log_config is None else log_config,
+        "log_config": DEFAULT_LOGGING_CONFIG if log_config is None else log_config,
         "log_level": log_level,
         "access_log": access_log,
         "interface": interface,

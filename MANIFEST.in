@@ -1,3 +1,4 @@
 include LICENSE.md
+include uvicorn/default_logging_config.json
 global-exclude __pycache__
 global-exclude *.py[co]

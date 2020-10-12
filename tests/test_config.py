@@ -1,12 +1,11 @@
 import json
 import socket
-from copy import deepcopy
 
 import pytest
 import yaml
 
 from uvicorn import protocols
-from uvicorn.config import LOGGING_CONFIG, Config
+from uvicorn.config import DEFAULT_LOGGING_CONFIG, Config
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
@@ -19,7 +18,8 @@ def mocked_logging_config_module(mocker):
 
 @pytest.fixture
 def logging_config():
-    return deepcopy(LOGGING_CONFIG)
+    with open(DEFAULT_LOGGING_CONFIG) as fi:
+        return json.load(fi)
 
 
 @pytest.fixture
@@ -126,19 +126,19 @@ def test_asgi_version(app, expected_interface):
     [
         pytest.param(None, None, id="use_colors_not_provided"),
         pytest.param(True, True, id="use_colors_enabled"),
+        pytest.param("invalid", None, id="use_colors_invalid_value"),
         pytest.param(False, False, id="use_colors_disabled"),
-        pytest.param("invalid", False, id="use_colors_invalid_value"),
     ],
 )
-def test_log_config_default(mocked_logging_config_module, use_colors, expected):
+def test_log_config_default(
+    logging_config, mocked_logging_config_module, use_colors, expected
+):
     """
     Test that one can specify the use_colors option when using the default logging
     config.
     """
     config = Config(app=asgi_app, use_colors=use_colors)
     config.load()
-
-    mocked_logging_config_module.dictConfig.assert_called_once_with(LOGGING_CONFIG)
 
     (provided_dict_config,), _ = mocked_logging_config_module.dictConfig.call_args
     assert provided_dict_config["formatters"]["default"]["use_colors"] == expected
