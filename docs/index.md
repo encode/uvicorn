@@ -136,6 +136,8 @@ Options:
                                   Enable/Disable X-Forwarded-Proto,
                                   X-Forwarded-For, X-Forwarded-Port to
                                   populate remote address info.
+  --server-header / --no-server-header
+                                  Enable/Disable default Server header.
   --forwarded-allow-ips TEXT      Comma seperated list of IPs to trust with
                                   proxy headers. Defaults to the
                                   $FORWARDED_ALLOW_IPS environment variable if

@@ -37,6 +37,20 @@ async def test_override_server_header():
 
 
 @pytest.mark.asyncio
+async def test_disable_default_server_header():
+    config = Config(
+        app=app,
+        loop="asyncio",
+        limit_max_requests=1,
+        server_header=False,
+    )
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://127.0.0.1:8000")
+            assert "server" not in response.headers
+
+
+@pytest.mark.asyncio
 async def test_override_server_header_multiple_times():
     config = Config(
         app=app,

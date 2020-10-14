@@ -176,6 +176,12 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "populate remote address info.",
 )
 @click.option(
+    "--server-header/--no-server-header",
+    is_flag=True,
+    default=True,
+    help="Enable/Disable default Server header.",
+)
+@click.option(
     "--forwarded-allow-ips",
     type=str,
     default=None,
@@ -310,6 +316,7 @@ def main(
     log_level: str,
     access_log: bool,
     proxy_headers: bool,
+    server_header: bool,
     forwarded_allow_ips: str,
     root_path: str,
     limit_concurrency: int,
@@ -351,6 +358,7 @@ def main(
         "reload_delay": reload_delay,
         "workers": workers,
         "proxy_headers": proxy_headers,
+        "server_header": server_header,
         "forwarded_allow_ips": forwarded_allow_ips,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
