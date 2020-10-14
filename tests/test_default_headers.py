@@ -83,3 +83,17 @@ async def test_add_additional_header():
                 and response.headers["server"] == "uvicorn"
                 and response.headers["date"]
             )
+
+
+@pytest.mark.asyncio
+async def test_disable_default_date_header():
+    config = Config(
+        app=app,
+        loop="asyncio",
+        limit_max_requests=1,
+        date_header=False,
+    )
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://127.0.0.1:8000")
+            assert "date" not in response.headers

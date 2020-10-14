@@ -146,6 +146,7 @@ class Config:
         workers=None,
         proxy_headers=True,
         server_header=True,
+        date_header=True,
         forwarded_allow_ips=None,
         root_path="",
         limit_concurrency=None,
@@ -185,6 +186,7 @@ class Config:
         self.workers = workers or 1
         self.proxy_headers = proxy_headers
         self.server_header = server_header
+        self.date_header = date_header
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests

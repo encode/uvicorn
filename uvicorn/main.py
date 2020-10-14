@@ -182,6 +182,12 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     help="Enable/Disable default Server header.",
 )
 @click.option(
+    "--date-header/--no-date-header",
+    is_flag=True,
+    default=True,
+    help="Enable/Disable default Date header.",
+)
+@click.option(
     "--forwarded-allow-ips",
     type=str,
     default=None,
@@ -317,6 +323,7 @@ def main(
     access_log: bool,
     proxy_headers: bool,
     server_header: bool,
+    date_header: bool,
     forwarded_allow_ips: str,
     root_path: str,
     limit_concurrency: int,
@@ -359,6 +366,7 @@ def main(
         "workers": workers,
         "proxy_headers": proxy_headers,
         "server_header": server_header,
+        "date_header": date_header,
         "forwarded_allow_ips": forwarded_allow_ips,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
