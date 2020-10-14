@@ -25,7 +25,8 @@ from uvicorn.config import (
     SSL_PROTOCOL_VERSION,
     WS_PROTOCOLS,
     Config,
-    ipvXmessage,
+    _get_server_start_message,
+    _IPKind,
 )
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
@@ -503,9 +504,9 @@ class Server:
                 port = server.sockets[0].getsockname()[1]
             protocol_name = "https" if config.ssl else "http"
             if isinstance(ip_address(config.host), IPv6Address):
-                message, color_message = ipvXmessage(6)
+                message, color_message = _get_server_start_message(_IPKind.IPv6)
             else:
-                message, color_message = ipvXmessage(4)
+                message, color_message = _get_server_start_message(_IPKind.IPv4)
 
             logger.info(
                 message,

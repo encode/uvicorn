@@ -7,6 +7,7 @@ import os
 import socket
 import ssl
 import sys
+from enum import Enum
 from typing import List, Tuple
 
 import click
@@ -112,10 +113,17 @@ def create_ssl_context(certfile, keyfile, ssl_version, cert_reqs, ca_certs, ciph
     return ctx
 
 
-def ipvXmessage(version=None):
-    if version == 6:
+class _IPKind(Enum):
+    IPv4 = "IPv4"
+    IPv6 = "IPv6"
+
+
+def _get_server_start_message(
+    host_ip_version: _IPKind = _IPKind.IPv4,
+) -> Tuple[str, str]:
+    if host_ip_version == _IPKind.IPv6:
         ip_repr = "%s://[%s]:%d"
-    elif version == 4:
+    elif host_ip_version == _IPKind.IPv4:
         ip_repr = "%s://%s:%d"
     message = f"Uvicorn running on {ip_repr} (Press CTRL+C to quit)"
     color_message = (
@@ -362,9 +370,9 @@ class Config:
         sock.set_inheritable(True)
 
         if family == socket.AddressFamily.AF_INET6:
-            message, color_message = ipvXmessage(6)
+            message, color_message = _get_server_start_message(_IPKind.IPv6)
         else:
-            message, color_message = ipvXmessage(4)
+            message, color_message = _get_server_start_message(_IPKind.IPv4)
         protocol_name = "https" if self.is_ssl else "http"
         logger.info(
             message,
