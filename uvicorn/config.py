@@ -69,7 +69,9 @@ SSL_PROTOCOL_VERSION = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
 
 
 _this_file_dir = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_LOGGING_CONFIG = os.path.join(_this_file_dir, "default_logging_config.json")
+DEFAULT_LOGGING_CONFIG = os.path.join(
+    _this_file_dir, "data", "default_logging_config.json"
+)
 
 logger = logging.getLogger("uvicorn.error")
 

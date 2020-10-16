@@ -1,4 +1,4 @@
 include LICENSE.md
-include uvicorn/default_logging_config.json
+graft uvicorn
 global-exclude __pycache__
 global-exclude *.py[co]
