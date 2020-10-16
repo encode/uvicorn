@@ -40,6 +40,10 @@ Options:
   --reload-delay FLOAT            Delay between previous and next check if
                                   application needs to be. Defaults to 0.25s.
                                   [default: 0.25]
+  --reload-include TEXT           Set glob patterns to exclude files in
+                                  reload watch.
+  --reload-exclude TEXT           Set glob patterns to exclude files from
+                                  reload watch.
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
                                   available, or 1. Not valid with --reload.
