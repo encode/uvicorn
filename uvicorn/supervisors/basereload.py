@@ -2,6 +2,7 @@ import logging
 import os
 import signal
 import threading
+from pathlib import Path
 from socket import socket
 from types import FrameType
 from typing import Callable, Dict, List, Optional
@@ -64,7 +65,7 @@ class BaseReload:
         self.process.start()
 
     def restart(self) -> None:
-        self.mtimes: Dict[str, float] = {}
+        self.mtimes: Dict[Path, float] = {}
 
         self.process.terminate()
         self.process.join()
