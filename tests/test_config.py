@@ -80,9 +80,34 @@ def test_config_should_reload_is_set(
     assert config_reload.should_reload is expected_should_reload
 
 
-def test_reload_dir_is_set() -> None:
-    config = Config(app=asgi_app, reload=True, reload_dirs="reload_me")
-    assert config.reload_dirs == ["reload_me"]
+def test_reload_dir_is_set(tmp_path) -> None:
+    config = Config(app=asgi_app, reload=True, reload_dirs=[str(tmp_path)])
+    assert config.reload_dirs == [tmp_path]
+
+
+def test_non_existant_reload_dir_is_not_set(tmpdir, caplog) -> None:
+    with tmpdir.as_cwd():
+        print(Path.cwd())
+        config = Config(app=asgi_app, reload=True, reload_dirs=["reload"])
+        assert config.reload_dirs == [Path(tmpdir)]
+        assert (
+            caplog.records[-1].message
+            == "Provided reload directories ['reload'] did not contain valid "
+            + "directories, watching current working directory."
+        )
+
+
+def test_reload_subdir_removal(tmpdir) -> None:
+    app_dir = tmpdir.join("app")
+
+    app_dir.mkdir()
+
+    reload_dirs = [str(tmpdir), "app", str(app_dir)]
+
+    with tmpdir.as_cwd():
+        config = Config(app=asgi_app, reload=True, reload_dirs=reload_dirs)
+        print(config.reload_dirs, Path.cwd())
+        assert config.reload_dirs == [Path(tmpdir)]
 
 
 def test_wsgi_app() -> None:

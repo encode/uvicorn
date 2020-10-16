@@ -7,6 +7,7 @@ import os
 import socket
 import ssl
 import sys
+from pathlib import Path
 from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from uvicorn.logging import TRACE_LOG_LEVEL
@@ -157,6 +158,8 @@ class Config:
         reload: bool = False,
         reload_dirs: Optional[Union[List[str], str]] = None,
         reload_delay: Optional[float] = None,
+        reload_includes: Optional[Union[List[str], str]] = None,
+        reload_excludes: Optional[Union[List[str], str]] = None,
         workers: Optional[int] = None,
         proxy_headers: bool = True,
         server_header: bool = True,
@@ -224,13 +227,57 @@ class Config:
         self.loaded = False
         self.configure_logging()
 
-        if reload_dirs is None:
-            self.reload_dirs = [os.getcwd()]
-        else:
-            if isinstance(reload_dirs, str):
-                self.reload_dirs = [reload_dirs]
-            else:
-                self.reload_dirs = reload_dirs
+        self.reload_includes: List[str] = []
+        self.reload_excludes: List[str] = []
+        self.reload_dirs_excludes: List[Path] = []
+        reload_dirs_list = list(set(reload_dirs)) if reload_dirs else []
+        reload_includes = list(set(reload_includes if reload_includes else []))
+        reload_excludes = list(set(reload_excludes if reload_excludes else []))
+
+        for pattern in reload_includes:
+            try:
+                if Path(pattern).is_dir():
+                    reload_dirs_list.append(pattern)
+                    reload_includes.remove(pattern)
+                else:
+                    self.reload_includes.append(pattern)
+            except OSError:
+                self.reload_includes.append(pattern)
+
+        for pattern in reload_excludes:
+            try:
+                if Path(pattern).is_dir():
+                    self.reload_dirs_excludes.append(Path(pattern))
+                else:
+                    self.reload_excludes.append(pattern)
+            except OSError:
+                self.reload_excludes.append(pattern)
+
+        reload_dirs_list = list(set(reload_dirs_list))
+        reload_paths = list(map(Path, reload_dirs_list))
+        reload_paths = list(map(lambda x: x.resolve(), reload_paths))
+        reload_paths = list(
+            set([reload_path for reload_path in reload_paths if reload_path.is_dir()])
+        )
+
+        if not reload_paths:
+            if reload_dirs:
+                logger.warning(
+                    "Provided reload directories %s did not contain valid "
+                    + "directories, watching current working directory.",
+                    reload_dirs,
+                )
+            reload_paths = [Path(os.getcwd())]
+
+        children = []
+        for j in range(len(reload_paths)):
+            for k in range(j + 1, len(reload_paths)):
+                if reload_paths[j] in reload_paths[k].parents:
+                    children.append(reload_paths[k])
+                elif reload_paths[k] in reload_paths[j].parents:
+                    children.append(reload_paths[j])
+
+        self.reload_dirs: List[Path] = list(set(reload_paths).difference(set(children)))
 
         if env_file is not None:
             from dotenv import load_dotenv
