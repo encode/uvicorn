@@ -125,9 +125,9 @@ def test_asgi_version(app, expected_interface):
     "use_colors, expected",
     [
         pytest.param(None, None, id="use_colors_not_provided"),
+        pytest.param("invalid", None, id="use_colors_invalid_value"),
         pytest.param(True, True, id="use_colors_enabled"),
         pytest.param(False, False, id="use_colors_disabled"),
-        pytest.param("invalid", False, id="use_colors_invalid_value"),
     ],
 )
 def test_log_config_default(mocked_logging_config_module, use_colors, expected):
