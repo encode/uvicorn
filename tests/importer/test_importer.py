@@ -24,6 +24,13 @@ def test_invalid_attr():
     assert expected in str(exc_info.value)
 
 
+def test_invalid_factory_attr():
+    with pytest.raises(ImportFromStringError) as exc_info:
+        import_from_string("tempfile:tempdir()")
+    expected = 'Attribute "tempdir()" is not callable in module "tempfile".'
+    assert expected in str(exc_info.value)
+
+
 def test_internal_import_error():
     with pytest.raises(ImportError):
         import_from_string("tests.importer.raise_import_error:myattr")
@@ -34,6 +41,13 @@ def test_valid_import():
     from tempfile import TemporaryFile
 
     assert instance == TemporaryFile
+
+
+def test_valid_factory_import():
+    instance = import_from_string("tempfile:TemporaryFile()")
+
+    assert instance is not None
+    assert hasattr(instance, "read") and callable(instance.read)
 
 
 def test_no_import_needed():

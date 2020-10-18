@@ -27,11 +27,19 @@ def import_from_string(import_str):
     instance = module
     try:
         for attr_str in attrs_str.split("."):
-            instance = getattr(instance, attr_str)
+            if attr_str.endswith("()"):
+                callable_ = getattr(instance, attr_str[:-2])
+                instance = callable_()
+            else:
+                instance = getattr(instance, attr_str)
     except AttributeError:
         message = 'Attribute "{attrs_str}" not found in module "{module_str}".'
         raise ImportFromStringError(
             message.format(attrs_str=attrs_str, module_str=module_str)
         )
-
+    except TypeError:
+        message = 'Attribute "{attrs_str}" is not callable in module "{module_str}".'
+        raise ImportFromStringError(
+            message.format(attrs_str=attrs_str, module_str=module_str)
+        )
     return instance
