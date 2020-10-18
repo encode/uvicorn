@@ -17,7 +17,7 @@ def mocked_logging_config_module(mocker):
     return mocker.patch("logging.config")
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def logging_config():
     return deepcopy(LOGGING_CONFIG)
 
