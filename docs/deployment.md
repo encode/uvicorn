@@ -40,7 +40,7 @@ Options:
   --reload-delay FLOAT            Delay between previous and next check if
                                   application needs to be. Defaults to 0.25s.
                                   [default: 0.25]
-  --reload-include TEXT           Set glob patterns to exclude files in
+  --reload-include TEXT           Set glob patterns to include files in
                                   reload watch.
   --reload-exclude TEXT           Set glob patterns to exclude files from
                                   reload watch.
