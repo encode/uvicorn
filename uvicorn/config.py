@@ -8,7 +8,7 @@ import socket
 import ssl
 import sys
 from enum import Enum
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import click
 
@@ -122,7 +122,7 @@ class _IPKind(Enum):
 
 
 def _get_server_start_message(
-    host_ip_version: _IPKind = _IPKind.IPv4,
+    host_ip_version: Optional[_IPKind] = None,
 ) -> Tuple[str, str]:
     if host_ip_version is _IPKind.IPv6:
         ip_repr = "%s://[%s]:%d"
