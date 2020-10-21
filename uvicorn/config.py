@@ -7,8 +7,7 @@ import os
 import socket
 import ssl
 import sys
-from enum import Enum
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import click
 
