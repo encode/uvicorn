@@ -26,7 +26,6 @@ from uvicorn.config import (
     WS_PROTOCOLS,
     Config,
     _get_server_start_message,
-    _IPKind,
 )
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
@@ -526,9 +525,9 @@ class Server:
             try:
                 addr = ip_address(config.host)
                 if isinstance(addr, IPv6Address):
-                    message, color_message = _get_server_start_message(_IPKind.IPv6)
+                    message, color_message = _get_server_start_message(is_ipv6_message=True)
                 elif isinstance(addr, IPv4Address):
-                    message, color_message = _get_server_start_message(_IPKind.IPv4)
+                    message, color_message = _get_server_start_message()
             except ValueError:
                 message, color_message = _get_server_start_message()
 
