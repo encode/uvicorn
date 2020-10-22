@@ -266,6 +266,13 @@ def print_version(ctx, param, value):
     show_default=True,
 )
 @click.option(
+    "--ssl-refresh",
+    type=int,
+    default=None,
+    help="Refresh frequency for SSL certificates in seconds",
+    show_default=True,
+)
+@click.option(
     "--header",
     "headers",
     multiple=True,
@@ -321,6 +328,7 @@ def main(
     ssl_cert_reqs: int,
     ssl_ca_certs: str,
     ssl_ciphers: str,
+    ssl_refresh: int,
     headers: typing.List[str],
     use_colors: bool,
     app_dir: str,
@@ -361,6 +369,7 @@ def main(
         "ssl_cert_reqs": ssl_cert_reqs,
         "ssl_ca_certs": ssl_ca_certs,
         "ssl_ciphers": ssl_ciphers,
+        "ssl_refresh": ssl_refresh,
         "headers": list([header.split(":", 1) for header in headers]),
         "use_colors": use_colors,
     }
@@ -416,7 +425,16 @@ class Server:
     def run(self, sockets=None):
         self.config.setup_event_loop()
         loop = asyncio.get_event_loop()
+
+        if self.config.ssl_refresh_coroutine:
+            ssl_refresh_task = loop.create_task(self.config.ssl_refresh_coroutine)
+        else:
+            ssl_refresh_task = None
+
         loop.run_until_complete(self.serve(sockets=sockets))
+
+        if ssl_refresh_task:
+            ssl_refresh_task.cancel()
 
     async def serve(self, sockets=None):
         process_id = os.getpid()
