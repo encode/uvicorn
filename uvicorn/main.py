@@ -10,7 +10,7 @@ import sys
 import time
 import typing
 from email.utils import formatdate
-from ipaddress import IPv6Address, ip_address
+from ipaddress import IPv4Address, IPv6Address, ip_address
 
 import click
 
@@ -26,7 +26,6 @@ from uvicorn.config import (
     WS_PROTOCOLS,
     Config,
     _get_server_start_message,
-    _IPKind,
 )
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
@@ -523,10 +522,16 @@ class Server:
             if port == 0:
                 port = server.sockets[0].getsockname()[1]
             protocol_name = "https" if config.ssl else "http"
-            if isinstance(ip_address(config.host), IPv6Address):
-                message, color_message = _get_server_start_message(_IPKind.IPv6)
-            else:
-                message, color_message = _get_server_start_message(_IPKind.IPv4)
+            try:
+                addr = ip_address(config.host)
+                if isinstance(addr, IPv6Address):
+                    message, color_message = _get_server_start_message(
+                        is_ipv6_message=True
+                    )
+                elif isinstance(addr, IPv4Address):
+                    message, color_message = _get_server_start_message()
+            except ValueError:
+                message, color_message = _get_server_start_message()
 
             logger.info(
                 message,
