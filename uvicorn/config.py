@@ -106,6 +106,7 @@ def create_ssl_context(
     certfile, keyfile, password, ssl_version, cert_reqs, ca_certs, ciphers, ssl_refresh
 ):
     ctx = ssl.SSLContext(ssl_version)
+
     def load():
         get_password = (lambda: password) if password else None
         ctx.load_cert_chain(certfile, keyfile, get_password)
@@ -119,10 +120,12 @@ def create_ssl_context(
 
     ssl_refresh_coroutine = None
     if ssl_refresh is not None and ssl_refresh > 0:
+
         async def async_refresh_ssl_context():
             while True:
                 load()
                 await asyncio.sleep(ssl_refresh)
+
         ssl_refresh_coroutine = async_refresh_ssl_context
 
     return ctx, ssl_refresh_coroutine
@@ -312,7 +315,7 @@ class Config:
                 cert_reqs=self.ssl_cert_reqs,
                 ca_certs=self.ssl_ca_certs,
                 ciphers=self.ssl_ciphers,
-                ssl_refresh=self.ssl_refresh
+                ssl_refresh=self.ssl_refresh,
             )
         else:
             self.ssl, self.ssl_refresh_coroutine = None, None
