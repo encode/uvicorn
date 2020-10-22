@@ -103,17 +103,32 @@ logger = logging.getLogger("uvicorn.error")
 
 
 def create_ssl_context(
-    certfile, keyfile, password, ssl_version, cert_reqs, ca_certs, ciphers
+    certfile, keyfile, password, ssl_version, cert_reqs, ca_certs, ciphers, ssl_refresh
 ):
     ctx = ssl.SSLContext(ssl_version)
-    get_password = (lambda: password) if password else None
-    ctx.load_cert_chain(certfile, keyfile, get_password)
-    ctx.verify_mode = cert_reqs
-    if ca_certs:
-        ctx.load_verify_locations(ca_certs)
-    if ciphers:
-        ctx.set_ciphers(ciphers)
-    return ctx
+
+    def load():
+        get_password = (lambda: password) if password else None
+        ctx.load_cert_chain(certfile, keyfile, get_password)
+        ctx.verify_mode = cert_reqs
+        if ca_certs:
+            ctx.load_verify_locations(ca_certs)
+        if ciphers:
+            ctx.set_ciphers(ciphers)
+
+    load()
+
+    ssl_refresh_coroutine = None
+    if ssl_refresh is not None and ssl_refresh > 0:
+
+        async def async_refresh_ssl_context():
+            while True:
+                load()
+                await asyncio.sleep(ssl_refresh)
+
+        ssl_refresh_coroutine = async_refresh_ssl_context
+
+    return ctx, ssl_refresh_coroutine
 
 
 class _IPKind(Enum):
@@ -176,6 +191,7 @@ class Config:
         ssl_cert_reqs=ssl.CERT_NONE,
         ssl_ca_certs=None,
         ssl_ciphers="TLSv1",
+        ssl_refresh=None,
         headers=None,
     ):
         self.app = app
@@ -211,11 +227,13 @@ class Config:
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
+        self.ssl_refresh = ssl_refresh
         self.headers = headers if headers else []  # type: List[str]
         self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
 
         self.loaded = False
         self.configure_logging()
+        self.ssl_refresh_coroutine = None
 
         if reload_dirs is None:
             self.reload_dirs = [os.getcwd()]
@@ -290,7 +308,7 @@ class Config:
         assert not self.loaded
 
         if self.is_ssl:
-            self.ssl = create_ssl_context(
+            self.ssl, self.ssl_refresh_coroutine = create_ssl_context(
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
                 password=self.ssl_keyfile_password,
@@ -298,9 +316,10 @@ class Config:
                 cert_reqs=self.ssl_cert_reqs,
                 ca_certs=self.ssl_ca_certs,
                 ciphers=self.ssl_ciphers,
+                ssl_refresh=self.ssl_refresh,
             )
         else:
-            self.ssl = None
+            self.ssl, self.ssl_refresh_coroutine = None, None
 
         encoded_headers = [
             (key.lower().encode("latin1"), value.encode("latin1"))
