@@ -26,7 +26,7 @@ you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main
 * `--reload-include <glob-pattern>` - Specify a glob pattern to match files or directories which will be watched. May be used multiple times. By default the following patterns are included: `*.py`. These can be overwritten by explicitly excluding them.
 * `--reload-exclude <glob-pattern>` - Specify a glob pattern to match files or directories which will excluded from watching. May be used multiple times. By default the following patterns are excluded: `.*, .py[cod], .sw.*, ~*`. These can be overwritten by explicitly including them.
 
-By default Uvicorn uses simple changes detection strategy that compares python files modification times few times a second. If this approach doesn't work for your project (eg. because of its complexity), or you need watching of non python files, you can install Uvicorn with optional `watchgod` dependency to use filesystem events instead:
+By default Uvicorn uses simple changes detection strategy that compares python files modification times few times a second. If this approach doesn't work for your project (eg. because of its complexity), or you need watching of non python files you can install [watchgod](https://pypi.org/project/watchgod/) or install uvicorn with `uvicorn[standard]`, which will include watchgod.
 
 ```
 $ pip install uvicorn[watchgodreload]
