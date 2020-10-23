@@ -1,11 +1,14 @@
 import asyncio
 import logging
+import time
+from multiprocessing import Process
 
 import pytest
+import requests
 
 from tests.response import Response
 from uvicorn.config import Config
-from uvicorn.main import ServerState
+from uvicorn.main import Server, ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
 
 try:
@@ -71,6 +74,37 @@ UPGRADE_REQUEST = b"\r\n".join(
         b"",
     ]
 )
+
+
+def _keepalive_server(http_protocol: str, port: int):
+    class App:
+        def __init__(self, scope):
+            if scope["type"] != "http":
+                raise Exception()
+
+        async def __call__(self, receive, send):
+            await asyncio.sleep(0.2)
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 200,
+                    "headers": [(b"content-length", b"5")],
+                }
+            )
+            await send(
+                {"type": "http.response.body", "body": b"data\n", "more_body": True}
+            )
+            await asyncio.sleep(0.5)
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+    config = Config(
+        app=App,
+        loop="asyncio",
+        http=http_protocol,
+        port=port,
+    )
+
+    Server(config=config).run()
 
 
 class MockTransport:
@@ -243,6 +277,29 @@ def test_keepalive_timeout(protocol_cls):
 
     protocol.loop.run_later(with_delay=10)
     assert protocol.transport.is_closing()
+
+
+@pytest.mark.parametrize("http_protocol", ["h11", "httptools"])
+def test_keepalive_race_condition(http_protocol):
+    port = 8000
+    number_of_requests = 12
+
+    proc = Process(target=_keepalive_server, args=(http_protocol, port))
+    proc.start()
+
+    time.sleep(1)
+
+    try:
+        session = requests.Session()
+        for i in range(2):
+            session.get(f"http://127.0.0.1:{port}/{number_of_requests}")
+            number_of_requests -= 1
+        time.sleep(1)
+        while number_of_requests > 0:
+            session.get(f"http://127.0.0.1:{port}/{number_of_requests}")
+            number_of_requests -= 1
+    finally:
+        proc.kill()
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
