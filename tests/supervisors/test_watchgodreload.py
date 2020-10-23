@@ -3,10 +3,6 @@ from uvicorn.config import Config
 from uvicorn.supervisors.watchgodreload import WatchGodReload
 
 
-def run(sockets):
-    pass
-
-
 class TestWatchGodReload(TestBaseReload):
     reloader_class = WatchGodReload
 
