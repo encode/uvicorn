@@ -388,6 +388,11 @@ def run(app, **kwargs):
         supervisor.run()
     else:
         server.run()
+        # If the server exited and it is not started,
+        # we can assume that something went wrong during startup.
+        # Thus we need to exit with non-zero exit code.
+        if not server.started:
+            sys.exit(1)
 
 
 class ServerState:
