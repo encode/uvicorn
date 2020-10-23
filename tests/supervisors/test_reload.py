@@ -10,7 +10,6 @@ from uvicorn.supervisors.statreload import StatReload
 from uvicorn.supervisors.watchgodreload import WatchGodReload
 
 
-@pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
 class TestBaseReload:
     tmp_path: Path
 
@@ -36,6 +35,7 @@ class TestBaseReload:
         file.touch()
         return reloader.should_restart()
 
+    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
     def test_reloader_should_initialize(self):
         """
         A basic sanity check.
@@ -47,7 +47,10 @@ class TestBaseReload:
         reloader = self._setup_reloader(config)
         reloader.shutdown()
 
-    def test_should_reload_when_python_file_is_changed(self):
+    @pytest.mark.parametrize(
+        "reloader_class, result", [(StatReload, True), (WatchGodReload, True)]
+    )
+    def test_reload_when_python_file_is_changed(self, result):
         file = "example.py"
         update_file = self.tmp_path.joinpath(file)
         update_file.touch()
@@ -56,10 +59,27 @@ class TestBaseReload:
             config = Config(app=None, reload=True)
             reloader = self._setup_reloader(config)
 
-            assert self._reload_tester(reloader, update_file)
+            assert self._reload_tester(reloader, update_file) == result
 
             reloader.shutdown()
 
+    @pytest.mark.parametrize(
+        "reloader_class, result", [(StatReload, False), (WatchGodReload, True)]
+    )
+    def test_reload_when_javascript_file_is_changed(self, result):
+        file = "example.js"
+        update_file = self.tmp_path.joinpath(file)
+        update_file.touch()
+
+        with self.tmpdir.as_cwd():
+            config = Config(app=None, reload=True)
+            reloader = self._setup_reloader(config)
+
+            assert self._reload_tester(reloader, update_file) == result
+
+            reloader.shutdown()
+
+    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
     def test_should_not_reload_when_dot_file_is_changed(self):
         file = ".dotted"
 
@@ -74,6 +94,7 @@ class TestBaseReload:
 
             reloader.shutdown()
 
+    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
     def test_should_reload_when_directories_have_same_prefix(self):
         file = "example.py"
 
