@@ -10,7 +10,6 @@ import sys
 import time
 import typing
 from email.utils import formatdate
-from ipaddress import IPv6Address, ip_address
 
 import click
 
@@ -25,8 +24,6 @@ from uvicorn.config import (
     SSL_PROTOCOL_VERSION,
     WS_PROTOCOLS,
     Config,
-    _get_server_start_message,
-    _IPKind,
 )
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
@@ -523,11 +520,12 @@ class Server:
             if port == 0:
                 port = server.sockets[0].getsockname()[1]
             protocol_name = "https" if config.ssl else "http"
-            if isinstance(ip_address(config.host), IPv6Address):
-                message, color_message = _get_server_start_message(_IPKind.IPv6)
-            else:
-                message, color_message = _get_server_start_message(_IPKind.IPv4)
-
+            message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
+            color_message = (
+                "Uvicorn running on "
+                + click.style("%s://%s:%d", bold=True)
+                + " (Press CTRL+C to quit)"
+            )
             logger.info(
                 message,
                 protocol_name,
