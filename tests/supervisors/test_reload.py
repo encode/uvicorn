@@ -1,10 +1,51 @@
-from tests.supervisors.test_basereload import TestBaseReload
+import signal
+from pathlib import Path
+from time import sleep
+
+import pytest
+
 from uvicorn.config import Config
+from uvicorn.supervisors.basereload import BaseReload
+from uvicorn.supervisors.statreload import StatReload
 from uvicorn.supervisors.watchgodreload import WatchGodReload
 
 
-class TestWatchGodReload(TestBaseReload):
-    reloader_class = WatchGodReload
+@pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
+class TestBaseReload:
+    tmp_path: Path
+
+    @pytest.fixture(autouse=True)
+    def setup(self, tmpdir, reloader_class):
+        self.tmpdir = tmpdir
+        self.tmp_path = Path(tmpdir)
+        self.reloader_class = reloader_class
+
+    def run(self, sockets):
+        pass
+
+    def _setup_reloader(self, config: Config) -> BaseReload:
+        reloader = self.reloader_class(config, target=self.run, sockets=[])
+        reloader.signal_handler(sig=signal.SIGINT, frame=None)
+        reloader.startup()
+        return reloader
+
+    def _reload_tester(self, reloader: BaseReload, file: Path) -> bool:
+        reloader.restart()
+        assert not reloader.should_restart()
+        sleep(0.1)
+        file.touch()
+        return reloader.should_restart()
+
+    def test_reloader_should_initialize(self):
+        """
+        A basic sanity check.
+
+        Simply run the reloader against a no-op server, and signal for it to
+        quit immediately.
+        """
+        config = Config(app=None, reload=True)
+        reloader = self._setup_reloader(config)
+        reloader.shutdown()
 
     def test_should_reload_when_python_file_is_changed(self):
         file = "example.py"
