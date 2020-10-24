@@ -341,27 +341,38 @@ class Config:
             loop_setup()
 
     def bind_socket(self):
-        sock = socket.socket()
+        host = self.host
+        port = self.port
+
+        family = socket.AF_INET
+        addr_format = "%s://%s:%d"
+
+        if host and ":" in host:
+            # It's an IPv6 address.
+            family = socket.AF_INET6
+            addr_format = "%s://[%s]:%d"
+
+        sock = socket.socket(family=family)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            sock.bind((self.host, self.port))
+            sock.bind((host, port))
         except OSError as exc:
             logger.error(exc)
             sys.exit(1)
         sock.set_inheritable(True)
 
-        message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
+        message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
         color_message = (
             "Uvicorn running on "
-            + click.style("%s://%s:%d", bold=True)
+            + click.style(addr_format, bold=True)
             + " (Press CTRL+C to quit)"
         )
         protocol_name = "https" if self.is_ssl else "http"
         logger.info(
             message,
             protocol_name,
-            self.host,
-            self.port,
+            host,
+            port,
             extra={"color_message": color_message},
         )
         return sock

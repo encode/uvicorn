@@ -504,11 +504,20 @@ class Server:
 
         else:
             # Standard case. Create a socket from a host/port pair.
+
+            host = config.host
+            port = config.port
+            addr_format = "%s://%s:%d"
+
+            if host and ":" in host:
+                # It's an IPv6 address.
+                addr_format = "%s://[%s]:%d"
+
             try:
                 server = await loop.create_server(
                     create_protocol,
-                    host=config.host,
-                    port=config.port,
+                    host=host,
+                    port=port,
                     ssl=config.ssl,
                     backlog=config.backlog,
                 )
@@ -516,20 +525,20 @@ class Server:
                 logger.error(exc)
                 await self.lifespan.shutdown()
                 sys.exit(1)
-            port = config.port
+
             if port == 0:
                 port = server.sockets[0].getsockname()[1]
             protocol_name = "https" if config.ssl else "http"
-            message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
+            message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
             color_message = (
                 "Uvicorn running on "
-                + click.style("%s://%s:%d", bold=True)
+                + click.style(addr_format, bold=True)
                 + " (Press CTRL+C to quit)"
             )
             logger.info(
                 message,
                 protocol_name,
-                config.host,
+                host,
                 port,
                 extra={"color_message": color_message},
             )
