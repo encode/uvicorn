@@ -7,6 +7,7 @@ import os
 import socket
 import ssl
 import sys
+from enum import Enum
 from typing import List, Tuple
 
 import click
@@ -115,8 +116,15 @@ def create_ssl_context(
     return ctx
 
 
-def _get_server_start_message(is_ipv6_message: bool = False) -> Tuple[str, str]:
-    if is_ipv6_message:
+class _IPKind(Enum):
+    IPv4 = "IPv4"
+    IPv6 = "IPv6"
+
+
+def _get_server_start_message(
+    host_ip_version: _IPKind = _IPKind.IPv4,
+) -> Tuple[str, str]:
+    if host_ip_version is _IPKind.IPv6:
         ip_repr = "%s://[%s]:%d"
     else:
         ip_repr = "%s://%s:%d"
@@ -368,9 +376,9 @@ class Config:
         sock.set_inheritable(True)
 
         if family == socket.AddressFamily.AF_INET6:
-            message, color_message = _get_server_start_message(is_ipv6_message=True)
+            message, color_message = _get_server_start_message(_IPKind.IPv6)
         else:
-            message, color_message = _get_server_start_message()
+            message, color_message = _get_server_start_message(_IPKind.IPv4)
         protocol_name = "https" if self.is_ssl else "http"
         logger.info(
             message,
