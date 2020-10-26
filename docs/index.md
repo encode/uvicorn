@@ -200,6 +200,54 @@ For a [PyPy][pypy] compatible configuration use `uvicorn.workers.UvicornH11Worke
 
 For more information, see the [deployment documentation](deployment.md).
 
+### Application factories
+
+You can use functions to instantiate and configure applications and the APP command-line argument can also be a function call. In this case the name will be imported from the module, then called to get the application object.
+
+```python
+import os
+
+
+class App:
+    def __init__(self, config):
+        self.config = config
+
+    async def __call__(self, scope, receive, send):
+        ...
+
+
+def default_config():
+    return {"FOO": os.environ.get("FOO", "BAR")}
+
+
+def create_app(config=None):
+    # Use env to configure and prepare the app before the first call
+    config = config or default_config()
+    app = App(config)
+    return app
+```
+
+Run the server by referencing the function call using the following pattern:
+
+```shell
+$ uvicorn 'example:create_app()'
+```
+
+Providing arguments in the APP string is not supported. This was a decision to keep the application import code simple and fast.
+You can always have multiple factory functions or use some logic inside the factory function to lookup the proper configuration.
+
+However, functions where all parameters have default values can be used as application factory.
+So, it's easier to test different configurations without monkeypatching the environment or any object:
+
+
+```python
+from example import create_app
+
+async def test_create_app_baz():
+    app = create_app(config={"FOO": "BAZ"})
+    ...
+```
+
 ## The ASGI interface
 
 Uvicorn uses the [ASGI specification][asgi] for interacting with an application.
