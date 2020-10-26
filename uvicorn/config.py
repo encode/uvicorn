@@ -341,13 +341,10 @@ class Config:
             loop_setup()
 
     def bind_socket(self):
-        host = self.host
-        port = self.port
-
         family = socket.AF_INET
         addr_format = "%s://%s:%d"
 
-        if host and ":" in host:
+        if self.host and ":" in self.host:
             # It's an IPv6 address.
             family = socket.AF_INET6
             addr_format = "%s://[%s]:%d"
@@ -355,7 +352,7 @@ class Config:
         sock = socket.socket(family=family)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            sock.bind((host, port))
+            sock.bind((self.host, self.port))
         except OSError as exc:
             logger.error(exc)
             sys.exit(1)
@@ -371,8 +368,8 @@ class Config:
         logger.info(
             message,
             protocol_name,
-            host,
-            port,
+            self.host,
+            self.port,
             extra={"color_message": color_message},
         )
         return sock
