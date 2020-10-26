@@ -504,20 +504,16 @@ class Server:
 
         else:
             # Standard case. Create a socket from a host/port pair.
-
-            host = config.host
-            port = config.port
             addr_format = "%s://%s:%d"
-
-            if host and ":" in host:
+            if self.host and ":" in self.host:
                 # It's an IPv6 address.
                 addr_format = "%s://[%s]:%d"
 
             try:
                 server = await loop.create_server(
                     create_protocol,
-                    host=host,
-                    port=port,
+                    host=config.host,
+                    port=config.port,
                     ssl=config.ssl,
                     backlog=config.backlog,
                 )
@@ -525,7 +521,7 @@ class Server:
                 logger.error(exc)
                 await self.lifespan.shutdown()
                 sys.exit(1)
-
+            port = config.port
             if port == 0:
                 port = server.sockets[0].getsockname()[1]
             protocol_name = "https" if config.ssl else "http"
@@ -538,7 +534,7 @@ class Server:
             logger.info(
                 message,
                 protocol_name,
-                host,
+                config.host,
                 port,
                 extra={"color_message": color_message},
             )
