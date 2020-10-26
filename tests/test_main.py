@@ -14,7 +14,7 @@ from uvicorn.main import Server
     [
         pytest.param(None, "http://127.0.0.1:8000", id="default"),
         pytest.param("localhost", "http://127.0.0.1:8000", id="hostname"),
-        pytest.param("::", "http://[::]:8000", id="ipv6"),
+        pytest.param("::1", "http://[::1]:8000", id="ipv6"),
     ],
 )
 def test_run(host, url):
