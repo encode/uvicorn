@@ -1,5 +1,19 @@
 # Change Log
 
+## 0.12.2 - 2020-10-19
+
+### Added
+- Adding ability to decrypt ssl key file (#808) 10/12/20 90dbb6e0
+- Support .yml log config files (#799) 10/6/20 b468950e
+- Added python 3.9 support (#804) 10/6/20 08fd0559
+
+### Fixed
+- Fixes watchgod with common prefixes (#817) 10/14/20 1b32f997
+- Fix reload with ipv6 host (#803) 10/14/20 5acaee5b
+- Added cli suport for headers containing colon (#813) 10/12/20 68732899
+- Sharing socket across workers on windows (#802) 10/12/20 103167a0
+- Note the need to configure trusted "ips" when using unix sockets (#796) 10/4/20 a504c569
+
 ## 0.12.1 - 2020-09-30
 
 ### Changed
