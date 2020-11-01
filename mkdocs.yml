@@ -8,7 +8,7 @@ repo_name: encode/uvicorn
 repo_url: https://github.com/encode/uvicorn
 edit_uri: ""
 
-pages:
+nav:
     - Introduction: 'index.md'
     - Settings: 'settings.md'
     - Deployment: 'deployment.md'
@@ -17,6 +17,8 @@ pages:
 markdown_extensions:
   - markdown.extensions.codehilite:
       guess_lang: false
+  - toc:
+      permalink: true
 
 extra_javascript:
   - 'js/chat.js'

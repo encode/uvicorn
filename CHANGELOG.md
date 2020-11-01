@@ -1,5 +1,49 @@
 # Change Log
 
+## 0.12.2 - 2020-10-19
+
+### Added
+- Adding ability to decrypt ssl key file (#808) 10/12/20 90dbb6e0
+- Support .yml log config files (#799) 10/6/20 b468950e
+- Added python 3.9 support (#804) 10/6/20 08fd0559
+
+### Fixed
+- Fixes watchgod with common prefixes (#817) 10/14/20 1b32f997
+- Fix reload with ipv6 host (#803) 10/14/20 5acaee5b
+- Added cli suport for headers containing colon (#813) 10/12/20 68732899
+- Sharing socket across workers on windows (#802) 10/12/20 103167a0
+- Note the need to configure trusted "ips" when using unix sockets (#796) 10/4/20 a504c569
+
+## 0.12.1 - 2020-09-30
+
+### Changed
+- Pinning h11 and python-dotenv to min versions (#789) 9/29/20 bbf19c66
+- Get docs/index.md in sync with README.md (#784) 9/29/20 70ebcfdf
+
+### Fixed
+- Improve changelog by pointing out breaking changes (#792) 9/29/20 e2b75064
+
+## 0.12.0 - 2020-09-28
+
+### Added
+- Make reload delay configurable (#774) 9/28/20 98010027
+- Upgrade maximum h11 dependency version to 0.10 (#772) 8/28/20 54d729cc
+- Allow .json or .yaml --log-config files (#665) 8/18/20 093a1f7c
+- Add ASGI dict to the lifespan scope (#754) 8/15/20 8150c3eb
+- Upgrade wsproto to 0.15.0 (#750) 8/13/20 fbce393f
+- Use optional package installs (#666) 8/10/20 5fa99a11
+
+### Changed
+- Dont set log level for root logger (#767) 8/28/20 df81b168
+- Uvicorn no longer ships extra dependencies `uvloop`, `websockets` and
+  `httptools` as default. To install these dependencies use
+  `uvicorn[standard]`.
+
+### Fixed
+- Revert "Improve shutdown robustness when using `--reload` or multiprocessing (#620)" (#756) 8/28/20 ff4af12d
+- Fix terminate error in windows (#744) 8/27/20 dd3b842d
+- Fix bug where --log-config disables uvicorn loggers (#512) 8/11/20 a9c37cc4
+
 ## 0.11.8 - 2020-07-30
 
 * Fix a regression that caused Uvicorn to crash when using `--interface=wsgi`. (Pull #730)

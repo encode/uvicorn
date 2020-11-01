@@ -1,15 +1,7 @@
-# Minimal
-click
-h11
+-e .[standard]
 
-# Optional
-httptools; sys_platform != 'win32'
-uvloop>=0.14.0; sys_platform != 'win32'
-websockets==8.*
+# Explicit optionals
 wsproto==0.15.*
-watchgod>=0.6,<0.7
-python_dotenv==0.13.*
-PyYAML>=5.1
 
 # Packaging
 twine
@@ -18,14 +10,15 @@ wheel
 # Testing
 autoflake
 black
-codecov
 flake8
 isort
 pytest
-pytest-cov
 pytest-mock
 requests
 mypy
+trustme
+cryptography
+coverage
 
 # Documentation
 mkdocs

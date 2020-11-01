@@ -105,20 +105,28 @@ def create_ssl_context(
     certfile, keyfile, password, ssl_version, cert_reqs, ca_certs, ciphers
 ):
     ctx = ssl.SSLContext(ssl_version)
-    if password:
-
-        def getpassword():
-            return password
-
-        ctx.load_cert_chain(certfile, keyfile, getpassword)
-    else:
-        ctx.load_cert_chain(certfile, keyfile)
+    get_password = (lambda: password) if password else None
+    ctx.load_cert_chain(certfile, keyfile, get_password)
     ctx.verify_mode = cert_reqs
     if ca_certs:
         ctx.load_verify_locations(ca_certs)
     if ciphers:
         ctx.set_ciphers(ciphers)
     return ctx
+
+
+def _get_server_start_message(is_ipv6_message: bool = False) -> Tuple[str, str]:
+    if is_ipv6_message:
+        ip_repr = "%s://[%s]:%d"
+    else:
+        ip_repr = "%s://%s:%d"
+    message = f"Uvicorn running on {ip_repr} (Press CTRL+C to quit)"
+    color_message = (
+        "Uvicorn running on "
+        + click.style(ip_repr, bold=True)
+        + " (Press CTRL+C to quit)"
+    )
+    return message, color_message
 
 
 class Config:
@@ -142,6 +150,7 @@ class Config:
         debug=False,
         reload=False,
         reload_dirs=None,
+        reload_delay=None,
         workers=None,
         proxy_headers=True,
         forwarded_allow_ips=None,
@@ -154,7 +163,7 @@ class Config:
         callback_notify=None,
         ssl_keyfile=None,
         ssl_certfile=None,
-        ssl_password=None,
+        ssl_keyfile_password=None,
         ssl_version=SSL_PROTOCOL_VERSION,
         ssl_cert_reqs=ssl.CERT_NONE,
         ssl_ca_certs=None,
@@ -177,6 +186,7 @@ class Config:
         self.interface = interface
         self.debug = debug
         self.reload = reload
+        self.reload_delay = reload_delay or 0.25
         self.workers = workers or 1
         self.proxy_headers = proxy_headers
         self.root_path = root_path
@@ -188,7 +198,7 @@ class Config:
         self.callback_notify = callback_notify
         self.ssl_keyfile = ssl_keyfile
         self.ssl_certfile = ssl_certfile
-        self.ssl_password = ssl_password
+        self.ssl_keyfile_password = ssl_keyfile_password
         self.ssl_version = ssl_version
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
@@ -245,7 +255,7 @@ class Config:
                 with open(self.log_config) as file:
                     loaded_config = json.load(file)
                     logging.config.dictConfig(loaded_config)
-            elif self.log_config.endswith(".yaml"):
+            elif self.log_config.endswith((".yaml", ".yml")):
                 with open(self.log_config) as file:
                     loaded_config = yaml.safe_load(file)
                     logging.config.dictConfig(loaded_config)
@@ -275,7 +285,7 @@ class Config:
             self.ssl = create_ssl_context(
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
-                password=self.ssl_password,
+                password=self.ssl_keyfile_password,
                 ssl_version=self.ssl_version,
                 cert_reqs=self.ssl_cert_reqs,
                 ca_certs=self.ssl_ca_certs,
@@ -345,7 +355,10 @@ class Config:
             loop_setup()
 
     def bind_socket(self):
-        sock = socket.socket()
+        family, sockettype, proto, canonname, sockaddr = socket.getaddrinfo(
+            self.host, self.port, type=socket.SOCK_STREAM
+        )[0]
+        sock = socket.socket(family=family, type=sockettype)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             sock.bind((self.host, self.port))
@@ -354,12 +367,10 @@ class Config:
             sys.exit(1)
         sock.set_inheritable(True)
 
-        message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
-        color_message = (
-            "Uvicorn running on "
-            + click.style("%s://%s:%d", bold=True)
-            + " (Press CTRL+C to quit)"
-        )
+        if family == socket.AddressFamily.AF_INET6:
+            message, color_message = _get_server_start_message(is_ipv6_message=True)
+        else:
+            message, color_message = _get_server_start_message()
         protocol_name = "https" if self.is_ssl else "http"
         logger.info(
             message,

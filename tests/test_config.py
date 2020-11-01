@@ -17,7 +17,7 @@ def mocked_logging_config_module(mocker):
     return mocker.patch("logging.config")
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def logging_config():
     return deepcopy(LOGGING_CONFIG)
 
@@ -84,9 +84,22 @@ def test_socket_bind():
     assert isinstance(config.bind_socket(), socket.socket)
 
 
-def test_ssl_config(certfile_and_keyfile):
-    certfile, keyfile = certfile_and_keyfile
-    config = Config(app=asgi_app, ssl_certfile=certfile, ssl_keyfile=keyfile)
+def test_ssl_config(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
+    config = Config(
+        app=asgi_app,
+        ssl_certfile=tls_ca_certificate_pem_path,
+        ssl_keyfile=tls_ca_certificate_private_key_path,
+    )
+    config.load()
+
+    assert config.is_ssl is True
+
+
+def test_ssl_config_combined(tls_certificate_pem_path):
+    config = Config(
+        app=asgi_app,
+        ssl_certfile=tls_certificate_pem_path,
+    )
     config.load()
 
     assert config.is_ssl is True
@@ -112,9 +125,9 @@ def test_asgi_version(app, expected_interface):
     "use_colors, expected",
     [
         pytest.param(None, None, id="use_colors_not_provided"),
+        pytest.param("invalid", None, id="use_colors_invalid_value"),
         pytest.param(True, True, id="use_colors_enabled"),
         pytest.param(False, False, id="use_colors_disabled"),
-        pytest.param("invalid", False, id="use_colors_invalid_value"),
     ],
 )
 def test_log_config_default(mocked_logging_config_module, use_colors, expected):
@@ -148,8 +161,13 @@ def test_log_config_json(
     mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
 
 
+@pytest.mark.parametrize("config_filename", ["log_config.yml", "log_config.yaml"])
 def test_log_config_yaml(
-    mocked_logging_config_module, logging_config, yaml_logging_config, mocker
+    mocked_logging_config_module,
+    logging_config,
+    yaml_logging_config,
+    mocker,
+    config_filename,
 ):
     """
     Test that one can load a yaml config from disk.
@@ -158,10 +176,10 @@ def test_log_config_yaml(
         "uvicorn.config.open", mocker.mock_open(read_data=yaml_logging_config)
     )
 
-    config = Config(app=asgi_app, log_config="log_config.yaml")
+    config = Config(app=asgi_app, log_config=config_filename)
     config.load()
 
-    mocked_open.assert_called_once_with("log_config.yaml")
+    mocked_open.assert_called_once_with(config_filename)
     mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
 
 

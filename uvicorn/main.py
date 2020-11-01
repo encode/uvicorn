@@ -10,6 +10,7 @@ import sys
 import time
 import typing
 from email.utils import formatdate
+from ipaddress import IPv4Address, IPv6Address, ip_address
 
 import click
 
@@ -24,6 +25,7 @@ from uvicorn.config import (
     SSL_PROTOCOL_VERSION,
     WS_PROTOCOLS,
     Config,
+    _get_server_start_message,
 )
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
@@ -87,6 +89,14 @@ def print_version(ctx, param, value):
     multiple=True,
     help="Set reload directories explicitly, instead of using the current working"
     " directory.",
+)
+@click.option(
+    "--reload-delay",
+    type=float,
+    default=0.25,
+    show_default=True,
+    help="Delay between previous and next check if application needs to be."
+    " Defaults to 0.25s.",
 )
 @click.option(
     "--workers",
@@ -220,7 +230,11 @@ def print_version(ctx, param, value):
     show_default=True,
 )
 @click.option(
-    "--ssl-password", type=str, default=None, help="SSL key password", show_default=True
+    "--ssl-keyfile-password",
+    type=str,
+    default=None,
+    help="SSL keyfile password",
+    show_default=True,
 )
 @click.option(
     "--ssl-version",
@@ -286,6 +300,7 @@ def main(
     debug: bool,
     reload: bool,
     reload_dirs: typing.List[str],
+    reload_delay: float,
     workers: int,
     env_file: str,
     log_config: str,
@@ -300,7 +315,7 @@ def main(
     timeout_keep_alive: int,
     ssl_keyfile: str,
     ssl_certfile: str,
-    ssl_password: str,
+    ssl_keyfile_password: str,
     ssl_version: int,
     ssl_cert_reqs: int,
     ssl_ca_certs: str,
@@ -329,6 +344,7 @@ def main(
         "debug": debug,
         "reload": reload,
         "reload_dirs": reload_dirs if reload_dirs else None,
+        "reload_delay": reload_delay,
         "workers": workers,
         "proxy_headers": proxy_headers,
         "forwarded_allow_ips": forwarded_allow_ips,
@@ -339,12 +355,12 @@ def main(
         "timeout_keep_alive": timeout_keep_alive,
         "ssl_keyfile": ssl_keyfile,
         "ssl_certfile": ssl_certfile,
-        "ssl_password": ssl_password,
+        "ssl_keyfile_password": ssl_keyfile_password,
         "ssl_version": ssl_version,
         "ssl_cert_reqs": ssl_cert_reqs,
         "ssl_ca_certs": ssl_ca_certs,
         "ssl_ciphers": ssl_ciphers,
-        "headers": list([header.split(":") for header in headers]),
+        "headers": list([header.split(":", 1) for header in headers]),
         "use_colors": use_colors,
     }
     run(**kwargs)
@@ -447,8 +463,19 @@ class Server:
         if sockets is not None:
             # Explicitly passed a list of open sockets.
             # We use this when the server is run from a Gunicorn worker.
+
+            def _share_socket(sock: socket) -> socket:
+                # Windows requires the socket be explicitly shared across
+                # multiple workers (processes).
+                from socket import fromshare  # type: ignore
+
+                sock_data = sock.share(os.getpid())  # type: ignore
+                return fromshare(sock_data)
+
             self.servers = []
             for sock in sockets:
+                if config.workers > 1 and platform.system() == "Windows":
+                    sock = _share_socket(sock)
                 server = await loop.create_server(
                     create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
                 )
@@ -495,12 +522,17 @@ class Server:
             if port == 0:
                 port = server.sockets[0].getsockname()[1]
             protocol_name = "https" if config.ssl else "http"
-            message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
-            color_message = (
-                "Uvicorn running on "
-                + click.style("%s://%s:%d", bold=True)
-                + " (Press CTRL+C to quit)"
-            )
+            try:
+                addr = ip_address(config.host)
+                if isinstance(addr, IPv6Address):
+                    message, color_message = _get_server_start_message(
+                        is_ipv6_message=True
+                    )
+                elif isinstance(addr, IPv4Address):
+                    message, color_message = _get_server_start_message()
+            except ValueError:
+                message, color_message = _get_server_start_message()
+
             logger.info(
                 message,
                 protocol_name,

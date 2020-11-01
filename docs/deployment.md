@@ -79,7 +79,8 @@ Options:
                                   5]
   --ssl-keyfile TEXT              SSL key file
   --ssl-certfile TEXT             SSL certificate file
-  --ssl-password TEXT             SSL key file password
+word TEXT             SSL key file password
+  --ssl-keyfile-password TEXT     SSL key file password
   --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
                                   [default: 2]
   --ssl-cert-reqs INTEGER         Whether client certificate is required (see
@@ -205,6 +206,7 @@ Using Nginx as a proxy in front of your Uvicorn processes may not be neccessary,
 In managed environments such as `Heroku`, you wont typically need to configure Nginx, as your server processes will already be running behind load balancing proxies.
 
 The recommended configuration for proxying from Nginx is to use a UNIX domain socket between Nginx and whatever the process manager that is being used to run Uvicorn.
+Note that when doing this you will need run Uvicorn with `--forwarded-allow-ips='*'` to ensure that the domain socket is trusted as a source from which to proxy headers.
 
 When fronting the application with a proxy server you want to make sure that the proxy sets headers to ensure that application can properly determine the client address of the incoming connection, and if the connection was over `http` or `https`.
 
