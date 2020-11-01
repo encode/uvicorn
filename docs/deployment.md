@@ -79,7 +79,6 @@ Options:
                                   5]
   --ssl-keyfile TEXT              SSL key file
   --ssl-certfile TEXT             SSL certificate file
-word TEXT             SSL key file password
   --ssl-keyfile-password TEXT     SSL key file password
   --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
                                   [default: 2]
