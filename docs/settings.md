@@ -63,6 +63,7 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 ## HTTPS
 
 * `--ssl-keyfile <path>` - SSL key file
+* `--ssl-keyfile-password` - SSL key file password
 * `--ssl-certfile <path>` - SSL certificate file
 * `--ssl-version <int>` - SSL version to use (see stdlib ssl module's)
 * `--ssl-cert-reqs <int>` - Whether client certificate is required (see stdlib ssl module's)
