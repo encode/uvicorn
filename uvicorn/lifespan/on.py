@@ -1,8 +1,8 @@
-import asyncio
 import logging
-from asyncio import Queue
 
 from uvicorn import Config
+from uvicorn._backends.auto import AutoBackend
+from uvicorn._backends.base import AsyncQueue
 from uvicorn._types import LifespanReceiveMessage, LifespanScope, LifespanSendMessage
 
 STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
@@ -13,11 +13,14 @@ class LifespanOn:
         if not config.loaded:
             config.load()
 
+        self._backend = AutoBackend()
         self.config = config
         self.logger = logging.getLogger("uvicorn.error")
-        self.startup_event = asyncio.Event()
-        self.shutdown_event = asyncio.Event()
-        self.receive_queue: "Queue[LifespanReceiveMessage]" = asyncio.Queue()
+        self.startup_event = self._backend.create_event()
+        self.shutdown_event = self._backend.create_event()
+        self.receive_queue: AsyncQueue[
+            LifespanReceiveMessage
+        ] = self._backend.create_queue()
         self.error_occured = False
         self.startup_failed = False
         self.should_exit = False
@@ -25,8 +28,7 @@ class LifespanOn:
     async def startup(self) -> None:
         self.logger.info("Waiting for application startup.")
 
-        loop = asyncio.get_event_loop()
-        loop.create_task(self.main())
+        await self._backend.unsafe_spawn_task(self.main)
 
         await self.receive_queue.put({"type": "lifespan.startup"})
         await self.startup_event.wait()
