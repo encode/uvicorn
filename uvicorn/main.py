@@ -10,7 +10,6 @@ import sys
 import time
 import typing
 from email.utils import formatdate
-from ipaddress import IPv4Address, IPv6Address, ip_address
 
 import click
 
@@ -25,7 +24,6 @@ from uvicorn.config import (
     SSL_PROTOCOL_VERSION,
     WS_PROTOCOLS,
     Config,
-    _get_server_start_message,
 )
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
@@ -506,6 +504,11 @@ class Server:
 
         else:
             # Standard case. Create a socket from a host/port pair.
+            addr_format = "%s://%s:%d"
+            if config.host and ":" in config.host:
+                # It's an IPv6 address.
+                addr_format = "%s://[%s]:%d"
+
             try:
                 server = await loop.create_server(
                     create_protocol,
@@ -522,17 +525,12 @@ class Server:
             if port == 0:
                 port = server.sockets[0].getsockname()[1]
             protocol_name = "https" if config.ssl else "http"
-            try:
-                addr = ip_address(config.host)
-                if isinstance(addr, IPv6Address):
-                    message, color_message = _get_server_start_message(
-                        is_ipv6_message=True
-                    )
-                elif isinstance(addr, IPv4Address):
-                    message, color_message = _get_server_start_message()
-            except ValueError:
-                message, color_message = _get_server_start_message()
-
+            message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
+            color_message = (
+                "Uvicorn running on "
+                + click.style(addr_format, bold=True)
+                + " (Press CTRL+C to quit)"
+            )
             logger.info(
                 message,
                 protocol_name,

@@ -11,7 +11,7 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 
 ## Socket Binding
 
-* `--host <str>` - Bind socket to this host. Use `--host 0.0.0.0` to make the application available on your local network. **Default:** *'127.0.0.1'*.
+* `--host <str>` - Bind socket to this host. Use `--host 0.0.0.0` to make the application available on your local network. IPv6 addresses are supported, for example: `--host '::'`. **Default:** *'127.0.0.1'*.
 * `--port <int>` - Bind to a socket with this port. **Default:** *8000*.
 * `--uds <str>` - Bind to a UNIX domain socket. Useful if you want to run Uvicorn behind a reverse proxy.
 * `--fd <int>` - Bind to socket from this file descriptor. Useful if you want to run Uvicorn within a process manager.
