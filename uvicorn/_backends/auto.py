@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable
+from typing import Any, AsyncContextManager, Callable
 
 import sniffio
 
@@ -25,5 +25,16 @@ class AutoBackend(AsyncBackend):
     def create_queue(self) -> AsyncQueue:
         return self._backend.create_queue()
 
-    def unsafe_spawn_task(self, async_fn: Callable[[], Awaitable[None]]) -> None:
-        self._backend.unsafe_spawn_task(async_fn)
+    def call_soon(self, fn: Callable, *args: Any) -> None:
+        self._backend.call_soon(fn, *args)
+
+    def unsafe_spawn_task(self, async_fn: Callable, *args: Any) -> None:
+        await self._backend.unsafe_spawn_task(async_fn)
+
+    def run_in_background(
+        self, async_fn: Callable, *args: Any
+    ) -> AsyncContextManager[None]:
+        return self._backend.run_in_background(async_fn, *args)
+
+    async def run_sync_in_thread(self, fn: Callable, *args: Any) -> None:
+        await self._backend.run_sync_in_thread(fn, *args)

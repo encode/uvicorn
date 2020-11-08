@@ -48,6 +48,8 @@ minimal_requirements = [
     "h11>=0.8",
     "sniffio==1.*",
     "typing-extensions;" + env_marker_below_38,
+    "async_generator; python_version < 3.7",
+    "async_exit_stack; python_version < 3.7",
 ]
 
 extra_requirements = [

@@ -1,7 +1,8 @@
-import asyncio
-import concurrent.futures
 import io
 import sys
+
+from uvicorn._backends.auto import AutoBackend
+from uvicorn._compat import AsyncExitStack
 
 
 def build_environ(scope, message, body):
@@ -56,24 +57,22 @@ def build_environ(scope, message, body):
 class WSGIMiddleware:
     def __init__(self, app, workers=10):
         self.app = app
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
     async def __call__(self, scope, receive, send):
         assert scope["type"] == "http"
-        instance = WSGIResponder(self.app, self.executor, scope)
+        instance = WSGIResponder(self.app, scope)
         await instance(receive, send)
 
 
 class WSGIResponder:
-    def __init__(self, app, executor, scope):
+    def __init__(self, app, scope):
+        self._backend = AutoBackend()
         self.app = app
-        self.executor = executor
         self.scope = scope
         self.status = None
         self.response_headers = None
-        self.send_event = asyncio.Event()
+        self.send_event = self._backend.create_event()
         self.send_queue = []
-        self.loop = None
         self.response_started = False
         self.exc_info = None
 
@@ -86,17 +85,21 @@ class WSGIResponder:
             body += body_message.get("body", b"")
             more_body = body_message.get("more_body", False)
         environ = build_environ(self.scope, message, body)
-        self.loop = asyncio.get_event_loop()
-        wsgi = self.loop.run_in_executor(
-            self.executor, self.wsgi, environ, self.start_response
-        )
-        sender = self.loop.create_task(self.sender(send))
-        try:
-            await asyncio.wait_for(wsgi, None)
-        finally:
+
+        async def cleanup() -> None:
             self.send_queue.append(None)
             self.send_event.set()
-            await asyncio.wait_for(sender, None)
+
+        exit_stack = AsyncExitStack()
+        async with exit_stack:
+            await exit_stack.enter_async_context(
+                self._backend.run_in_background(self.sender, send)
+            )
+            exit_stack.push_async_callback(cleanup)
+            await self._backend.run_sync_in_thread(
+                self.wsgi, environ, self.start_response
+            )
+
         if self.exc_info is not None:
             raise self.exc_info[0].with_traceback(self.exc_info[1], self.exc_info[2])
 
@@ -128,14 +131,14 @@ class WSGIResponder:
                     "headers": headers,
                 }
             )
-            self.loop.call_soon_threadsafe(self.send_event.set)
+            self._backend.call_soon(self.send_event.set)
 
     def wsgi(self, environ, start_response):
         for chunk in self.app(environ, start_response):
             self.send_queue.append(
                 {"type": "http.response.body", "body": chunk, "more_body": True}
             )
-            self.loop.call_soon_threadsafe(self.send_event.set)
+            self._backend.call_soon(self.send_event.set)
 
         self.send_queue.append({"type": "http.response.body", "body": b""})
-        self.loop.call_soon_threadsafe(self.send_event.set)
+        self._backend.call_soon(self.send_event.set)

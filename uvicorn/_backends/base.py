@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable, Generic, TypeVar
+from typing import Any, AsyncContextManager, Callable, Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -15,6 +15,9 @@ class AsyncEvent:
         raise NotImplementedError  # pragma: no cover
 
     async def wait(self) -> None:
+        raise NotImplementedError  # pragma: no cover
+
+    def clear(self) -> None:
         raise NotImplementedError  # pragma: no cover
 
 
@@ -43,5 +46,16 @@ class AsyncBackend:
     def create_queue(self) -> AsyncQueue:
         raise NotImplementedError  # pragma: no cover
 
-    def unsafe_spawn_task(self, async_fn: Callable[[], Awaitable[None]]) -> None:
+    def call_soon(self, fn: Callable, *args: Any) -> None:
+        raise NotImplementedError  # pragma: no cover
+
+    def unsafe_spawn_task(self, async_fn: Callable, *args: Any) -> None:
+        raise NotImplementedError  # pragma: no cover
+
+    def run_in_background(
+        self, async_fn: Callable, *args: Any
+    ) -> AsyncContextManager[None]:
+        raise NotImplementedError  # pragma: no cover
+
+    async def run_sync_in_thread(self, fn: Callable, *args: Any) -> None:
         raise NotImplementedError  # pragma: no cover
