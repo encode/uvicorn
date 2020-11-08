@@ -505,7 +505,7 @@ class Server:
         else:
             # Standard case. Create a socket from a host/port pair.
             addr_format = "%s://%s:%d"
-            if self.host and ":" in self.host:
+            if config.host and ":" in config.host:
                 # It's an IPv6 address.
                 addr_format = "%s://[%s]:%d"
 
