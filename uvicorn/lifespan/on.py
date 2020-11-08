@@ -28,7 +28,7 @@ class LifespanOn:
     async def startup(self) -> None:
         self.logger.info("Waiting for application startup.")
 
-        await self._backend.unsafe_spawn_task(self.main)
+        self._backend.unsafe_spawn_task(self.main)
 
         await self.receive_queue.put({"type": "lifespan.startup"})
         await self.startup_event.wait()

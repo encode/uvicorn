@@ -43,5 +43,5 @@ class AsyncBackend:
     def create_queue(self) -> AsyncQueue:
         raise NotImplementedError  # pragma: no cover
 
-    async def unsafe_spawn_task(self, async_fn: Callable[[], Awaitable[None]]) -> None:
+    def unsafe_spawn_task(self, async_fn: Callable[[], Awaitable[None]]) -> None:
         raise NotImplementedError  # pragma: no cover

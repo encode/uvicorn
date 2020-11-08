@@ -36,6 +36,6 @@ class AsyncioBackend(AsyncBackend):
     def create_queue(self) -> AsyncQueue:
         return Queue()
 
-    async def unsafe_spawn_task(self, async_fn: Callable[[], Awaitable[None]]) -> None:
+    def unsafe_spawn_task(self, async_fn: Callable[[], Awaitable[None]]) -> None:
         loop = asyncio.get_event_loop()
         loop.create_task(async_fn())
