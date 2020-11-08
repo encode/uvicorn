@@ -1,7 +1,6 @@
-import asyncio
+"""
+Backwards compatibility shim.
+"""
+from .._impl.asyncio.loops.uvloop import uvloop_setup
 
-import uvloop
-
-
-def uvloop_setup():
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+__all__ = ["uvloop_setup"]

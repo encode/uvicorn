@@ -1,15 +1,6 @@
-try:
-    import websockets  # noqa
-except ImportError:  # pragma: no cover
-    try:
-        import wsproto  # noqa
-    except ImportError:
-        AutoWebSocketsProtocol = None
-    else:
-        from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
+"""
+Backwards compatibility shim.
+"""
+from uvicorn._impl.asyncio.protocols.websockets.auto import AutoWebSocketsProtocol
 
-        AutoWebSocketsProtocol = WSProtocol
-else:
-    from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
-
-    AutoWebSocketsProtocol = WebSocketProtocol
+__all__ = ["AutoWebSocketsProtocol"]
