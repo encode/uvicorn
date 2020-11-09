@@ -5,11 +5,11 @@ from copy import deepcopy
 import pytest
 import yaml
 
-from uvicorn import protocols
 from uvicorn.config import LOGGING_CONFIG, Config
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
+from uvicorn.protocols.http.h11_impl import H11Protocol
 
 
 @pytest.fixture
@@ -72,9 +72,9 @@ def test_app_unimportable():
 
 
 def test_concrete_http_class():
-    config = Config(app=asgi_app, http=protocols.http.h11_impl.H11Protocol)
+    config = Config(app=asgi_app, http=H11Protocol)
     config.load()
-    assert config.http_protocol_class is protocols.http.h11_impl.H11Protocol
+    assert config.http_protocol_class is H11Protocol
 
 
 def test_socket_bind():
