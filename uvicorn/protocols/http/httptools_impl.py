@@ -153,13 +153,10 @@ class HttpToolsProtocol(asyncio.Protocol):
     def eof_received(self):
         pass
 
-    def _unset_keepalive_if_required(self):
+    def data_received(self, data):
         if self.timeout_keep_alive_task is not None:
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
-
-    def data_received(self, data):
-        self._unset_keepalive_if_required()
 
         try:
             self.parser.feed_data(data)
@@ -304,8 +301,6 @@ class HttpToolsProtocol(asyncio.Protocol):
             return
 
         # Set a short Keep-Alive timeout.
-        self._unset_keepalive_if_required()
-
         self.timeout_keep_alive_task = self.loop.call_later(
             self.timeout_keep_alive, self.timeout_keep_alive_handler
         )
