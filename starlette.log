@@ -1,0 +1,34 @@
+/home/lotso/PycharmProjects/uvicorn/venv/bin/python /home/lotso/.local/share/JetBrains/Toolbox/apps/PyCharm-P/ch-1/202.7660.27/plugins/python/helpers/pydev/pydevd.py --multiproc --qt-support=auto --client 127.0.0.1 --port 41799 --file /home/lotso/PycharmProjects/uvicorn/846_quart_race.py
+pydev debugger: process 26943 is connecting
+Connected to pydev debugger (build 202.7660.27)
+INFO:     Started server process [26943]
+INFO:     Waiting for application startup.
+Executing <Task pending name='Task-1' coro=<AsyncioServer.serve() running at /home/lotso/PycharmProjects/uvicorn/uvicorn/_impl/asyncio.py:64> wait_for=<Future pending cb=[<TaskWakeupMethWrapper object at 0x7f901adadb20>()] created at /home/lotso/.asdf/installs/python/3.8.6/lib/python3.8/asyncio/locks.py:306> cb=[run_until_complete.<locals>.<lambda>()] created at /home/lotso/PycharmProjects/uvicorn/uvicorn/_impl/asyncio.py:47> took 0.101 seconds
+TRACE:    ASGI [1] Started scope={'type': 'lifespan', 'asgi': {'version': '3.0', 'spec_version': '2.0'}}
+TRACE:    ASGI [1] Receive {'type': 'lifespan.startup'}
+TRACE:    ASGI [1] Send {'type': 'lifespan.startup.complete'}
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+TRACE:    127.0.0.1:59396 - Connection made
+TRACE:    127.0.0.1:59398 - Connection made
+TRACE:    127.0.0.1:59396 - Connection lost
+TRACE:    127.0.0.1:59398 - ASGI [2] Started scope={'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'client': ('127.0.0.1', 59398), 'scheme': 'http', 'method': 'POST', 'root_path': '', 'path': '/', 'raw_path': b'/', 'query_string': b'', 'headers': [(b'host', b'127.0.0.1:8000'), (b'content-type', b'application/json'), (b'content-length', b'199')]}
+TRACE:    R0 D:False C: False
+TRACE:    R1 D:False C: False
+TRACE:    R3 D:False C: False
+TRACE:    127.0.0.1:59398 - ASGI [2] Receive {'type': 'http.request', 'body': '<199 bytes>', 'more_body': False}
+TRACE:    127.0.0.1:59398 - ASGI [2] Send {'type': 'http.response.start', 'status': 200, 'headers': [(b'content-length', b'199')]}
+TRACE:    127.0.0.1:59398 - ASGI [2] Send {'type': 'http.response.body', 'body': '<199 bytes>'}
+TRACE:    S0 D: False C: False
+TRACE:    127.0.0.1:59398 - ASGI [2] Completed
+TRACE:    127.0.0.1:59398 - ASGI [3] Started scope={'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'client': ('127.0.0.1', 59398), 'scheme': 'http', 'method': 'POST', 'root_path': '', 'path': '/', 'raw_path': b'/', 'query_string': b'', 'headers': [(b'host', b'127.0.0.1:8000'), (b'content-type', b'application/json'), (b'content-length', b'199')]}
+TRACE:    R0 D:False C: False
+TRACE:    R1 D:False C: False
+TRACE:    R3 D:False C: False
+TRACE:    127.0.0.1:59398 - ASGI [3] Receive {'type': 'http.request', 'body': '<199 bytes>', 'more_body': False}
+TRACE:    127.0.0.1:59398 - ASGI [3] Send {'type': 'http.response.start', 'status': 200, 'headers': [(b'content-length', b'199')]}
+TRACE:    127.0.0.1:59398 - ASGI [3] Send {'type': 'http.response.body', 'body': '<199 bytes>'}
+TRACE:    S0 D: False C: False
+TRACE:    127.0.0.1:59398 - ASGI [3] Completed
+TRACE:    127.0.0.1:59398 - ASGI [4] Started scope={'type': 'http', 'asgi': {'version': '3.0', 'spec_version': '2.1'}, 'http_version': '1.1', 'server': ('127.0.0.1', 8000), 'client': ('127.0.0.1', 59398), 'scheme': 'http', 'method': 'POST', 'root_path': '', 'path': '/', 'raw_path': b'/', 'query_string': b'', 'headers': [(b'host', b'127.0.0.1:8000'), (b'content-type', b'application/json'), (b'content-length', b'199')]}
+TRACE:    R0 D:False C: False
