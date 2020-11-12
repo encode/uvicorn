@@ -526,16 +526,13 @@ class RequestResponseCycle:
 
             # Handle response completion
             if not more_body:
-                self.logger.log(TRACE_LOG_LEVEL,f"S0 D: {self.disconnected} C: {self.response_complete}")
                 if self.expected_content_length != 0:
                     raise RuntimeError("Response content shorter than Content-Length")
                 self.response_complete = True
                 self.message_event.set()
                 if not self.keep_alive:
-                    self.logger.log(TRACE_LOG_LEVEL, "not ka")
                     self.transport.close()
                 self.on_response()
-                self.logger.log(TRACE_LOG_LEVEL,f"S1 D: {self.disconnected} C: {self.response_complete}")
 
         else:
             # Response already sent
@@ -543,7 +540,6 @@ class RequestResponseCycle:
             raise RuntimeError(msg % message_type)
 
     async def receive(self):
-        self.logger.log(TRACE_LOG_LEVEL, f"R0 D:{self.disconnected} C: {self.response_complete}")
         if self.waiting_for_100_continue and not self.transport.is_closing():
             self.transport.write(b"HTTP/1.1 100 Continue\r\n\r\n")
             self.waiting_for_100_continue = False
@@ -556,12 +552,8 @@ class RequestResponseCycle:
             self.message_event.clear()
 
         if self.disconnected or self.response_complete:
-            self.logger.log(TRACE_LOG_LEVEL,
-                            f"R2 D:{self.disconnected} C: {self.response_complete}")
             message = {"type": "http.disconnect"}
         else:
-            self.logger.log(TRACE_LOG_LEVEL,
-                            f"R3 D:{self.disconnected} C: {self.response_complete}")
             message = {
                 "type": "http.request",
                 "body": self.body,

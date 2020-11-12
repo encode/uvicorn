@@ -4,7 +4,7 @@ PLACEHOLDER_FORMAT = {
     "body": "<{length} bytes>",
     "bytes": "<{length} bytes>",
     "text": "<{length} chars>",
-    # "headers": "<...>",
+    "headers": "<...>",
 }
 TRACE_LOG_LEVEL = 5
 
