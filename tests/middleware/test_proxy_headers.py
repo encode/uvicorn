@@ -28,3 +28,14 @@ def test_proxy_headers_no_port():
     response = client.get("/", headers=headers)
     assert response.status_code == 200
     assert response.text == "Remote: https://1.2.3.4:0"
+
+
+def test_proxy_headers_invalid_x_forwarded_for():
+    client = TestClient(app)
+    headers = {
+        "X-Forwarded-Proto": "https",
+        "X-Forwarded-For": "\xf0\xfd\xfd\xfd, 1.2.3.4",
+    }
+    response = client.get("/", headers=headers)
+    assert response.status_code == 200
+    assert response.text == "Remote: https://1.2.3.4:0"
