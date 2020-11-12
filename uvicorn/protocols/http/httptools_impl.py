@@ -154,7 +154,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         pass
 
     def _unset_keepalive_if_required(self):
-        self.logger.log(TRACE_LOG_LEVEL, f"unset ka")
         if self.timeout_keep_alive_task is not None:
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
@@ -274,14 +273,12 @@ class HttpToolsProtocol(asyncio.Protocol):
             on_response=self.on_response_complete,
         )
         if existing_cycle is None or existing_cycle.response_complete:
-            self.logger.log(TRACE_LOG_LEVEL, f"ka: {existing_cycle.keep_alive if existing_cycle else None} existing: {existing_cycle} {existing_cycle.response_complete if existing_cycle else None}")
             # Standard case - start processing the request.
             task = self.loop.create_task(self.cycle.run_asgi(app))
             task.add_done_callback(self.tasks.discard)
             self.tasks.add(task)
         else:
             # Pipelined HTTP requests need to be queued up.
-            self.logger.log(TRACE_LOG_LEVEL, "pipeline")
             self.flow.pause_reading()
             self.pipeline.insert(0, (self.cycle, app))
 
@@ -295,15 +292,12 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.message_event.set()
 
     def on_message_complete(self):
-        self.logger.log(TRACE_LOG_LEVEL, "message_complete")
         if self.parser.should_upgrade() or self.cycle.response_complete:
             return
         self.cycle.more_body = False
         self.message_event.set()
-        self.logger.log(TRACE_LOG_LEVEL, "message_complete end")
 
     def on_response_complete(self):
-        self.logger.log(TRACE_LOG_LEVEL, f"On response_complete")
         # Callback for pipelined HTTP requests to be started.
         self.server_state.total_requests += 1
 
@@ -320,16 +314,13 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Unpause data reads if needed.
         self.flow.resume_reading()
 
-        self.logger.log(TRACE_LOG_LEVEL, f"read ok")
         # Unblock any pipelined events.
         if self.pipeline:
-            self.logger.log(TRACE_LOG_LEVEL, f"On response_complete pipeline")
             cycle, app = self.pipeline.pop()
             task = self.loop.create_task(cycle.run_asgi(app))
             task.add_done_callback(self.tasks.discard)
             self.tasks.add(task)
 
-        self.logger.log(TRACE_LOG_LEVEL, f"On response END")
 
     def shutdown(self):
         """
@@ -542,7 +533,7 @@ class RequestResponseCycle:
 
             # Handle response completion
             if not more_body:
-                self.logger.log(TRACE_LOG_LEVEL,f"3 D: {self.disconnected} C: {self.response_complete}")
+                self.logger.log(TRACE_LOG_LEVEL,f"S0 D: {self.disconnected} C: {self.response_complete}")
                 if self.expected_content_length != 0:
                     raise RuntimeError("Response content shorter than Content-Length")
                 self.response_complete = True
@@ -557,21 +548,25 @@ class RequestResponseCycle:
             raise RuntimeError(msg % message_type)
 
     async def receive(self):
+        self.logger.log(TRACE_LOG_LEVEL, f"R0 D:{self.disconnected} C: {self.response_complete}")
         if self.waiting_for_100_continue and not self.transport.is_closing():
             self.transport.write(b"HTTP/1.1 100 Continue\r\n\r\n")
             self.waiting_for_100_continue = False
 
         if not self.disconnected and not self.response_complete:
-            self.logger.log(TRACE_LOG_LEVEL, f"0 D: {self.disconnected} C: {self.response_complete}")
+            self.logger.log(TRACE_LOG_LEVEL,
+                            f"R1 D:{self.disconnected} C: {self.response_complete}")
             self.flow.resume_reading()
             await self.message_event.wait()
             self.message_event.clear()
 
         if self.disconnected or self.response_complete:
-            self.logger.log(TRACE_LOG_LEVEL, f"1 D: {self.disconnected} C: {self.response_complete}")
+            self.logger.log(TRACE_LOG_LEVEL,
+                            f"R2 D:{self.disconnected} C: {self.response_complete}")
             message = {"type": "http.disconnect"}
         else:
-            self.logger.log(TRACE_LOG_LEVEL, f"2 D: {self.disconnected} C: {self.response_complete}")
+            self.logger.log(TRACE_LOG_LEVEL,
+                            f"R3 D:{self.disconnected} C: {self.response_complete}")
             message = {
                 "type": "http.request",
                 "body": self.body,
