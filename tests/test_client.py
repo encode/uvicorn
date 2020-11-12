@@ -1,7 +1,6 @@
 import asyncio
 
-import httpx
-import pytest
+import requests
 
 from tests.client import TestClient
 
@@ -63,15 +62,8 @@ async def hang(scope, receive, send):
             await send({'type': 'http.response.body', 'body': b'Not found!\n'})
 
 
-@pytest.mark.asyncio
-async def test_concurrent_requests() -> None:
-    async with httpx.AsyncClient(app=hang, base_url="http://testserver") as client:
-        tasks = []
-        for i in range(1):
-            tasks.append(client.get("/foo"))
-            tasks.append(client.get("/bar"))
-            tasks.append(client.get("/"))
-
-        results = await asyncio.gather(*tasks)
-        print([(r.status_code, r.content) for r in results])
-        # do something with results
+def test_concurrent_requests() -> None:
+    with TestClient(hang) as s:
+        s.get("/foo")
+        s.get("/bar")
+        s.get("/")
