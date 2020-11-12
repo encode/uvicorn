@@ -4,7 +4,7 @@ import typing
 from urllib.parse import unquote, urljoin, urlparse
 
 import requests
-
+from requests.adapters import HTTPAdapter
 
 class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):
     def get_all(self, key, default):
@@ -29,6 +29,9 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
     def __init__(self, app: typing.Callable, raise_server_exceptions=True) -> None:
         self.app = app
         self.raise_server_exceptions = raise_server_exceptions
+
+    def close(self):
+        pass
 
     def send(self, request, *args, **kwargs):
         scheme, netloc, path, params, query, fragement = urlparse(request.url)
@@ -70,6 +73,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             body = request.body
             if body is None:
                 body_bytes = b""
+                return {"type": "http.disconnect"}
             else:
                 assert isinstance(body, bytes)
                 body_bytes = body
