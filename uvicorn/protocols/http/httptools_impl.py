@@ -544,8 +544,6 @@ class RequestResponseCycle:
             self.waiting_for_100_continue = False
 
         if not self.disconnected and not self.response_complete:
-            self.logger.log(TRACE_LOG_LEVEL,
-                            f"R1 D:{self.disconnected} C: {self.response_complete}")
             self.flow.resume_reading()
             await self.message_event.wait()
             self.message_event.clear()
