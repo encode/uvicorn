@@ -287,7 +287,6 @@ class HttpToolsProtocol(asyncio.Protocol):
             return
         self.cycle.body += body
         if len(self.cycle.body) > HIGH_WATER_LIMIT:
-            self.logger.log(TRACE_LOG_LEVEL, "PAUSE")
             self.flow.pause_reading()
         self.message_event.set()
 
@@ -320,7 +319,6 @@ class HttpToolsProtocol(asyncio.Protocol):
             task = self.loop.create_task(cycle.run_asgi(app))
             task.add_done_callback(self.tasks.discard)
             self.tasks.add(task)
-
 
     def shutdown(self):
         """
@@ -417,7 +415,6 @@ class RequestResponseCycle:
                 self.logger.error(msg)
                 self.transport.close()
         finally:
-
             self.on_response = None
 
     async def send_500_response(self):
@@ -440,11 +437,9 @@ class RequestResponseCycle:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
-            self.logger.log(TRACE_LOG_LEVEL, "Drain in send")
             await self.flow.drain()
 
         if self.disconnected:
-            self.logger.log(TRACE_LOG_LEVEL, "Disc in send")
             return
 
         if not self.response_started:
@@ -487,7 +482,6 @@ class RequestResponseCycle:
                     self.expected_content_length = 0
                     self.chunked_encoding = True
                 elif name == b"connection" and value.lower() == b"close":
-                    self.logger.log(TRACE_LOG_LEVEL, "setting ka false")
                     self.keep_alive = False
                 content.extend([name, b": ", value, b"\r\n"])
 
