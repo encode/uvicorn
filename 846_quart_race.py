@@ -88,7 +88,31 @@ class Body:
     def set_complete(self) -> None:
         self._complete.set()
 
+
+async def wait_for_disconnect(receive):
+    while True:
+        p = await receive()
+        if p['type'] == 'http.disconnect':
+            print('Disconnected!')
+            break
+
+
+async def app748(scope, receive, send):
+    await asyncio.sleep(0.2)
+    m = await receive()
+
+    if m['type'] == 'lifespan.startup':
+        await send({'type': 'lifespan.startup.complete'})
+    elif m['type'] == 'http.request':
+        if scope['path'] == '/foo':
+            asyncio.create_task(wait_for_disconnect(receive))
+            await asyncio.sleep(0.2)
+
+        await send({'type': 'http.response.start', 'status': 404})
+        await send({'type': 'http.response.body', 'body': b'Not found!\n'})
+
 if __name__ == '__main__':
+    # uvicorn.run("846_quart_race:app748", log_level="trace")
     # uvicorn.run("846_quart_race:aapp", log_level="trace")
     uvicorn.run("846_quart_race:qapp", log_level="trace")
     # uvicorn.run("846_quart_race:sapp", log_level="trace")
