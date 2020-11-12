@@ -104,7 +104,7 @@ async def app748(scope, receive, send):
     if m['type'] == 'lifespan.startup':
         await send({'type': 'lifespan.startup.complete'})
     elif m['type'] == 'http.request':
-        if scope['path'] == '/foo':
+        if scope['path'] == '/':
             asyncio.create_task(wait_for_disconnect(receive))
             await asyncio.sleep(0.2)
 
@@ -113,8 +113,8 @@ async def app748(scope, receive, send):
 
 if __name__ == '__main__':
     # uvicorn.run("846_quart_race:app748", log_level="trace")
-    # uvicorn.run("846_quart_race:aapp", log_level="trace")
-    uvicorn.run("846_quart_race:qapp", log_level="trace")
+    uvicorn.run("846_quart_race:aapp", log_level="trace")
+    # uvicorn.run("846_quart_race:qapp", log_level="trace")
     # uvicorn.run("846_quart_race:sapp", log_level="trace")
 
 

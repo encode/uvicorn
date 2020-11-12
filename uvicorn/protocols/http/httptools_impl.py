@@ -145,7 +145,8 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
-        self.cycle.message_event.set()
+        if self.cycle:
+            self.cycle.message_event.set()
         if self.flow is not None:
             self.flow.resume_writing()
 
