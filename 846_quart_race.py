@@ -89,8 +89,8 @@ class Body:
         self._complete.set()
 
 if __name__ == '__main__':
-    uvicorn.run("846_quart_race:aapp", log_level="trace")
-    # uvicorn.run("846_quart_race:qapp", log_level="trace")
+    # uvicorn.run("846_quart_race:aapp", log_level="trace")
+    uvicorn.run("846_quart_race:qapp", log_level="trace")
     # uvicorn.run("846_quart_race:sapp", log_level="trace")
 
 
