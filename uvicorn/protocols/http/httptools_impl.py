@@ -530,6 +530,7 @@ class RequestResponseCycle:
                 if self.expected_content_length != 0:
                     raise RuntimeError("Response content shorter than Content-Length")
                 self.response_complete = True
+                self.message_event.set()
                 if not self.keep_alive:
                     self.transport.close()
                 self.on_response()
