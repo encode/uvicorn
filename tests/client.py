@@ -4,7 +4,7 @@ import typing
 from urllib.parse import unquote, urljoin, urlparse
 
 import requests
-from requests.adapters import HTTPAdapter
+
 
 class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):
     def get_all(self, key, default):

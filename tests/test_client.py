@@ -1,7 +1,3 @@
-import asyncio
-
-import requests
-
 from tests.client import TestClient
 
 
