@@ -30,33 +30,3 @@ def test_explicit_host():
     response = client.get("/", headers={"host": "example.org"})
     assert response.status_code == 200
     assert response.text == "hello, world"
-
-
-async def wait_for_disconnect(receive):
-    while True:
-        print('h')
-        p = await receive()
-        if p['type'] == 'http.disconnect':
-            print('Disconnected!')
-            break
-
-
-async def hang(scope, receive, send):
-    await asyncio.sleep(0.2)
-    m = await receive()
-
-    if m['type'] == 'lifespan.startup':
-        await send({'type': 'lifespan.startup.complete'})
-    elif m['type'] == 'http.request':
-        if scope['path'] == '/foo':
-            print('foo')
-            asyncio.create_task(wait_for_disconnect(receive))
-            await asyncio.sleep(0.2)
-        await send({'type': 'http.response.start', 'status': 404})
-        await send({'type': 'http.response.body', 'body': b'Not found!\n'})
-
-
-def test_concurrent_requests() -> None:
-    with TestClient(hang) as client:
-        client.get("/foo")
-        client.get("/bar")

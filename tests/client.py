@@ -30,9 +30,6 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         self.app = app
         self.raise_server_exceptions = raise_server_exceptions
 
-    def close(self):
-        pass
-
     def send(self, request, *args, **kwargs):
         scheme, netloc, path, params, query, fragement = urlparse(request.url)
         if ":" in netloc:
@@ -73,7 +70,6 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             body = request.body
             if body is None:
                 body_bytes = b""
-                return {"type": "http.disconnect"}
             else:
                 assert isinstance(body, bytes)
                 body_bytes = body
