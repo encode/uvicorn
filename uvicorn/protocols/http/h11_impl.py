@@ -113,7 +113,6 @@ class H11Protocol(asyncio.Protocol):
         self.scope = None
         self.headers = None
         self.cycle = None
-        self.message_event = asyncio.Event()
 
     # Protocol interface
     def connection_made(self, transport):
@@ -146,7 +145,7 @@ class H11Protocol(asyncio.Protocol):
                 # Premature client disconnect
                 pass
 
-        self.message_event.set()
+        self.cycle.message_event.set()
         if self.flow is not None:
             self.flow.resume_writing()
 
@@ -234,7 +233,7 @@ class H11Protocol(asyncio.Protocol):
                     access_logger=self.access_logger,
                     access_log=self.access_log,
                     default_headers=self.default_headers,
-                    message_event=self.message_event,
+                    message_event=asyncio.Event(),
                     on_response=self.on_response_complete,
                 )
                 task = self.loop.create_task(self.cycle.run_asgi(app))
@@ -247,7 +246,7 @@ class H11Protocol(asyncio.Protocol):
                 self.cycle.body += event.data
                 if len(self.cycle.body) > HIGH_WATER_LIMIT:
                     self.flow.pause_reading()
-                self.message_event.set()
+                self.cycle.message_event.set()
 
             elif event_type is h11.EndOfMessage:
                 if self.conn.our_state is h11.DONE:
@@ -255,7 +254,7 @@ class H11Protocol(asyncio.Protocol):
                     self.conn.start_next_cycle()
                     continue
                 self.cycle.more_body = False
-                self.message_event.set()
+                self.cycle.message_event.set()
 
     def handle_upgrade(self, event):
         upgrade_value = None
@@ -491,6 +490,7 @@ class RequestResponseCycle:
             # Handle response completion
             if not more_body:
                 self.response_complete = True
+                self.message_event.set()
                 event = h11.EndOfMessage()
                 output = self.conn.send(event)
                 self.transport.write(output)

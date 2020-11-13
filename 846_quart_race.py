@@ -113,8 +113,8 @@ async def app748(scope, receive, send):
 
 if __name__ == '__main__':
     # uvicorn.run("846_quart_race:app748", log_level="trace")
-    uvicorn.run("846_quart_race:aapp", log_level="trace")
-    # uvicorn.run("846_quart_race:qapp", log_level="trace")
+    # uvicorn.run("846_quart_race:aapp", log_level="trace")
+    uvicorn.run("846_quart_race:qapp", log_level="trace", http="h11")
     # uvicorn.run("846_quart_race:sapp", log_level="trace")
 
 
