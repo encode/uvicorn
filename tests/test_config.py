@@ -78,7 +78,7 @@ def test_concrete_http_class():
 
 
 def test_socket_bind():
-    config = Config(app=asgi_app)
+    config = Config(app=asgi_app, port=8917)
     config.load()
 
     assert isinstance(config.bind_socket(), socket.socket)

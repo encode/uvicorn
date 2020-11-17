@@ -12,9 +12,9 @@ from uvicorn.main import Server
 @pytest.mark.parametrize(
     "host, url",
     [
-        pytest.param(None, "http://127.0.0.1:8000", id="default"),
-        pytest.param("localhost", "http://127.0.0.1:8000", id="hostname"),
-        pytest.param("::1", "http://[::1]:8000", id="ipv6"),
+        pytest.param(None, "http://127.0.0.1:8917", id="default"),
+        pytest.param("localhost", "http://127.0.0.1:8917", id="hostname"),
+        pytest.param("::1", "http://[::1]:8917", id="ipv6"),
     ],
 )
 def test_run(host, url):
@@ -31,7 +31,7 @@ def test_run(host, url):
         def install_signal_handlers(self):
             pass
 
-    config = Config(app=App, host=host, loop="asyncio", limit_max_requests=1)
+    config = Config(app=App, host=host, loop="asyncio", limit_max_requests=1, port=8917)
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
@@ -56,13 +56,13 @@ def test_run_multiprocess():
         def install_signal_handlers(self):
             pass
 
-    config = Config(app=App, loop="asyncio", workers=2, limit_max_requests=1)
+    config = Config(app=App, loop="asyncio", workers=2, limit_max_requests=1, port=8917)
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
-    response = requests.get("http://127.0.0.1:8000")
+    response = requests.get("http://127.0.0.1:8917")
     assert response.status_code == 204
     thread.join()
 
@@ -81,13 +81,15 @@ def test_run_reload():
         def install_signal_handlers(self):
             pass
 
-    config = Config(app=App, loop="asyncio", reload=True, limit_max_requests=1)
+    config = Config(
+        app=App, loop="asyncio", reload=True, limit_max_requests=1, port=8917
+    )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
-    response = requests.get("http://127.0.0.1:8000")
+    response = requests.get("http://127.0.0.1:8917")
     assert response.status_code == 204
     thread.join()
 
@@ -106,7 +108,7 @@ def test_run_with_shutdown():
         def install_signal_handlers(self):
             pass
 
-    config = Config(app=App, loop="asyncio", workers=2, limit_max_requests=1)
+    config = Config(app=App, loop="asyncio", workers=2, limit_max_requests=1, port=8917)
     server = CustomServer(config=config)
     sock = config.bind_socket()
     exc = True

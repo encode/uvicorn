@@ -72,13 +72,14 @@ def test_trace_logging(capsys):
         limit_max_requests=1,
         log_config=test_logging_config,
         log_level="trace",
+        port=8917,
     )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
-    response = requests.get("http://127.0.0.1:8000")
+    response = requests.get("http://127.0.0.1:8917")
     assert response.status_code == 204
     thread.join()
     captured = capsys.readouterr()
@@ -111,13 +112,14 @@ def test_access_logging(capsys, http_protocol):
         http=http_protocol,
         limit_max_requests=1,
         log_config=test_logging_config,
+        port=8917,
     )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
-    response = requests.get("http://127.0.0.1:8000")
+    response = requests.get("http://127.0.0.1:8917")
     assert response.status_code == 204
     thread.join()
     captured = capsys.readouterr()
