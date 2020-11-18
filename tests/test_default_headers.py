@@ -6,14 +6,10 @@ import requests
 from uvicorn import Config, Server
 
 
-class App:
-    def __init__(self, scope):
-        if scope["type"] != "http":
-            raise Exception()
-
-    async def __call__(self, receive, send):
-        await send({"type": "http.response.start", "status": 200, "headers": []})
-        await send({"type": "http.response.body", "body": b"", "more_body": False})
+async def app(scope, receive, send):
+    assert scope["type"] == "http"
+    await send({"type": "http.response.start", "status": 200, "headers": []})
+    await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
 class CustomServer(Server):
@@ -22,7 +18,7 @@ class CustomServer(Server):
 
 
 def test_default_default_headers():
-    config = Config(app=App, loop="asyncio", limit_max_requests=1)
+    config = Config(app=app, loop="asyncio", limit_max_requests=1)
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
@@ -37,7 +33,7 @@ def test_default_default_headers():
 
 def test_override_server_header():
     config = Config(
-        app=App,
+        app=app,
         loop="asyncio",
         limit_max_requests=1,
         headers=[("Server", "over-ridden")],
@@ -56,7 +52,7 @@ def test_override_server_header():
 
 def test_override_server_header_multiple_times():
     config = Config(
-        app=App,
+        app=app,
         loop="asyncio",
         limit_max_requests=1,
         headers=[("Server", "over-ridden"), ("Server", "another-value")],
@@ -78,7 +74,7 @@ def test_override_server_header_multiple_times():
 
 def test_add_additional_header():
     config = Config(
-        app=App,
+        app=app,
         loop="asyncio",
         limit_max_requests=1,
         headers=[("X-Additional", "new-value")],

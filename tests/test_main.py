@@ -9,6 +9,12 @@ from uvicorn.config import Config
 from uvicorn.main import Server
 
 
+async def app(scope, receive, send):
+    assert scope["type"] == "http"
+    await send({"type": "http.response.start", "status": 204, "headers": []})
+    await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+
 @pytest.mark.parametrize(
     "host, url",
     [
@@ -18,20 +24,11 @@ from uvicorn.main import Server
     ],
 )
 def test_run(host, url):
-    class App:
-        def __init__(self, scope):
-            if scope["type"] != "http":
-                raise Exception()
-
-        async def __call__(self, receive, send):
-            await send({"type": "http.response.start", "status": 204, "headers": []})
-            await send({"type": "http.response.body", "body": b"", "more_body": False})
-
     class CustomServer(Server):
         def install_signal_handlers(self):
             pass
 
-    config = Config(app=App, host=host, loop="asyncio", limit_max_requests=1)
+    config = Config(app=app, host=host, loop="asyncio", limit_max_requests=1)
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
@@ -43,20 +40,11 @@ def test_run(host, url):
 
 
 def test_run_multiprocess():
-    class App:
-        def __init__(self, scope):
-            if scope["type"] != "http":
-                raise Exception()
-
-        async def __call__(self, receive, send):
-            await send({"type": "http.response.start", "status": 204, "headers": []})
-            await send({"type": "http.response.body", "body": b"", "more_body": False})
-
     class CustomServer(Server):
         def install_signal_handlers(self):
             pass
 
-    config = Config(app=App, loop="asyncio", workers=2, limit_max_requests=1)
+    config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
@@ -68,20 +56,11 @@ def test_run_multiprocess():
 
 
 def test_run_reload():
-    class App:
-        def __init__(self, scope):
-            if scope["type"] != "http":
-                raise Exception()
-
-        async def __call__(self, receive, send):
-            await send({"type": "http.response.start", "status": 204, "headers": []})
-            await send({"type": "http.response.body", "body": b"", "more_body": False})
-
     class CustomServer(Server):
         def install_signal_handlers(self):
             pass
 
-    config = Config(app=App, loop="asyncio", reload=True, limit_max_requests=1)
+    config = Config(app=app, loop="asyncio", reload=True, limit_max_requests=1)
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
@@ -93,20 +72,16 @@ def test_run_reload():
 
 
 def test_run_with_shutdown():
-    class App:
-        def __init__(self, scope):
-            if scope["type"] != "http":
-                raise Exception()
-
-        async def __call__(self, receive, send):
-            while True:
-                time.sleep(1)
+    async def app(scope, receive, send):
+        assert scope["type"] == "http"
+        while True:
+            time.sleep(1)
 
     class CustomServer(Server):
         def install_signal_handlers(self):
             pass
 
-    config = Config(app=App, loop="asyncio", workers=2, limit_max_requests=1)
+    config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
     server = CustomServer(config=config)
     sock = config.bind_socket()
     exc = True
