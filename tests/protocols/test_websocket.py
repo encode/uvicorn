@@ -316,17 +316,13 @@ def test_send_after_protocol_close(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_missing_handshake(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            pass
-
-        async def __call__(self, receive, send):
-            pass
+    async def app(app, receive, send):
+        pass
 
     async def connect(url):
         await websockets.connect(url)
 
-    with run_server(App, protocol_cls=protocol_cls) as url:
+    with run_server(app, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
             loop.run_until_complete(connect(url))
@@ -336,17 +332,13 @@ def test_missing_handshake(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_send_before_handshake(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            pass
-
-        async def __call__(self, receive, send):
-            await send({"type": "websocket.send", "text": "123"})
+    async def app(scope, receive, send):
+        await send({"type": "websocket.send", "text": "123"})
 
     async def connect(url):
         await websockets.connect(url)
 
-    with run_server(App, protocol_cls=protocol_cls) as url:
+    with run_server(app, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
             loop.run_until_complete(connect(url))
@@ -356,19 +348,15 @@ def test_send_before_handshake(protocol_cls):
 
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
 def test_duplicate_handshake(protocol_cls):
-    class App:
-        def __init__(self, scope):
-            pass
-
-        async def __call__(self, receive, send):
-            await send({"type": "websocket.accept"})
-            await send({"type": "websocket.accept"})
+    async def app(scope, receive, send):
+        await send({"type": "websocket.accept"})
+        await send({"type": "websocket.accept"})
 
     async def connect(url):
         async with websockets.connect(url) as websocket:
             _ = await websocket.recv()
 
-    with run_server(App, protocol_cls=protocol_cls) as url:
+    with run_server(app, protocol_cls=protocol_cls) as url:
         loop = asyncio.new_event_loop()
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
             loop.run_until_complete(connect(url))
