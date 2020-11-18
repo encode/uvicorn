@@ -145,7 +145,8 @@ class H11Protocol(asyncio.Protocol):
                 # Premature client disconnect
                 pass
 
-        self.cycle.message_event.set()
+        if self.cycle is not None:
+            self.cycle.message_event.set()
         if self.flow is not None:
             self.flow.resume_writing()
 
