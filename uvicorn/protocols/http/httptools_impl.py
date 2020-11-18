@@ -121,7 +121,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.headers = None
         self.expect_100_continue = False
         self.cycle = None
-        self.message_event = asyncio.Event()
 
     # Protocol interface
     def connection_made(self, transport):
@@ -146,7 +145,8 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
-        self.message_event.set()
+        if self.cycle is not None:
+            self.cycle.message_event.set()
         if self.flow is not None:
             self.flow.resume_writing()
 
@@ -267,7 +267,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             access_logger=self.access_logger,
             access_log=self.access_log,
             default_headers=self.default_headers,
-            message_event=self.message_event,
+            message_event=asyncio.Event(),
             expect_100_continue=self.expect_100_continue,
             keep_alive=http_version != "1.0",
             on_response=self.on_response_complete,
@@ -288,13 +288,13 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.cycle.body += body
         if len(self.cycle.body) > HIGH_WATER_LIMIT:
             self.flow.pause_reading()
-        self.message_event.set()
+        self.cycle.message_event.set()
 
     def on_message_complete(self):
         if self.parser.should_upgrade() or self.cycle.response_complete:
             return
         self.cycle.more_body = False
-        self.message_event.set()
+        self.cycle.message_event.set()
 
     def on_response_complete(self):
         # Callback for pipelined HTTP requests to be started.
@@ -530,6 +530,7 @@ class RequestResponseCycle:
                 if self.expected_content_length != 0:
                     raise RuntimeError("Response content shorter than Content-Length")
                 self.response_complete = True
+                self.message_event.set()
                 if not self.keep_alive:
                     self.transport.close()
                 self.on_response()
