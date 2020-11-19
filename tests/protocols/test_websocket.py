@@ -466,7 +466,6 @@ def test_server_lost_connection(protocol_cls, reraise):
             # Simulate a lost connection
             # without receiving a close frame
             self.send.__self__.connection_lost(None)
-
             with reraise:
                 await self.send({"type": "websocket.send", "text": "123"})
 

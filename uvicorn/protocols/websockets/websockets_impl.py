@@ -4,7 +4,7 @@ import logging
 from urllib.parse import unquote
 
 import websockets
-from websockets import WebSocketServer
+from websockets import WebSocketServer, WebSocketServerProtocol
 
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
@@ -22,7 +22,7 @@ class Server(WebSocketServer):
         return not self.closing
 
 
-class WebSocketProtocol(websockets.WebSocketServerProtocol):
+class WebSocketProtocol(WebSocketServerProtocol):
     def __init__(self, config, server_state, _loop=None):
         if not config.loaded:
             config.load()
@@ -53,7 +53,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.accepted_subprotocol = None
         self.transfer_data_task = None
 
-        self.ws_server = Server(loop=self.loop)
+        self.ws_server = Server(self.loop)
 
         super().__init__(ws_handler=self.ws_handler, ws_server=self.ws_server)
 
@@ -69,7 +69,9 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         if self.connections:
             self.connections.remove(self)
         self.handshake_completed_event.set()
-        super().connection_lost(exc)
+        self.logger.info(self.transport.is_closing())
+        if self.transport.is_closing():
+            super().connection_lost(exc)
 
     def shutdown(self):
         self.ws_server.closing = True
@@ -207,7 +209,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 )
                 raise RuntimeError(msg % message_type)
 
-        elif not self.closed_event.is_set() and self.connections:
+        elif not self.closed_event.is_set():
             self.logger.info(f"conn #: {len(self.connections)}")
             await self.handshake_completed_event.wait()
 
