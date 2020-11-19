@@ -54,8 +54,8 @@ def run_loop(loop):
 
 @contextmanager
 def run_server(app, protocol_cls, path="/"):
-    asyncio.set_event_loop(None)
     loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     config = Config(app=app, ws=protocol_cls)
     server_state = ServerState()
     protocol = functools.partial(H11Protocol, config=config, server_state=server_state)
