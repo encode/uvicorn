@@ -454,3 +454,31 @@ def test_subprotocols(protocol_cls, subprotocol):
         accepted_subprotocol = loop.run_until_complete(get_subprotocol(url))
         assert accepted_subprotocol == subprotocol
         loop.close()
+
+
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
+def test_server_lost_connection(protocol_cls, reraise):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+            await self.receive()
+
+            # Simulate a lost connection
+            # without receiving a close frame
+            self.send.__self__.connection_lost(None)
+
+            with reraise:
+                await self.send({"type": "websocket.send", "text": "123"})
+
+    async def websocket_session(url):
+        async with websockets.connect(url) as websocket:
+            await websocket.ping()
+            await websocket.send("abc")
+            # Delay exiting context manager
+            # to avoid sending a close frame before server attempts send
+            await asyncio.sleep(1)
+
+    with run_server(App, protocol_cls=protocol_cls) as url:
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(websocket_session(url))
+        loop.close()
