@@ -209,7 +209,6 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 raise RuntimeError(msg % message_type)
 
         elif not self.closed_event.is_set():
-            self.logger.info(f"conn #: {len(self.connections)}")
             await self.handshake_completed_event.wait()
 
             if message_type == "websocket.send":
