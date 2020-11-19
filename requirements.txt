@@ -19,6 +19,7 @@ mypy
 trustme
 cryptography
 coverage
+pytest-reraise
 
 # Documentation
 mkdocs
