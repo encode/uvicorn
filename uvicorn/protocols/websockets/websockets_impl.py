@@ -69,7 +69,6 @@ class WebSocketProtocol(WebSocketServerProtocol):
         if self.connections:
             self.connections.remove(self)
         self.handshake_completed_event.set()
-        self.logger.info(self.transport.is_closing())
         if self.transport.is_closing():
             super().connection_lost(exc)
 
