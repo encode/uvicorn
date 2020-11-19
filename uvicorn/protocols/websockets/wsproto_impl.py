@@ -64,7 +64,8 @@ class WSProtocol(asyncio.Protocol):
     def connection_lost(self, exc):
         if exc is not None:
             self.queue.put_nowait({"type": "websocket.disconnect"})
-        self.connections.remove(self)
+        if self.connections:
+            self.connections.remove(self)
 
     def eof_received(self):
         pass

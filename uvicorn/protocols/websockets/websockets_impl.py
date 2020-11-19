@@ -4,11 +4,12 @@ import logging
 from urllib.parse import unquote
 
 import websockets
+from websockets import WebSocketServer
 
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 
-class Server:
+class Server(WebSocketServer):
     closing = False
 
     def register(self, ws):
@@ -52,7 +53,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.accepted_subprotocol = None
         self.transfer_data_task = None
 
-        self.ws_server = Server()
+        self.ws_server = Server(loop=self.loop)
 
         super().__init__(ws_handler=self.ws_handler, ws_server=self.ws_server)
 
@@ -65,7 +66,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         super().connection_made(transport)
 
     def connection_lost(self, exc):
-        self.connections.remove(self)
+        if self.connections:
+            self.connections.remove(self)
         self.handshake_completed_event.set()
         super().connection_lost(exc)
 
@@ -205,7 +207,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 )
                 raise RuntimeError(msg % message_type)
 
-        elif not self.closed_event.is_set():
+        elif not self.closed_event.is_set() and self.connections:
+            self.logger.info(f"conn #: {len(self.connections)}")
             await self.handshake_completed_event.wait()
 
             if message_type == "websocket.send":
