@@ -6,7 +6,8 @@ import time
 import pytest
 import requests
 
-from uvicorn import Config, Server
+from tests.server import _CustomServer
+from uvicorn import Config
 
 test_logging_config = {
     "version": 1,
@@ -59,9 +60,6 @@ async def app(scope, receive, send):
     reason="Skipping test on Windows and PyPy",
 )
 def test_trace_logging(capsys):
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
 
     config = Config(
         app=app,
@@ -70,7 +68,7 @@ def test_trace_logging(capsys):
         log_config=test_logging_config,
         log_level="trace",
     )
-    server = CustomServer(config=config)
+    server = _CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -89,9 +87,6 @@ def test_trace_logging(capsys):
 )
 @pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
 def test_access_logging(capsys, http_protocol):
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
 
     config = Config(
         app=app,
@@ -100,7 +95,7 @@ def test_access_logging(capsys, http_protocol):
         limit_max_requests=1,
         log_config=test_logging_config,
     )
-    server = CustomServer(config=config)
+    server = _CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
