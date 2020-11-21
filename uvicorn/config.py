@@ -123,6 +123,7 @@ class Config:
         port=8000,
         uds=None,
         fd=None,
+        async_library=None,
         loop="auto",
         http="auto",
         ws="auto",
@@ -147,6 +148,7 @@ class Config:
         timeout_keep_alive=5,
         timeout_notify=30,
         callback_notify=None,
+        shutdown_trigger=None,
         ssl_keyfile=None,
         ssl_certfile=None,
         ssl_keyfile_password=None,
@@ -161,6 +163,7 @@ class Config:
         self.port = port
         self.uds = uds
         self.fd = fd
+        self.async_library = async_library
         self.loop = loop
         self.http = http
         self.ws = ws
@@ -182,6 +185,7 @@ class Config:
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
         self.callback_notify = callback_notify
+        self.shutdown_trigger = shutdown_trigger
         self.ssl_keyfile = ssl_keyfile
         self.ssl_certfile = ssl_certfile
         self.ssl_keyfile_password = ssl_keyfile_password

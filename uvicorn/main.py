@@ -21,10 +21,13 @@ from uvicorn.config import (
 )
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
+from ._async_agnostic.server import Server as AsyncAgnosticServer
+
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
 WS_CHOICES = click.Choice(WS_PROTOCOLS.keys())
 LIFESPAN_CHOICES = click.Choice(LIFESPAN.keys())
+LIBRARY_CHOICES = click.Choice(["asyncio", "trio"])
 LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
@@ -95,6 +98,13 @@ def print_version(ctx, param, value):
     type=int,
     help="Number of worker processes. Defaults to the $WEB_CONCURRENCY environment"
     " variable if available. Not valid with --reload.",
+)
+@click.option(
+    "--async-library",
+    type=LIBRARY_CHOICES,
+    default=None,
+    help="Concurrency library implementation.",
+    show_default=True,
 )
 @click.option(
     "--loop",
@@ -283,6 +293,7 @@ def main(
     port: int,
     uds: str,
     fd: int,
+    async_library: typing.Optional[str],
     loop: str,
     http: str,
     ws: str,
@@ -323,6 +334,7 @@ def main(
         "port": port,
         "uds": uds,
         "fd": fd,
+        "async_library": async_library,
         "loop": loop,
         "http": http,
         "ws": ws,
@@ -359,7 +371,11 @@ def main(
 
 def run(app, **kwargs):
     config = Config(app, **kwargs)
-    server = Server(config=config)
+
+    if config.async_library is not None:
+        server = AsyncAgnosticServer(config)
+    else:
+        server = Server(config=config)
 
     if (config.reload or config.workers > 1) and not isinstance(app, str):
         logger = logging.getLogger("uvicorn.error")

@@ -8,8 +8,10 @@ twine
 wheel
 
 # Testing
+anyio==2.0.2
 autoflake
 black
+curio==1.4
 flake8
 isort
 pytest
@@ -17,6 +19,7 @@ pytest-mock
 requests
 mypy
 trustme
+trio==0.17.*
 cryptography
 coverage
 
