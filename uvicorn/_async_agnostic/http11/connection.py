@@ -1,27 +1,40 @@
+import itertools
+import time
+import logging
 from typing import Any, AsyncIterator, List, Optional, Tuple
 
-import h11
-
-from ..backends.auto import AutoBackend
+from .parsers.base import HTTP11Parser, Event
 from ..backends.base import AsyncSocket
-from ..exceptions import BrokenSocket, ProtocolError
-from ..utils import STATUS_PHRASES, find_upgrade_header
-from .base import BaseHttp11Connection
+from ..backends.auto import AutoBackend
+from ..utils import STATUS_PHRASES, find_upgrade_header, to_internet_date
+from ..exceptions import ProtocolError, BrokenSocket
+
+TRACE_LOG_LEVEL = 5
+NEXT_ID = itertools.count()
 
 
-class H11Http11Connection(BaseHttp11Connection):
-    """
-    An HTTP/1.1 connection class backed by the `h11` library.
-    """
+class HTTP11Connection:
+    MAX_RECV = 2 ** 16
 
     def __init__(
-        self, sock: AsyncSocket, default_headers: List[Tuple[bytes, bytes]]
+        self,
+        sock: AsyncSocket,
+        default_headers: List[Tuple[bytes, bytes]],
+        parser: HTTP11Parser,
     ) -> None:
-        super().__init__()
         self._sock = sock
         self._default_headers = default_headers
-        self._h11_state = h11.Connection(h11.SERVER)
+        self._parser = parser
+
+        self._obj_id = next(NEXT_ID)
+        self._logger = logging.getLogger("uvicorn.error")
         self._backend = AutoBackend()
+
+    def trace(self, msg: str, *args: Any) -> None:
+        self._logger.log(TRACE_LOG_LEVEL, f"conn(%s): {msg}", self._obj_id, *args)
+
+    def debug(self, msg: str, *args: Any) -> None:
+        self._logger.debug(f"conn(%s): {msg}", self._obj_id, *args)
 
     @property
     def scheme(self) -> str:
@@ -36,89 +49,74 @@ class H11Http11Connection(BaseHttp11Connection):
         return self._sock.get_remote_addr()
 
     def basic_headers(self) -> List[Tuple[bytes, bytes]]:
-        return super().basic_headers() + self._default_headers
+        return [
+            (b"date", to_internet_date(time.time()).encode("utf-8")),
+        ] + self._default_headers
+
+    # State machine helpers
 
     def states(self) -> dict:
-        # IDLE -> ACTIVE -> (DONE | (MUST_CLOSE -> CLOSED) | ERROR) (-> IDLE)
-        states_map = {
-            h11.IDLE: "IDLE",
-            h11.SEND_RESPONSE: "ACTIVE",
-            h11.SEND_BODY: "ACTIVE",
-            h11.DONE: "DONE",
-            h11.MUST_CLOSE: "MUST_CLOSE",
-            h11.CLOSED: "CLOSED",
-            h11.ERROR: "ERROR",
-        }
-        return {
-            "client": states_map[self._h11_state.their_state],
-            "server": states_map[self._h11_state.our_state],
-        }
+        return self._parser.states()
 
-    # h11 helpers.
-
-    async def _send_event(self, event: Any) -> None:
-        if isinstance(event, h11.Data):
-            self.trace("send_event event=Data(<%d bytes>)", len(event.data))
-        elif isinstance(event, h11.Response):
+    async def _send_event(self, event: Event) -> None:
+        if event["type"] == "Response":
             self.trace(
                 "send_event event=Response("
-                "status_code=%d, headers=<Headers(...)>, http_version=%s, reason=%s)",
-                event.status_code,
-                event.http_version,
-                event.reason,
+                "status_code=%d, headers=<Headers(...)>, reason=%s)",
+                event["status_code"],
+                event["reason"],
             )
-        elif isinstance(event, h11.EndOfMessage):
+        elif event["type"] == "Data":
+            self.trace("send_event event=Data(<%d bytes>)", len(event["data"]))
+        elif event["type"] == "EndOfMessage":
             self.trace("send_event event=EndOfMessage(headers=<Headers(...)>")
         else:
-            self.trace("send_event event=%r", event)
+            assert event["type"] == "ConnectionClosed"
+            self.trace("send_event event=ConnectionClosed()")
 
-        data = self._h11_state.send(event)
+        data = self._parser.send(event)
         if data is None:
-            assert type(event) is h11.ConnectionClosed
+            assert event["type"] == "ConnectionClosed", event
             await self._sock.write(b"")
             await self.shutdown_and_clean_up()
         else:
             await self._sock.write(data)
 
     async def _read_from_peer(self) -> None:
-        if self._h11_state.they_are_waiting_for_100_continue:
+        if self._parser.they_are_waiting_for_100_continue:
             self.trace("Sending 100 Continue")
-            go_ahead = h11.InformationalResponse(
-                status_code=100, headers=self.basic_headers()
-            )
-            await self._send_event(go_ahead)
+            await self._send_event({"type": "InformationalResponse"})
 
         data = await self._sock.read(self.MAX_RECV)
         self.trace("read_data Data(<%d bytes>)", len(data))
-        self._h11_state.receive_data(data)
+        self._parser.receive_data(data)
 
     async def _receive_event(self) -> Any:
         while True:
             try:
-                event = self._h11_state.next_event()
-            except h11.RemoteProtocolError:
-                raise ProtocolError("Invalid HTTP request received")
+                event = self._parser.next_event()
+            except ProtocolError as exc:
+                raise ProtocolError(f"Invalid HTTP request received: {exc}")
 
-            if event is h11.NEED_DATA:
+            if event["type"] == "NEED_DATA":
                 await self._read_from_peer()
                 continue
 
-            if isinstance(event, h11.ConnectionClosed):
-                self.trace("receive_event event=ConnectionClosed()")
-            elif isinstance(event, h11.Request):
+            if event["type"] == "Request":
                 self.trace(
                     "receive_event event=Request("
                     "http_version=%s, method=%s, target=%s, headers=...)",
-                    event.http_version,
-                    event.method,
-                    event.target,
+                    event["http_version"],
+                    event["method"],
+                    event["target"],
                 )
-            elif isinstance(event, h11.Data):
-                self.trace("receive_event event=Data(<%d bytes>)", len(event.data))
-            elif isinstance(event, h11.EndOfMessage):
+            elif event["type"] == "Data":
+                self.trace("receive_event event=Data(<%d bytes>)", len(event["data"]))
+            elif event["type"] == "EndOfMessage":
                 self.trace("receive_event event=EndOfMessage(headers=<Headers(...)>")
             else:
-                self.trace("receive_event event=%r", event)
+                assert event["type"] == "ConnectionClosed"
+                self.trace("receive_event event=ConnectionClosed()")
 
             return event
 
@@ -127,15 +125,15 @@ class H11Http11Connection(BaseHttp11Connection):
     ) -> Tuple[bytes, bytes, bytes, List[Tuple[bytes, bytes]], Optional[bytes]]:
         event = await self._receive_event()
 
-        if isinstance(event, h11.ConnectionClosed):
+        if event["type"] == "ConnectionClosed":
             raise BrokenSocket("Client has disconnected")
 
-        assert isinstance(event, h11.Request), type(event)
+        assert event["type"] == "Request"
 
-        http_version: bytes = event.http_version
-        method: bytes = event.method
-        path: bytes = event.target
-        headers = [(key.lower(), value) for key, value in event.headers]
+        http_version: bytes = event["http_version"]
+        method: bytes = event["method"]
+        path: bytes = event["target"]
+        headers = [(key.lower(), value) for key, value in event["headers"]]
         upgrade = find_upgrade_header(headers)
 
         return (http_version, method, path, headers, upgrade)
@@ -143,10 +141,10 @@ class H11Http11Connection(BaseHttp11Connection):
     async def aiter_request_body(self) -> AsyncIterator[bytes]:
         async def receive_data() -> bytes:
             event = await self._receive_event()
-            if isinstance(event, h11.EndOfMessage):
+            if event["type"] == "EndOfMessage":
                 return b""
-            assert isinstance(event, h11.Data), type(event)
-            return event.data
+            assert event["type"] == "Data"
+            return event["data"]
 
         async def request_body(data: bytes) -> AsyncIterator[bytes]:
             while data:
@@ -164,7 +162,12 @@ class H11Http11Connection(BaseHttp11Connection):
     ) -> None:
         if not reason:
             reason = STATUS_PHRASES[status_code]
-        event = h11.Response(status_code=status_code, headers=headers, reason=reason)
+        event = {
+            "type": "Response",
+            "status_code": status_code,
+            "headers": headers,
+            "reason": reason,
+        }
         await self._send_event(event)
 
     async def send_simple_response(
@@ -176,24 +179,27 @@ class H11Http11Connection(BaseHttp11Connection):
             (b"Content-Length", str(len(body)).encode("utf-8")),
         ]
         await self.send_response(status_code=status_code, headers=headers)
-        await self._send_event(h11.Data(data=body))
-        await self._send_event(h11.EndOfMessage())
+        await self._send_event({"type": "Data", "data": body})
+        await self._send_event({"type": "EndOfMessage"})
 
     async def send_response_body(self, chunk: bytes) -> None:
-        event = h11.Data(data=chunk) if chunk else h11.EndOfMessage()
+        if chunk:
+            event = {"type": "Data", "data": chunk}
+        else:
+            event = {"type": "EndOfMessage"}
         await self._send_event(event)
 
     def set_keepalive(self) -> None:
         try:
-            self._h11_state.start_next_cycle()
-        except h11.ProtocolError:
-            raise ProtocolError(f"unexpected states: {self.states()}")
+            self._parser.start_next_cycle()
+        except ProtocolError:
+            raise
 
     async def trigger_shutdown(self) -> None:
         self.trace("triggering shutdown")
-        if self._h11_state.our_state in {h11.IDLE, h11.DONE}:
-            event = h11.ConnectionClosed()
-            await self._send_event(event)
+        states = self._parser.states()
+        if states["server"] in {"IDLE", "DONE"}:
+            await self._send_event({"type": "ConnectionClosed"})
 
     async def shutdown_and_clean_up(self) -> None:
         self.trace("shutting down")

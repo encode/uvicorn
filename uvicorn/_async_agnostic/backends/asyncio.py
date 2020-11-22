@@ -179,8 +179,10 @@ class AsyncioBackend(AsyncBackend):
         finally:
             if cancel_on_exit:
                 task.cancel()
-            else:
+            try:
                 await task
+            except asyncio.CancelledError:
+                pass
 
     @asynccontextmanager
     async def start(
@@ -195,8 +197,10 @@ class AsyncioBackend(AsyncBackend):
         finally:
             if cancel_on_exit:
                 task.cancel()
-            else:
+            try:
                 await task
+            except asyncio.CancelledError:
+                pass
 
     async def call_later(
         self,

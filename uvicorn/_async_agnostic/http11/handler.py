@@ -8,26 +8,26 @@ from ..asgi import ASGIRequestResponseCycle
 from ..backends.base import AsyncSocket
 from ..exceptions import BrokenSocket, ProtocolError
 from ..state import ServerState
-from .base import BaseHttp11Connection
-from .h11 import H11Http11Connection
+from .connection import HTTP11Connection
+from .parsers.h11 import H11Parser
 from .keepalive import KeepAlive
 
 try:
     import httptools
+    from .parsers.httptools import HttpToolsParser
 except ImportError:  # pragma: no cover
     httptools = None  # type: ignore
+    HttpToolsParser = None  # type: ignore
 
 
 def create_http11_connection(
     sock: AsyncSocket, state: ServerState, config: Config
-) -> BaseHttp11Connection:
-    if config.http == "httptools" or config.http == "auto" and httptools is not None:
-        from .httptools import HttpToolsHttp11Connection
-
-        return HttpToolsHttp11Connection(sock, default_headers=state.default_headers)
-
-    assert config.http == "h11" or httptools is None
-    return H11Http11Connection(sock, default_headers=state.default_headers)
+) -> HTTP11Connection:
+    use_httptools = config.http == "httptools" or (
+        config.http == "auto" and httptools is not None
+    )
+    parser = HttpToolsParser() if use_httptools else H11Parser()
+    return HTTP11Connection(sock, default_headers=state.default_headers, parser=parser)
 
 
 async def handle_http11(sock: AsyncSocket, state: ServerState, config: Config) -> None:
@@ -94,7 +94,7 @@ async def handle_http11(sock: AsyncSocket, state: ServerState, config: Config) -
 
 
 async def send_h11_response(
-    conn: BaseHttp11Connection,
+    conn: HTTP11Connection,
     *,
     config: Config,
     method: bytes,
@@ -139,7 +139,7 @@ async def send_h11_response(
     await cycle.run_asgi(app)
 
 
-async def maybe_send_error_response(conn: BaseHttp11Connection) -> None:
+async def maybe_send_error_response(conn: HTTP11Connection) -> None:
     states = conn.states()
     if states["server"] not in {"IDLE", "ACTIVE"}:
         return

@@ -2,14 +2,14 @@ import logging
 from typing import AsyncIterator, Awaitable, Callable
 
 from .backends.auto import AutoBackend
-from .base import BaseHTTPConnection
+from .http11.connection import HTTP11Connection
 from .utils import STATUS_PHRASES, get_path_with_query_string
 
 
 class ASGIRequestResponseCycle:
     def __init__(
         self,
-        conn: BaseHTTPConnection,
+        conn: HTTP11Connection,
         scope: dict,
         request_body: AsyncIterator[bytes],
         send_response_body: Callable[[bytes], Awaitable[None]],

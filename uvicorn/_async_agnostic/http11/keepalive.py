@@ -5,11 +5,11 @@ from uvicorn.config import Config
 
 from ..backends.auto import AutoBackend
 from ..backends.base import TaskHandle, TaskStatus
-from .base import BaseHttp11Connection
+from .connection import HTTP11Connection
 
 
 class KeepAlive:
-    def __init__(self, conn: BaseHttp11Connection, config: Config) -> None:
+    def __init__(self, conn: HTTP11Connection, config: Config) -> None:
         self._conn = conn
         self._config = config
         self._backend = AutoBackend()
