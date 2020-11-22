@@ -2,15 +2,9 @@
 
 ## 0.12.3 - 2020-11-21
 
-### Added
-Documentation: HTTPS settings add missing --ssl-keyfile-password (#839) 11/2/20 6468b70c
-
-### Changed
-Use latin1 when decoding X-Forwarded-* headers (#701) 11/12/20 45e6e831
-Isolate server code into an asyncio-specific module (#842) 11/8/20 634aec95
-
 ### Fixed
 Fix race condition that leads Quart to hang with uvicorn (#848) 11/18/20 de213614
+Use latin1 when decoding X-Forwarded-* headers (#701) 11/12/20 45e6e831
 Rework IPv6 support (#837) 11/8/20 bdab488e
 Cancel old keepalive-trigger before setting new one. (#832) 10/26/20 d5dcf80c
 
