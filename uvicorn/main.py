@@ -27,7 +27,7 @@ LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
 WS_CHOICES = click.Choice(WS_PROTOCOLS.keys())
 LIFESPAN_CHOICES = click.Choice(LIFESPAN.keys())
-LIBRARY_CHOICES = click.Choice(["asyncio", "trio"])
+LIBRARY_CHOICES = click.Choice(["asyncio", "trio", "curio"])
 LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 

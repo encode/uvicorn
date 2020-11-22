@@ -7,7 +7,6 @@ from typing import Any, AsyncIterator, Awaitable, Callable, List, Optional, Tupl
 import curio
 
 from ...config import Config
-from ..exceptions import BrokenSocket
 from ..state import ServerState
 from ..utils import get_sock_local_addr, get_sock_remote_addr
 from .base import (
@@ -58,21 +57,18 @@ class CurioSocket(AsyncSocket):
 
     async def read(self, n: int) -> bytes:
         try:
-            return await self._stream.receive_some(n)
+            return await self._stream.read(n)
         except ValueError:  # TODO
             return b""
 
     async def write(self, data: bytes) -> None:
         try:
-            await self._stream.send_all(data)
+            await self._stream.write(data)
         except ValueError:  # TODO
             pass
 
     async def send_eof(self) -> None:
-        try:
-            await self._sock.shutdown("SHUT_RD")
-        except ValueError:  # TODO
-            raise BrokenSocket()
+        pass
 
     async def aclose(self) -> None:
         await self._sock.close()
@@ -202,7 +198,7 @@ class CurioBackend(AsyncBackend):
         on_close: Callable = None,
         task_status: TaskStatus = TaskStatus.IGNORED,
     ) -> None:
-        async def client_connected_task(csock: curio.io.Socket) -> None:
+        async def client_connected_task(csock: curio.io.Socket, addr: Any) -> None:
             sock = CurioSocket(csock, is_ssl=bool(config.ssl))
             await handler(sock, state, config)
 
@@ -219,15 +215,17 @@ class CurioBackend(AsyncBackend):
             elif config.uds is not None:
                 # Create a socket using UNIX domain socket.
                 sock = curio.unix_server_socket(config.uds, backlog=config.backlog)
+                listener_sockets = [sock]
 
             else:
                 # Standard case. Create a socket from a host/port pair.
                 sock = curio.tcp_server_socket(
                     config.host, config.port, backlog=config.backlog
                 )
+                listener_sockets = [sock]
 
             for sock in listener_sockets:
-                run_server = functools.partial(curio.run_server, ssl=config.ssl)
+                run_server = functools.partial(curio.network.run_server, ssl=config.ssl)
                 await g.spawn(run_server, sock, client_connected_task)
 
             value = [CurioListener(sock) for sock in listener_sockets]

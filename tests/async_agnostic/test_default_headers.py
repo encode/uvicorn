@@ -15,7 +15,7 @@ async def app(scope: dict, receive: Callable, send: Callable) -> None:
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
-@pytest.mark.parametrize("async_library", ["asyncio", "trio"])
+@pytest.mark.parametrize("async_library", ["asyncio", "trio", "curio"])
 @pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
 def test_default_headers(async_library: str, http: str) -> None:
     config = Config(
@@ -30,7 +30,7 @@ def test_default_headers(async_library: str, http: str) -> None:
         assert response.headers["server"] == "uvicorn" and response.headers["date"]
 
 
-@pytest.mark.parametrize("async_library", ["asyncio", "trio"])
+@pytest.mark.parametrize("async_library", ["asyncio", "trio", "curio"])
 @pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
 def test_override_server_header(async_library: str, http: str) -> None:
     config = Config(
@@ -46,7 +46,7 @@ def test_override_server_header(async_library: str, http: str) -> None:
         assert response.headers["server"] == "overridden" and response.headers["date"]
 
 
-@pytest.mark.parametrize("async_library", ["asyncio", "trio"])
+@pytest.mark.parametrize("async_library", ["asyncio", "trio", "curio"])
 @pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
 def test_override_server_header_multiple_times(async_library: str, http: str) -> None:
     config = Config(
@@ -65,7 +65,7 @@ def test_override_server_header_multiple_times(async_library: str, http: str) ->
         )
 
 
-@pytest.mark.parametrize("async_library", ["asyncio", "trio"])
+@pytest.mark.parametrize("async_library", ["asyncio", "trio", "curio"])
 @pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
 def test_add_additional_header(async_library: str, http: str) -> None:
     config = Config(
