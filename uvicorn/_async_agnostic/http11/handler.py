@@ -8,17 +8,26 @@ from ..asgi import ASGIRequestResponseCycle
 from ..backends.base import AsyncSocket
 from ..exceptions import BrokenSocket, ProtocolError
 from ..state import ServerState
-from .base import BaseHTTP11Connection
+from .base import BaseHttp11Connection
+from .h11 import H11Http11Connection
 from .keepalive import KeepAlive
+
+try:
+    import httptools
+except ImportError:  # pragma: no cover
+    httptools = None  # type: ignore
 
 
 def create_http11_connection(
-    sock: AsyncSocket, state: ServerState
-) -> BaseHTTP11Connection:
-    # TODO: HttpTools
-    from .h11 import H11Connection
+    sock: AsyncSocket, state: ServerState, config: Config
+) -> BaseHttp11Connection:
+    if config.http == "httptools" or config.http == "auto" and httptools is not None:
+        from .httptools import HttpToolsHttp11Connection
 
-    return H11Connection(sock, default_headers=state.default_headers)
+        return HttpToolsHttp11Connection(sock, default_headers=state.default_headers)
+
+    assert config.http == "h11" or httptools is None
+    return H11Http11Connection(sock, default_headers=state.default_headers)
 
 
 async def handle_http11(sock: AsyncSocket, state: ServerState, config: Config) -> None:
@@ -27,7 +36,7 @@ async def handle_http11(sock: AsyncSocket, state: ServerState, config: Config) -
 
     logger = logging.getLogger("uvicorn.error")
 
-    conn = create_http11_connection(sock, state)
+    conn = create_http11_connection(sock, state, config)
     keepalive = KeepAlive(conn, config)
     state.connections.add(conn)
     conn.debug("Connection made")
@@ -85,7 +94,7 @@ async def handle_http11(sock: AsyncSocket, state: ServerState, config: Config) -
 
 
 async def send_h11_response(
-    conn: BaseHTTP11Connection,
+    conn: BaseHttp11Connection,
     *,
     config: Config,
     method: bytes,
@@ -130,7 +139,7 @@ async def send_h11_response(
     await cycle.run_asgi(app)
 
 
-async def maybe_send_error_response(conn: BaseHTTP11Connection) -> None:
+async def maybe_send_error_response(conn: BaseHttp11Connection) -> None:
     states = conn.states()
     if states["server"] not in {"IDLE", "ACTIVE"}:
         return

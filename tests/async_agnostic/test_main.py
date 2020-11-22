@@ -6,6 +6,8 @@ import requests
 from uvicorn._async_agnostic import Server
 from uvicorn.config import Config
 
+from .utils import HTTP11_IMPLEMENTATIONS
+
 
 async def app(scope: dict, receive: Callable, send: Callable) -> None:
     assert scope["type"] == "http"
@@ -22,11 +24,13 @@ async def app(scope: dict, receive: Callable, send: Callable) -> None:
     ],
 )
 @pytest.mark.parametrize("async_library", ["asyncio", "trio"])
-def test_run(host: str, url: str, async_library: str) -> None:
+@pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
+def test_run(host: str, url: str, async_library: str, http: str) -> None:
     config = Config(
         app=app,
         host=host,
         async_library=async_library,
+        http=http,
         limit_max_requests=1,
     )
 
@@ -64,7 +68,8 @@ def test_run_reload(async_library: str) -> None:
 
 
 @pytest.mark.parametrize("async_library", ["asyncio", "trio"])
-def test_run_with_shutdown(async_library: str) -> None:
+@pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
+def test_run_with_shutdown(async_library: str, http: str) -> None:
     async def app(scope: dict, receive: Callable, send: Callable) -> None:
         pass
 
@@ -76,6 +81,7 @@ def test_run_with_shutdown(async_library: str) -> None:
         workers=2,
         shutdown_trigger=shutdown_immediately,
         async_library=async_library,
+        http=http,
     )
 
     with Server(config).run_in_thread():

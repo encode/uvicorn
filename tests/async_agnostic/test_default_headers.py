@@ -5,6 +5,7 @@ import requests
 
 from uvicorn import Config
 from uvicorn._async_agnostic import Server
+from .utils import HTTP11_IMPLEMENTATIONS
 
 
 async def app(scope: dict, receive: Callable, send: Callable) -> None:
@@ -14,10 +15,12 @@ async def app(scope: dict, receive: Callable, send: Callable) -> None:
 
 
 @pytest.mark.parametrize("async_library", ["asyncio", "trio"])
-def test_default_headers(async_library: str) -> None:
+@pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
+def test_default_headers(async_library: str, http: str) -> None:
     config = Config(
         app=app,
         async_library=async_library,
+        http=http,
         limit_max_requests=1,
     )
 
@@ -27,10 +30,12 @@ def test_default_headers(async_library: str) -> None:
 
 
 @pytest.mark.parametrize("async_library", ["asyncio", "trio"])
-def test_override_server_header(async_library: str) -> None:
+@pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
+def test_override_server_header(async_library: str, http: str) -> None:
     config = Config(
         app=app,
         async_library=async_library,
+        http=http,
         limit_max_requests=1,
         headers=[("Server", "overridden")],
     )
@@ -41,10 +46,12 @@ def test_override_server_header(async_library: str) -> None:
 
 
 @pytest.mark.parametrize("async_library", ["asyncio", "trio"])
-def test_override_server_header_multiple_times(async_library: str) -> None:
+@pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
+def test_override_server_header_multiple_times(async_library: str, http: str) -> None:
     config = Config(
         app=app,
         async_library=async_library,
+        http=http,
         limit_max_requests=1,
         headers=[("Server", "overridden"), ("Server", "another-value")],
     )
@@ -58,10 +65,12 @@ def test_override_server_header_multiple_times(async_library: str) -> None:
 
 
 @pytest.mark.parametrize("async_library", ["asyncio", "trio"])
-def test_add_additional_header(async_library: str) -> None:
+@pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
+def test_add_additional_header(async_library: str, http: str) -> None:
     config = Config(
         app=app,
         async_library=async_library,
+        http=http,
         limit_max_requests=1,
         headers=[("X-Additional", "new-value")],
     )

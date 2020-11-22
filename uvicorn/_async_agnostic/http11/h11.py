@@ -6,10 +6,10 @@ from ..backends.auto import AutoBackend
 from ..backends.base import AsyncSocket
 from ..exceptions import BrokenSocket, ProtocolError
 from ..utils import STATUS_PHRASES, find_upgrade_header
-from .base import BaseHTTP11Connection
+from .base import BaseHttp11Connection
 
 
-class H11Connection(BaseHTTP11Connection):
+class H11Http11Connection(BaseHttp11Connection):
     """
     An HTTP/1.1 connection class backed by the `h11` library.
     """

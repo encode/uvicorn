@@ -10,6 +10,7 @@ from uvicorn._async_agnostic.state import ServerState
 from uvicorn.config import Config
 
 from ..response import Response
+from .utils import HTTP11_IMPLEMENTATIONS
 
 SIMPLE_GET_REQUEST = b"\r\n".join(
     [
@@ -78,6 +79,10 @@ class MockSocket(AsyncSocket):
 
         data, self._request = self._request[:n], self._request[n:]
 
+        if not self._request and self._prevent_keepalive_loop:
+            await self._response_received.set()
+            self._readable = True
+
         return data
 
     async def write(self, data: bytes) -> None:
@@ -111,29 +116,32 @@ class MockSocket(AsyncSocket):
 
 
 @pytest.mark.anyio
-async def test_get_request() -> None:
+@pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
+async def test_get_request(http: str) -> None:
     app = Response("Hello, world", media_type="text/plain")
     sock = MockSocket(SIMPLE_GET_REQUEST)
 
-    await handle_http11(sock, ServerState(), Config(app=app))
+    await handle_http11(sock, ServerState(), Config(app=app, http=http))
 
     assert b"HTTP/1.1 200 OK" in sock.response
     assert b"Hello, world" in sock.response
 
 
 @pytest.mark.anyio
-async def test_head_request() -> None:
+@pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
+async def test_head_request(http: str) -> None:
     app = Response("Hello, world", media_type="text/plain")
     sock = MockSocket(SIMPLE_HEAD_REQUEST)
 
-    await handle_http11(sock, ServerState(), Config(app=app))
+    await handle_http11(sock, ServerState(), Config(app=app, http=http))
 
     assert b"HTTP/1.1 200 OK" in sock.response
     assert b"Hello, world" not in sock.response
 
 
 @pytest.mark.anyio
-async def test_post_request() -> None:
+@pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
+async def test_post_request(http: str) -> None:
     async def app(scope: dict, receive: Callable, send: Callable) -> None:
         body = b""
         while True:
@@ -146,15 +154,16 @@ async def test_post_request() -> None:
 
     sock = MockSocket(SIMPLE_POST_REQUEST)
 
-    await handle_http11(sock, ServerState(), Config(app=app))
+    await handle_http11(sock, ServerState(), Config(app=app, http=http))
 
     assert b"HTTP/1.1 200 OK" in sock.response
     assert b'Body: {"hello": "world"}' in sock.response
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
 @pytest.mark.parametrize("path", ["/", "/?foo", "/?foo=bar", "/?foo=bar&baz=1"])
-async def test_request_logging(path: str, caplog: Any) -> None:
+async def test_request_logging(http: str, path: str, caplog: Any) -> None:
     app = Response("Hello, world", media_type="text/plain")
     get_request_with_query_string = b"\r\n".join(
         [
@@ -167,7 +176,7 @@ async def test_request_logging(path: str, caplog: Any) -> None:
 
     sock = MockSocket(get_request_with_query_string)
     state = ServerState()
-    config = Config(app=app)  # Keep this here -- configures initial logging.
+    config = Config(app=app, http=http)  # Keep this here -- configures initial logging.
 
     with caplog.at_level(logging.INFO, logger="uvicorn.access"):
         logging.getLogger("uvicorn.access").propagate = True
@@ -177,11 +186,12 @@ async def test_request_logging(path: str, caplog: Any) -> None:
 
 
 @pytest.mark.anyio
-async def test_keepalive() -> None:
+@pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
+async def test_keepalive(http: str) -> None:
     app = Response(b"", status_code=204)
     sock = MockSocket(SIMPLE_GET_REQUEST, prevent_keepalive_loop=False)
 
-    config = Config(app=app)
+    config = Config(app=app, http=http)
 
     async with AutoBackend().start_soon(handle_http11, sock, ServerState(), config):
         await sock.wait_response_received()
@@ -193,12 +203,13 @@ async def test_keepalive() -> None:
 
 
 @pytest.mark.anyio
-async def test_keepalive_timeout() -> None:
+@pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
+async def test_keepalive_timeout(http: str) -> None:
     app = Response(b"", status_code=204)
     sock = MockSocket(SIMPLE_GET_REQUEST, prevent_keepalive_loop=False)
 
     backend = AutoBackend()
-    config = Config(app=app, timeout_keep_alive=0.05)
+    config = Config(app=app, http=http, timeout_keep_alive=0.1)
 
     async with backend.start_soon(handle_http11, sock, ServerState(), config):
         await sock.wait_response_received()
@@ -208,16 +219,17 @@ async def test_keepalive_timeout() -> None:
         await backend.sleep(0.01)
         assert not sock.is_closed
 
-        await backend.sleep(0.1)
+        await backend.sleep(0.2)
         assert sock.is_closed
 
 
 @pytest.mark.anyio
-async def test_close() -> None:
+@pytest.mark.parametrize("http", HTTP11_IMPLEMENTATIONS)
+async def test_close(http: str) -> None:
     app = Response(b"", status_code=204, headers={"connection": "close"})
     sock = MockSocket(SIMPLE_GET_REQUEST, prevent_keepalive_loop=False)
 
-    await handle_http11(sock, state=ServerState(), config=Config(app=app))
+    await handle_http11(sock, state=ServerState(), config=Config(app=app, http=http))
 
     assert b"HTTP/1.1 204 No Content" in sock.response
     assert sock.is_closed
