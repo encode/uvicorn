@@ -63,14 +63,14 @@ class AutoBackend(AsyncBackend):
     ) -> AsyncContextManager[Any]:
         return self._backend.start(async_fn, *args, cancel_on_exit=cancel_on_exit)
 
-    async def call_later(
+    async def wait_then_call(
         self,
         seconds: float,
         async_fn: Callable,
         *args: Any,
         task_status: TaskStatus = TaskStatus.IGNORED,
     ) -> None:
-        await self._backend.call_later(
+        await self._backend.wait_then_call(
             seconds, async_fn, *args, task_status=task_status
         )
 

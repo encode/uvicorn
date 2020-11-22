@@ -202,7 +202,7 @@ class AsyncioBackend(AsyncBackend):
             except asyncio.CancelledError:
                 pass
 
-    async def call_later(
+    async def wait_then_call(
         self,
         seconds: float,
         async_fn: Callable,

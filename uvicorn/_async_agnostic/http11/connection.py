@@ -1,13 +1,13 @@
 import itertools
-import time
 import logging
+import time
 from typing import Any, AsyncIterator, List, Optional, Tuple
 
-from .parsers.base import HTTP11Parser, Event
-from ..backends.base import AsyncSocket
 from ..backends.auto import AutoBackend
+from ..backends.base import AsyncSocket
+from ..exceptions import BrokenSocket, ProtocolError
 from ..utils import STATUS_PHRASES, find_upgrade_header, to_internet_date
-from ..exceptions import ProtocolError, BrokenSocket
+from .parsers.base import Event, HTTP11Parser
 
 TRACE_LOG_LEVEL = 5
 NEXT_ID = itertools.count()

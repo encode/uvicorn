@@ -3,8 +3,7 @@ from typing import Any, Optional
 import h11
 
 from ...exceptions import ProtocolError
-from .base import HTTP11Parser, Event
-
+from .base import Event, HTTP11Parser
 
 H11_STATES_MAP = {
     h11.IDLE: "IDLE",
@@ -86,7 +85,7 @@ def to_h11_event(event: Event) -> Any:
         return h11.Response(
             status_code=event["status_code"],
             headers=event["headers"],
-            reason=event["reason"]
+            reason=event["reason"],
         )
 
     if event["type"] == "Data":

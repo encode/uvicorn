@@ -9,11 +9,12 @@ from ..backends.base import AsyncSocket
 from ..exceptions import BrokenSocket, ProtocolError
 from ..state import ServerState
 from .connection import HTTP11Connection
-from .parsers.h11 import H11Parser
 from .keepalive import KeepAlive
+from .parsers.h11 import H11Parser
 
 try:
     import httptools
+
     from .parsers.httptools import HttpToolsParser
 except ImportError:  # pragma: no cover
     httptools = None  # type: ignore

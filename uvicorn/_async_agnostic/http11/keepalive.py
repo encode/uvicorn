@@ -31,7 +31,7 @@ class KeepAlive:
     ) -> None:
         timeout = self._config.timeout_keep_alive
         self._conn.trace("keep-alive expiry scheduled in %d seconds", timeout)
-        await self._backend.call_later(
+        await self._backend.wait_then_call(
             timeout,
             async_fn=self._trigger_shutdown,
             task_status=task_status,

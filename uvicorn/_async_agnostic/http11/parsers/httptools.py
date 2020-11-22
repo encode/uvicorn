@@ -1,10 +1,10 @@
 import re
-from typing import Any, List, Optional, Tuple, Union, Dict
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import httptools
 
 from ...exceptions import ProtocolError
-from .base import HTTP11Parser, Event
+from .base import Event, HTTP11Parser
 
 HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")

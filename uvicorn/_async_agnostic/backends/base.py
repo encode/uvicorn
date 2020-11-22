@@ -132,7 +132,7 @@ class AsyncBackend:
     ) -> AsyncContextManager[Any]:
         raise NotImplementedError  # pragma: no cover
 
-    async def call_later(
+    async def wait_then_call(
         self,
         seconds: float,
         async_fn: Callable,

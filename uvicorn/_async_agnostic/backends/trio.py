@@ -193,7 +193,7 @@ class TrioBackend(AsyncBackend):
             if cancel_on_exit:
                 nursery.cancel_scope.cancel()
 
-    async def call_later(
+    async def wait_then_call(
         self,
         seconds: float,
         async_fn: Callable,
