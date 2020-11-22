@@ -1,5 +1,13 @@
 # Change Log
 
+## 0.12.3 - 2020-11-21
+
+### Fixed
+- Fix race condition that leads Quart to hang with uvicorn (#848) 11/18/20 de213614
+- Use latin1 when decoding X-Forwarded-* headers (#701) 11/12/20 45e6e831
+- Rework IPv6 support (#837) 11/8/20 bdab488e
+- Cancel old keepalive-trigger before setting new one. (#832) 10/26/20 d5dcf80c
+
 ## 0.12.2 - 2020-10-19
 
 ### Added
