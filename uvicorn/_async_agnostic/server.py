@@ -50,7 +50,7 @@ class Server:
     def run(self, sockets: List[socket.SocketType] = None) -> None:
         if self._config.async_library == "asyncio":
             self._config.setup_event_loop()
-        self._backend.run(self._main, sockets)
+        self._backend.run(self.serve, sockets)
 
     @contextlib.contextmanager
     def run_in_thread(self, sockets: List[socket.SocketType] = None) -> Iterator[None]:
@@ -75,7 +75,7 @@ class Server:
         finally:
             thread.join()
 
-    async def _main(self, sockets: List[socket.SocketType] = None) -> None:
+    async def serve(self, sockets: List[socket.SocketType] = None) -> None:
         process_id = os.getpid()
         message = "Started server process [%d]"
         color_message = "Started server process [" + click.style("%d", fg="cyan") + "]"
