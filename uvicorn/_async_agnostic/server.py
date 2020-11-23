@@ -5,7 +5,7 @@ import signal
 import socket
 import threading
 import time
-from typing import Iterator, List, Optional
+from typing import Callable, Iterator, List, Optional
 
 import click
 
@@ -31,7 +31,6 @@ class Server:
         self._logger = logging.getLogger("uvicorn.error")
         self._last_notified = time.time()
         self._force_exit = False
-        self._sync_started_event = threading.Event()
 
     @property
     def _shutdown_event(self) -> Event:
@@ -47,35 +46,49 @@ class Server:
             self._closed_event_obj = self._backend.create_event()
         return self._closed_event_obj
 
-    def run(self, sockets: List[socket.SocketType] = None) -> None:
+    def run(
+        self,
+        sockets: List[socket.SocketType] = None,
+        started: Callable[[], None] = None,
+    ) -> None:
         if self._config.async_library == "asyncio":
             self._config.setup_event_loop()
-        self._backend.run(self.serve, sockets)
+        self._backend.run(self.serve, sockets, started)
 
     @contextlib.contextmanager
     def run_in_thread(self, sockets: List[socket.SocketType] = None) -> Iterator[None]:
         thread_exc: Optional[Exception] = None
 
+        # Cannot be stored as an instance attribute because Event objects are not
+        # picklable, so this would cause issues with multiprocessing support.
+        started_event = threading.Event()
+
         def target() -> None:
             nonlocal thread_exc
             try:
-                self.run(sockets=sockets)
+                self.run(sockets=sockets, started=started_event.set)
             except Exception as exc:
                 self._logger.exception(exc)
-                self._sync_started_event.set()
+                started_event.set()
                 thread_exc = exc
 
         thread = threading.Thread(target=target)
         thread.start()
         try:
-            self._sync_started_event.wait()
+            started_event.wait()
             if thread_exc is not None:
                 raise thread_exc
             yield
         finally:
             thread.join()
 
-    async def serve(self, sockets: List[socket.SocketType] = None) -> None:
+    async def serve(
+        self,
+        sockets: List[socket.SocketType] = None,
+        started: Callable[[], None] = None,
+    ) -> None:
+        started = (lambda: None) if started is None else started
+
         process_id = os.getpid()
         message = "Started server process [%d]"
         color_message = "Started server process [" + click.style("%d", fg="cyan") + "]"
@@ -103,7 +116,7 @@ class Server:
                         self._backend.start_soon(self._listen_signals),
                     ):
                         # Server has started.
-                        self._sync_started_event.set()
+                        started()
                         self._log_started_message(listeners, sockets=sockets)
                         # Let the server run until exit is requested.
                         await shutdown_trigger()
