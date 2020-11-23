@@ -1,12 +1,12 @@
 import functools
 import signal
 import socket
-from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Awaitable, Callable, List, Optional, Tuple
 
 import curio
 
 from ...config import Config
+from ..compat import asynccontextmanager
 from ..state import ServerState
 from ..utils import get_sock_local_addr, get_sock_remote_addr
 from .base import (

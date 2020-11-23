@@ -47,6 +47,8 @@ minimal_requirements = [
     "click==7.*",
     "h11>=0.8",
     "typing-extensions;" + env_marker_below_38,
+    "async_generator; python_version<'3.7'",
+    "async_exit_stack; python_version<'3.7'",
 ]
 
 extra_requirements = [

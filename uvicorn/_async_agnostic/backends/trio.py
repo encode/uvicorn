@@ -1,7 +1,6 @@
 import functools
 import signal
 import socket
-from contextlib import asynccontextmanager
 from typing import (
     Any,
     AsyncIterator,
@@ -17,6 +16,7 @@ from typing import (
 import trio
 
 from ...config import Config
+from ..compat import asynccontextmanager
 from ..exceptions import BrokenSocket
 from ..state import ServerState
 from ..utils import get_sock_local_addr, get_sock_remote_addr

@@ -1,10 +1,10 @@
-from contextlib import AsyncExitStack
 from typing import Optional
 
 from uvicorn.config import Config
 
 from ..backends.auto import AutoBackend
 from ..backends.base import TaskHandle, TaskStatus
+from ..compat import AsyncExitStack
 from .connection import HTTP11Connection
 
 
