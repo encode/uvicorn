@@ -19,7 +19,7 @@ HANDLED_SIGNALS = (
 logger = logging.getLogger("uvicorn.error")
 
 
-class AsyncioServerState:
+class ServerState:
     """
     Shared servers state that is available between all protocol instances.
     """
@@ -31,10 +31,10 @@ class AsyncioServerState:
         self.default_headers = []
 
 
-class AsyncioServer:
+class Server:
     def __init__(self, config):
         self.config = config
-        self.server_state = AsyncioServerState()
+        self.server_state = ServerState()
 
         self.started = False
         self.should_exit = False
