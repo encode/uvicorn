@@ -7,7 +7,6 @@ import typing
 import click
 
 import uvicorn
-from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.config import (
     HTTP_PROTOCOLS,
     INTERFACES,
@@ -19,6 +18,7 @@ from uvicorn.config import (
     WS_PROTOCOLS,
     Config,
 )
+from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
