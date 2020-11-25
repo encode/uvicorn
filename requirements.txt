@@ -14,6 +14,7 @@ flake8
 isort
 pytest
 pytest-mock
+pytest-asyncio==0.14.0
 requests
 mypy
 trustme

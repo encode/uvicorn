@@ -26,6 +26,7 @@ HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
 WS_CHOICES = click.Choice(WS_PROTOCOLS.keys())
 LIFESPAN_CHOICES = click.Choice(LIFESPAN.keys())
 LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"])
+ASYNC_LIBRARY_CHOICES = click.Choice(["asyncio"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
 logger = logging.getLogger("uvicorn.error")
@@ -97,6 +98,13 @@ def print_version(ctx, param, value):
     type=LOOP_CHOICES,
     default="auto",
     help="Event loop implementation.",
+    show_default=True,
+)
+@click.option(
+    "--async-library",
+    type=ASYNC_LIBRARY_CHOICES,
+    default=None,
+    help="Async library to use. Ignore this to use the legacy Uvicorn implementation.",
     show_default=True,
 )
 @click.option(
@@ -280,6 +288,7 @@ def main(
     uds: str,
     fd: int,
     loop: str,
+    async_library: typing.Optional[str],
     http: str,
     ws: str,
     lifespan: str,
@@ -320,6 +329,7 @@ def main(
         "uds": uds,
         "fd": fd,
         "loop": loop,
+        "async_library": async_library,
         "http": http,
         "ws": ws,
         "lifespan": lifespan,

@@ -11,6 +11,8 @@ from email.utils import formatdate
 
 import click
 
+from ._handlers.concurrency import AsyncioSocket
+
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
@@ -75,12 +77,7 @@ class Server:
             extra={"color_message": color_message},
         )
 
-    async def startup(self, sockets=None):
-        await self.lifespan.startup()
-        if self.lifespan.should_exit:
-            self.should_exit = True
-            return
-
+    async def _startup_legacy(self, sockets: list = None) -> None:
         config = self.config
 
         create_protocol = functools.partial(
@@ -171,6 +168,113 @@ class Server:
             )
             self.servers = [server]
 
+    async def _startup(self, sockets: list = None) -> None:
+        from ._handlers.http11 import handle_http11  # Avoid circular imports.
+
+        config = self.config
+
+        async def handler(
+            reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+        ) -> None:
+            sock = AsyncioSocket(reader, writer)
+            await handle_http11(sock, self.server_state, self.config)
+
+        if sockets is not None:
+            # Explicitly passed a list of open sockets.
+            # We use this when the server is run from a Gunicorn worker.
+
+            def _share_socket(sock: socket.SocketType) -> socket.SocketType:
+                # Windows requires the socket be explicitly shared across
+                # multiple workers (processes).
+                from socket import fromshare  # type: ignore
+
+                sock_data = sock.share(os.getpid())  # type: ignore
+                return fromshare(sock_data)
+
+            self.servers = []
+            for sock in sockets:
+                if config.workers > 1 and platform.system() == "Windows":
+                    sock = _share_socket(sock)
+                server = await asyncio.start_server(
+                    handler, sock=sock, ssl=config.ssl, backlog=config.backlog
+                )
+                self.servers.append(server)
+
+        elif config.fd is not None:
+            # Use an existing socket, from a file descriptor.
+            sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
+            server = await asyncio.start_server(
+                handler, sock=sock, ssl=config.ssl, backlog=config.backlog
+            )
+            message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
+            logger.info(message % str(sock.getsockname()))
+            self.servers = [server]
+
+        elif config.uds is not None:
+            # Create a socket using UNIX domain socket.
+            uds_perms = 0o666
+            if os.path.exists(config.uds):
+                uds_perms = os.stat(config.uds).st_mode
+            server = await asyncio.start_unix_server(
+                handler, path=config.uds, ssl=config.ssl, backlog=config.backlog
+            )
+            os.chmod(config.uds, uds_perms)
+            message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
+            logger.info(message % config.uds)
+            self.servers = [server]
+
+        else:
+            # Standard case. Create a socket from a host/port pair.
+            addr_format = "%s://%s:%d"
+            if config.host and ":" in config.host:
+                # It's an IPv6 address.
+                addr_format = "%s://[%s]:%d"
+
+            try:
+                server = await asyncio.start_server(
+                    handler,
+                    host=config.host,
+                    port=config.port,
+                    ssl=config.ssl,
+                    backlog=config.backlog,
+                )
+            except OSError as exc:
+                logger.error(exc)
+                await self.lifespan.shutdown()
+                sys.exit(1)
+
+            assert server.sockets is not None
+
+            port = config.port
+            if port == 0:
+                port = server.sockets[0].getsockname()[1]
+            protocol_name = "https" if config.ssl else "http"
+            message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
+            color_message = (
+                "Uvicorn running on "
+                + click.style(addr_format, bold=True)
+                + " (Press CTRL+C to quit)"
+            )
+            logger.info(
+                message,
+                protocol_name,
+                config.host,
+                port,
+                extra={"color_message": color_message},
+            )
+            self.servers = [server]
+
+    async def startup(self, sockets: list = None) -> None:
+        await self.lifespan.startup()
+        if self.lifespan.should_exit:
+            self.should_exit = True
+            return
+
+        if self.config.async_library == "asyncio":
+            await self._startup(sockets=sockets)
+        else:
+            await self._startup_legacy(sockets=sockets)
+
         self.started = True
 
     async def main_loop(self):
@@ -217,7 +321,10 @@ class Server:
 
         # Request shutdown on all existing connections.
         for connection in list(self.server_state.connections):
-            connection.shutdown()
+            if self.config.async_library == "asyncio":
+                await connection.trigger_shutdown()
+            else:
+                connection.shutdown()
         await asyncio.sleep(0.1)
 
         # Wait for existing connections to finish sending responses.

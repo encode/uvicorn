@@ -15,6 +15,7 @@ async def app(scope, receive, send):
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
+@pytest.mark.parametrize("async_library", [None, "asyncio"])
 @pytest.mark.parametrize(
     "host, url",
     [
@@ -23,12 +24,18 @@ async def app(scope, receive, send):
         pytest.param("::1", "http://[::1]:8000", id="ipv6"),
     ],
 )
-def test_run(host, url):
+def test_run(async_library, host, url):
     class CustomServer(Server):
         def install_signal_handlers(self):
             pass
 
-    config = Config(app=app, host=host, loop="asyncio", limit_max_requests=1)
+    config = Config(
+        app=app,
+        host=host,
+        loop="asyncio",
+        async_library=async_library,
+        limit_max_requests=1,
+    )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
@@ -39,12 +46,19 @@ def test_run(host, url):
     thread.join()
 
 
-def test_run_multiprocess():
+@pytest.mark.parametrize("async_library", [None, "asyncio"])
+def test_run_multiprocess(async_library):
     class CustomServer(Server):
         def install_signal_handlers(self):
             pass
 
-    config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
+    config = Config(
+        app=app,
+        loop="asyncio",
+        async_library=async_library,
+        workers=2,
+        limit_max_requests=1,
+    )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
@@ -55,12 +69,19 @@ def test_run_multiprocess():
     thread.join()
 
 
-def test_run_reload():
+@pytest.mark.parametrize("async_library", [None, "asyncio"])
+def test_run_reload(async_library):
     class CustomServer(Server):
         def install_signal_handlers(self):
             pass
 
-    config = Config(app=app, loop="asyncio", reload=True, limit_max_requests=1)
+    config = Config(
+        app=app,
+        loop="asyncio",
+        async_library=async_library,
+        reload=True,
+        limit_max_requests=1,
+    )
     server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
@@ -71,7 +92,8 @@ def test_run_reload():
     thread.join()
 
 
-def test_run_with_shutdown():
+@pytest.mark.parametrize("async_library", [None, "asyncio"])
+def test_run_with_shutdown(async_library):
     async def app(scope, receive, send):
         assert scope["type"] == "http"
         while True:
@@ -81,7 +103,13 @@ def test_run_with_shutdown():
         def install_signal_handlers(self):
             pass
 
-    config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
+    config = Config(
+        app=app,
+        loop="asyncio",
+        async_library=async_library,
+        workers=2,
+        limit_max_requests=1,
+    )
     server = CustomServer(config=config)
     sock = config.bind_socket()
     exc = True

@@ -124,6 +124,7 @@ class Config:
         uds=None,
         fd=None,
         loop="auto",
+        async_library=None,
         http="auto",
         ws="auto",
         lifespan="auto",
@@ -162,6 +163,7 @@ class Config:
         self.uds = uds
         self.fd = fd
         self.loop = loop
+        self.async_library = async_library
         self.http = http
         self.ws = ws
         self.lifespan = lifespan
