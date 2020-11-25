@@ -7,7 +7,6 @@ import typing
 import click
 
 import uvicorn
-from uvicorn._impl.asyncio import AsyncioServer, AsyncioServerState
 from uvicorn.config import (
     HTTP_PROTOCOLS,
     INTERFACES,
@@ -19,6 +18,7 @@ from uvicorn.config import (
     WS_PROTOCOLS,
     Config,
 )
+from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
@@ -29,10 +29,6 @@ LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"]
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
 logger = logging.getLogger("uvicorn.error")
-
-# Aliases for backwards compatibility. These used to be defined here.
-Server = AsyncioServer
-ServerState = AsyncioServerState
 
 
 def print_version(ctx, param, value):
