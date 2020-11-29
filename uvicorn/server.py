@@ -1,5 +1,4 @@
 import asyncio
-import functools
 import logging
 import os
 import platform
@@ -75,25 +74,28 @@ class Server:
             extra={"color_message": color_message},
         )
 
-    async def startup(self, sockets=None):
+    async def startup(self, sockets: list = None) -> None:
         await self.lifespan.startup()
         if self.lifespan.should_exit:
             self.should_exit = True
             return
 
+        from ._handlers.http import handle_http  # Prevent circular imports.
+
         config = self.config
 
-        create_protocol = functools.partial(
-            config.http_protocol_class, config=config, server_state=self.server_state
-        )
-
-        loop = asyncio.get_event_loop()
+        async def handler(
+            reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+        ) -> None:
+            await handle_http(
+                reader, writer, server_state=self.server_state, config=config
+            )
 
         if sockets is not None:
             # Explicitly passed a list of open sockets.
             # We use this when the server is run from a Gunicorn worker.
 
-            def _share_socket(sock: socket) -> socket:
+            def _share_socket(sock: socket.SocketType) -> socket.SocketType:
                 # Windows requires the socket be explicitly shared across
                 # multiple workers (processes).
                 from socket import fromshare  # type: ignore
@@ -105,16 +107,16 @@ class Server:
             for sock in sockets:
                 if config.workers > 1 and platform.system() == "Windows":
                     sock = _share_socket(sock)
-                server = await loop.create_server(
-                    create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
+                server = await asyncio.start_server(
+                    handler, sock=sock, ssl=config.ssl, backlog=config.backlog
                 )
                 self.servers.append(server)
 
         elif config.fd is not None:
             # Use an existing socket, from a file descriptor.
             sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
-            server = await loop.create_server(
-                create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
+            server = await asyncio.start_server(
+                handler, sock=sock, ssl=config.ssl, backlog=config.backlog
             )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
             logger.info(message % str(sock.getsockname()))
@@ -125,8 +127,8 @@ class Server:
             uds_perms = 0o666
             if os.path.exists(config.uds):
                 uds_perms = os.stat(config.uds).st_mode
-            server = await loop.create_unix_server(
-                create_protocol, path=config.uds, ssl=config.ssl, backlog=config.backlog
+            server = await asyncio.start_unix_server(
+                handler, path=config.uds, ssl=config.ssl, backlog=config.backlog
             )
             os.chmod(config.uds, uds_perms)
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
@@ -141,8 +143,8 @@ class Server:
                 addr_format = "%s://[%s]:%d"
 
             try:
-                server = await loop.create_server(
-                    create_protocol,
+                server = await asyncio.start_server(
+                    handler,
                     host=config.host,
                     port=config.port,
                     ssl=config.ssl,
@@ -152,6 +154,9 @@ class Server:
                 logger.error(exc)
                 await self.lifespan.shutdown()
                 sys.exit(1)
+
+            assert server.sockets is not None
+
             port = config.port
             if port == 0:
                 port = server.sockets[0].getsockname()[1]
