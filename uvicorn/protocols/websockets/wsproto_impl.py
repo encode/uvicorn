@@ -1,7 +1,7 @@
 import asyncio
 import logging
-from urllib.parse import unquote
 from typing import Callable
+from urllib.parse import unquote
 
 import h11
 import wsproto

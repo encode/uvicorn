@@ -1,8 +1,8 @@
 import asyncio
 import http
 import logging
-from urllib.parse import unquote
 from typing import Callable
+from urllib.parse import unquote
 
 import websockets
 
