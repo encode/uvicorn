@@ -7,8 +7,12 @@ import socket
 import sys
 import time
 from email.utils import formatdate
+from typing import List
 
 import click
+
+from ._backends.asyncio import AsyncioBackend
+from ._backends.base import AsyncBackend, AsyncServer, AsyncSocket
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -39,11 +43,12 @@ class Server:
         self.should_exit = False
         self.force_exit = False
         self.last_notified = 0
+        self.servers: List[AsyncServer] = []
+        self._backend: AsyncBackend = AsyncioBackend()
 
     def run(self, sockets=None):
         self.config.setup_event_loop()
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.serve(sockets=sockets))
+        self._backend.run(self.serve, sockets=sockets)
 
     async def serve(self, sockets=None):
         process_id = os.getpid()
@@ -84,12 +89,8 @@ class Server:
 
         config = self.config
 
-        async def handler(
-            reader: asyncio.StreamReader, writer: asyncio.StreamWriter
-        ) -> None:
-            await handle_http(
-                reader, writer, server_state=self.server_state, config=config
-            )
+        async def handler(sock: AsyncSocket) -> None:
+            await handle_http(sock, server_state=self.server_state, config=config)
 
         if sockets is not None:
             # Explicitly passed a list of open sockets.
@@ -107,16 +108,16 @@ class Server:
             for sock in sockets:
                 if config.workers > 1 and platform.system() == "Windows":
                     sock = _share_socket(sock)
-                server = await asyncio.start_server(
-                    handler, sock=sock, ssl=config.ssl, backlog=config.backlog
+                server = await self._backend.start_server(
+                    handler, sock=sock, ssl_context=config.ssl, backlog=config.backlog
                 )
                 self.servers.append(server)
 
         elif config.fd is not None:
             # Use an existing socket, from a file descriptor.
             sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
-            server = await asyncio.start_server(
-                handler, sock=sock, ssl=config.ssl, backlog=config.backlog
+            server = await self._backend.start_server(
+                handler, sock=sock, ssl_context=config.ssl, backlog=config.backlog
             )
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
             logger.info(message % str(sock.getsockname()))
@@ -127,8 +128,8 @@ class Server:
             uds_perms = 0o666
             if os.path.exists(config.uds):
                 uds_perms = os.stat(config.uds).st_mode
-            server = await asyncio.start_unix_server(
-                handler, path=config.uds, ssl=config.ssl, backlog=config.backlog
+            server = await self._backend.start_server(
+                handler, uds=config.uds, ssl_context=config.ssl, backlog=config.backlog
             )
             os.chmod(config.uds, uds_perms)
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
@@ -143,19 +144,17 @@ class Server:
                 addr_format = "%s://[%s]:%d"
 
             try:
-                server = await asyncio.start_server(
+                server = await self._backend.start_server(
                     handler,
                     host=config.host,
                     port=config.port,
-                    ssl=config.ssl,
+                    ssl_context=config.ssl,
                     backlog=config.backlog,
                 )
             except OSError as exc:
                 logger.error(exc)
                 await self.lifespan.shutdown()
                 sys.exit(1)
-
-            assert server.sockets is not None
 
             port = config.port
             if port == 0:
@@ -209,16 +208,14 @@ class Server:
             return self.server_state.total_requests >= self.config.limit_max_requests
         return False
 
-    async def shutdown(self, sockets=None):
+    async def shutdown(self, sockets: list = None) -> None:
         logger.info("Shutting down")
 
         # Stop accepting new connections.
         for server in self.servers:
-            server.close()
+            await server.aclose()
         for sock in sockets or []:
             sock.close()
-        for server in self.servers:
-            await server.wait_closed()
 
         # Request shutdown on all existing connections.
         for connection in list(self.server_state.connections):

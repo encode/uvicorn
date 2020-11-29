@@ -3,15 +3,20 @@ import asyncio
 from uvicorn.config import Config
 from uvicorn.server import ServerState
 
+from .._backends.asyncio import AsyncioSocket
+from .._backends.base import AsyncSocket
+
 MAX_RECV = 65536
 
 
 async def handle_http(
-    reader: asyncio.StreamReader,
-    writer: asyncio.StreamWriter,
+    sock: AsyncSocket,
     server_state: ServerState,
     config: Config,
 ) -> None:
+    assert isinstance(sock, AsyncioSocket)
+    reader, writer = sock.streams()
+
     # Run transport/protocol session from streams.
     # https://docs.python.org/3/library/asyncio-protocol.html#connecting-existing-sockets
 
