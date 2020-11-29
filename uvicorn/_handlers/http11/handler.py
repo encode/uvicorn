@@ -7,7 +7,13 @@ from uvicorn.config import Config
 from uvicorn.server import ServerState
 
 from ..concurrency import AsyncioSocket
-from ..utils import STATUS_PHRASES, get_path_with_query_string
+from ..utils import (
+    STATUS_PHRASES,
+    get_path_with_query_string,
+    find_upgrade_header_value,
+    WebSocketUpgrade,
+)
+from ..websocket import handle_websocket
 from .conn_base import HTTPConnection, ProtocolError
 from .conn_h11 import H11Connection
 
@@ -56,13 +62,32 @@ async def handle_http11(
     logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
 
     keepalive = KeepAlive(wrapper, timeout=config.timeout_keep_alive)
+    websocket_upgrade: Optional[WebSocketUpgrade] = None
 
     while True:
         try:
             request = await receive_request(wrapper)
             if request is None:
                 break  # Client has disconnected.
+
             http_version, method, path, headers = request
+
+            # Handle upgrades.
+            upgrade = find_upgrade_header_value(headers)
+            if upgrade == b"websocket":
+                raise WebSocketUpgrade(method, path, headers)
+            if upgrade is not None:
+                logger.warning("Unsupported upgrade request.")
+                await send_simple_response(
+                    wrapper,
+                    status_code=400,
+                    content_type="text/plain; charset=utf-8",
+                    body=b"Unsupported upgrade request.",
+                    headers=[(b"connection", b"close")],
+                )
+                break
+
+            # It's a regular HTTP request/response cycle.
             stream = await receive_request_body(wrapper)
             await asgi_send_response(
                 app,
@@ -77,6 +102,9 @@ async def handle_http11(
                 root_path=config.root_path,
                 access_log=config.access_log,
             )
+        except WebSocketUpgrade as exc:
+            websocket_upgrade = exc
+            break
         except ProtocolError:
             logger.warning("Invalid HTTP request received.")
         except Exception as exc:
@@ -100,6 +128,11 @@ async def handle_http11(
         else:
             keepalive.reset()
             keepalive.schedule()
+
+    if websocket_upgrade is not None:
+        # Run WebSocket session.
+        server_state.connections.discard(wrapper)
+        await handle_websocket(sock, server_state, config, websocket_upgrade)
 
     # Clean up.
     keepalive.reset()
@@ -248,9 +281,14 @@ async def send_response_body(wrapper: ConnectionWrapper, body: bytes) -> None:
 
 
 async def send_simple_response(
-    wrapper: ConnectionWrapper, status_code: int, content_type: str, body: bytes
+    wrapper: ConnectionWrapper,
+    status_code: int,
+    content_type: str,
+    body: bytes,
+    headers: List[Tuple[bytes, bytes]] = None,
 ) -> None:
-    headers = [
+    headers = [] if headers is None else headers
+    headers += [
         (b"Content-Type", content_type.encode("utf-8")),
         (b"Content-Length", str(len(body)).encode("utf-8")),
     ]

@@ -22,12 +22,19 @@ class Server:
 
 
 class WebSocketProtocol(websockets.WebSocketServerProtocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(
+        self,
+        config,
+        server_state,
+        on_connection_lost: asyncio.Future = None,
+        _loop=None,
+    ):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
+        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.root_path = config.root_path
@@ -67,7 +74,13 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
     def connection_lost(self, exc):
         self.connections.remove(self)
         self.handshake_completed_event.set()
+        if self.on_connection_lost is not None:
+            self.on_connection_lost.set_result(True)
         super().connection_lost(exc)
+
+    async def trigger_shutdown(self) -> None:
+        # Called by new server.
+        self.shutdown()
 
     def shutdown(self):
         self.ws_server.closing = True

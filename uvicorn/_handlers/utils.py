@@ -2,7 +2,7 @@ import asyncio
 import http
 import socket
 import urllib.parse
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 
 def _get_status_phrase(status_code: int) -> bytes:
@@ -56,3 +56,33 @@ def get_path_with_query_string(scope: dict) -> str:
             path_with_query_string, scope["query_string"].decode("ascii")
         )
     return path_with_query_string
+
+
+def find_upgrade_header_value(headers: List[Tuple[bytes, bytes]]) -> Optional[bytes]:
+    connection = next((value for name, value in headers if name == b"connection"), None)
+
+    if connection is None:
+        return None
+
+    tokens = [token.lower().strip() for token in connection.split(b",")]
+
+    if b"upgrade" not in tokens:
+        return None
+
+    return next(value.lower() for name, value in headers if name == b"upgrade")
+
+
+class WebSocketUpgrade(Exception):
+    def __init__(
+        self, method: bytes, path: bytes, headers: List[Tuple[bytes, bytes]]
+    ) -> None:
+        super().__init__()
+        self.payload = (method, path, headers)
+
+    def initial_handshake_data(self) -> bytes:
+        method, path, headers = self.payload
+        output = [method, b" ", path, b" HTTP/1.1\r\n"]
+        for name, value in headers:
+            output += [name, b": ", value, b"\r\n"]
+        output.append(b"\r\n")
+        return b"".join(output)
