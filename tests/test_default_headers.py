@@ -12,14 +12,9 @@ async def app(scope, receive, send):
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
-class CustomServer(Server):
-    def install_signal_handlers(self):
-        pass
-
-
 def test_default_default_headers():
     config = Config(app=app, loop="asyncio", limit_max_requests=1)
-    server = CustomServer(config=config)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -38,7 +33,7 @@ def test_override_server_header():
         limit_max_requests=1,
         headers=[("Server", "over-ridden")],
     )
-    server = CustomServer(config=config)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -57,7 +52,7 @@ def test_override_server_header_multiple_times():
         limit_max_requests=1,
         headers=[("Server", "over-ridden"), ("Server", "another-value")],
     )
-    server = CustomServer(config=config)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -79,7 +74,7 @@ def test_add_additional_header():
         limit_max_requests=1,
         headers=[("X-Additional", "new-value")],
     )
-    server = CustomServer(config=config)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:

@@ -35,10 +35,6 @@ async def app(scope, receive, send):
     sys.platform.startswith("win"), reason="Skipping SSL test on Windows"
 )
 def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
-
     config = Config(
         app=app,
         loop="asyncio",
@@ -46,7 +42,7 @@ def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
         ssl_keyfile=tls_ca_certificate_private_key_path,
         ssl_certfile=tls_ca_certificate_pem_path,
     )
-    server = CustomServer(config=config)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -61,17 +57,13 @@ def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
     sys.platform.startswith("win"), reason="Skipping SSL test on Windows"
 )
 def test_run_chain(tls_certificate_pem_path):
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
-
     config = Config(
         app=app,
         loop="asyncio",
         limit_max_requests=1,
         ssl_certfile=tls_certificate_pem_path,
     )
-    server = CustomServer(config=config)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -88,10 +80,6 @@ def test_run_chain(tls_certificate_pem_path):
 def test_run_password(
     tls_ca_certificate_pem_path, tls_ca_certificate_private_key_encrypted_path
 ):
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
-
     config = Config(
         app=app,
         loop="asyncio",
@@ -100,7 +88,7 @@ def test_run_password(
         ssl_certfile=tls_ca_certificate_pem_path,
         ssl_keyfile_password="uvicorn password for the win",
     )
-    server = CustomServer(config=config)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
