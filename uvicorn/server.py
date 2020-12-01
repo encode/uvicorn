@@ -240,7 +240,7 @@ class Server:
             await self.lifespan.shutdown()
 
     def install_signal_handlers(self) -> None:
-        if threading.current_thread() is threading.main_thread():
+        if threading.current_thread() is not threading.main_thread():
             # Signals can only be listened to from the main thread.
             return
 
