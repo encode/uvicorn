@@ -204,18 +204,18 @@ For more information, see the [deployment documentation](deployment.md).
 
 ### Application factories
 
-If your project is structured so that it exposes a "factory function", then you can have Uvicorn run an application from that factory by passing the `--factory` flag.
+The `--factory` flag allows loading the application from a factory function, rather than an application instance directly. The factory will be called with no arguments and should return an ASGI application.
+
+**example.py**:
 
 ```python
-# app.py
-
-def create_app() -> Callable:
+def create_app():
     app = ...
     return app
 ```
 
 ```shell
-$ uvicorn --factory app:create_app
+$ uvicorn --factory example:create_app
 ```
 
 ## The ASGI interface
