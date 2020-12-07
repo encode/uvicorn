@@ -8,6 +8,7 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 ## Application
 
 * `APP` - The ASGI application to run, in the format `"<module>:<attribute>"`.
+* `--factory` - Treat `APP` as an application factory, i.e. a `() -> <ASGI app>` callable.
 
 ## Socket Binding
 

@@ -155,6 +155,7 @@ class Config:
         ssl_ca_certs=None,
         ssl_ciphers="TLSv1",
         headers=None,
+        factory=False,
     ):
         self.app = app
         self.host = host
@@ -191,6 +192,7 @@ class Config:
         self.ssl_ciphers = ssl_ciphers
         self.headers = headers if headers else []  # type: List[str]
         self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
+        self.factory = factory
 
         self.loaded = False
         self.configure_logging()
@@ -306,6 +308,18 @@ class Config:
             self.loaded_app = import_from_string(self.app)
         except ImportFromStringError as exc:
             logger.error("Error loading ASGI app. %s" % exc)
+            sys.exit(1)
+
+        if self.factory:
+            try:
+                self.loaded_app = self.loaded_app()
+            except TypeError as exc:
+                logger.error("Error loading ASGI app factory: %s", exc)
+                sys.exit(1)
+        elif not inspect.signature(self.loaded_app).parameters:
+            logger.error(
+                "APP seems to be an application factory. Pass the --factory flag."
+            )
             sys.exit(1)
 
         if self.interface == "auto":

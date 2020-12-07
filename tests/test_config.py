@@ -32,11 +32,11 @@ def yaml_logging_config(logging_config):
     return yaml.dump(logging_config)
 
 
-async def asgi_app():
+async def asgi_app(scope, receive, send):
     pass  # pragma: nocover
 
 
-def wsgi_app():
+def wsgi_app(environ, start_response):
     pass  # pragma: nocover
 
 
@@ -68,6 +68,25 @@ def test_proxy_headers():
 def test_app_unimportable():
     config = Config(app="no.such:app")
     with pytest.raises(ImportError):
+        config.load()
+
+
+def test_app_factory():
+    def create_app():
+        return asgi_app
+
+    config = Config(app=create_app, factory=True, proxy_headers=False)
+    config.load()
+    assert config.loaded_app is asgi_app
+
+    # Flag missing.
+    config = Config(app=create_app)
+    with pytest.raises(SystemExit):
+        config.load()
+
+    # App not a no-arguments callable.
+    config = Config(app=asgi_app, factory=True)
+    with pytest.raises(SystemExit):
         config.load()
 
 
