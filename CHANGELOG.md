@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.13.0 - 2020-12-07
+
+### Added
+
+- Add `--factory` flag to support factory-style application imports. (#875) 2020-12-07 50fc0d1c
+- Skip installation of signal handlers when not in the main thread. Allows using `Server` in multithreaded contexts without having to override `.install_signal_handlers()`. (#871) 2020-12-07 ce2ef45a
+
 ## 0.12.3 - 2020-11-21
 
 ### Fixed
