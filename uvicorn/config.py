@@ -318,7 +318,8 @@ class Config:
                 sys.exit(1)
         elif not inspect.signature(self.loaded_app).parameters:
             logger.error(
-                "APP seems to be an application factory. Pass the --factory flag."
+                "APP seems to be an application factory. "
+                "Run uvicorn with the --factory flag."
             )
             sys.exit(1)
 

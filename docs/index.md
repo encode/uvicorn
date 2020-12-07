@@ -158,7 +158,7 @@ Options:
                                   [default: TLSv1]
   --header TEXT                   Specify custom default HTTP response headers
                                   as a Name:Value pair
-  --factory                       Teat APP as an application factory, i.e. a
+  --factory                       Treat APP as an application factory, i.e. a
                                   () -> <ASGI app> function.  [default: False]
   --help                          Show this message and exit.
 ```
