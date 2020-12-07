@@ -273,6 +273,13 @@ def print_version(ctx, param, value):
     help="Look for APP in the specified directory, by adding this to the PYTHONPATH."
     " Defaults to the current working directory.",
 )
+@click.option(
+    "--factory",
+    is_flag=True,
+    default=False,
+    help="Treat APP as an application factory, i.e. a () -> <ASGI app> callable.",
+    show_default=True,
+)
 def main(
     app,
     host: str,
@@ -310,6 +317,7 @@ def main(
     headers: typing.List[str],
     use_colors: bool,
     app_dir: str,
+    factory: bool,
 ):
     sys.path.insert(0, app_dir)
 
@@ -349,6 +357,7 @@ def main(
         "ssl_ciphers": ssl_ciphers,
         "headers": list([header.split(":", 1) for header in headers]),
         "use_colors": use_colors,
+        "factory": factory,
     }
     run(**kwargs)
 

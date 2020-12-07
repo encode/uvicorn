@@ -158,6 +158,8 @@ Options:
                                   [default: TLSv1]
   --header TEXT                   Specify custom default HTTP response headers
                                   as a Name:Value pair
+  --factory                       Treat APP as an application factory, i.e. a
+                                  () -> <ASGI app> function.  [default: False]
   --help                          Show this message and exit.
 ```
 
@@ -199,6 +201,22 @@ gunicorn example:app -w 4 -k uvicorn.workers.UvicornWorker
 For a [PyPy][pypy] compatible configuration use `uvicorn.workers.UvicornH11Worker`.
 
 For more information, see the [deployment documentation](deployment.md).
+
+### Application factories
+
+The `--factory` flag allows loading the application from a factory function, rather than an application instance directly. The factory will be called with no arguments and should return an ASGI application.
+
+**example.py**:
+
+```python
+def create_app():
+    app = ...
+    return app
+```
+
+```shell
+$ uvicorn --factory example:create_app
+```
 
 ## The ASGI interface
 
