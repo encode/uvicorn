@@ -6,6 +6,7 @@ import platform
 import signal
 import socket
 import sys
+import threading
 import time
 from email.utils import formatdate
 
@@ -238,7 +239,11 @@ class Server:
         if not self.force_exit:
             await self.lifespan.shutdown()
 
-    def install_signal_handlers(self):
+    def install_signal_handlers(self) -> None:
+        if threading.current_thread() is not threading.main_thread():
+            # Signals can only be listened to from the main thread.
+            return
+
         loop = asyncio.get_event_loop()
 
         try:

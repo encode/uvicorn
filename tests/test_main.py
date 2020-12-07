@@ -24,12 +24,8 @@ async def app(scope, receive, send):
     ],
 )
 def test_run(host, url):
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
-
     config = Config(app=app, host=host, loop="asyncio", limit_max_requests=1)
-    server = CustomServer(config=config)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -40,12 +36,8 @@ def test_run(host, url):
 
 
 def test_run_multiprocess():
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
-
     config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
-    server = CustomServer(config=config)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -56,12 +48,8 @@ def test_run_multiprocess():
 
 
 def test_run_reload():
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
-
     config = Config(app=app, loop="asyncio", reload=True, limit_max_requests=1)
-    server = CustomServer(config=config)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -77,12 +65,8 @@ def test_run_with_shutdown():
         while True:
             time.sleep(1)
 
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
-
     config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
-    server = CustomServer(config=config)
+    server = Server(config=config)
     sock = config.bind_socket()
     exc = True
 
