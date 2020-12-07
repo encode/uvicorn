@@ -21,7 +21,7 @@ def main(check: bool = False) -> None:
     )
     lines = lines[:start] + get_usage_lines() + lines[end:]
 
-    output = "\n".join(lines)
+    output = "\n".join(lines) + "\n"
 
     if check:
         if content == output:
