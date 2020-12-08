@@ -95,6 +95,7 @@ The uvicorn command line tool is the easiest way to run your application...
 
 <!-- gen_cli_usage:marker -->
 ```
+$ uvicorn --help
 Usage: uvicorn [OPTIONS] APP
 
 Options:

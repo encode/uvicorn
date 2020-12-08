@@ -1,16 +1,17 @@
 import argparse
 import subprocess
 import sys
+from pathlib import Path
 
 
 def get_usage_lines() -> list:
     res = subprocess.run(["uvicorn", "--help"], stdout=subprocess.PIPE)
-    return res.stdout.decode("utf-8").splitlines()
+    help_text = res.stdout.decode("utf-8")
+    return ["$ uvicorn --help", *help_text.splitlines()]
 
 
-def main(check: bool = False) -> None:
-    with open("docs/index.md") as f:
-        content = f.read()
+def generate(path: Path, check: bool = False) -> None:
+    content = path.read_text()
 
     lines = content.splitlines()
     marker_lineno = lines.index("<!-- gen_cli_usage:marker -->")
@@ -34,12 +35,12 @@ def main(check: bool = False) -> None:
             rv = 1
         sys.exit(rv)
 
-    with open("docs/index.md", "w") as f:
-        f.write(output)
+    path.write_text(output)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    main(check=args.check)
+    for path in (Path("docs", "index.md"), Path("docs", "deployment.md")):
+        generate(path, check=args.check)
