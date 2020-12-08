@@ -93,7 +93,7 @@ The uvicorn command line tool is the easiest way to run your application...
 
 ### Command line options
 
-<!-- gen_cli_usage:marker -->
+<!-- :cli_usage: -->
 ```
 $ uvicorn --help
 Usage: uvicorn [OPTIONS] APP

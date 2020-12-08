@@ -23,7 +23,7 @@ When running locally, use `--reload` to turn on auto-reloading.
 
 To see the complete set of available options, use `uvicorn --help`:
 
-<!-- gen_cli_usage:marker -->
+<!-- :cli_usage: -->
 ```
 $ uvicorn --help
 Usage: uvicorn [OPTIONS] APP
