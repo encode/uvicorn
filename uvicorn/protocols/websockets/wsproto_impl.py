@@ -255,10 +255,8 @@ class WSProtocol(asyncio.Protocol):
                 )
                 self.handshake_complete = True
                 self.close_sent = True
-                msg = h11.Response(status_code=403, headers=[])
+                msg = events.RejectConnection(status_code=403, headers=[])
                 output = self.conn.send(msg)
-                msg = h11.EndOfMessage()
-                output += self.conn.send(msg)
                 self.transport.write(output)
                 self.transport.close()
 
