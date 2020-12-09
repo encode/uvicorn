@@ -138,7 +138,7 @@ def print_version(ctx, param, value):
     "--log-config",
     type=click.Path(exists=True),
     default=None,
-    help="Logging configuration file.",
+    help="Logging configuration file. Supported formats: .ini, .json, .yaml.",
     show_default=True,
 )
 @click.option(

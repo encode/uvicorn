@@ -11,3 +11,4 @@ set -x
 ${PREFIX}autoflake --in-place --recursive $SOURCE_FILES
 ${PREFIX}isort --project=uvicorn $SOURCE_FILES
 ${PREFIX}black --target-version=py36 $SOURCE_FILES
+${PREFIX}python -m tools.cli_usage
