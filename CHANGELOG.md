@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.13.1 - 2020-12-10
+
+### Fixed
+
+- Prevent exceptions when the ASGI application rejects a connection during the WebSocket handshake, when running on both `--ws wsproto` or `--ws websockets`. (Pull #704)
+
 ## 0.13.0 - 2020-12-08
 
 ### Added
