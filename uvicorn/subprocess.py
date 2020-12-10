@@ -44,7 +44,7 @@ def subprocess_started(config, target, sockets):
     # Re-open stdin.
     # This is required for some debugging environments.
     try:
-        sys.stdin = open('/dev/stdin')
+        sys.stdin=open("/dev/stdin")
     except:
         print("WARNING: Failed to open '/dev/stdin', debugging might not work.")
 
