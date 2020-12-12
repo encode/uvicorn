@@ -1,11 +1,11 @@
 # Change Log
 
-## 0.13.1 - 2020-12-10
+## 0.13.1 - 2020-12-12
 
 ### Fixed
 
-- Prevent exceptions when the ASGI application rejects a connection during the WebSocket handshake, when running on both `--ws wsproto` or `--ws websockets`. (Pull #704)
-- Ensure connection `scope` doesn't leak in logs when using JSON log formatters. (Pull #859)
+- Prevent exceptions when the ASGI application rejects a connection during the WebSocket handshake, when running on both `--ws wsproto` or `--ws websockets`. (Pull #704 and #881)
+- Ensure connection `scope` doesn't leak in logs when using JSON log formatters. (Pull #859 and #884)
 
 ## 0.13.0 - 2020-12-08
 
