@@ -1,12 +1,15 @@
+import contextlib
 import platform
 import sys
 import threading
 import time
+import logging
 
 import pytest
 import requests
 
 from uvicorn import Config, Server
+from uvicorn.config import LOGGING_CONFIG
 
 test_logging_config = {
     "version": 1,
@@ -103,3 +106,49 @@ def test_access_logging(capsys, http_protocol):
     captured = capsys.readouterr()
     assert '"GET / HTTP/1.1" 204' in captured.out
     assert "uvicorn.access" in captured.out
+
+
+@contextlib.contextmanager
+def caplog_for_accesslog(caplog):
+    # pytest's `caplog` doesn't capture `propagate=False` loggers by default.
+    # See: https://github.com/pytest-dev/pytest/issues/3697
+    logger = logging.getLogger("uvicorn.access")
+    assert logger.propagate is False
+    logger.addHandler(caplog.handler)
+    try:
+        yield
+    finally:
+        logger.removeHandler(caplog.handler)
+
+
+@pytest.mark.parametrize("http_protocol", ["h11", "httptools"])
+def test_default_logging(caplog, http_protocol):
+    caplog.set_level(logging.INFO)
+
+    config = Config(
+        app=app,
+        loop="asyncio",
+        http=http_protocol,
+        limit_max_requests=1,
+        log_config=LOGGING_CONFIG,
+    )
+
+    with caplog_for_accesslog(caplog):
+        server = Server(config=config)
+        thread = threading.Thread(target=server.run)
+        thread.start()
+        while not server.started:
+            time.sleep(0.01)
+        response = requests.get("http://127.0.0.1:8000")
+        assert response.status_code == 204
+        thread.join()
+
+        messages = [record.message for record in caplog.records]
+        assert "Started server process" in messages.pop(0)
+        assert "Waiting for application startup" in messages.pop(0)
+        assert "ASGI 'lifespan' protocol appears unsupported" in messages.pop(0)
+        assert "Application startup complete" in messages.pop(0)
+        assert "Uvicorn running on http://127.0.0.1:8000" in messages.pop(0)
+        assert '"GET / HTTP/1.1" 204' in messages.pop(0)
+        assert "Shutting down" in messages.pop(0)
+        assert "Finished server process" in messages.pop(0)
