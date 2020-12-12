@@ -63,7 +63,7 @@ async def app(scope, receive, send):
     "log_config, expected_204, expected_logger",
     [
         (trace_logging_config, '"GET / HTTP/1.1" 204', "uvicorn.access"),
-        (LOGGING_CONFIG,'"GET / HTTP/1.1" 204 No Content', "INFO:" ),
+        (LOGGING_CONFIG, '"GET / HTTP/1.1" 204 No Content', "INFO:"),
     ],
     ids=["trace_log_config", "default_log_config"],
 )
@@ -98,7 +98,7 @@ def test_trace_logging(capsys, log_config, expected_204, expected_logger):
     "log_config, expected_204, expected_logger",
     [
         (trace_logging_config, '"GET / HTTP/1.1" 204', "uvicorn.access"),
-        (LOGGING_CONFIG,'"GET / HTTP/1.1" 204 No Content', "INFO:" ),
+        (LOGGING_CONFIG, '"GET / HTTP/1.1" 204 No Content', "INFO:"),
     ],
     ids=["trace_log_config", "default_log_config"],
 )
