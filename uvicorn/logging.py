@@ -1,7 +1,6 @@
 import http
 import logging
 import sys
-import urllib
 from copy import copy
 
 import click
@@ -73,30 +72,12 @@ class AccessFormatter(ColourizedFormatter):
         5: lambda code: click.style(str(code), fg="bright_red"),
     }
 
-    def get_client_addr(self, scope):
-        client = scope.get("client")
-        if not client:
-            return ""
-        return "%s:%d" % (client[0], client[1])
-
-    def get_path(self, scope):
-        return urllib.parse.quote(scope.get("root_path", "") + scope["path"])
-
-    def get_full_path(self, scope):
-        path = scope.get("root_path", "") + scope["path"]
-        query_string = scope.get("query_string", b"").decode("ascii")
-        if query_string:
-            return urllib.parse.quote(path) + "?" + query_string
-        return urllib.parse.quote(path)
-
-    def get_status_code(self, record):
-        status_code = record.__dict__["status_code"]
+    def get_status_code(self, status_code: int):
         try:
             status_phrase = http.HTTPStatus(status_code).phrase
         except ValueError:
             status_phrase = ""
         status_and_phrase = "%s %s" % (status_code, status_phrase)
-
         if self.use_colors:
 
             def default(code):
@@ -108,25 +89,22 @@ class AccessFormatter(ColourizedFormatter):
 
     def formatMessage(self, record):
         recordcopy = copy(record)
-        scope = recordcopy.__dict__["scope"]
-        method = scope["method"]
-        path = self.get_path(scope)
-        full_path = self.get_full_path(scope)
-        client_addr = self.get_client_addr(scope)
-        status_code = self.get_status_code(recordcopy)
-        http_version = scope["http_version"]
+        (
+            client_addr,
+            method,
+            full_path,
+            http_version,
+            status_code,
+        ) = recordcopy.args
+        status_code = self.get_status_code(status_code)
         request_line = "%s %s HTTP/%s" % (method, full_path, http_version)
         if self.use_colors:
             request_line = click.style(request_line, bold=True)
         recordcopy.__dict__.update(
             {
-                "method": method,
-                "path": path,
-                "full_path": full_path,
                 "client_addr": client_addr,
                 "request_line": request_line,
                 "status_code": status_code,
-                "http_version": http_version,
             }
         )
         return super().formatMessage(recordcopy)

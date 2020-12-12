@@ -462,6 +462,11 @@ class RequestResponseCycle:
                     get_path_with_query_string(self.scope),
                     self.scope["http_version"],
                     status_code,
+                    extra={
+                        "root_path": self.scope["root_path"],
+                        "path": self.scope["path"],
+                        "query_string": self.scope["query_string"],
+                    },
                 )
 
             # Write response status line and headers
