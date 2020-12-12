@@ -59,8 +59,15 @@ async def app(scope, receive, send):
     sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
     reason="Skipping test on Windows and PyPy",
 )
-@pytest.mark.parametrize("log_config", [(trace_logging_config), (LOGGING_CONFIG )], ids=["trace_log_config", "default_log_config"])
-def test_trace_logging(capsys,  log_config):
+@pytest.mark.parametrize(
+    "log_config, expected_204, expected_logger",
+    [
+        (trace_logging_config, '"GET / HTTP/1.1" 204', "uvicorn.access"),
+        (LOGGING_CONFIG,'"GET / HTTP/1.1" 204 No Content', "INFO:" ),
+    ],
+    ids=["trace_log_config", "default_log_config"],
+)
+def test_trace_logging(capsys, log_config, expected_204, expected_logger):
     config = Config(
         app=app,
         loop="asyncio",
@@ -86,8 +93,17 @@ def test_trace_logging(capsys,  log_config):
     reason="Skipping test on Windows and PyPy",
 )
 @pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
-@pytest.mark.parametrize("log_config", [(trace_logging_config), (LOGGING_CONFIG )], ids=["trace_log_config", "default_log_config"])
-def test_access_logging(capsys, http_protocol, log_config):
+@pytest.mark.parametrize(
+    "log_config, expected_204, expected_logger",
+    [
+        (trace_logging_config, '"GET / HTTP/1.1" 204', "uvicorn.access"),
+        (LOGGING_CONFIG,'"GET / HTTP/1.1" 204 No Content', "INFO:" ),
+    ],
+    ids=["trace_log_config", "default_log_config"],
+)
+def test_access_logging(
+    capsys, http_protocol, log_config, expected_204, expected_logger
+):
     config = Config(
         app=app,
         loop="asyncio",
@@ -104,5 +120,5 @@ def test_access_logging(capsys, http_protocol, log_config):
     assert response.status_code == 204
     thread.join()
     captured = capsys.readouterr()
-    assert '"GET / HTTP/1.1" 204' in captured.out
-    assert "uvicorn.access" in captured.out
+    assert expected_204 in captured.out
+    assert expected_logger in captured.out
