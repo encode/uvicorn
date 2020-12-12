@@ -84,7 +84,8 @@ def test_trace_logging(capsys, log_config, expected_204, expected_logger):
     assert response.status_code == 204
     thread.join()
     captured = capsys.readouterr()
-    assert '"GET / HTTP/1.1" 204' in captured.out
+    assert expected_204 in captured.out
+    assert expected_logger in captured.out
     assert "[TEST_ACCESS] TRACE" not in captured.out
 
 
