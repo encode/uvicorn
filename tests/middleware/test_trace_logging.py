@@ -7,8 +7,9 @@ import pytest
 import requests
 
 from uvicorn import Config, Server
+from uvicorn.config import LOGGING_CONFIG
 
-test_logging_config = {
+trace_logging_config = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
@@ -58,12 +59,13 @@ async def app(scope, receive, send):
     sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
     reason="Skipping test on Windows and PyPy",
 )
-def test_trace_logging(capsys):
+@pytest.mark.parametrize("log_config", [(trace_logging_config), (LOGGING_CONFIG )], ids=["trace_log_config", "default_log_config"])
+def test_trace_logging(capsys,  log_config):
     config = Config(
         app=app,
         loop="asyncio",
         limit_max_requests=1,
-        log_config=test_logging_config,
+        log_config=log_config,
         log_level="trace",
     )
     server = Server(config=config)
@@ -84,13 +86,14 @@ def test_trace_logging(capsys):
     reason="Skipping test on Windows and PyPy",
 )
 @pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
-def test_access_logging(capsys, http_protocol):
+@pytest.mark.parametrize("log_config", [(trace_logging_config), (LOGGING_CONFIG )], ids=["trace_log_config", "default_log_config"])
+def test_access_logging(capsys, http_protocol, log_config):
     config = Config(
         app=app,
         loop="asyncio",
         http=http_protocol,
         limit_max_requests=1,
-        log_config=test_logging_config,
+        log_config=log_config,
     )
     server = Server(config=config)
     thread = threading.Thread(target=server.run)
