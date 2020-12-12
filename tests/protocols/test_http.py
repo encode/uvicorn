@@ -72,6 +72,10 @@ UPGRADE_REQUEST = b"\r\n".join(
     ]
 )
 
+INVALID_REQUEST = b"\r\n".join(
+    [b"GET /?x=y z HTTP/1.1", b"Host: example.org", b"", b""]  # bad space character
+)
+
 
 class MockTransport:
     def __init__(self, sockname=None, peername=None, sslcontext=False):
@@ -700,3 +704,17 @@ def test_scopes(asgi2or3_app, expected_scopes, protocol_cls):
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert expected_scopes == protocol.scope.get("asgi")
+
+
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+def test_invalid_http_request(protocol_cls, caplog):
+    def app(scope):
+        return Response("Hello, world", media_type="text/plain")
+
+    caplog.set_level(logging.INFO, logger="uvicorn.error")
+    logging.getLogger("uvicorn.error").propagate = True
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(INVALID_REQUEST)
+    assert not protocol.transport.buffer
+    assert "Invalid HTTP request received." in caplog.messages
