@@ -89,6 +89,10 @@ def test_access_logging(caplog, http_protocol):
         assert '"GET / HTTP/1.1" 204' in messages.pop()
 
 
+@pytest.mark.skipif(
+    sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
+    reason="Skipping test on Windows and PyPy",
+)
 @pytest.mark.parametrize("http_protocol", ["h11", "httptools"])
 def test_default_logging(caplog, http_protocol):
     config = Config(
