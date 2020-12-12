@@ -1,15 +1,14 @@
 import contextlib
+import logging
 import platform
 import sys
 import threading
 import time
-import logging
 
 import pytest
 import requests
 
 from uvicorn import Config, Server
-from uvicorn.config import LOGGING_CONFIG
 
 test_logging_config = {
     "version": 1,
@@ -43,8 +42,8 @@ test_logging_config = {
         },
     },
     "loggers": {
-        "": {"handlers": ["default"], "level": "INFO"},
-        "uvicorn.error": {"handlers": ["default"], "level": "INFO", "propagate": False},
+        "uvicorn": {"handlers": ["default"], "level": "INFO"},
+        "uvicorn.error": {"level": "INFO"},
         "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
         "uvicorn.asgi": {"handlers": ["asgi"], "level": "TRACE", "propagate": False},
     },
@@ -123,14 +122,11 @@ def caplog_for_accesslog(caplog):
 
 @pytest.mark.parametrize("http_protocol", ["h11", "httptools"])
 def test_default_logging(caplog, http_protocol):
-    caplog.set_level(logging.INFO)
-
     config = Config(
         app=app,
         loop="asyncio",
         http=http_protocol,
         limit_max_requests=1,
-        log_config=LOGGING_CONFIG,
     )
 
     with caplog_for_accesslog(caplog):
