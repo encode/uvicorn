@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from asyncio import StreamReader
 
 import pytest
 
@@ -92,7 +91,6 @@ class MockTransport:
         self.closed = False
         self.buffer = b""
         self.read_paused = False
-        self.reader = StreamReader()
 
     def get_extra_info(self, key):
         return {
@@ -122,9 +120,6 @@ class MockTransport:
         self.buffer = b""
 
     def set_protocol(self, protocol):
-        pass
-    
-    def set_write_buffer_limits(self, limit):
         pass
 
 
