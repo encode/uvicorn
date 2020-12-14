@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from asyncio import StreamReader
 
 import pytest
 
@@ -91,6 +92,7 @@ class MockTransport:
         self.closed = False
         self.buffer = b""
         self.read_paused = False
+        self.reader = StreamReader()
 
     def get_extra_info(self, key):
         return {
@@ -120,6 +122,9 @@ class MockTransport:
         self.buffer = b""
 
     def set_protocol(self, protocol):
+        pass
+    
+    def set_write_buffer_limits(self, limit):
         pass
 
 
@@ -677,13 +682,11 @@ def test_unsupported_upgrade_request_no_protocol_set(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-@pytest.mark.parametrize("ws_protocol", [("wsproto"), ("websockets")])
-def test_supported_upgrade_request_but_wrong_ws_version(protocol_cls, ws_protocol):
+def test_supported_upgrade_request_but_wrong_ws_version(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(app, protocol_cls, ws=ws_protocol)
+    protocol = get_connected_protocol(app, protocol_cls, ws="wsproto")
     protocol.data_received(UPGRADE_REQUEST_WRONG_WS_VERSION)
-
 
     assert b"HTTP/1.1 426 \r\nSec-WebSocket-Version: 13" in protocol.transport.buffer
 
