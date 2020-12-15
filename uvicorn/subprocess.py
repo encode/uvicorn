@@ -3,6 +3,7 @@ Some light wrappers around Python's multiprocessing, to deal with cleanly
 starting child processes.
 """
 import multiprocessing
+import os
 import sys
 
 multiprocessing.allow_connection_pickling()
@@ -43,9 +44,9 @@ def subprocess_started(config, target, sockets):
     # Re-open stdin.
     # This is required for some debugging environments.
     try:
-        sys.stdin = open("/dev/stdin")
+        sys.stdin = os.fdopen(0)
     except OSError:
-        print("WARNING: Failed to open '/dev/stdin', debugging might not work.")
+        print("WARNING: Failed to open stdin, debugging might not work.")
 
     # Logging needs to be setup again for each child.
     config.configure_logging()
