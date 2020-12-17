@@ -65,10 +65,25 @@ def test_proxy_headers():
     assert isinstance(config.loaded_app, ProxyHeadersMiddleware)
 
 
-def test_app_unimportable():
+def test_app_unimportable_module():
     config = Config(app="no.such:app")
     with pytest.raises(ImportError):
         config.load()
+
+
+def test_app_unimportable_other(caplog):
+    config = Config(app="test_config:app")
+    with pytest.raises(SystemExit):
+        config.load()
+        error_messages = [
+            record.message
+            for record in caplog.records
+            if record.name == "uvicorn.error" and record.levelname == "ERROR"
+        ]
+        assert (
+            'Error loading ASGI app. Attribute "app" not found in module "test_config".'
+            in error_messages.pop(0)
+        )
 
 
 def test_app_factory():
