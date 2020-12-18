@@ -4,6 +4,7 @@ import logging
 from gunicorn.workers.base import Worker
 
 from uvicorn.config import Config
+from uvicorn.loops.auto import auto_loop_setup
 from uvicorn.main import Server
 
 
@@ -13,7 +14,7 @@ class UvicornWorker(Worker):
     rather than a WSGI callable.
     """
 
-    CONFIG_KWARGS = {"loop": "uvloop", "http": "httptools"}
+    CONFIG_KWARGS = {"loop": "auto", "http": "auto"}
 
     def __init__(self, *args, **kwargs):
         super(UvicornWorker, self).__init__(*args, **kwargs)
