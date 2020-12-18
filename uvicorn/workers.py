@@ -12,6 +12,7 @@ class UvicornWorker(Worker):
     A worker class for Gunicorn that interfaces with an ASGI consumer callable,
     rather than a WSGI callable.
     """
+
     CONFIG_KWARGS = {"loop": "auto", "http": "auto"}
 
     def __init__(self, *args, **kwargs):
