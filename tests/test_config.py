@@ -40,11 +40,16 @@ def wsgi_app(environ, start_response):
     pass  # pragma: nocover
 
 
-def test_debug_app():
-    config = Config(app=asgi_app, debug=True, proxy_headers=False)
+@pytest.mark.parametrize(
+    "app, expected_should_reload",
+    [(asgi_app, False), ("tests.test_config:asgi_app", True)],
+)
+def test_debug_app(app, expected_should_reload):
+    config = Config(app=app, debug=True, proxy_headers=False)
     config.load()
 
     assert config.debug is True
+    assert config.should_reload is expected_should_reload
     assert isinstance(config.loaded_app, DebugMiddleware)
 
 
