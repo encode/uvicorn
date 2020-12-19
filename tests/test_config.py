@@ -94,11 +94,6 @@ def test_app_factory():
     config.load()
     assert config.loaded_app is asgi_app
 
-    # Flag missing.
-    config = Config(app=create_app)
-    with pytest.raises(SystemExit):
-        config.load()
-
     # App not a no-arguments callable.
     config = Config(app=asgi_app, factory=True)
     with pytest.raises(SystemExit):
