@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.13.2 - 2020-12-12
+
+### Fixed
+
+- Log full exception traceback in case of invalid HTTP request. (Pull #886 and #888)
+
 ## 0.13.1 - 2020-12-12
 
 ### Fixed
