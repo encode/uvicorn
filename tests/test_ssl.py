@@ -41,7 +41,7 @@ def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
         limit_max_requests=1,
         ssl_keyfile=tls_ca_certificate_private_key_path,
         ssl_certfile=tls_ca_certificate_pem_path,
-        ssl_ca_certs=tls_ca_certificate_pem_path
+        ssl_ca_certs=tls_ca_certificate_pem_path,
     )
     server = Server(config=config)
     thread = threading.Thread(target=server.run)
@@ -63,7 +63,7 @@ def test_run_chain(tls_certificate_pem_path, tls_ca_certificate_pem_path):
         loop="asyncio",
         limit_max_requests=1,
         ssl_certfile=tls_certificate_pem_path,
-        ssl_ca_certs=tls_ca_certificate_pem_path
+        ssl_ca_certs=tls_ca_certificate_pem_path,
     )
     server = Server(config=config)
     thread = threading.Thread(target=server.run)
@@ -89,7 +89,7 @@ def test_run_password(
         ssl_keyfile=tls_ca_certificate_private_key_encrypted_path,
         ssl_certfile=tls_ca_certificate_pem_path,
         ssl_keyfile_password="uvicorn password for the win",
-        ssl_ca_certs=tls_ca_certificate_pem_path
+        ssl_ca_certs=tls_ca_certificate_pem_path,
     )
     server = Server(config=config)
     thread = threading.Thread(target=server.run)
