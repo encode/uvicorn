@@ -72,18 +72,18 @@ def test_app_unimportable_module():
 
 
 def test_app_unimportable_other(caplog):
-    config = Config(app="test_config:app")
+    config = Config(app="tests.test_config:app")
     with pytest.raises(SystemExit):
         config.load()
-        error_messages = [
-            record.message
-            for record in caplog.records
-            if record.name == "uvicorn.error" and record.levelname == "ERROR"
-        ]
-        assert (
-            'Error loading ASGI app. Attribute "app" not found in module "test_config".'
-            in error_messages.pop(0)
-        )
+    error_messages = [
+        record.message
+        for record in caplog.records
+        if record.name == "uvicorn.error" and record.levelname == "ERROR"
+    ]
+    assert (
+        'Error loading ASGI app. Attribute "app" not found in module "tests.test_config".'  # noqa: E501
+        == error_messages.pop(0)
+    )
 
 
 def test_app_factory():
