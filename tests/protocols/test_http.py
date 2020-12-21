@@ -72,6 +72,15 @@ UPGRADE_REQUEST = b"\r\n".join(
     ]
 )
 
+INVALID_REQUEST_TEMPLATE = b"\r\n".join(
+    [
+        b"%s",
+        b"Host: example.org",
+        b"",
+        b"",
+    ]
+)
+
 
 class MockTransport:
     def __init__(self, sockname=None, peername=None, sslcontext=False):
@@ -700,3 +709,25 @@ def test_scopes(asgi2or3_app, expected_scopes, protocol_cls):
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
     assert expected_scopes == protocol.scope.get("asgi")
+
+
+@pytest.mark.parametrize(
+    "request_line",
+    [
+        pytest.param(b"G?T / HTTP/1.1", id="invalid-method"),
+        pytest.param(b"GET /?x=y z HTTP/1.1", id="invalid-path"),
+        pytest.param(b"GET / HTTP1.1", id="invalid-http-version"),
+    ],
+)
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+def test_invalid_http_request(request_line, protocol_cls, caplog):
+    app = Response("Hello, world", media_type="text/plain")
+    request = INVALID_REQUEST_TEMPLATE % request_line
+
+    caplog.set_level(logging.INFO, logger="uvicorn.error")
+    logging.getLogger("uvicorn.error").propagate = True
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(request)
+    assert not protocol.transport.buffer
+    assert "Invalid HTTP request received." in caplog.messages

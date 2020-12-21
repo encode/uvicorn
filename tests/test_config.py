@@ -48,6 +48,20 @@ def test_debug_app():
     assert isinstance(config.loaded_app, DebugMiddleware)
 
 
+@pytest.mark.parametrize(
+    "app, expected_should_reload",
+    [(asgi_app, False), ("tests.test_config:asgi_app", True)],
+)
+def test_config_should_reload_is_set(app, expected_should_reload):
+    config_debug = Config(app=app, debug=True)
+    assert config_debug.debug is True
+    assert config_debug.should_reload is expected_should_reload
+
+    config_reload = Config(app=app, reload=True)
+    assert config_reload.reload is True
+    assert config_reload.should_reload is expected_should_reload
+
+
 def test_wsgi_app():
     config = Config(app=wsgi_app, interface="wsgi", proxy_headers=False)
     config.load()
@@ -65,10 +79,25 @@ def test_proxy_headers():
     assert isinstance(config.loaded_app, ProxyHeadersMiddleware)
 
 
-def test_app_unimportable():
+def test_app_unimportable_module():
     config = Config(app="no.such:app")
     with pytest.raises(ImportError):
         config.load()
+
+
+def test_app_unimportable_other(caplog):
+    config = Config(app="tests.test_config:app")
+    with pytest.raises(SystemExit):
+        config.load()
+    error_messages = [
+        record.message
+        for record in caplog.records
+        if record.name == "uvicorn.error" and record.levelname == "ERROR"
+    ]
+    assert (
+        'Error loading ASGI app. Attribute "app" not found in module "tests.test_config".'  # noqa: E501
+        == error_messages.pop(0)
+    )
 
 
 def test_app_factory():
