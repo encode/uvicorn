@@ -176,6 +176,13 @@ The `UvicornWorker` implementation uses the `uvloop` and `httptools` implementat
 
 Gunicorn provides a different set of configuration options to Uvicorn, so  some options such as `--limit-concurrency` are not yet supported when running with Gunicorn.
 
+If you need to pass uvicorn's config arguments to gunicorn workers then you'll have to subclass `UvicornWorker`:
+
+```python
+class MyUvicornWorker(UvicornWorker):
+    CONFIG_KWARGS = {"loop": "asyncio", "http": "h11", "lifespan": "off"}
+```
+
 ### Supervisor
 
 To use `supervisor` as a process manager you should either:
