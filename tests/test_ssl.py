@@ -2,27 +2,12 @@ import contextlib
 import sys
 import threading
 import time
-import warnings
-from functools import partialmethod
 
 import pytest
 import requests
-from urllib3.exceptions import InsecureRequestWarning
 
 from uvicorn.config import Config
 from uvicorn.main import Server
-
-
-@contextlib.contextmanager
-def no_ssl_verification(session=requests.Session):
-    old_request = session.request
-    session.request = partialmethod(old_request, verify=False)
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", InsecureRequestWarning)
-        yield
-
-    session.request = old_request
 
 
 async def app(scope, receive, send):
@@ -34,7 +19,7 @@ async def app(scope, receive, send):
 @pytest.mark.skipif(
     sys.platform.startswith("win"), reason="Skipping SSL test on Windows"
 )
-def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
+def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path, tls_certificate_pem_path):
     config = Config(
         app=app,
         loop="asyncio",
@@ -47,8 +32,7 @@ def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
     thread.start()
     while not server.started:
         time.sleep(0.01)
-    with no_ssl_verification():
-        response = requests.get("https://127.0.0.1:8000")
+    response = requests.get("https://127.0.0.1:8000", verify=False)
     assert response.status_code == 204
     thread.join()
 
@@ -68,8 +52,7 @@ def test_run_chain(tls_certificate_pem_path):
     thread.start()
     while not server.started:
         time.sleep(0.01)
-    with no_ssl_verification():
-        response = requests.get("https://127.0.0.1:8000")
+    response = requests.get("https://127.0.0.1:8000", verify=False)
     assert response.status_code == 204
     thread.join()
 
@@ -93,7 +76,6 @@ def test_run_password(
     thread.start()
     while not server.started:
         time.sleep(0.01)
-    with no_ssl_verification():
-        response = requests.get("https://127.0.0.1:8000")
+    response = requests.get("https://127.0.0.1:8000", verify=False)
     assert response.status_code == 204
     thread.join()
