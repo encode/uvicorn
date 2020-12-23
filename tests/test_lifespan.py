@@ -115,6 +115,7 @@ def test_lifespan_on_with_error():
         await lifespan.startup()
         assert lifespan.error_occured
         assert lifespan.should_exit
+        await lifespan.main()
         await lifespan.shutdown()
 
     loop = asyncio.new_event_loop()
@@ -165,6 +166,7 @@ def test_lifespan_scope_asgi3app(mode):
         lifespan = LifespanOn(config)
 
         await lifespan.startup()
+        await lifespan.main()
         await lifespan.shutdown()
 
     loop = asyncio.new_event_loop()
@@ -186,6 +188,7 @@ def test_lifespan_scope_asgi2app(mode):
         lifespan = LifespanOn(config)
 
         await lifespan.startup()
+        await lifespan.main()
         await lifespan.shutdown()
 
     loop = asyncio.new_event_loop()

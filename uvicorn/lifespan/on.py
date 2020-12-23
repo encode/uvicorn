@@ -64,6 +64,7 @@ class LifespanOn:
             else:
                 msg = "Exception in 'lifespan' protocol\n"
                 self.logger.error(msg, exc_info=exc)
+            raise exc from None
         finally:
             self.startup_event.set()
             self.shutdown_event.set()
