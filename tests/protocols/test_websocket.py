@@ -21,7 +21,7 @@ except ImportError:  # pragma: nocover
     WebSocketProtocol = None
 
 
-WS_PROTOCOLS = [p for p in [WSProtocol, WebSocketProtocol] if p is not None]
+WS_PROTOCOLS = [p for p in [WebSocketProtocol, WSProtocol, ] if p is not None]
 pytestmark = pytest.mark.skipif(
     websockets is None, reason="This test needs the websockets module"
 )
@@ -69,10 +69,13 @@ def run_server(app, protocol_cls, path="/"):
         thread.start()
         # Return the contextmanager state.
         yield url
+    except Exception as e:
+        raise e
     finally:
         # Close the loop from our main thread.
         while server_state.tasks:
             time.sleep(0.01)
+        server.close()
         loop.call_soon_threadsafe(loop.stop)
         thread.join()
 
