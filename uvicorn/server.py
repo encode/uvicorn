@@ -46,6 +46,7 @@ class Server:
         self.config.setup_event_loop()
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.serve(sockets=sockets))
+        loop.close()
 
     async def serve(self, sockets=None):
         process_id = os.getpid()
