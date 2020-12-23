@@ -37,6 +37,7 @@ def test_lifespan_on():
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
 
 
 def test_lifespan_off():
@@ -52,6 +53,7 @@ def test_lifespan_off():
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
 
 
 def test_lifespan_auto():
@@ -84,6 +86,7 @@ def test_lifespan_auto():
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
 
 
 def test_lifespan_auto_with_error():
@@ -101,6 +104,7 @@ def test_lifespan_auto_with_error():
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
 
 
 def test_lifespan_on_with_error():
@@ -119,6 +123,7 @@ def test_lifespan_on_with_error():
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
 
 
 @pytest.mark.parametrize("mode", ("auto", "on"))
@@ -146,6 +151,7 @@ def test_lifespan_with_failed_startup(mode, raise_exception, caplog):
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
     error_messages = [
         record.message
         for record in caplog.records
@@ -169,6 +175,7 @@ def test_lifespan_scope_asgi3app(mode):
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
 
 
 @pytest.mark.parametrize("mode", ("auto", "on"))
@@ -190,3 +197,4 @@ def test_lifespan_scope_asgi2app(mode):
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
