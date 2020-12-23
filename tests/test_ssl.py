@@ -1,7 +1,6 @@
 import threading
 import time
 
-import pytest
 import requests
 
 from uvicorn.config import Config
