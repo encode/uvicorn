@@ -1,5 +1,3 @@
-import contextlib
-import sys
 import threading
 import time
 
@@ -16,10 +14,7 @@ async def app(scope, receive, send):
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
-@pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="Skipping SSL test on Windows"
-)
-def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path, tls_certificate_pem_path):
+def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
     config = Config(
         app=app,
         loop="asyncio",
@@ -37,9 +32,6 @@ def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path, t
     thread.join()
 
 
-@pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="Skipping SSL test on Windows"
-)
 def test_run_chain(tls_certificate_pem_path):
     config = Config(
         app=app,
@@ -57,9 +49,6 @@ def test_run_chain(tls_certificate_pem_path):
     thread.join()
 
 
-@pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="Skipping SSL test on Windows"
-)
 def test_run_password(
     tls_ca_certificate_pem_path, tls_ca_certificate_private_key_encrypted_path
 ):
