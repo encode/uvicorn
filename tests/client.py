@@ -99,13 +99,15 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         response_started = False
         raw_kwargs = {"body": io.BytesIO()}
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
 
         try:
             loop.run_until_complete(self.app(scope, receive, send))
         except BaseException as exc:
             if self.raise_server_exceptions:
                 raise exc from None
+        finally:
+            loop.close()
 
         raw = requests.packages.urllib3.HTTPResponse(**raw_kwargs)
         return self.build_response(request, raw)
