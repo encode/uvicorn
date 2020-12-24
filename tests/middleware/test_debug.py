@@ -49,6 +49,7 @@ def test_debug_not_http():
 
     app = DebugMiddleware(app)
 
+    loop = asyncio.new_event_loop()
     with pytest.raises(RuntimeError):
-        loop = asyncio.get_event_loop()
         loop.run_until_complete(app({"type": "websocket"}, None, None))
+    loop.close()

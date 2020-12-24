@@ -75,10 +75,12 @@ def test_run_with_shutdown():
         try:
             exc = None
             config.setup_event_loop()
-            loop = asyncio.get_event_loop()
+            loop = asyncio.new_event_loop()
             loop.run_until_complete(server.serve(sockets=[sock]))
         except Exception as e:
             exc = e
+        finally:
+            loop.close()
 
     thread = threading.Thread(target=safe_run)
     thread.start()
