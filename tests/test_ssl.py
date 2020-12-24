@@ -1,10 +1,10 @@
 import sys
-import threading
 import time
 
 import pytest
 import requests
 
+from tests.conftest import PropagatingThread
 from uvicorn.config import Config
 from uvicorn.main import Server
 
@@ -27,7 +27,7 @@ def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
         ssl_certfile=tls_ca_certificate_pem_path,
     )
     server = Server(config=config)
-    thread = threading.Thread(target=server.run)
+    thread = PropagatingThread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
@@ -47,7 +47,7 @@ def test_run_chain(tls_certificate_pem_path):
         ssl_certfile=tls_certificate_pem_path,
     )
     server = Server(config=config)
-    thread = threading.Thread(target=server.run)
+    thread = PropagatingThread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
@@ -71,7 +71,7 @@ def test_run_password(
         ssl_keyfile_password="uvicorn password for the win",
     )
     server = Server(config=config)
-    thread = threading.Thread(target=server.run)
+    thread = PropagatingThread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)

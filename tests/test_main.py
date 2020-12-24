@@ -1,10 +1,10 @@
 import asyncio
-import threading
 import time
 
 import pytest
 import requests
 
+from tests.conftest import PropagatingThread
 from uvicorn.config import Config
 from uvicorn.main import Server
 
@@ -26,7 +26,7 @@ async def app(scope, receive, send):
 def test_run(host, url):
     config = Config(app=app, host=host, loop="asyncio", limit_max_requests=1)
     server = Server(config=config)
-    thread = threading.Thread(target=server.run)
+    thread = PropagatingThread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
@@ -38,7 +38,7 @@ def test_run(host, url):
 def test_run_multiprocess():
     config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
     server = Server(config=config)
-    thread = threading.Thread(target=server.run)
+    thread = PropagatingThread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
@@ -50,7 +50,7 @@ def test_run_multiprocess():
 def test_run_reload():
     config = Config(app=app, loop="asyncio", reload=True, limit_max_requests=1)
     server = Server(config=config)
-    thread = threading.Thread(target=server.run)
+    thread = PropagatingThread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
@@ -82,7 +82,7 @@ def test_run_with_shutdown():
         finally:
             loop.close()
 
-    thread = threading.Thread(target=safe_run)
+    thread = PropagatingThread(target=safe_run)
     thread.start()
 
     while not server.started:

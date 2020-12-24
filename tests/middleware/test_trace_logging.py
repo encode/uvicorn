@@ -1,11 +1,11 @@
 import platform
 import sys
-import threading
 import time
 
 import pytest
 import requests
 
+from tests.conftest import PropagatingThread
 from uvicorn import Config, Server
 
 test_logging_config = {
@@ -67,7 +67,7 @@ def test_trace_logging(capsys):
         log_level="trace",
     )
     server = Server(config=config)
-    thread = threading.Thread(target=server.run)
+    thread = PropagatingThread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
@@ -93,7 +93,7 @@ def test_access_logging(capsys, http_protocol):
         log_config=test_logging_config,
     )
     server = Server(config=config)
-    thread = threading.Thread(target=server.run)
+    thread = PropagatingThread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)

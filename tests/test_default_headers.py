@@ -1,8 +1,8 @@
-import threading
 import time
 
 import requests
 
+from tests.conftest import PropagatingThread
 from uvicorn import Config, Server
 
 
@@ -15,7 +15,7 @@ async def app(scope, receive, send):
 def test_default_default_headers():
     config = Config(app=app, loop="asyncio", limit_max_requests=1)
     server = Server(config=config)
-    thread = threading.Thread(target=server.run)
+    thread = PropagatingThread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
@@ -34,7 +34,7 @@ def test_override_server_header():
         headers=[("Server", "over-ridden")],
     )
     server = Server(config=config)
-    thread = threading.Thread(target=server.run)
+    thread = PropagatingThread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
@@ -53,7 +53,7 @@ def test_override_server_header_multiple_times():
         headers=[("Server", "over-ridden"), ("Server", "another-value")],
     )
     server = Server(config=config)
-    thread = threading.Thread(target=server.run)
+    thread = PropagatingThread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
@@ -75,7 +75,7 @@ def test_add_additional_header():
         headers=[("X-Additional", "new-value")],
     )
     server = Server(config=config)
-    thread = threading.Thread(target=server.run)
+    thread = PropagatingThread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)

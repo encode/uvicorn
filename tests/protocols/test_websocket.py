@@ -1,12 +1,12 @@
 import asyncio
 import functools
-import threading
 import time
 from contextlib import contextmanager
 
 import pytest
 import requests
 
+from tests.conftest import PropagatingThread
 from uvicorn.config import Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -65,7 +65,7 @@ def run_server(app, protocol_cls, path="/"):
     url = "ws://127.0.0.1:{port}{path}".format(port=port, path=path)
     try:
         # Run the event loop in a new thread.
-        thread = threading.Thread(target=run_loop, args=[loop])
+        thread = PropagatingThread(target=run_loop, args=[loop])
         thread.start()
         # Return the contextmanager state.
         yield url

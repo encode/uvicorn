@@ -1,3 +1,5 @@
+import threading
+
 import pytest
 import trustme
 from cryptography.hazmat.backends import default_backend
@@ -50,3 +52,18 @@ def tls_ca_certificate_private_key_encrypted_path(tls_certificate_authority):
 def tls_certificate_pem_path(tls_certificate):
     with tls_certificate.private_key_and_cert_chain_pem.tempfile() as cert_pem:
         yield cert_pem
+
+
+class PropagatingThread(threading.Thread):
+    def run(self):
+        self.exc = None
+        try:
+            self.ret = self._target(*self._args, **self._kwargs)
+        except BaseException as e:
+            self.exc = e
+
+    def join(self):
+        super(PropagatingThread, self).join()
+        if self.exc:
+            raise self.exc
+        return self.ret
