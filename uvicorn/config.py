@@ -310,18 +310,18 @@ class Config:
             logger.error("Error loading ASGI app. %s" % exc)
             sys.exit(1)
 
-        if self.factory:
-            try:
-                self.loaded_app = self.loaded_app()
-            except TypeError as exc:
+        try:
+            self.loaded_app = self.loaded_app()
+        except TypeError as exc:
+            if self.factory:
                 logger.error("Error loading ASGI app factory: %s", exc)
                 sys.exit(1)
-        elif not inspect.signature(self.loaded_app).parameters:
-            logger.error(
-                "APP seems to be an application factory. "
-                "Run uvicorn with the --factory flag."
-            )
-            sys.exit(1)
+        else:
+            if not self.factory:
+                logger.warning(
+                    "ASGI app factory detected. Using it, "
+                    "but please consider setting the --factory flag explicitly."
+                )
 
         if self.interface == "auto":
             if inspect.isclass(self.loaded_app):
