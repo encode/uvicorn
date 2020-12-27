@@ -1,54 +1,74 @@
-import asyncio
-
+import httpx
 import pytest
 
-from tests.client import TestClient
 from uvicorn.middleware.debug import DebugMiddleware
 
 
-def test_debug_text():
+@pytest.mark.asyncio
+async def test_debug_text():
     async def app(scope, receive, send):
         raise RuntimeError("Something went wrong")
 
     app = DebugMiddleware(app)
-    client = TestClient(app, raise_server_exceptions=False)
-    response = client.get("/")
+    transport = httpx.ASGITransport(
+        app=app,
+        raise_app_exceptions=False,
+    )
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://testserver"
+    ) as client:
+        response = await client.get("/")
+
     assert response.status_code == 500
     assert response.headers["content-type"].startswith("text/plain")
     assert "RuntimeError" in response.text
 
 
-def test_debug_html():
+@pytest.mark.asyncio
+async def test_debug_html():
     async def app(scope, receive, send):
         raise RuntimeError("Something went wrong")
 
     app = DebugMiddleware(app)
-    client = TestClient(app, raise_server_exceptions=False)
-    response = client.get("/", headers={"Accept": "text/html, */*"})
+    transport = httpx.ASGITransport(
+        app=app,
+        raise_app_exceptions=False,
+    )
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://testserver"
+    ) as client:
+        response = await client.get("/", headers={"Accept": "text/html, */*"})
     assert response.status_code == 500
     assert response.headers["content-type"].startswith("text/html")
     assert "RuntimeError" in response.text
 
 
-def test_debug_after_response_sent():
+@pytest.mark.asyncio
+async def test_debug_after_response_sent():
     async def app(scope, receive, send):
         await send({"type": "http.response.start", "status": 204, "headers": []})
         await send({"type": "http.response.body", "body": b"", "more_body": False})
         raise RuntimeError("Something went wrong")
 
     app = DebugMiddleware(app)
-    client = TestClient(app, raise_server_exceptions=False)
-    response = client.get("/")
+    transport = httpx.ASGITransport(
+        app=app,
+        raise_app_exceptions=False,
+    )
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://testserver"
+    ) as client:
+        response = await client.get("/")
     assert response.status_code == 204
     assert response.content == b""
 
 
-def test_debug_not_http():
+@pytest.mark.asyncio
+async def test_debug_not_http():
     async def app(scope, send, receive):
         raise RuntimeError("Something went wrong")
 
     app = DebugMiddleware(app)
-
-    with pytest.raises(RuntimeError):
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(app({"type": "websocket"}, None, None))
+    async with httpx.AsyncClient(app=app, base_url="http://testserver"):
+        with pytest.raises(RuntimeError):
+            await app({"type": "websocket"}, None, None)

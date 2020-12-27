@@ -1,8 +1,8 @@
 import sys
 
+import httpx
 import pytest
 
-from tests.client import TestClient
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
 
@@ -46,41 +46,51 @@ def return_exc_info(environ, start_response):
         return [output]
 
 
-def test_wsgi_get():
+@pytest.mark.asyncio
+async def test_wsgi_get():
     app = WSGIMiddleware(hello_world)
-    client = TestClient(app)
-    response = client.get("/")
+    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+        response = await client.get("/")
     assert response.status_code == 200
     assert response.text == "Hello World!\n"
 
 
-def test_wsgi_post():
+@pytest.mark.asyncio
+async def test_wsgi_post():
     app = WSGIMiddleware(echo_body)
-    client = TestClient(app)
-    response = client.post("/", json={"example": 123})
+    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+        response = await client.post("/", json={"example": 123})
     assert response.status_code == 200
     assert response.text == '{"example": 123}'
 
 
-def test_wsgi_exception():
+@pytest.mark.asyncio
+async def test_wsgi_exception():
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
     app = WSGIMiddleware(raise_exception)
-    client = TestClient(app)
-    with pytest.raises(RuntimeError):
-        client.get("/")
+    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+        with pytest.raises(RuntimeError):
+            await client.get("/")
 
 
-def test_wsgi_exc_info():
+@pytest.mark.asyncio
+async def test_wsgi_exc_info():
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
     app = WSGIMiddleware(return_exc_info)
-    client = TestClient(app)
-    with pytest.raises(RuntimeError):
-        response = client.get("/")
+    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+        with pytest.raises(RuntimeError):
+            response = await client.get("/")
 
     app = WSGIMiddleware(return_exc_info)
-    client = TestClient(app, raise_server_exceptions=False)
-    response = client.get("/")
+    transport = httpx.ASGITransport(
+        app=app,
+        raise_app_exceptions=False,
+    )
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://testserver"
+    ) as client:
+        response = await client.get("/")
     assert response.status_code == 500
     assert response.text == "Internal Server Error"

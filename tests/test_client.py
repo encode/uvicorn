@@ -1,4 +1,5 @@
-from tests.client import TestClient
+import httpx
+import pytest
 
 
 async def hello_world(scope, receive, send):
@@ -14,15 +15,21 @@ async def hello_world(scope, receive, send):
     )
 
 
-def test_explicit_base_url():
-    client = TestClient(hello_world, base_url="http://testserver:321")
-    response = client.get("/")
+@pytest.mark.asyncio
+async def test_explicit_base_url():
+    async with httpx.AsyncClient(
+        app=hello_world, base_url="http://testserver"
+    ) as client:
+        response = await client.get("/")
     assert response.status_code == 200
     assert response.text == "hello, world"
 
 
-def test_explicit_host():
-    client = TestClient(hello_world)
-    response = client.get("/", headers={"host": "example.org"})
+@pytest.mark.asyncio
+async def test_explicit_host():
+    async with httpx.AsyncClient(
+        app=hello_world, base_url="http://testserver"
+    ) as client:
+        response = await client.get("/", headers={"host": "example.org"})
     assert response.status_code == 200
     assert response.text == "hello, world"

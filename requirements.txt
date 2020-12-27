@@ -14,7 +14,6 @@ flake8
 isort
 pytest
 pytest-mock
-requests
 mypy
 trustme
 cryptography
