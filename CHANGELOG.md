@@ -1,5 +1,47 @@
 # Change Log
 
+## 0.13.2 - 2020-12-12
+
+### Fixed
+
+- Log full exception traceback in case of invalid HTTP request. (Pull #886 and #888)
+
+## 0.13.1 - 2020-12-12
+
+### Fixed
+
+- Prevent exceptions when the ASGI application rejects a connection during the WebSocket handshake, when running on both `--ws wsproto` or `--ws websockets`. (Pull #704 and #881)
+- Ensure connection `scope` doesn't leak in logs when using JSON log formatters. (Pull #859 and #884)
+
+## 0.13.0 - 2020-12-08
+
+### Added
+
+- Add `--factory` flag to support factory-style application imports. (#875) 2020-12-07 50fc0d1c
+- Skip installation of signal handlers when not in the main thread. Allows using `Server` in multithreaded contexts without having to override `.install_signal_handlers()`. (#871) 2020-12-07 ce2ef45a
+
+## 0.12.3 - 2020-11-21
+
+### Fixed
+- Fix race condition that leads Quart to hang with uvicorn (#848) 11/18/20 de213614
+- Use latin1 when decoding X-Forwarded-* headers (#701) 11/12/20 45e6e831
+- Rework IPv6 support (#837) 11/8/20 bdab488e
+- Cancel old keepalive-trigger before setting new one. (#832) 10/26/20 d5dcf80c
+
+## 0.12.2 - 2020-10-19
+
+### Added
+- Adding ability to decrypt ssl key file (#808) 10/12/20 90dbb6e0
+- Support .yml log config files (#799) 10/6/20 b468950e
+- Added python 3.9 support (#804) 10/6/20 08fd0559
+
+### Fixed
+- Fixes watchgod with common prefixes (#817) 10/14/20 1b32f997
+- Fix reload with ipv6 host (#803) 10/14/20 5acaee5b
+- Added cli suport for headers containing colon (#813) 10/12/20 68732899
+- Sharing socket across workers on windows (#802) 10/12/20 103167a0
+- Note the need to configure trusted "ips" when using unix sockets (#796) 10/4/20 a504c569
+
 ## 0.12.1 - 2020-09-30
 
 ### Changed

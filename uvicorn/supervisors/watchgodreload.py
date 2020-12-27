@@ -1,6 +1,6 @@
 import logging
 import re
-from os import path
+from pathlib import Path
 
 from watchgod import DefaultWatcher
 
@@ -30,9 +30,9 @@ class WatchGodReload(BaseReload):
         self.reloader_name = "watchgod"
         self.watchers = []
         watch_dirs = {
-            path.realpath(watch_dir)
+            Path(watch_dir).resolve()
             for watch_dir in self.config.reload_dirs
-            if path.isdir(watch_dir)
+            if Path(watch_dir).is_dir()
         }
         watch_dirs_set = set(watch_dirs)
 
@@ -43,10 +43,9 @@ class WatchGodReload(BaseReload):
                 if compare_dir is watch_dir:
                     continue
 
-                if watch_dir.startswith(compare_dir) and len(watch_dir) > len(
-                    compare_dir
-                ):
+                if compare_dir in watch_dir.parents:
                     watch_dirs_set.remove(watch_dir)
+
         self.watch_dir_set = watch_dirs_set
         for w in watch_dirs_set:
             self.watchers.append(CustomWatcher(w))
@@ -55,7 +54,7 @@ class WatchGodReload(BaseReload):
         for watcher in self.watchers:
             change = watcher.check()
             if change != set():
-                message = "Detected file change in '%s'. Reloading..."
+                message = "WatchGodReload detected file change in '%s'. Reloading..."
                 logger.warning(message, [c[1] for c in change])
                 return True
 

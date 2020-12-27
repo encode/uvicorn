@@ -48,32 +48,25 @@ test_logging_config = {
 }
 
 
+async def app(scope, receive, send):
+    assert scope["type"] == "http"
+    await send({"type": "http.response.start", "status": 204, "headers": []})
+    await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+
 @pytest.mark.skipif(
     sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
     reason="Skipping test on Windows and PyPy",
 )
 def test_trace_logging(capsys):
-    class App:
-        def __init__(self, scope):
-            if scope["type"] != "http":
-                raise Exception()
-
-        async def __call__(self, receive, send):
-            await send({"type": "http.response.start", "status": 204, "headers": []})
-            await send({"type": "http.response.body", "body": b"", "more_body": False})
-
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
-
     config = Config(
-        app=App,
+        app=app,
         loop="asyncio",
         limit_max_requests=1,
         log_config=test_logging_config,
         log_level="trace",
     )
-    server = CustomServer(config=config)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -92,27 +85,14 @@ def test_trace_logging(capsys):
 )
 @pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
 def test_access_logging(capsys, http_protocol):
-    class App:
-        def __init__(self, scope):
-            if scope["type"] != "http":
-                raise Exception()
-
-        async def __call__(self, receive, send):
-            await send({"type": "http.response.start", "status": 204, "headers": []})
-            await send({"type": "http.response.body", "body": b"", "more_body": False})
-
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
-
     config = Config(
-        app=App,
+        app=app,
         loop="asyncio",
         http=http_protocol,
         limit_max_requests=1,
         log_config=test_logging_config,
     )
-    server = CustomServer(config=config)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:

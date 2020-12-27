@@ -53,9 +53,9 @@ extra_requirements = [
     "websockets==8.*",
     "httptools==0.1.* ;" + env_marker_cpython,
     "uvloop>=0.14.0 ;" + env_marker_cpython,
-    "colorama>=0.4.*;" + env_marker_win,
+    "colorama>=0.4;" + env_marker_win,
     "watchgod>=0.6,<0.7",
-    "python-dotenv>=0.13.*",
+    "python-dotenv>=0.13",
     "PyYAML>=5.1",
 ]
 
@@ -85,6 +85,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],

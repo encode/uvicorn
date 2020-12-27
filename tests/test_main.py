@@ -2,53 +2,42 @@ import asyncio
 import threading
 import time
 
+import pytest
 import requests
 
 from uvicorn.config import Config
 from uvicorn.main import Server
 
 
-def test_run():
-    class App:
-        def __init__(self, scope):
-            if scope["type"] != "http":
-                raise Exception()
+async def app(scope, receive, send):
+    assert scope["type"] == "http"
+    await send({"type": "http.response.start", "status": 204, "headers": []})
+    await send({"type": "http.response.body", "body": b"", "more_body": False})
 
-        async def __call__(self, receive, send):
-            await send({"type": "http.response.start", "status": 204, "headers": []})
-            await send({"type": "http.response.body", "body": b"", "more_body": False})
 
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
-
-    config = Config(app=App, loop="asyncio", limit_max_requests=1)
-    server = CustomServer(config=config)
+@pytest.mark.parametrize(
+    "host, url",
+    [
+        pytest.param(None, "http://127.0.0.1:8000", id="default"),
+        pytest.param("localhost", "http://127.0.0.1:8000", id="hostname"),
+        pytest.param("::1", "http://[::1]:8000", id="ipv6"),
+    ],
+)
+def test_run(host, url):
+    config = Config(app=app, host=host, loop="asyncio", limit_max_requests=1)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
-    response = requests.get("http://127.0.0.1:8000")
+    response = requests.get(url)
     assert response.status_code == 204
     thread.join()
 
 
 def test_run_multiprocess():
-    class App:
-        def __init__(self, scope):
-            if scope["type"] != "http":
-                raise Exception()
-
-        async def __call__(self, receive, send):
-            await send({"type": "http.response.start", "status": 204, "headers": []})
-            await send({"type": "http.response.body", "body": b"", "more_body": False})
-
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
-
-    config = Config(app=App, loop="asyncio", workers=2, limit_max_requests=1)
-    server = CustomServer(config=config)
+    config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -59,21 +48,8 @@ def test_run_multiprocess():
 
 
 def test_run_reload():
-    class App:
-        def __init__(self, scope):
-            if scope["type"] != "http":
-                raise Exception()
-
-        async def __call__(self, receive, send):
-            await send({"type": "http.response.start", "status": 204, "headers": []})
-            await send({"type": "http.response.body", "body": b"", "more_body": False})
-
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
-
-    config = Config(app=App, loop="asyncio", reload=True, limit_max_requests=1)
-    server = CustomServer(config=config)
+    config = Config(app=app, loop="asyncio", reload=True, limit_max_requests=1)
+    server = Server(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -84,21 +60,13 @@ def test_run_reload():
 
 
 def test_run_with_shutdown():
-    class App:
-        def __init__(self, scope):
-            if scope["type"] != "http":
-                raise Exception()
+    async def app(scope, receive, send):
+        assert scope["type"] == "http"
+        while True:
+            time.sleep(1)
 
-        async def __call__(self, receive, send):
-            while True:
-                time.sleep(1)
-
-    class CustomServer(Server):
-        def install_signal_handlers(self):
-            pass
-
-    config = Config(app=App, loop="asyncio", workers=2, limit_max_requests=1)
-    server = CustomServer(config=config)
+    config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
+    server = Server(config=config)
     sock = config.bind_socket()
     exc = True
 

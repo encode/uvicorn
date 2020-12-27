@@ -101,9 +101,12 @@ LOGGING_CONFIG = {
 logger = logging.getLogger("uvicorn.error")
 
 
-def create_ssl_context(certfile, keyfile, ssl_version, cert_reqs, ca_certs, ciphers):
+def create_ssl_context(
+    certfile, keyfile, password, ssl_version, cert_reqs, ca_certs, ciphers
+):
     ctx = ssl.SSLContext(ssl_version)
-    ctx.load_cert_chain(certfile, keyfile)
+    get_password = (lambda: password) if password else None
+    ctx.load_cert_chain(certfile, keyfile, get_password)
     ctx.verify_mode = cert_reqs
     if ca_certs:
         ctx.load_verify_locations(ca_certs)
@@ -146,11 +149,13 @@ class Config:
         callback_notify=None,
         ssl_keyfile=None,
         ssl_certfile=None,
+        ssl_keyfile_password=None,
         ssl_version=SSL_PROTOCOL_VERSION,
         ssl_cert_reqs=ssl.CERT_NONE,
         ssl_ca_certs=None,
         ssl_ciphers="TLSv1",
         headers=None,
+        factory=False,
     ):
         self.app = app
         self.host = host
@@ -180,12 +185,14 @@ class Config:
         self.callback_notify = callback_notify
         self.ssl_keyfile = ssl_keyfile
         self.ssl_certfile = ssl_certfile
+        self.ssl_keyfile_password = ssl_keyfile_password
         self.ssl_version = ssl_version
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
         self.headers = headers if headers else []  # type: List[str]
         self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
+        self.factory = factory
 
         self.loaded = False
         self.configure_logging()
@@ -236,7 +243,7 @@ class Config:
                 with open(self.log_config) as file:
                     loaded_config = json.load(file)
                     logging.config.dictConfig(loaded_config)
-            elif self.log_config.endswith(".yaml"):
+            elif self.log_config.endswith((".yaml", ".yml")):
                 with open(self.log_config) as file:
                     loaded_config = yaml.safe_load(file)
                     logging.config.dictConfig(loaded_config)
@@ -266,6 +273,7 @@ class Config:
             self.ssl = create_ssl_context(
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
+                password=self.ssl_keyfile_password,
                 ssl_version=self.ssl_version,
                 cert_reqs=self.ssl_cert_reqs,
                 ca_certs=self.ssl_ca_certs,
@@ -302,6 +310,19 @@ class Config:
             logger.error("Error loading ASGI app. %s" % exc)
             sys.exit(1)
 
+        try:
+            self.loaded_app = self.loaded_app()
+        except TypeError as exc:
+            if self.factory:
+                logger.error("Error loading ASGI app factory: %s", exc)
+                sys.exit(1)
+        else:
+            if not self.factory:
+                logger.warning(
+                    "ASGI app factory detected. Using it, "
+                    "but please consider setting the --factory flag explicitly."
+                )
+
         if self.interface == "auto":
             if inspect.isclass(self.loaded_app):
                 use_asgi_3 = hasattr(self.loaded_app, "__await__")
@@ -335,7 +356,15 @@ class Config:
             loop_setup()
 
     def bind_socket(self):
-        sock = socket.socket()
+        family = socket.AF_INET
+        addr_format = "%s://%s:%d"
+
+        if self.host and ":" in self.host:
+            # It's an IPv6 address.
+            family = socket.AF_INET6
+            addr_format = "%s://[%s]:%d"
+
+        sock = socket.socket(family=family)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             sock.bind((self.host, self.port))
@@ -344,10 +373,10 @@ class Config:
             sys.exit(1)
         sock.set_inheritable(True)
 
-        message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
+        message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
         color_message = (
             "Uvicorn running on "
-            + click.style("%s://%s:%d", bold=True)
+            + click.style(addr_format, bold=True)
             + " (Press CTRL+C to quit)"
         )
         protocol_name = "https" if self.is_ssl else "http"

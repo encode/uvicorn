@@ -8,10 +8,11 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 ## Application
 
 * `APP` - The ASGI application to run, in the format `"<module>:<attribute>"`.
+* `--factory` - Treat `APP` as an application factory, i.e. a `() -> <ASGI app>` callable.
 
 ## Socket Binding
 
-* `--host <str>` - Bind socket to this host. Use `--host 0.0.0.0` to make the application available on your local network. **Default:** *'127.0.0.1'*.
+* `--host <str>` - Bind socket to this host. Use `--host 0.0.0.0` to make the application available on your local network. IPv6 addresses are supported, for example: `--host '::'`. **Default:** *'127.0.0.1'*.
 * `--port <int>` - Bind to a socket with this port. **Default:** *8000*.
 * `--uds <str>` - Bind to a UNIX domain socket. Useful if you want to run Uvicorn behind a reverse proxy.
 * `--fd <int>` - Bind to socket from this file descriptor. Useful if you want to run Uvicorn within a process manager.
@@ -20,12 +21,6 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 
 * `--reload` - Enable auto-reload.
 * `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default all directories in current directory will be watched.
-
-By default Uvicorn uses simple changes detection strategy that compares python files modification times few times a second. If this approach doesn't work for your project (eg. because of its complexity), you can install Uvicorn with optional `watchgod` dependency to use filesystem events instead:
-
-```
-$ pip install uvicorn[watchgodreload]
-```
 
 ## Production
 
@@ -58,11 +53,12 @@ Note that WSGI mode always disables WebSocket support, as it is not supported by
 * `--root-path <str>` - Set the ASGI `root_path` for applications submounted below a given URL path.
 * `--proxy-headers` / `--no-proxy-headers` - Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to populate remote address info. Defaults to enabled, but is restricted to only trusting
 connecting IPs in the `forwarded-allow-ips` configuration.
-* `--forwarded-allow-ips` <comma-separated-list> Comma separated list of IPs to trust with proxy headers. Defaults to the ``$FORWARDED_ALLOW_IPS` environment variable if available, or '127.0.0.1'. A wildcard '*' means always trust.
+* `--forwarded-allow-ips` <comma-separated-list> Comma separated list of IPs to trust with proxy headers. Defaults to the `$FORWARDED_ALLOW_IPS` environment variable if available, or '127.0.0.1'. A wildcard '*' means always trust.
 
 ## HTTPS
 
 * `--ssl-keyfile <path>` - SSL key file
+* `--ssl-keyfile-password <str>` - Password to decrypt the ssl key
 * `--ssl-certfile <path>` - SSL certificate file
 * `--ssl-version <int>` - SSL version to use (see stdlib ssl module's)
 * `--ssl-cert-reqs <int>` - Whether client certificate is required (see stdlib ssl module's)

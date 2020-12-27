@@ -113,7 +113,6 @@ class H11Protocol(asyncio.Protocol):
         self.scope = None
         self.headers = None
         self.cycle = None
-        self.message_event = asyncio.Event()
 
     # Protocol interface
     def connection_made(self, transport):
@@ -146,17 +145,21 @@ class H11Protocol(asyncio.Protocol):
                 # Premature client disconnect
                 pass
 
-        self.message_event.set()
+        if self.cycle is not None:
+            self.cycle.message_event.set()
         if self.flow is not None:
             self.flow.resume_writing()
 
     def eof_received(self):
         pass
 
-    def data_received(self, data):
+    def _unset_keepalive_if_required(self):
         if self.timeout_keep_alive_task is not None:
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
+
+    def data_received(self, data):
+        self._unset_keepalive_if_required()
 
         self.conn.receive_data(data)
         self.handle_events()
@@ -165,9 +168,9 @@ class H11Protocol(asyncio.Protocol):
         while True:
             try:
                 event = self.conn.next_event()
-            except h11.RemoteProtocolError:
+            except h11.RemoteProtocolError as exc:
                 msg = "Invalid HTTP request received."
-                self.logger.warning(msg)
+                self.logger.warning(msg, exc_info=exc)
                 self.transport.close()
                 return
             event_type = type(event)
@@ -231,7 +234,7 @@ class H11Protocol(asyncio.Protocol):
                     access_logger=self.access_logger,
                     access_log=self.access_log,
                     default_headers=self.default_headers,
-                    message_event=self.message_event,
+                    message_event=asyncio.Event(),
                     on_response=self.on_response_complete,
                 )
                 task = self.loop.create_task(self.cycle.run_asgi(app))
@@ -244,7 +247,7 @@ class H11Protocol(asyncio.Protocol):
                 self.cycle.body += event.data
                 if len(self.cycle.body) > HIGH_WATER_LIMIT:
                     self.flow.pause_reading()
-                self.message_event.set()
+                self.cycle.message_event.set()
 
             elif event_type is h11.EndOfMessage:
                 if self.conn.our_state is h11.DONE:
@@ -252,7 +255,7 @@ class H11Protocol(asyncio.Protocol):
                     self.conn.start_next_cycle()
                     continue
                 self.cycle.more_body = False
-                self.message_event.set()
+                self.cycle.message_event.set()
 
     def handle_upgrade(self, event):
         upgrade_value = None
@@ -299,6 +302,8 @@ class H11Protocol(asyncio.Protocol):
             return
 
         # Set a short Keep-Alive timeout.
+        self._unset_keepalive_if_required()
+
         self.timeout_keep_alive_task = self.loop.call_later(
             self.timeout_keep_alive, self.timeout_keep_alive_handler
         )
@@ -455,7 +460,6 @@ class RequestResponseCycle:
                     get_path_with_query_string(self.scope),
                     self.scope["http_version"],
                     status_code,
-                    extra={"status_code": status_code, "scope": self.scope},
                 )
 
             # Write response status line and headers
@@ -486,6 +490,7 @@ class RequestResponseCycle:
             # Handle response completion
             if not more_body:
                 self.response_complete = True
+                self.message_event.set()
                 event = h11.EndOfMessage()
                 output = self.conn.send(event)
                 self.transport.write(output)
