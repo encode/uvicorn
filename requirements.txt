@@ -21,6 +21,8 @@ cryptography
 coverage
 httpx
 pytest-asyncio
+asynccontextmanager; python_version < '3.7'
+
 
 # Documentation
 mkdocs

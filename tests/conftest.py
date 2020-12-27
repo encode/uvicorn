@@ -1,5 +1,10 @@
 import asyncio
-from contextlib import asynccontextmanager
+import sys
+
+if sys.version_info >= (3, 7):
+    from contextlib import asynccontextmanager
+else:
+    from async_generator import asynccontextmanager
 
 import pytest
 import trustme
