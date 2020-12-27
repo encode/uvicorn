@@ -19,6 +19,8 @@ mypy
 trustme
 cryptography
 coverage
+httpx
+pytest-asyncio
 
 # Documentation
 mkdocs
