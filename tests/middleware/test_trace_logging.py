@@ -69,12 +69,10 @@ async def test_trace_logging(capsys):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
-async def test_access_logging(capsys, http_protocol):
+async def test_access_logging(capsys):
     config = Config(
         app=app,
         loop="asyncio",
-        http=http_protocol,
         limit_max_requests=1,
         log_config=test_logging_config,
     )
