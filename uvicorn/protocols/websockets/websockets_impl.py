@@ -66,8 +66,6 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
     def connection_lost(self, exc):
         self.connections.remove(self)
-        if not self.handshake_started_event.is_set():
-            self.handler_task.cancel()
         self.handshake_completed_event.set()
         super().connection_lost(exc)
 
@@ -160,6 +158,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             self.logger.error(msg, exc_info=exc)
             if not self.handshake_started_event.is_set():
                 self.send_500_response()
+                self.handshake_started_event.set()
             else:
                 await self.handshake_completed_event.wait()
             self.transport.close()
