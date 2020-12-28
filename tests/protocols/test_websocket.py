@@ -282,20 +282,20 @@ async def test_send_after_protocol_close(protocol_cls):
         assert not is_open
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
-# async def test_missing_handshake(protocol_cls):
-#     async def app(app, receive, send):
-#         pass
-#
-#     async def connect(url):
-#         await websockets.connect(url)
-#
-#     config = Config(app=app, ws=protocol_cls, lifespan="off")
-#     async with run_server(config):
-#         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
-#             await connect("ws://127.0.0.1:8000")
-#         assert exc_info.value.status_code == 500
+@pytest.mark.asyncio
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
+async def test_missing_handshake(protocol_cls):
+    async def app(app, receive, send):
+        pass
+
+    async def connect(url):
+        await websockets.connect(url)
+
+    config = Config(app=app, ws=protocol_cls, lifespan="off")
+    async with run_server(config):
+        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
+            await connect("ws://127.0.0.1:8000")
+        assert exc_info.value.status_code == 500
 
 
 @pytest.mark.asyncio
