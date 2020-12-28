@@ -135,6 +135,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             msg,
         ]
         self.transport.write(b"".join(content))
+        self.handshake_started_event.set()
 
     async def ws_handler(self, protocol, path):
         """
