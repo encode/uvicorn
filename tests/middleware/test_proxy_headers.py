@@ -1,6 +1,5 @@
 import httpx
 import pytest
-from httpx import Headers
 
 from tests.response import Response
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -38,7 +37,7 @@ async def test_proxy_headers_no_port():
 @pytest.mark.asyncio
 async def test_proxy_headers_invalid_x_forwarded_for():
     async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
-        headers = Headers(
+        headers = httpx.Headers(
             {
                 "X-Forwarded-Proto": "https",
                 "X-Forwarded-For": "\xf0\xfd\xfd\xfd, 1.2.3.4",
