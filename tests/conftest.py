@@ -1,29 +1,7 @@
-import asyncio
-import sys
-
-if sys.version_info >= (3, 7):
-    from contextlib import asynccontextmanager
-else:
-    from async_generator import asynccontextmanager
-
 import pytest
 import trustme
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-
-from uvicorn import Config, Server
-
-
-@asynccontextmanager
-async def run_server(config: Config, sockets=None):
-    server = Server(config=config)
-    cancel_handle = asyncio.ensure_future(server.serve(sockets=sockets))
-    await asyncio.sleep(0.1)
-    try:
-        yield server
-    finally:
-        await server.shutdown()
-        cancel_handle.cancel()
 
 
 @pytest.fixture

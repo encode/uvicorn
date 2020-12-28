@@ -19,7 +19,6 @@ async def test_default_default_headers():
             response = await client.get("http://127.0.0.1:8000")
             assert response.headers["server"] == "uvicorn" and response.headers["date"]
 
-    thread.join()
 
 @pytest.mark.asyncio
 async def test_override_server_header():
