@@ -134,8 +134,9 @@ def test_concrete_http_class():
 def test_socket_bind():
     config = Config(app=asgi_app)
     config.load()
-
-    assert isinstance(config.bind_socket(), socket.socket)
+    sock = config.bind_socket()
+    assert isinstance(sock, socket.socket)
+    sock.close()
 
 
 def test_ssl_config(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
