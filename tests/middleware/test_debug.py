@@ -69,6 +69,5 @@ async def test_debug_not_http():
         raise RuntimeError("Something went wrong")
 
     app = DebugMiddleware(app)
-    async with httpx.AsyncClient(app=app, base_url="http://testserver"):
-        with pytest.raises(RuntimeError):
-            await app({"type": "websocket"}, None, None)
+    with pytest.raises(RuntimeError):
+        await app({"type": "websocket"}, None, None)
