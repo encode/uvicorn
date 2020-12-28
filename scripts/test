@@ -11,6 +11,7 @@ if [ -z $GITHUB_ACTIONS ]; then
     scripts/check
 fi
 
+export PYTHONASYNCIODEBUG=1
 ${PREFIX}coverage run --debug config -m pytest --log-cli-level=debug
 
 if [ -z $GITHUB_ACTIONS ]; then
