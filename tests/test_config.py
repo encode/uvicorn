@@ -1,4 +1,5 @@
 import json
+import logging
 import socket
 from copy import deepcopy
 
@@ -100,7 +101,7 @@ def test_app_unimportable_other(caplog):
     )
 
 
-def test_app_factory():
+def test_app_factory(caplog):
     def create_app():
         return asgi_app
 
@@ -108,10 +109,15 @@ def test_app_factory():
     config.load()
     assert config.loaded_app is asgi_app
 
-    # Flag missing.
-    config = Config(app=create_app)
-    with pytest.raises(SystemExit):
+    # Flag not passed. In this case, successfully load the app, but issue a warning
+    # to indicate that an explicit flag is preferred.
+    caplog.clear()
+    config = Config(app=create_app, proxy_headers=False)
+    with caplog.at_level(logging.WARNING):
         config.load()
+    assert config.loaded_app is asgi_app
+    assert len(caplog.records) == 1
+    assert "--factory" in caplog.records[0].message
 
     # App not a no-arguments callable.
     config = Config(app=asgi_app, factory=True)

@@ -155,26 +155,33 @@ def test_lifespan_with_failed_startup(mode, raise_exception, caplog):
     assert "Application startup failed. Exiting." in error_messages.pop(0)
 
 
-@pytest.mark.parametrize("mode", ("auto", "on"))
-def test_lifespan_scope_asgi3app(mode):
+def test_lifespan_scope_asgi3app():
     async def asgi3app(scope, receive, send):
-        assert scope == {"version": "3.0", "spec_version": "2.0"}
+        assert scope == {
+            "type": "lifespan",
+            "asgi": {"version": "3.0", "spec_version": "2.0"},
+        }
 
     async def test():
-        config = Config(app=asgi3app, lifespan=mode)
+        config = Config(app=asgi3app, lifespan="on")
         lifespan = LifespanOn(config)
 
         await lifespan.startup()
+        assert not lifespan.startup_failed
+        assert not lifespan.error_occured
+        assert not lifespan.should_exit
         await lifespan.shutdown()
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
 
 
-@pytest.mark.parametrize("mode", ("auto", "on"))
-def test_lifespan_scope_asgi2app(mode):
+def test_lifespan_scope_asgi2app():
     def asgi2app(scope):
-        assert scope == {"version": "2.0", "spec_version": "2.0"}
+        assert scope == {
+            "type": "lifespan",
+            "asgi": {"version": "2.0", "spec_version": "2.0"},
+        }
 
         async def asgi(receive, send):
             pass
@@ -182,7 +189,7 @@ def test_lifespan_scope_asgi2app(mode):
         return asgi
 
     async def test():
-        config = Config(app=asgi2app, lifespan=mode)
+        config = Config(app=asgi2app, lifespan="on")
         lifespan = LifespanOn(config)
 
         await lifespan.startup()
