@@ -67,7 +67,6 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
     def connection_lost(self, exc):
         self.connections.remove(self)
         self.handshake_completed_event.set()
-        self.handler_task.cancel()
         super().connection_lost(exc)
 
     def shutdown(self):
