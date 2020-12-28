@@ -168,6 +168,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 msg = "ASGI callable returned without sending handshake."
                 self.logger.error(msg)
                 self.send_500_response()
+                self.handshake_started_event.set()
                 self.transport.close()
             elif result is not None:
                 msg = "ASGI callable should return None, but returned '%s'."
