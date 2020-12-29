@@ -16,8 +16,9 @@ async def handle_http(
     config: Config,
 ) -> None:
     # Run transport/protocol session from streams.
-    # https://docs.python.org/3/library/asyncio-protocol.html#connecting-existing-sockets
 
+    # Use a future to coordinate between the protocol and this handler task.
+    # https://docs.python.org/3/library/asyncio-protocol.html#connecting-existing-sockets
     loop = asyncio.get_event_loop()
     connection_lost = loop.create_future()
 
@@ -33,18 +34,14 @@ async def handle_http(
     # Kick off the HTTP protocol.
     protocol.connection_made(transport)
 
-    # Pass any data already in the read buffer.
-    try:
-        # timeout=0: we don't want to wait for the client to send data. We only want
-        # to access and ingest any data readily available in memory.
-        data = await asyncio.wait_for(reader.read(MAX_RECV), timeout=0)
-    except asyncio.TimeoutError:
-        # No data in the read buffer yet.
-        pass
-    else:
+    # HACK: Pass any data already in the read buffer.
+    # The assumption here is that we haven't read any data off the stream reader
+    # yet: all data that the client might have already sent since the connection has
+    # been established is in the `_buffer`.
+    data = reader._buffer  # type: ignore
+    if data:
         protocol.data_received(data)
 
     # Let the transport run in the background. When closed, this future will complete
-    # and we'll exit here. Any exception raised by the transport will bubble up here
-    # as well.
+    # and we'll exit here.
     await connection_lost
