@@ -81,6 +81,10 @@ INVALID_REQUEST_TEMPLATE = b"\r\n".join(
     ]
 )
 
+LONG_PATH_REQUEST_TEMPLATE = b"\r\n".join(
+    [b"GET /%s HTTP/1.1", b"Host: example.org", b"", b""]
+)
+
 
 class MockTransport:
     def __init__(self, sockname=None, peername=None, sslcontext=False):
@@ -731,3 +735,30 @@ def test_invalid_http_request(request_line, protocol_cls, caplog):
     protocol.data_received(request)
     assert not protocol.transport.buffer
     assert "Invalid HTTP request received." in caplog.messages
+
+
+@pytest.mark.parametrize(
+    "path_symbols_num",
+    [
+        pytest.param((2 ** 16 - 2), id="(2**16-2)"),
+        pytest.param((2 ** 16 - 1), id="(2**16-1)"),
+    ],
+)
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+def test_get_long_path_request(path_symbols_num, protocol_cls):
+    async def app(scope, receive, send):
+        nonlocal path_symbols_num
+        path = scope["path"]
+        raw_path = scope.get("raw_path", None)
+        assert "/" + path_symbols_num * "A" == path
+        assert b"/" + path_symbols_num * b"A" == raw_path
+
+        response = Response("Done", media_type="text/plain")
+        await response(scope, receive, send)
+
+    protocol = get_connected_protocol(app, protocol_cls, root_path="/app")
+    request = LONG_PATH_REQUEST_TEMPLATE % (path_symbols_num * b"A")
+    protocol.data_received(request)
+    protocol.loop.run_one()
+
+    assert b"Done" in protocol.transport.buffer
