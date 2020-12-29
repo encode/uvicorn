@@ -65,6 +65,7 @@ class UvicornWorker(Worker):
     def init_signals(self):
         # Reset signals so Gunicorn doesn't swallow subprocess return codes
         # other signals are set up by Server.install_signal_handlers()
+        # See: https://github.com/encode/uvicorn/issues/894
         for s in self.SIGNALS:
             signal.signal(s, signal.SIG_DFL)
 
