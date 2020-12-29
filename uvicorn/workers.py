@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import signal
 
 from gunicorn.workers.base import Worker
 
@@ -62,7 +63,11 @@ class UvicornWorker(Worker):
         super(UvicornWorker, self).init_process()
 
     def init_signals(self):
-        pass
+        # Reset signals so Gunicorn doesn't swallow subprocess return codes
+        # other signals are set up by Server.install_signal_handlers()
+        # See: https://github.com/encode/uvicorn/issues/894
+        for s in self.SIGNALS:
+            signal.signal(s, signal.SIG_DFL)
 
     def run(self):
         self.config.app = self.wsgi
