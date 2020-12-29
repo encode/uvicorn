@@ -31,10 +31,31 @@ async def handle_http(
     transport = writer.transport
     transport.set_protocol(protocol)
 
+    # Asyncio stream servers don't `await` handler tasks, so attach a callback to
+    # retrieve and handle exceptions occurring in protocols outside the ASGI
+    # request-response cycle (e.g. bugs).
+    task = asyncio.current_task()
+    assert task is not None
+
+    @task.add_done_callback
+    def retrieve_exception(task: asyncio.Task) -> None:
+        exc = task.exception()
+        if exc is not None:
+            loop.call_exception_handler(
+                {
+                    "message": "Fatal error in server handler",
+                    "exception": exc,
+                    "transport": transport,
+                    "protocol": protocol,
+                }
+            )
+            # Hang up the connection so the client doesn't wait forever.
+            transport.close()
+
     # Kick off the HTTP protocol.
     protocol.connection_made(transport)
 
-    # HACK: Pass any data already in the read buffer.
+    # Pass any data already in the read buffer.
     # The assumption here is that we haven't read any data off the stream reader
     # yet: all data that the client might have already sent since the connection has
     # been established is in the `_buffer`.
