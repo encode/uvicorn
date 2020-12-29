@@ -55,7 +55,7 @@ def tls_certificate_pem_path(tls_certificate):
 
 
 @pytest.fixture
-def ssl_ctx(tls_certificate):
-    ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+def tls_ca_ssl_context(tls_certificate):
+    ssl_ctx = ssl.SSLContext()
     tls_certificate.configure_cert(ssl_ctx)
     return ssl_ctx

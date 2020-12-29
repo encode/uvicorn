@@ -13,7 +13,7 @@ async def app(scope, receive, send):
 
 @pytest.mark.asyncio
 async def test_run(
-    ssl_ctx, tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path
+    tls_ca_ssl_context, tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path
 ):
     config = Config(
         app=app,
@@ -23,13 +23,13 @@ async def test_run(
         ssl_certfile=tls_ca_certificate_pem_path,
     )
     async with run_server(config):
-        async with httpx.AsyncClient(verify=ssl_ctx) as client:
+        async with httpx.AsyncClient(verify=tls_ca_ssl_context) as client:
             response = await client.get("https://127.0.0.1:8000")
     assert response.status_code == 204
 
 
 @pytest.mark.asyncio
-async def test_run_chain(ssl_ctx, tls_certificate_pem_path):
+async def test_run_chain(tls_ca_ssl_context, tls_certificate_pem_path):
     config = Config(
         app=app,
         loop="asyncio",
@@ -37,14 +37,16 @@ async def test_run_chain(ssl_ctx, tls_certificate_pem_path):
         ssl_certfile=tls_certificate_pem_path,
     )
     async with run_server(config):
-        async with httpx.AsyncClient(verify=ssl_ctx) as client:
+        async with httpx.AsyncClient(verify=tls_ca_ssl_context) as client:
             response = await client.get("https://127.0.0.1:8000")
     assert response.status_code == 204
 
 
 @pytest.mark.asyncio
 async def test_run_password(
-    ssl_ctx, tls_ca_certificate_pem_path, tls_ca_certificate_private_key_encrypted_path
+    tls_ca_ssl_context,
+    tls_ca_certificate_pem_path,
+    tls_ca_certificate_private_key_encrypted_path,
 ):
     config = Config(
         app=app,
@@ -55,6 +57,6 @@ async def test_run_password(
         ssl_keyfile_password="uvicorn password for the win",
     )
     async with run_server(config):
-        async with httpx.AsyncClient(verify=ssl_ctx) as client:
+        async with httpx.AsyncClient(verify=tls_ca_ssl_context) as client:
             response = await client.get("https://127.0.0.1:8000")
     assert response.status_code == 204
