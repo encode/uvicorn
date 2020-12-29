@@ -16,6 +16,21 @@ async def handle_http(
     config: Config,
 ) -> None:
     # Run transport/protocol session from streams.
+    #
+    # This is a bit fiddly, so let me explain why we do this in the first place.
+    #
+    # This was introduced to switch to the asyncio streams API while retaining our
+    # existing protocols-based code.
+    #
+    # The aim was to:
+    # * Make it easier to support alternative async libaries (all of which expose
+    #   a streams API, rather than anything similar to asyncio's transports and
+    #   protocols) while keeping the change footprint (and risk) at a minimum.
+    # * Keep a "fast track" for asyncio that's as efficient as possible, by reusing
+    #   our asyncio-optimized protocols-based implementation.
+    #
+    # See: https://github.com/encode/uvicorn/issues/169
+    # See: https://github.com/encode/uvicorn/pull/869
 
     # Use a future to coordinate between the protocol and this handler task.
     # https://docs.python.org/3/library/asyncio-protocol.html#connecting-existing-sockets
@@ -31,26 +46,32 @@ async def handle_http(
     transport = writer.transport
     transport.set_protocol(protocol)
 
-    # Asyncio stream servers don't `await` handler tasks, so attach a callback to
-    # retrieve and handle exceptions occurring in protocols outside the ASGI
-    # request-response cycle (e.g. bugs).
-    task = asyncio.current_task()
-    assert task is not None
+    # Asyncio stream servers don't `await` handler tasks (like the one we're currently
+    # running), so we must make sure exceptions that occur in protocols but outside the
+    # ASGI cycle (e.g. bugs) are properly retrieved and logged.
+    # Vanilla asyncio handles exceptions properly out-of-the-box, but uvloop doesn't.
+    # So we need to attach a callback to handle exceptions ourselves for that case.
+    # (It's not easy to know which loop we're effectively running on, so we attach the
+    # callback in all cases. In practice it won't be called on vanilla asyncio.)
+    task = _get_current_task()
 
     @task.add_done_callback
     def retrieve_exception(task: asyncio.Task) -> None:
         exc = task.exception()
-        if exc is not None:
-            loop.call_exception_handler(
-                {
-                    "message": "Fatal error in server handler",
-                    "exception": exc,
-                    "transport": transport,
-                    "protocol": protocol,
-                }
-            )
-            # Hang up the connection so the client doesn't wait forever.
-            transport.close()
+
+        if exc is None:
+            return
+
+        loop.call_exception_handler(
+            {
+                "message": "Fatal error in server handler",
+                "exception": exc,
+                "transport": transport,
+                "protocol": protocol,
+            }
+        )
+        # Hang up the connection so the client doesn't wait forever.
+        transport.close()
 
     # Kick off the HTTP protocol.
     protocol.connection_made(transport)
@@ -66,3 +87,15 @@ async def handle_http(
     # Let the transport run in the background. When closed, this future will complete
     # and we'll exit here.
     await connection_lost
+
+
+def _get_current_task() -> asyncio.Task:
+    try:
+        current_task = asyncio.current_task
+    except AttributeError:  # pragma: no cover
+        # Python 3.6.
+        current_task = asyncio.Task.current_task
+
+    task = current_task()
+    assert task is not None
+    return task
