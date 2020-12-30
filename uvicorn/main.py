@@ -29,8 +29,6 @@ LIFESPAN_CHOICES = click.Choice(LIFESPAN.keys())
 LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
-logger = logging.getLogger("uvicorn.error")
-
 
 def print_version(ctx, param, value):
     if not value or ctx.resilient_parsing:
@@ -365,7 +363,7 @@ def main(
 
 def run(app, **kwargs):
     config = Config(app, **kwargs)
-    # logger = logging.getLogger("uvicorn.error")
+    logger = logging.getLogger("uvicorn.error")
     if (config.reload or config.workers > 1) and not isinstance(app, str):
         logger.warning(
             "You must pass the application as an import string to enable 'reload' or "
