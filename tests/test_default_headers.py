@@ -2,7 +2,6 @@ import httpx
 import pytest
 
 from tests.utils import run_server
-from tests.conftest import CustomServer
 from uvicorn import Config
 
 

@@ -14,7 +14,11 @@ from typing import Any, Optional
 
 import click
 
-from uvicorn._impl import Shutdown, check_multiprocess_shutdown_event, raise_shutdown
+from uvicorn.supervisors.utils import (
+    Shutdown,
+    check_multiprocess_shutdown_event,
+    raise_shutdown,
+)
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.

@@ -1,13 +1,9 @@
-import asyncio
-
 import ssl
 
 import pytest
 import trustme
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-
-from uvicorn import Server
 
 
 @pytest.fixture
@@ -63,9 +59,3 @@ def tls_ca_ssl_context(tls_certificate):
     ssl_ctx = ssl.SSLContext()
     tls_certificate.configure_cert(ssl_ctx)
     return ssl_ctx
-
-
-class CustomServer(Server):
-    def install_signal_handlers(self):
-        self.signal_event = asyncio.Event()
-        self.shutdown_trigger = self.signal_event.wait
