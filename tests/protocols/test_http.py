@@ -665,7 +665,7 @@ def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-def test_unsupported_upgrade_request(protocol_cls):
+def test_unsupported_upgrade(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls, ws="none")
@@ -682,7 +682,7 @@ def test_supported_upgrade(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls, ws="wsproto")
     protocol.data_received(UPGRADE_REQUEST)
 
-    assert b"HTTP/1.1 426 \r\nSec-WebSocket-Version: 13" in protocol.transport.buffer
+    assert b"HTTP/1.1 426 " in protocol.transport.buffer
 
 
 async def asgi3app(scope, receive, send):
