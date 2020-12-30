@@ -665,7 +665,7 @@ def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-def test_unsupported_upgrade(protocol_cls):
+def test_unsupported_upgrade_request(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls, ws="none")
@@ -676,7 +676,7 @@ def test_unsupported_upgrade(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-def test_supported_upgrade(protocol_cls):
+def test_supported_upgrade_request(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls, ws="wsproto")
