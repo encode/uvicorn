@@ -61,13 +61,12 @@ GET_REQUEST_WITH_RAW_PATH = b"\r\n".join(
     [b"GET /one%2Ftwo HTTP/1.1", b"Host: example.org", b"", b""]
 )
 
-UPGRADE_REQUEST_WRONG_WS_VERSION = b"\r\n".join(
+UPGRADE_REQUEST = b"\r\n".join(
     [
         b"GET / HTTP/1.1",
         b"Host: example.org",
         b"Connection: upgrade",
         b"Upgrade: websocket",
-        b"Sec-WebSocket-Version: 11",
         b"",
         b"",
     ]
@@ -666,22 +665,22 @@ def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-def test_unsupported_upgrade_request_no_protocol_set(protocol_cls):
+def test_unsupported_upgrade_request(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls, ws="none")
-    protocol.data_received(UPGRADE_REQUEST_WRONG_WS_VERSION)
+    protocol.data_received(UPGRADE_REQUEST)
 
     assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
     assert b"Unsupported upgrade request." in protocol.transport.buffer
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-def test_supported_upgrade_request_but_wrong_ws_version(protocol_cls):
+def test_supported_upgrade(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls, ws="wsproto")
-    protocol.data_received(UPGRADE_REQUEST_WRONG_WS_VERSION)
+    protocol.data_received(UPGRADE_REQUEST)
 
     assert b"HTTP/1.1 426 \r\nSec-WebSocket-Version: 13" in protocol.transport.buffer
 
