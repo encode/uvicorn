@@ -3,7 +3,6 @@ import logging
 
 import pytest
 
-from tests.protocols.test_websocket import WS_PROTOCOLS
 from tests.response import Response
 from uvicorn.config import Config
 from uvicorn.main import ServerState
