@@ -3,6 +3,7 @@ import logging
 
 import pytest
 
+from tests.protocols.test_websocket import WS_PROTOCOLS
 from tests.response import Response
 from uvicorn.config import Config
 from uvicorn.main import ServerState
@@ -67,6 +68,7 @@ UPGRADE_REQUEST = b"\r\n".join(
         b"Host: example.org",
         b"Connection: upgrade",
         b"Upgrade: websocket",
+        b"Sec-WebSocket-Version: 11",
         b"",
         b"",
     ]
@@ -664,11 +666,11 @@ def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-def test_unsupported_upgrade_request(protocol_cls):
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+def test_unsupported_upgrade_request(http_protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(app, protocol_cls, ws="none")
+    protocol = get_connected_protocol(app, http_protocol_cls, ws="none")
     protocol.data_received(UPGRADE_REQUEST)
 
     assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
