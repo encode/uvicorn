@@ -666,11 +666,11 @@ def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-def test_unsupported_upgrade_request(http_protocol_cls):
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+def test_unsupported_upgrade_request(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(app, http_protocol_cls, ws="none")
+    protocol = get_connected_protocol(app, protocol_cls, ws="none")
     protocol.data_received(UPGRADE_REQUEST)
 
     assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
