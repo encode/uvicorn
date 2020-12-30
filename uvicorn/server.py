@@ -51,7 +51,6 @@ class Server:
         self.shutdown_trigger = None
         self.server_state = ServerState()
         self.tasks = []
-        self.counter = 0
         self.started = False
         self.should_exit = False
         self.force_exit = False
@@ -83,6 +82,8 @@ class Server:
         logger.info(message, self.process_id, extra={"color_message": color_message})
 
         await self.startup(sockets=sockets)
+        if self.should_exit:
+            return
         await self.main_loop()
         await self.shutdown(sockets=sockets)
 
