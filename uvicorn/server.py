@@ -207,6 +207,7 @@ class Server:
         should_exit = await self.on_tick(counter)
         while not should_exit:
             counter += 1
+            counter = counter % 864000
             await asyncio.sleep(0.1)
             should_exit = await self.on_tick(counter)
 
