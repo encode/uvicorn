@@ -24,7 +24,6 @@ async def test_default_default_headers():
 async def test_override_server_header():
     config = Config(
         app=app,
-        lifespan="off",
         loop="asyncio",
         limit_max_requests=1,
         headers=[("Server", "over-ridden")],
