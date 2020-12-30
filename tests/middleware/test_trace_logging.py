@@ -1,12 +1,7 @@
-import platform
-import sys
-import threading
-import time
-
+import httpx
 import pytest
-import requests
 
-from tests.conftest import CustomServer
+from tests.utils import run_server
 from uvicorn import Config
 
 test_logging_config = {
@@ -55,56 +50,37 @@ async def app(scope, receive, send):
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
-@pytest.mark.skipif(
-    sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
-    reason="Skipping test on Windows and PyPy",
-)
-def test_trace_logging(capsys):
+@pytest.mark.asyncio
+async def test_trace_logging(capsys):
     config = Config(
         app=app,
         loop="asyncio",
-        lifespan="off",
         limit_max_requests=1,
         log_config=test_logging_config,
         log_level="trace",
     )
-    server = CustomServer(config=config)
-    thread = threading.Thread(target=server.run)
-    thread.start()
-    while not server.started:
-        time.sleep(0.01)
-    response = requests.get("http://127.0.0.1:8000")
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://127.0.0.1:8000")
     assert response.status_code == 204
-    server.signal_event.set()
-    thread.join()
     captured = capsys.readouterr()
     assert '"GET / HTTP/1.1" 204' in captured.out
     assert "[TEST_ACCESS] TRACE" not in captured.out
 
 
-@pytest.mark.skipif(
-    sys.platform.startswith("win") or platform.python_implementation() == "PyPy",
-    reason="Skipping test on Windows and PyPy",
-)
-@pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
-def test_access_logging(capsys, http_protocol):
+@pytest.mark.asyncio
+async def test_access_logging(capsys):
     config = Config(
         app=app,
         loop="asyncio",
-        lifespan="off",
-        http=http_protocol,
         limit_max_requests=1,
         log_config=test_logging_config,
     )
-    server = CustomServer(config=config)
-    thread = threading.Thread(target=server.run)
-    thread.start()
-    while not server.started:
-        time.sleep(0.01)
-    response = requests.get("http://127.0.0.1:8000")
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://127.0.0.1:8000")
+
     assert response.status_code == 204
-    server.signal_event.set()
-    thread.join()
     captured = capsys.readouterr()
     assert '"GET / HTTP/1.1" 204' in captured.out
     assert "uvicorn.access" in captured.out

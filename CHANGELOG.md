@@ -1,5 +1,19 @@
 # Change Log
 
+## 0.13.3 - 2020-12-29
+
+### Fixed
+
+- Prevent swallowing of return codes from `subprocess` when running with Gunicorn by properly resetting signals. (Pull #895)
+- Tweak detection of app factories to be more robust. A warning is now logged when passing a factory without the `--factory` flag. (Pull #914)
+- Properly clean tasks when handshake is aborted when running with `--ws websockets`. (Pull #921)
+
+## 0.13.2 - 2020-12-12
+
+### Fixed
+
+- Log full exception traceback in case of invalid HTTP request. (Pull #886 and #888)
+
 ## 0.13.1 - 2020-12-12
 
 ### Fixed

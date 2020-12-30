@@ -356,7 +356,7 @@ def main(
         "ssl_cert_reqs": ssl_cert_reqs,
         "ssl_ca_certs": ssl_ca_certs,
         "ssl_ciphers": ssl_ciphers,
-        "headers": list([header.split(":", 1) for header in headers]),
+        "headers": [header.split(":", 1) for header in headers],
         "use_colors": use_colors,
         "factory": factory,
     }
