@@ -126,6 +126,7 @@ class MockLoop:
     def __init__(self):
         self.tasks = []
         self.later = []
+        self.loop = asyncio.new_event_loop()
 
     def create_task(self, coroutine):
         self.tasks.insert(0, coroutine)
@@ -136,7 +137,10 @@ class MockLoop:
 
     def run_one(self):
         coroutine = self.tasks.pop()
-        asyncio.get_event_loop().run_until_complete(coroutine)
+        self.loop.run_until_complete(coroutine)
+
+    def close(self):
+        self.loop.close()
 
     def run_later(self, with_delay):
         later = []
@@ -170,6 +174,7 @@ def test_get_request(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
 
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
@@ -189,6 +194,7 @@ def test_request_logging(path, protocol_cls, caplog):
     protocol = get_connected_protocol(app, protocol_cls, log_config=None)
     protocol.data_received(get_request_with_query_string)
     protocol.loop.run_one()
+    protocol.loop.close()
 
     assert '"GET {} HTTP/1.1" 200'.format(path) in caplog.records[0].message
 
@@ -200,6 +206,7 @@ def test_head_request(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_HEAD_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
 
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" not in protocol.transport.buffer
@@ -220,6 +227,7 @@ def test_post_request(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_POST_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
 
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b'Body: {"hello": "world"}' in protocol.transport.buffer
@@ -232,6 +240,7 @@ def test_keepalive(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
 
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
     assert not protocol.transport.is_closing()
@@ -252,6 +261,7 @@ def test_keepalive_timeout(protocol_cls):
 
     protocol.loop.run_later(with_delay=10)
     assert protocol.transport.is_closing()
+    protocol.loop.close()
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
@@ -261,6 +271,7 @@ def test_close(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
@@ -274,6 +285,7 @@ def test_chunked_encoding(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"0\r\n\r\n" in protocol.transport.buffer
     assert not protocol.transport.is_closing()
@@ -288,6 +300,7 @@ def test_chunked_encoding_empty_body(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert protocol.transport.buffer.count(b"0\r\n\r\n") == 1
     assert not protocol.transport.is_closing()
@@ -302,6 +315,7 @@ def test_chunked_encoding_head_request(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_HEAD_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert not protocol.transport.is_closing()
 
@@ -329,6 +343,7 @@ def test_pipelined_requests(protocol_cls):
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
     protocol.transport.clear_buffer()
+    protocol.loop.close()
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
@@ -338,6 +353,7 @@ def test_undersized_request(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert protocol.transport.is_closing()
 
 
@@ -348,6 +364,7 @@ def test_oversized_request(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert protocol.transport.is_closing()
 
 
@@ -359,6 +376,7 @@ def test_large_post_request(protocol_cls):
     protocol.data_received(LARGE_POST_REQUEST)
     assert protocol.transport.read_paused
     protocol.loop.run_one()
+    protocol.loop.close()
     assert not protocol.transport.read_paused
 
 
@@ -370,6 +388,7 @@ def test_invalid_http(protocol_cls):
     protocol.data_received(b"x" * 100000)
 
     assert protocol.transport.is_closing()
+    protocol.loop.close()
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
@@ -380,6 +399,7 @@ def test_app_exception(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"HTTP/1.1 500 Internal Server Error" in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
@@ -394,6 +414,7 @@ def test_exception_during_response(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"HTTP/1.1 500 Internal Server Error" not in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
@@ -406,6 +427,7 @@ def test_no_response_returned(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"HTTP/1.1 500 Internal Server Error" in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
@@ -418,6 +440,7 @@ def test_partial_response_returned(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
 
     assert b"HTTP/1.1 500 Internal Server Error" not in protocol.transport.buffer
     assert protocol.transport.is_closing()
@@ -432,6 +455,7 @@ def test_duplicate_start_message(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"HTTP/1.1 500 Internal Server Error" not in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
@@ -444,6 +468,7 @@ def test_missing_start_message(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"HTTP/1.1 500 Internal Server Error" in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
@@ -458,6 +483,7 @@ def test_message_after_body_complete(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
@@ -472,6 +498,7 @@ def test_value_returned(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
@@ -495,6 +522,7 @@ def test_early_disconnect(protocol_cls):
     protocol.eof_received()
     protocol.connection_lost(None)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert got_disconnect_event
 
 
@@ -505,6 +533,7 @@ def test_early_response(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(START_POST_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     protocol.data_received(FINISH_POST_REQUEST)
     assert not protocol.transport.is_closing()
@@ -524,6 +553,7 @@ def test_read_after_response(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_POST_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert message_after_response == {"type": "http.disconnect"}
 
@@ -538,6 +568,7 @@ def test_http10_request(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(HTTP10_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Version: 1.0" in protocol.transport.buffer
 
@@ -552,6 +583,7 @@ def test_root_path(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls, root_path="/app")
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
 
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Path: /app/" in protocol.transport.buffer
@@ -571,6 +603,7 @@ def test_raw_path(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls, root_path="/app")
     protocol.data_received(GET_REQUEST_WITH_RAW_PATH)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert b"Done" in protocol.transport.buffer
 
 
@@ -581,6 +614,7 @@ def test_max_concurrency(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls, limit_concurrency=1)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
 
     assert b"HTTP/1.1 503 Service Unavailable" in protocol.transport.buffer
 
@@ -593,6 +627,7 @@ def test_shutdown_during_request(protocol_cls):
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.shutdown()
     protocol.loop.run_one()
+    protocol.loop.close()
 
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
     assert protocol.transport.is_closing()
@@ -604,6 +639,7 @@ def test_shutdown_during_idle(protocol_cls):
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.shutdown()
+    protocol.loop.close()
 
     assert protocol.transport.buffer == b""
     assert protocol.transport.is_closing()
@@ -635,6 +671,7 @@ def test_100_continue_sent_when_body_consumed(protocol_cls):
     )
     protocol.data_received(EXPECT_100_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
 
     assert b"HTTP/1.1 100 Continue" in protocol.transport.buffer
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
@@ -659,6 +696,7 @@ def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
     )
     protocol.data_received(EXPECT_100_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
 
     assert b"HTTP/1.1 100 Continue" not in protocol.transport.buffer
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
@@ -673,6 +711,7 @@ def test_unsupported_upgrade_request(protocol_cls):
 
     assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
     assert b"Unsupported upgrade request." in protocol.transport.buffer
+    protocol.loop.close()
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
@@ -683,6 +722,7 @@ def test_supported_upgrade_request(protocol_cls):
     protocol.data_received(UPGRADE_REQUEST)
 
     assert b"HTTP/1.1 426 " in protocol.transport.buffer
+    protocol.loop.close()
 
 
 async def asgi3app(scope, receive, send):
@@ -708,6 +748,7 @@ def test_scopes(asgi2or3_app, expected_scopes, protocol_cls):
     protocol = get_connected_protocol(asgi2or3_app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     protocol.loop.run_one()
+    protocol.loop.close()
     assert expected_scopes == protocol.scope.get("asgi")
 
 
@@ -731,3 +772,4 @@ def test_invalid_http_request(request_line, protocol_cls, caplog):
     protocol.data_received(request)
     assert not protocol.transport.buffer
     assert "Invalid HTTP request received." in caplog.messages
+    protocol.loop.close()
