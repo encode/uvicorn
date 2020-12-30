@@ -51,11 +51,7 @@ async def test_invalid_upgrade(protocol_cls):
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 "http://127.0.0.1:8000",
-                headers={
-                    "upgrade": "websocket",
-                    "connection": "upgrade",
-                    "sec-websocket-version": "11",
-                },
+                headers={"upgrade": "websocket", "connection": "upgrade"},
                 timeout=5,
             )
         if response.status_code == 426:
