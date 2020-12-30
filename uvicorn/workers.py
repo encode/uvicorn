@@ -66,7 +66,10 @@ class UvicornWorker(Worker):
 
     def run(self):
         self.config.app = self.wsgi
-        server = Server(config=self.config)
+        server = Server(
+            config=self.config,
+            shutdown_event=None,
+        )
         loop = asyncio.get_event_loop()
         loop.run_until_complete(server.serve(sockets=self.sockets))
 

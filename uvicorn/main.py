@@ -1,4 +1,5 @@
 import logging
+import multiprocessing
 import platform
 import ssl
 import sys
@@ -19,7 +20,7 @@ from uvicorn.config import (
     Config,
 )
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
-from uvicorn.supervisors import ChangeReload, Multiprocess
+from uvicorn.supervisors import Multiprocess
 
 LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
 HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
@@ -364,26 +365,67 @@ def main(
 
 def run(app, **kwargs):
     config = Config(app, **kwargs)
-    server = Server(config=config)
-
+    # logger = logging.getLogger("uvicorn.error")
     if (config.reload or config.workers > 1) and not isinstance(app, str):
-        logger = logging.getLogger("uvicorn.error")
         logger.warning(
             "You must pass the application as an import string to enable 'reload' or "
             "'workers'."
         )
         sys.exit(1)
-
-    if config.should_reload:
-        sock = config.bind_socket()
-        supervisor = ChangeReload(config, target=server.run, sockets=[sock])
-        supervisor.run()
+    if config.workers == 1:
+        if config.reload:
+            run_multi(config)
+        else:
+            server = Server(config=config)
+            server.run()
     elif config.workers > 1:
-        sock = config.bind_socket()
-        supervisor = Multiprocess(config, target=server.run, sockets=[sock])
-        supervisor.run()
+        if config.reload:
+            logger.warning("You can use either --workers or --reload, not both")
+            sys.exit(1)
+        else:
+            run_multi(config)
+
+
+def run_multi(config: Config):
+    sock = config.bind_socket()
+    shutdown_event = multiprocessing.Event()
+    reload_event = None
+    if config.reload:
+        reload_event = multiprocessing.Event()
+    server = Server(
+        config=config,
+        shutdown_event=shutdown_event,
+    )
+    if config.reload:
+        try:
+            from uvicorn.supervisors.watchgodreload import WatchGodReload
+
+            supervisor = WatchGodReload(
+                config,
+                target=server.run,
+                sockets=[sock],
+                shutdown_event=shutdown_event,
+                reload_event=reload_event,
+            )
+        except ImportError:
+            from uvicorn.supervisors.statreload import StatReload
+
+            supervisor = StatReload(
+                config,
+                target=server.run,
+                sockets=[sock],
+                shutdown_event=shutdown_event,
+                reload_event=reload_event,
+            )
     else:
-        server.run()
+        supervisor = Multiprocess(
+            config,
+            target=server.run,
+            sockets=[sock],
+            shutdown_event=shutdown_event,
+            reload_event=reload_event,
+        )
+    supervisor.run()
 
 
 if __name__ == "__main__":

@@ -6,7 +6,8 @@ import time
 import pytest
 import requests
 
-from uvicorn import Config, Server
+from tests.conftest import CustomServer
+from uvicorn import Config
 
 test_logging_config = {
     "version": 1,
@@ -62,17 +63,19 @@ def test_trace_logging(capsys):
     config = Config(
         app=app,
         loop="asyncio",
+        lifespan="off",
         limit_max_requests=1,
         log_config=test_logging_config,
         log_level="trace",
     )
-    server = Server(config=config)
+    server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
     response = requests.get("http://127.0.0.1:8000")
     assert response.status_code == 204
+    server.signal_event.set()
     thread.join()
     captured = capsys.readouterr()
     assert '"GET / HTTP/1.1" 204' in captured.out
@@ -88,17 +91,19 @@ def test_access_logging(capsys, http_protocol):
     config = Config(
         app=app,
         loop="asyncio",
+        lifespan="off",
         http=http_protocol,
         limit_max_requests=1,
         log_config=test_logging_config,
     )
-    server = Server(config=config)
+    server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
     response = requests.get("http://127.0.0.1:8000")
     assert response.status_code == 204
+    server.signal_event.set()
     thread.join()
     captured = capsys.readouterr()
     assert '"GET / HTTP/1.1" 204' in captured.out

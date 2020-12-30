@@ -25,8 +25,8 @@ class CustomWatcher(DefaultWatcher):
 
 
 class WatchGodReload(BaseReload):
-    def __init__(self, config, target, sockets):
-        super().__init__(config, target, sockets)
+    def __init__(self, config, target, sockets, shutdown_event, reload_event):
+        super().__init__(config, target, sockets, shutdown_event, reload_event)
         self.reloader_name = "watchgod"
         self.watchers = []
         watch_dirs = {
@@ -45,17 +45,17 @@ class WatchGodReload(BaseReload):
 
                 if compare_dir in watch_dir.parents:
                     watch_dirs_set.remove(watch_dir)
-
         self.watch_dir_set = watch_dirs_set
-        for w in watch_dirs_set:
-            self.watchers.append(CustomWatcher(w))
 
     def should_restart(self):
+        if not self.watchers:
+            for w in self.watch_dir_set:
+                self.watchers.append(CustomWatcher(w))
         for watcher in self.watchers:
             change = watcher.check()
             if change != set():
                 message = "WatchGodReload detected file change in '%s'. Reloading..."
                 logger.warning(message, [c[1] for c in change])
+                self.watchers = []
                 return True
-
         return False

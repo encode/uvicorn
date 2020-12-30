@@ -9,8 +9,12 @@ import sys
 import threading
 import time
 from email.utils import formatdate
+from multiprocessing.synchronize import Event as MEvent
+from typing import Any, Optional
 
 import click
+
+from uvicorn._impl import Shutdown, check_multiprocess_shutdown_event, raise_shutdown
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -33,23 +37,35 @@ class ServerState:
 
 
 class Server:
-    def __init__(self, config):
+    def __init__(
+        self,
+        config,
+        shutdown_event: Optional[MEvent] = None,
+    ):
         self.config = config
+        self.shutdown_event = shutdown_event
+        self.shutdown_trigger = None
         self.server_state = ServerState()
-
+        self.tasks = []
+        self.counter = 0
         self.started = False
         self.should_exit = False
         self.force_exit = False
         self.last_notified = 0
 
-    def run(self, sockets=None):
+    def run(self, sockets=None, *args, **kwargs):
+        logger.debug(f"run args:{args} kwargs:{kwargs}")
+        if self.shutdown_event is not None:
+            logger.debug(f"setting multiprocess trigger using : {self.shutdown_event}")
+            self.shutdown_trigger = functools.partial(
+                check_multiprocess_shutdown_event, self.shutdown_event, asyncio.sleep
+            )
         self.config.setup_event_loop()
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.serve(sockets=sockets))
 
     async def serve(self, sockets=None):
-        process_id = os.getpid()
-
+        self.process_id = os.getpid()
         config = self.config
         if not config.loaded:
             config.load()
@@ -60,11 +76,9 @@ class Server:
 
         message = "Started server process [%d]"
         color_message = "Started server process [" + click.style("%d", fg="cyan") + "]"
-        logger.info(message, process_id, extra={"color_message": color_message})
+        logger.info(message, self.process_id, extra={"color_message": color_message})
 
         await self.startup(sockets=sockets)
-        if self.should_exit:
-            return
         await self.main_loop()
         await self.shutdown(sockets=sockets)
 
@@ -72,7 +86,7 @@ class Server:
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
         logger.info(
             "Finished server process [%d]",
-            process_id,
+            self.process_id,
             extra={"color_message": color_message},
         )
 
@@ -171,15 +185,23 @@ class Server:
                 extra={"color_message": color_message},
             )
             self.servers = [server]
-
+        self.tasks.append(loop.create_task(raise_shutdown(self.shutdown_trigger)))
+        self.tasks.append(loop.create_task(self.loop_tick()))
+        self.tasks.extend(server.serve_forever() for server in self.servers)
         self.started = True
 
     async def main_loop(self):
+        try:
+            gathered_tasks = asyncio.gather(*self.tasks)
+            await gathered_tasks
+        except (Shutdown, KeyboardInterrupt) as e:
+            logger.debug(f"raised shutdown exc: {e}")
+
+    async def loop_tick(self):
         counter = 0
         should_exit = await self.on_tick(counter)
         while not should_exit:
             counter += 1
-            counter = counter % 864000
             await asyncio.sleep(0.1)
             should_exit = await self.on_tick(counter)
 
@@ -245,17 +267,21 @@ class Server:
             return
 
         loop = asyncio.get_event_loop()
+        if self.shutdown_trigger is None:
+            self.signal_event = asyncio.Event()
 
-        try:
-            for sig in HANDLED_SIGNALS:
-                loop.add_signal_handler(sig, self.handle_exit, sig, None)
-        except NotImplementedError:
-            # Windows
-            for sig in HANDLED_SIGNALS:
-                signal.signal(sig, self.handle_exit)
+            def _signal_handler(*_: Any) -> None:  # noqa: N803
+                logger.debug("Received signal")
+                self.signal_event.set()
 
-    def handle_exit(self, sig, frame):
-        if self.should_exit:
-            self.force_exit = True
-        else:
-            self.should_exit = True
+            for signal_name in {"SIGINT", "SIGTERM", "SIGBREAK"}:
+                if hasattr(signal, signal_name):
+                    try:
+                        loop.add_signal_handler(
+                            getattr(signal, signal_name), _signal_handler
+                        )
+                    except NotImplementedError:
+                        # Add signal handler may not be implemented on Windows
+                        signal.signal(getattr(signal, signal_name), _signal_handler)
+
+            self.shutdown_trigger = self.signal_event.wait  # type: ignore

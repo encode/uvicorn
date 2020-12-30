@@ -1,11 +1,11 @@
 import logging
+import multiprocessing
 import os
 import signal
-import threading
+import sys
+from multiprocessing.context import Process
 
 import click
-
-from uvicorn.subprocess import get_subprocess
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -14,26 +14,37 @@ HANDLED_SIGNALS = (
 
 logger = logging.getLogger("uvicorn.error")
 
+multiprocessing.allow_connection_pickling()
+
 
 class Multiprocess:
-    def __init__(self, config, target, sockets):
+    def __init__(self, config, target, sockets, shutdown_event, reload_event):
         self.config = config
         self.target = target
         self.sockets = sockets
         self.processes = []
-        self.should_exit = threading.Event()
         self.pid = os.getpid()
+        self.shutdown_event = shutdown_event
+        self.reload_event = reload_event
 
-    def signal_handler(self, sig, frame):
-        """
-        A signal handler that is registered with the parent process.
-        """
-        self.should_exit.set()
+    def multiprocess_signal_handler(self, sig, frame):
+        logger.debug(f"MultiServer received: {sig}")
+        self.shutdown_event.set()
 
     def run(self):
-        self.startup()
-        self.should_exit.wait()
-        self.shutdown()
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        if self.config.reload:
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            self.startup()
+            while not self.reload_event.wait(self.config.reload_delay):
+                if self.should_restart():
+                    self.restart()
+                if self.shutdown_event.is_set():
+                    break
+            self.shutdown()
+        else:
+            self.startup()
+            self.shutdown()
 
     def startup(self):
         message = "Started parent process [{}]".format(str(self.pid))
@@ -42,15 +53,20 @@ class Multiprocess:
         )
         logger.info(message, extra={"color_message": color_message})
 
-        for sig in HANDLED_SIGNALS:
-            signal.signal(sig, self.signal_handler)
-
         for idx in range(self.config.workers):
-            process = get_subprocess(
-                config=self.config, target=self.target, sockets=self.sockets
+            process = Process(
+                target=self.target,
+                kwargs={
+                    "config": self.config,
+                    "sockets": self.sockets,
+                    "shutdown_event": self.shutdown_event,
+                },
             )
             process.start()
             self.processes.append(process)
+
+        for sig in HANDLED_SIGNALS:
+            signal.signal(sig, self.multiprocess_signal_handler)
 
     def shutdown(self):
         for process in self.processes:
@@ -61,3 +77,17 @@ class Multiprocess:
             click.style(str(self.pid), fg="cyan", bold=True)
         )
         logger.info(message, extra={"color_message": color_message})
+
+    def restart(self):
+        logger.debug("MultiProcess restart")
+        for process in self.processes:
+            logger.info(f"terminate: {process}")
+            if sys.version_info < (3, 7):
+                os.kill(process.pid, signal.SIGKILL)
+            else:
+                process.kill()
+            process.join()
+            self.processes.remove(process)
+            self.mtimes = {}
+        self.reload_event.clear()
+        self.startup()

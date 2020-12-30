@@ -1,6 +1,8 @@
+import multiprocessing
 import signal
 from pathlib import Path
 from time import sleep
+from typing import List
 
 import pytest
 
@@ -20,20 +22,26 @@ class TestBaseReload:
         self.tmp_path = Path(tmpdir)
         self.reloader_class = reloader_class
 
-    def run(self, sockets):
+    def run(self, *args, **kwargs):
         pass
 
     def _setup_reloader(self, config: Config) -> BaseReload:
-        reloader = self.reloader_class(config, target=self.run, sockets=[])
-        reloader.signal_handler(sig=signal.SIGINT, frame=None)
+        reloader = self.reloader_class(
+            config,
+            target=self.run,
+            sockets=[],
+            shutdown_event=multiprocessing.Event(),
+            reload_event=multiprocessing.Event(),
+        )
+        reloader.multiprocess_signal_handler(sig=signal.SIGINT, frame=None)
         reloader.startup()
         return reloader
 
-    def _reload_tester(self, reloader: BaseReload, file: Path) -> bool:
-        reloader.restart()
+    def _reload_tester(self, reloader: BaseReload, files: List[Path]) -> bool:
         assert not reloader.should_restart()
         sleep(0.1)
-        file.touch()
+        for file in files:
+            file.touch()
         return reloader.should_restart()
 
     def test_reloader_should_initialize(self):
@@ -56,7 +64,7 @@ class TestBaseReload:
             config = Config(app=None, reload=True)
             reloader = self._setup_reloader(config)
 
-            assert self._reload_tester(reloader, update_file)
+            assert self._reload_tester(reloader, [update_file])
 
             reloader.shutdown()
 
@@ -70,7 +78,7 @@ class TestBaseReload:
             config = Config(app=None, reload=True)
             reloader = self._setup_reloader(config)
 
-            assert not self._reload_tester(reloader, update_file)
+            assert not self._reload_tester(reloader, [update_file])
 
             reloader.shutdown()
 
@@ -92,7 +100,5 @@ class TestBaseReload:
             )
             reloader = self._setup_reloader(config)
 
-            assert self._reload_tester(reloader, app_file)
-            assert self._reload_tester(reloader, app_ext_file)
-
+            assert self._reload_tester(reloader, [app_file, app_ext_file])
             reloader.shutdown()

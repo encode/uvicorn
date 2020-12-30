@@ -1,12 +1,11 @@
-import asyncio
 import threading
 import time
 
 import pytest
 import requests
 
+from tests.conftest import CustomServer
 from uvicorn.config import Config
-from uvicorn.main import Server
 
 
 async def app(scope, receive, send):
@@ -24,68 +23,46 @@ async def app(scope, receive, send):
     ],
 )
 def test_run(host, url):
-    config = Config(app=app, host=host, loop="asyncio", limit_max_requests=1)
-    server = Server(config=config)
+    config = Config(
+        app=app, host=host, lifespan="off", loop="asyncio", limit_max_requests=1
+    )
+    server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
     response = requests.get(url)
     assert response.status_code == 204
+    server.signal_event.set()
     thread.join()
 
 
 def test_run_multiprocess():
-    config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
-    server = Server(config=config)
+    config = Config(
+        app=app, loop="asyncio", lifespan="off", workers=2, limit_max_requests=1
+    )
+    server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
     response = requests.get("http://127.0.0.1:8000")
     assert response.status_code == 204
+
+    server.signal_event.set()
     thread.join()
 
 
 def test_run_reload():
-    config = Config(app=app, loop="asyncio", reload=True, limit_max_requests=1)
-    server = Server(config=config)
+    config = Config(
+        app=app, loop="asyncio", lifespan="off", reload=True, limit_max_requests=1
+    )
+    server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
         time.sleep(0.01)
     response = requests.get("http://127.0.0.1:8000")
     assert response.status_code == 204
+    server.signal_event.set()
     thread.join()
-
-
-def test_run_with_shutdown():
-    async def app(scope, receive, send):
-        assert scope["type"] == "http"
-        while True:
-            time.sleep(1)
-
-    config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
-    server = Server(config=config)
-    sock = config.bind_socket()
-    exc = True
-
-    def safe_run():
-        nonlocal exc, server
-        try:
-            exc = None
-            config.setup_event_loop()
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(server.serve(sockets=[sock]))
-        except Exception as e:
-            exc = e
-
-    thread = threading.Thread(target=safe_run)
-    thread.start()
-
-    while not server.started:
-        time.sleep(0.01)
-
-    server.should_exit = True
-    thread.join()
-    assert exc is None

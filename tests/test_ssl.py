@@ -9,8 +9,8 @@ import pytest
 import requests
 from urllib3.exceptions import InsecureRequestWarning
 
+from tests.conftest import CustomServer
 from uvicorn.config import Config
-from uvicorn.main import Server
 
 
 @contextlib.contextmanager
@@ -38,11 +38,12 @@ def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
     config = Config(
         app=app,
         loop="asyncio",
+        lifespan="off",
         limit_max_requests=1,
         ssl_keyfile=tls_ca_certificate_private_key_path,
         ssl_certfile=tls_ca_certificate_pem_path,
     )
-    server = Server(config=config)
+    server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -50,6 +51,7 @@ def test_run(tls_ca_certificate_pem_path, tls_ca_certificate_private_key_path):
     with no_ssl_verification():
         response = requests.get("https://127.0.0.1:8000")
     assert response.status_code == 204
+    server.signal_event.set()
     thread.join()
 
 
@@ -60,10 +62,11 @@ def test_run_chain(tls_certificate_pem_path):
     config = Config(
         app=app,
         loop="asyncio",
+        lifespan="off",
         limit_max_requests=1,
         ssl_certfile=tls_certificate_pem_path,
     )
-    server = Server(config=config)
+    server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -71,6 +74,7 @@ def test_run_chain(tls_certificate_pem_path):
     with no_ssl_verification():
         response = requests.get("https://127.0.0.1:8000")
     assert response.status_code == 204
+    server.signal_event.set()
     thread.join()
 
 
@@ -83,12 +87,13 @@ def test_run_password(
     config = Config(
         app=app,
         loop="asyncio",
+        lifespan="off",
         limit_max_requests=1,
         ssl_keyfile=tls_ca_certificate_private_key_encrypted_path,
         ssl_certfile=tls_ca_certificate_pem_path,
         ssl_keyfile_password="uvicorn password for the win",
     )
-    server = Server(config=config)
+    server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -96,4 +101,5 @@ def test_run_password(
     with no_ssl_verification():
         response = requests.get("https://127.0.0.1:8000")
     assert response.status_code == 204
+    server.signal_event.set()
     thread.join()

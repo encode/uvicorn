@@ -3,7 +3,8 @@ import time
 
 import requests
 
-from uvicorn import Config, Server
+from tests.conftest import CustomServer
+from uvicorn import Config
 
 
 async def app(scope, receive, send):
@@ -13,8 +14,8 @@ async def app(scope, receive, send):
 
 
 def test_default_default_headers():
-    config = Config(app=app, loop="asyncio", limit_max_requests=1)
-    server = Server(config=config)
+    config = Config(app=app, lifespan="off", loop="asyncio", limit_max_requests=1)
+    server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -22,18 +23,19 @@ def test_default_default_headers():
     response = requests.get("http://127.0.0.1:8000")
 
     assert response.headers["server"] == "uvicorn" and response.headers["date"]
-
+    server.signal_event.set()
     thread.join()
 
 
 def test_override_server_header():
     config = Config(
         app=app,
+        lifespan="off",
         loop="asyncio",
         limit_max_requests=1,
         headers=[("Server", "over-ridden")],
     )
-    server = Server(config=config)
+    server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -41,6 +43,7 @@ def test_override_server_header():
     response = requests.get("http://127.0.0.1:8000")
 
     assert response.headers["server"] == "over-ridden" and response.headers["date"]
+    server.signal_event.set()
 
     thread.join()
 
@@ -52,7 +55,7 @@ def test_override_server_header_multiple_times():
         limit_max_requests=1,
         headers=[("Server", "over-ridden"), ("Server", "another-value")],
     )
-    server = Server(config=config)
+    server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -63,6 +66,7 @@ def test_override_server_header_multiple_times():
         response.headers["server"] == "over-ridden, another-value"
         and response.headers["date"]
     )
+    server.signal_event.set()
 
     thread.join()
 
@@ -74,7 +78,7 @@ def test_add_additional_header():
         limit_max_requests=1,
         headers=[("X-Additional", "new-value")],
     )
-    server = Server(config=config)
+    server = CustomServer(config=config)
     thread = threading.Thread(target=server.run)
     thread.start()
     while not server.started:
@@ -86,5 +90,6 @@ def test_add_additional_header():
         and response.headers["server"] == "uvicorn"
         and response.headers["date"]
     )
+    server.signal_event.set()
 
     thread.join()
