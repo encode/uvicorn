@@ -46,7 +46,7 @@ async def test_invalid_upgrade(protocol_cls):
     def app(scope):
         return None
 
-    config = Config(app=app, ws=protocol_cls)
+    config = Config(app=app, ws=protocol_cls, lifespan="off")
     async with run_server(config):
         async with httpx.AsyncClient() as client:
             response = await client.get(
