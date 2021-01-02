@@ -58,6 +58,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         super().__init__(
             ws_handler=self.ws_handler,
             ws_server=self.ws_server,
+            max_size=self.config.ws_max_size,
             extensions=[ServerPerMessageDeflateFactory()],
         )
 

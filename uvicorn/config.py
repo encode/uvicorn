@@ -126,6 +126,7 @@ class Config:
         loop="auto",
         http="auto",
         ws="auto",
+        ws_max_size=2 ** 20,
         lifespan="auto",
         env_file=None,
         log_config=LOGGING_CONFIG,
@@ -165,6 +166,7 @@ class Config:
         self.loop = loop
         self.http = http
         self.ws = ws
+        self.ws_max_size = ws_max_size
         self.lifespan = lifespan
         self.log_config = log_config
         self.log_level = log_level

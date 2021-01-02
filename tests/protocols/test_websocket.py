@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from tests.utils import run_server
+from tests.utils import does_not_raise, run_server
 from uvicorn.config import Config
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
@@ -16,6 +16,8 @@ except ImportError:  # pragma: nocover
     ClientPerMessageDeflateFactory = None
 
 
+DEFAULT_MAX_WS_BYTES_PLUS1 = 2 ** 20 + 1  # 1 048 577
+DEFAULT_MAX_WS_BYTES = 2 ** 20  # 1 048 576
 WS_PROTOCOLS = [p for p in [WSProtocol, WebSocketProtocol] if p is not None]
 pytestmark = pytest.mark.skipif(
     websockets is None, reason="This test needs the websockets module"
@@ -442,3 +444,52 @@ async def test_subprotocols(protocol_cls, subprotocol):
     async with run_server(config):
         accepted_subprotocol = await get_subprotocol("ws://127.0.0.1:8000")
         assert accepted_subprotocol == subprotocol
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "ws_max_size_server, ws_actual_msg_size, expectation",
+    [
+        (DEFAULT_MAX_WS_BYTES, DEFAULT_MAX_WS_BYTES, does_not_raise()),
+        (
+            DEFAULT_MAX_WS_BYTES,
+            DEFAULT_MAX_WS_BYTES_PLUS1,
+            pytest.raises(websockets.ConnectionClosedError),
+        ),
+        (None, DEFAULT_MAX_WS_BYTES_PLUS1, does_not_raise()),
+        (100, 100, does_not_raise()),
+        (100, 101, pytest.raises(websockets.ConnectionClosedError)),
+    ],
+    ids=[
+        "server: default max, client: default max >OK",
+        "server: default max, client: default max + 1byte > FAIL 1009",
+        "server: no limit, client: default max + 1byte > OK",
+        "server: 100 bytes, client: 100 bytes > OK",
+        "server: 100 bytes, client: 101 bytes > FAIL 1009",
+    ],
+)
+async def test_send_binary_data_check_max_size(
+    ws_max_size_server, ws_actual_msg_size, expectation
+):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+        async def websocket_receive(self, message):
+            _bytes = message.get("bytes")
+            await self.send({"type": "websocket.send", "bytes": _bytes})
+
+    async def send_text(url):
+        async with websockets.connect(url, max_size=ws_actual_msg_size) as websocket:
+            await websocket.send(b"\x01" * ws_actual_msg_size)
+            return await websocket.recv()
+
+    config = Config(app=App, lifespan="off", ws_max_size=ws_max_size_server)
+    async with run_server(config):
+        with expectation:
+            data = await send_text("ws://127.0.0.1:8000")
+            assert data == b"\x01" * (
+                ws_max_size_server
+                if ws_max_size_server is not None
+                else ws_actual_msg_size
+            )

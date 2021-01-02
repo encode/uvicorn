@@ -55,6 +55,9 @@ Options:
                                   WebSocket protocol implementation.
                                   [default: auto]
 
+  --ws-max-size INTEGER           WebSocket max size message in bytes
+                                  [default: 1048576]
+
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --interface [auto|asgi3|asgi2|wsgi]
                                   Select ASGI3, ASGI2, or WSGI as the

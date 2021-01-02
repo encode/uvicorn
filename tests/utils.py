@@ -1,7 +1,7 @@
 import asyncio
 
 try:
-    from contextlib import asynccontextmanager
+    from contextlib import asynccontextmanager, contextmanager
 except ImportError:  # pragma: no cover
     from async_generator import asynccontextmanager
 
@@ -18,3 +18,8 @@ async def run_server(config: Config, sockets=None):
     finally:
         await server.shutdown()
         cancel_handle.cancel()
+
+
+@contextmanager
+def does_not_raise():
+    yield
