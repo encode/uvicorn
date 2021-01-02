@@ -127,6 +127,8 @@ class Config:
         http="auto",
         ws="auto",
         ws_max_size=2 ** 20,
+        ping_interval=20,
+        ping_timeout=20,
         lifespan="auto",
         env_file=None,
         log_config=LOGGING_CONFIG,
@@ -167,6 +169,8 @@ class Config:
         self.http = http
         self.ws = ws
         self.ws_max_size = ws_max_size
+        self.ping_interval = ping_interval
+        self.ping_timeout = ping_timeout
         self.lifespan = lifespan
         self.log_config = log_config
         self.log_level = log_level

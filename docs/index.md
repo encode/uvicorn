@@ -128,6 +128,8 @@ Options:
   --ws-max-size INTEGER           WebSocket max size message in bytes
                                   [default: 1048576]
 
+  --ping_interval FLOAT           WebSocket ping interval  [default: 20]
+  --ping_timeout FLOAT            WebSocket ping timeout  [default: 20]
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --interface [auto|asgi3|asgi2|wsgi]
                                   Select ASGI3, ASGI2, or WSGI as the

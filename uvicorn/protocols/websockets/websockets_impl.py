@@ -59,6 +59,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             ws_handler=self.ws_handler,
             ws_server=self.ws_server,
             max_size=self.config.ws_max_size,
+            ping_interval=self.config.ping_interval,
+            ping_timeout=self.config.ping_timeout,
             extensions=[ServerPerMessageDeflateFactory()],
         )
 
