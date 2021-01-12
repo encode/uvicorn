@@ -50,7 +50,6 @@ class Server:
         self.shutdown_event = shutdown_event
         self.shutdown_trigger = None
         self.server_state = ServerState()
-        self.tasks = []
         self.started = False
         self.should_exit = False
         self.force_exit = False
@@ -179,9 +178,6 @@ class Server:
             # logged by `config.bind_socket()`.
             pass
 
-        self.tasks.append(loop.create_task(raise_shutdown(self.shutdown_trigger)))
-        self.tasks.append(loop.create_task(self.loop_tick()))
-        self.tasks.extend(server.serve_forever() for server in self.servers)
         self.started = True
 
     def _log_started_message(self, listeners: List[socket.SocketType]) -> None:
@@ -227,18 +223,22 @@ class Server:
 
     async def main_loop(self):
         try:
-            gathered_tasks = asyncio.gather(*self.tasks)
+            tasks = []
+            loop = asyncio.get_event_loop()
+            tasks.append(loop.create_task(raise_shutdown(self.shutdown_trigger)))
+            tasks.append(loop.create_task(self.loop_tick(asyncio.sleep)))
+            gathered_tasks = asyncio.gather(*tasks)
             await gathered_tasks
         except (Shutdown, KeyboardInterrupt) as e:
             logger.debug(f"raised shutdown exc: {e}")
 
-    async def loop_tick(self):
+    async def loop_tick(self, sleep):
         counter = 0
         should_exit = await self.on_tick(counter)
         while not should_exit:
             counter += 1
             counter = counter % 864000
-            await asyncio.sleep(0.1)
+            await sleep(0.1)
             should_exit = await self.on_tick(counter)
 
     async def on_tick(self, counter) -> bool:
