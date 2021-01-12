@@ -69,19 +69,26 @@ class Multiprocess:
             signal.signal(sig, self.multiprocess_signal_handler)
 
     def shutdown(self):
-        for process in self.processes:
-            process.join()
-
         message = "Stopping parent process [{}]".format(str(self.pid))
         color_message = "Stopping parent process [{}]".format(
             click.style(str(self.pid), fg="cyan", bold=True)
         )
         logger.info(message, extra={"color_message": color_message})
+        for process in self.processes:
+            process.join()
 
     def restart(self):
-        logger.debug("MultiProcess restart")
+        message = "Restarting parent process [{}]".format(str(self.pid))
+        color_message = "Restarting parent process [{}]".format(
+            click.style(str(self.pid), fg="cyan", bold=True)
+        )
+        logger.debug(message, extra={"color_message": color_message})
         for process in self.processes:
-            logger.info(f"terminate: {process}")
+            message = "Killing children process [{}]".format(str(process.pid))
+            color_message = "Killing children process [{}]".format(
+                click.style(str(process.pid), fg="cyan")
+            )
+            logger.debug(message, extra={"color_message": color_message})
             if sys.version_info < (3, 7):
                 os.kill(process.pid, signal.SIGKILL)
             else:
