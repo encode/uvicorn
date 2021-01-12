@@ -50,15 +50,14 @@ class Server:
         self.shutdown_event = shutdown_event
         self.shutdown_trigger = None
         self.server_state = ServerState()
+
         self.started = False
         self.should_exit = False
         self.force_exit = False
         self.last_notified = 0
 
     def run(self, sockets=None, *args, **kwargs):
-        logger.debug(f"run args:{args} kwargs:{kwargs}")
         if self.shutdown_event is not None:
-            logger.debug(f"setting multiprocess trigger using : {self.shutdown_event}")
             self.shutdown_trigger = functools.partial(
                 check_multiprocess_shutdown_event, self.shutdown_event, asyncio.sleep
             )
@@ -67,6 +66,7 @@ class Server:
         loop.run_until_complete(self.serve(sockets=sockets))
 
     async def serve(self, sockets=None):
+
         self.process_id = os.getpid()
         config = self.config
         if not config.loaded:
