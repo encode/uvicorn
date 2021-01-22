@@ -44,7 +44,12 @@ class Server:
         self.last_notified = 0
 
     def run(self, sockets=None):
-        self.config.setup_event_loop()
+        config = self.config
+        config.setup_event_loop()
+
+        if not config.loaded:
+            config.load()
+
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.serve(sockets=sockets))
 
@@ -52,8 +57,6 @@ class Server:
         process_id = os.getpid()
 
         config = self.config
-        if not config.loaded:
-            config.load()
 
         self.lifespan = config.lifespan_class(config)
 

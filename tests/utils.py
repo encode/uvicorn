@@ -11,6 +11,10 @@ from uvicorn import Config, Server
 @asynccontextmanager
 async def run_server(config: Config, sockets=None):
     server = Server(config=config)
+
+    if not config.loaded:
+        config.load()
+
     cancel_handle = asyncio.ensure_future(server.serve(sockets=sockets))
     await asyncio.sleep(0.1)
     try:
