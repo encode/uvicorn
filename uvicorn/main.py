@@ -90,7 +90,7 @@ def print_version(ctx, param, value):
     default=None,
     type=int,
     help="Number of worker processes. Defaults to the $WEB_CONCURRENCY environment"
-    " variable if available. Not valid with --reload.",
+    " variable if available, or 1. Not valid with --reload.",
 )
 @click.option(
     "--loop",
