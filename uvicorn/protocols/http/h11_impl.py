@@ -22,7 +22,7 @@ def _get_status_phrase(status_code):
 
 
 STATUS_PHRASES = {
-    status_code: _get_status_phrase(status_code) for status_code in range(200, 599)
+    status_code: _get_status_phrase(status_code) for status_code in range(200, 600)
 }
 
 HIGH_WATER_LIMIT = 65536
