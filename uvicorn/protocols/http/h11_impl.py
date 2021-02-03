@@ -495,8 +495,8 @@ class RequestResponseCycle:
                 event = h11.EndOfMessage()
                 output = self.conn.send(event)
 
-                duration_extension = self.scope['extensions']['uvicorn_request_duration']
-                duration_extension["response_end_time"] = time.monotonic()
+                duration_scope = self.scope["extensions"]["uvicorn_request_duration"]
+                duration_scope["response_end_time"] = time.monotonic()
                 if self.gunicorn_log is not None:
                     try:
                         self.gunicorn_log.access_log.info(
