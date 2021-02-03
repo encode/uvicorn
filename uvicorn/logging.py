@@ -133,7 +133,10 @@ class GunicornSafeAtoms(abc.Mapping):
     @property
     def request_headers(self):
         if self._request_headers is None:
-            self._request_headers = dict(self.scope['headers'])
+            self._request_headers = {
+                k.decode('ascii'): v.decode('ascii')
+                for k, v in self.scope['headers']
+            }
         return self._request_headers
 
     @property
@@ -144,7 +147,10 @@ class GunicornSafeAtoms(abc.Mapping):
     def on_asgi_message(self, message):
         if message['type'] == 'http.response.start':
             self.status_code = message['status']
-            self.response_headers = dict(message['headers'])
+            self.response_headers = {
+                k.decode('ascii'): v.decode('ascii')
+                for k, v in message['headers']
+            }
         elif message['type'] == 'http.response.body':
             self.response_length += len(message.get('body', ''))
 
