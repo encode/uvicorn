@@ -121,7 +121,15 @@ class AccessFormatter(ColourizedFormatter):
 
 
 class GunicornSafeAtoms(abc.Mapping):
-    """Implement atoms necessary for gunicorn log."""
+    """Implement atoms necessary for gunicorn log.
+
+    This class does a few things:
+    - provide all atoms necessary for gunicorn log formatter
+    - collect response body size for reporting from ASGI messages
+    - provide mapping interface that returns '-' for missing atoms
+    - escapes double quotes found in atom strings
+    """
+
     def __init__(self, scope):
         self.scope = scope
         self.status_code = None
@@ -134,25 +142,23 @@ class GunicornSafeAtoms(abc.Mapping):
     def request_headers(self):
         if self._request_headers is None:
             self._request_headers = {
-                k.decode('ascii'): v.decode('ascii')
-                for k, v in self.scope['headers']
+                k.decode("ascii"): v.decode("ascii") for k, v in self.scope["headers"]
             }
         return self._request_headers
 
     @property
     def duration(self):
-        d = self.scope['response_end_time'] - self.scope['request_start_time']
+        d = self.scope["response_end_time"] - self.scope["request_start_time"]
         return d
 
     def on_asgi_message(self, message):
-        if message['type'] == 'http.response.start':
-            self.status_code = message['status']
+        if message["type"] == "http.response.start":
+            self.status_code = message["status"]
             self.response_headers = {
-                k.decode('ascii'): v.decode('ascii')
-                for k, v in message['headers']
+                k.decode("ascii"): v.decode("ascii") for k, v in message["headers"]
             }
-        elif message['type'] == 'http.response.body':
-            self.response_length += len(message.get('body', ''))
+        elif message["type"] == "http.response.body":
+            self.response_length += len(message.get("body", ""))
 
     def _request_header(self, key):
         return self.request_headers.get(key.lower())
@@ -168,12 +174,12 @@ class GunicornSafeAtoms(abc.Mapping):
     def __getitem__(self, key):
         if key in self.HANDLERS:
             retval = self.HANDLERS[key](self)
-        elif key.startswith('{'):
-            if key.endswith('}i'):
+        elif key.startswith("{"):
+            if key.endswith("}i"):
                 retval = self._request_header(key[1:-2])
-            elif key.endswith('}o'):
+            elif key.endswith("}o"):
                 retval = self._response_header(key[1:-2])
-            elif key.endswith('}e'):
+            elif key.endswith("}e"):
                 retval = self._wsgi_environ_variable(key[1:-2])
             else:
                 retval = None
@@ -181,7 +187,7 @@ class GunicornSafeAtoms(abc.Mapping):
             retval = None
 
         if retval is None:
-            return '-'
+            return "-"
         if isinstance(retval, str):
             return retval.replace('"', '\\"')
         return retval
@@ -192,103 +198,104 @@ class GunicornSafeAtoms(abc.Mapping):
         def decorator(fn):
             handlers[key] = fn
             return fn
+
         return decorator
 
-    @_register_handler('h')
+    @_register_handler("h")
     def _remote_address(self, *args, **kwargs):
-        return self.scope['client'][0]
+        return self.scope["client"][0]
 
-    @_register_handler('l')
+    @_register_handler("l")
     def _dash(self, *args, **kwargs):
-        return '-'
+        return "-"
 
-    @_register_handler('u')
+    @_register_handler("u")
     def _user_name(self, *args, **kwargs):
         pass
 
-    @_register_handler('t')
+    @_register_handler("t")
     def date_of_the_request(self, *args, **kwargs):
         """Date and time in Apache Common Log Format"""
-        return time.strftime('[%d/%b/%Y:%H:%M:%S %z]')
+        return time.strftime("[%d/%b/%Y:%H:%M:%S %z]")
 
-    @_register_handler('r')
+    @_register_handler("r")
     def status_line(self, *args, **kwargs):
-        full_raw_path = (self.scope['raw_path'] + self.scope['query_string'])
-        full_path = full_raw_path.decode('ascii')
-        return '{method} {full_path} HTTP/{http_version}'.format(
+        full_raw_path = self.scope["raw_path"] + self.scope["query_string"]
+        full_path = full_raw_path.decode("ascii")
+        return "{method} {full_path} HTTP/{http_version}".format(
             full_path=full_path, **self.scope
         )
 
-    @_register_handler('m')
+    @_register_handler("m")
     def request_method(self, *args, **kwargs):
-        return self.scope['method']
+        return self.scope["method"]
 
-    @_register_handler('U')
+    @_register_handler("U")
     def url_path(self, *args, **kwargs):
-        return self.scope['raw_path'].decode('ascii')
+        return self.scope["raw_path"].decode("ascii")
 
-    @_register_handler('q')
+    @_register_handler("q")
     def query_string(self, *args, **kwargs):
-        return self.scope['query_string'].decode('ascii')
+        return self.scope["query_string"].decode("ascii")
 
-    @_register_handler('H')
+    @_register_handler("H")
     def protocol(self, *args, **kwargs):
-        return 'HTTP/%s' % self.scope['http_version']
+        return "HTTP/%s" % self.scope["http_version"]
 
-    @_register_handler('s')
+    @_register_handler("s")
     def status(self, *args, **kwargs):
-        return self.status_code or '-'
+        return self.status_code or "-"
 
-    @_register_handler('B')
+    @_register_handler("B")
     def response_length(self, *args, **kwargs):
         return self.response_length
 
-    @_register_handler('b')
+    @_register_handler("b")
     def response_length_or_dash(self, *args, **kwargs):
-        return self.response_length or '-'
+        return self.response_length or "-"
 
-    @_register_handler('f')
+    @_register_handler("f")
     def referer(self, *args, **kwargs):
-        val = self.request_headers.get(b'referer')
+        val = self.request_headers.get(b"referer")
         if val is None:
             return None
-        return val.decode('ascii')
+        return val.decode("ascii")
 
-    @_register_handler('a')
+    @_register_handler("a")
     def user_agent(self, *args, **kwargs):
-        val = self.request_headers.get(b'user-agent')
+        val = self.request_headers.get(b"user-agent")
         if val is None:
             return None
-        return val.decode('ascii')
+        return val.decode("ascii")
 
-    @_register_handler('T')
+    @_register_handler("T")
     def request_time_seconds(self, *args, **kwargs):
         return int(self.duration)
 
-    @_register_handler('D')
+    @_register_handler("D")
     def request_time_microseconds(self, *args, **kwargs):
         return int(self.duration * 1_000_000)
 
-    @_register_handler('L')
+    @_register_handler("L")
     def request_time_decimal_seconds(self, *args, **kwargs):
         return "%.6f" % self.duration
 
-    @_register_handler('p')
+    @_register_handler("p")
     def process_id(self, *args, **kwargs):
         return "<%s>" % getpid()
 
     def __iter__(self):
         # FIXME: add WSGI environ
         yield from self.HANDLERS
-        for k, _ in self.scope['headers']:
-            yield '{%s}i' % k.lower()
+        for k, _ in self.scope["headers"]:
+            yield "{%s}i" % k.lower()
         for k in self.response_headers:
-            yield '{%s}o' % k.lower()
+            yield "{%s}o" % k.lower()
 
     def __len__(self):
         # FIXME: add WSGI environ
         return (
             len(self.HANDLERS)
-            + len(self.scope['headers'] or ())
+            + len(self.scope["headers"] or ())
             + len(self.response_headers)
         )

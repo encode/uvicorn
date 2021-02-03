@@ -5,8 +5,7 @@ import re
 import time
 import traceback
 import urllib
-from collections import abc, deque
-from os import getpid
+from collections import deque
 
 import httptools
 
@@ -524,8 +523,8 @@ class RequestResponseCycle:
                 if self.expected_content_length != 0:
                     raise RuntimeError("Response content shorter than Content-Length")
                 self.response_complete = True
-                duration_extension = self.scope['extensions']['uvicorn_request_duration']
-                duration_extension['response_end_time'] = time.monotonic()
+                duration_scope = self.scope["extensions"]["uvicorn_request_duration"]
+                duration_scope["response_end_time"] = time.monotonic()
 
                 if self.gunicorn_log is not None:
                     try:
