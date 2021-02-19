@@ -8,10 +8,6 @@
 - Relax watchgod up bound (#946) 1/31/21 cf0b0511
 - Return 'connection: close' header in response (#721) 1/25/21 bd1a0962
 
-### Changed:
-
-- Isolate server started message (#930) 1/3/21 320fd6d9
-
 ### Added:
 
 - Docs: Nginx + websockets (#948) 2/10/21 291b5da
