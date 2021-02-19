@@ -1,5 +1,23 @@
 # Change Log
 
+## 0.13.4 - 2021-02-19
+
+### Fixed
+
+- Pin uvloop to the lastest Python 3.6 supported version (#952) 2/10/21 bf7dac31
+- Relax watchgod up bound (#946) 1/31/21 cf0b0511
+- Return 'connection: close' header in response (#721) 1/25/21 bd1a0962
+
+### Changed:
+
+- Isolate server started message (#930) 1/3/21 320fd6d9
+
+### Added:
+
+- Docs: Nginx + websockets (#948) 2/10/21 291b5da
+- Document the default value of 1 for workers (#940) (#943) 1/25/21 61a6cabb
+- Enabled permessage-deflate extension in websockets (#764) 1/1/21 db4683ff
+
 ## 0.13.3 - 2020-12-29
 
 ### Fixed
