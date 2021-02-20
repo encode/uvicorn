@@ -4,15 +4,15 @@
 
 ### Fixed
 
-- Pin uvloop to the lastest Python 3.6 supported version (#952) 2/10/21 bf7dac31
-- Relax watchgod up bound (#946) 1/31/21 cf0b0511
-- Return 'connection: close' header in response (#721) 1/25/21 bd1a0962
+- Fixed uvloop dependency  (#952) 2/10/21 then (#959) 2/20/21
+- Relax watchgod up bound (#946) 1/31/21
+- Return 'connection: close' header in response (#721) 1/25/21
 
 ### Added:
 
-- Docs: Nginx + websockets (#948) 2/10/21 1291b5da
-- Document the default value of 1 for workers (#940) (#943) 1/25/21 61a6cabb
-- Enabled permessage-deflate extension in websockets (#764) 1/1/21 db4683ff
+- Docs: Nginx + websockets (#948) 2/10/21 
+- Document the default value of 1 for workers (#940) (#943) 1/25/21
+- Enabled permessage-deflate extension in websockets (#764) 1/1/21
 
 ## 0.13.3 - 2020-12-29
 
