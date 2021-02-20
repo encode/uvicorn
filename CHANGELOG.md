@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- Fixed wsgi middleware PATH_INFO encoding (#962) 2/20/21
 - Fixed uvloop dependency  (#952) 2/10/21 then (#959) 2/20/21
 - Relax watchgod up bound (#946) 1/31/21
 - Return 'connection: close' header in response (#721) 1/25/21
