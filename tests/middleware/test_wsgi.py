@@ -3,7 +3,7 @@ import sys
 import httpx
 import pytest
 
-from uvicorn.middleware.wsgi import WSGIMiddleware
+from uvicorn.middleware.wsgi import WSGIMiddleware, build_environ
 
 
 def hello_world(environ, start_response):
@@ -94,3 +94,17 @@ async def test_wsgi_exc_info():
         response = await client.get("/")
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
+
+
+def test_build_environ_encoding():
+    scope = {
+        "type": "http",
+        "http_version": "1.1",
+        "method": "GET",
+        "path": "/文",
+        "root_path": "/文",
+        "query_string": b"a=123&b=456",
+        "headers": [],
+    }
+    environ = build_environ(scope, b"", b"")
+    assert environ["PATH_INFO"] == "/文".encode("utf8").decode("latin-1")
