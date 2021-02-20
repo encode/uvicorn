@@ -1,5 +1,20 @@
 # Change Log
 
+## 0.13.4 - 2021-02-20
+
+### Fixed
+
+- Fixed wsgi middleware PATH_INFO encoding (#962) 2/20/21
+- Fixed uvloop dependency  (#952) 2/10/21 then (#959) 2/20/21
+- Relax watchgod up bound (#946) 1/31/21
+- Return 'connection: close' header in response (#721) 1/25/21
+
+### Added:
+
+- Docs: Nginx + websockets (#948) 2/10/21 
+- Document the default value of 1 for workers (#940) (#943) 1/25/21
+- Enabled permessage-deflate extension in websockets (#764) 1/1/21
+
 ## 0.13.3 - 2020-12-29
 
 ### Fixed
