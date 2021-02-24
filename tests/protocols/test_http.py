@@ -193,7 +193,7 @@ def test_request_logging(path, protocol_cls, caplog):
 
     app = Response("Hello, world", media_type="text/plain")
 
-    with get_connected_protocol(app, protocol_cls,log_config=None) as protocol:
+    with get_connected_protocol(app, protocol_cls, log_config=None) as protocol:
         protocol.data_received(get_request_with_query_string)
         protocol.loop.run_one()
 
