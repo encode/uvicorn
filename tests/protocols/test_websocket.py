@@ -48,7 +48,7 @@ async def test_invalid_upgrade(protocol_cls):
     def app(scope):
         return None
 
-    config = Config(app=app, ws=protocol_cls, lifespan="off")
+    config = Config(app=app, ws=protocol_cls)
     async with run_server(config):
         async with httpx.AsyncClient() as client:
             response = await client.get(
@@ -327,7 +327,7 @@ async def test_send_before_handshake(protocol_cls):
     async def connect(url):
         await websockets.connect(url)
 
-    config = Config(app=app, ws=protocol_cls, lifespan="off", log_level="trace")
+    config = Config(app=app, ws=protocol_cls, lifespan="off")
     async with run_server(config):
         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
             await connect("ws://127.0.0.1:8000")
@@ -345,7 +345,30 @@ async def test_duplicate_handshake(protocol_cls):
         async with websockets.connect(url) as websocket:
             _ = await websocket.recv()
 
-    config = Config(app=app, ws=protocol_cls, lifespan="off", log_level="trace")
+    config = Config(app=app, ws=protocol_cls, lifespan="off")
+    async with run_server(config):
+        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
+            await connect("ws://127.0.0.1:8000")
+        assert exc_info.value.code == 1006
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
+async def test_asgi_return_value(protocol_cls):
+    """
+    The ASGI callable should return 'None'. If it doesn't make sure that
+    the connection is closed with an error condition.
+    """
+
+    async def app(scope, receive, send):
+        await send({"type": "websocket.accept"})
+        return 123
+
+    async def connect(url):
+        async with websockets.connect(url) as websocket:
+            _ = await websocket.recv()
+
+    config = Config(app=app, ws=protocol_cls, lifespan="off")
     async with run_server(config):
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
             await connect("ws://127.0.0.1:8000")
@@ -381,55 +404,12 @@ async def test_app_close(protocol_cls, code, reason):
             await websocket.send("abc")
             await websocket.recv()
 
-    config = Config(app=app, ws=protocol_cls, lifespan="off", log_level="trace")
+    config = Config(app=app, ws=protocol_cls, lifespan="off")
     async with run_server(config):
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
             await websocket_session("ws://127.0.0.1:8000")
         assert exc_info.value.code == (code or 1000)
         assert exc_info.value.reason == (reason or "")
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("subprotocol", ["proto1", "proto2"])
-async def test_subprotocols(protocol_cls, subprotocol):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            await self.send({"type": "websocket.accept", "subprotocol": subprotocol})
-
-    async def get_subprotocol(url):
-        async with websockets.connect(
-            url, subprotocols=["proto1", "proto2"]
-        ) as websocket:
-            return websocket.subprotocol
-
-    config = Config(app=App, ws=protocol_cls, lifespan="off")
-    async with run_server(config):
-        accepted_subprotocol = await get_subprotocol("ws://127.0.0.1:8000")
-        assert accepted_subprotocol == subprotocol
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
-async def test_asgi_return_value(protocol_cls):
-    """
-    The ASGI callable should return 'None'. If it doesn't make sure that
-    the connection is closed with an error condition.
-    """
-
-    async def app(scope, receive, send):
-        await send({"type": "websocket.accept"})
-        return 123
-
-    async def connect(url):
-        async with websockets.connect(url) as websocket:
-            _ = await websocket.recv()
-
-    config = Config(app=app, ws=protocol_cls, lifespan="off", log_level="trace")
-    async with run_server(config):
-        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
-            await connect("ws://127.0.0.1:8000")
-        assert exc_info.value.code == 1006
 
 
 @pytest.mark.asyncio
@@ -453,3 +433,23 @@ async def test_client_close(protocol_cls):
     config = Config(app=app, ws=protocol_cls, lifespan="off")
     async with run_server(config):
         await websocket_session("ws://127.0.0.1:8000")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("subprotocol", ["proto1", "proto2"])
+async def test_subprotocols(protocol_cls, subprotocol):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept", "subprotocol": subprotocol})
+
+    async def get_subprotocol(url):
+        async with websockets.connect(
+            url, subprotocols=["proto1", "proto2"]
+        ) as websocket:
+            return websocket.subprotocol
+
+    config = Config(app=App, ws=protocol_cls, lifespan="off")
+    async with run_server(config):
+        accepted_subprotocol = await get_subprotocol("ws://127.0.0.1:8000")
+        assert accepted_subprotocol == subprotocol
