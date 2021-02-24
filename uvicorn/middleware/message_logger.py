@@ -58,7 +58,7 @@ class MessageLoggerMiddleware:
         log_text = "%s [%d] Started scope=%s"
         self.logger.trace(log_text, prefix, task_counter, logged_scope)
         try:
-            await self.app(scope, inner_receive, inner_send)
+            r = await self.app(scope, inner_receive, inner_send)
         except BaseException as exc:
             log_text = "%s [%d] Raised exception"
             self.logger.trace(log_text, prefix, task_counter)
@@ -66,3 +66,5 @@ class MessageLoggerMiddleware:
         else:
             log_text = "%s [%d] Completed"
             self.logger.trace(log_text, prefix, task_counter)
+            return r
+
