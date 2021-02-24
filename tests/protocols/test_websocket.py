@@ -348,7 +348,7 @@ async def test_asgi_return_value(protocol_cls):
         async with websockets.connect(url) as websocket:
             _ = await websocket.recv()
 
-    config = Config(app=app, ws=protocol_cls, lifespan="off")
+    config = Config(app=app, ws=protocol_cls, lifespan="off", log_level="trace")
     async with run_server(config):
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
             await connect("ws://127.0.0.1:8000")
