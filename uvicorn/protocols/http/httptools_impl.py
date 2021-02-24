@@ -155,9 +155,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.transport.close()
 
     def eof_received(self):
-        if self.logger.level <= TRACE_LOG_LEVEL:
-            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
-            self.logger.log(TRACE_LOG_LEVEL, "%sConnection lost", prefix)
+        pass
 
     def _unset_keepalive_if_required(self):
         if self.timeout_keep_alive_task is not None:
