@@ -42,5 +42,4 @@ class ProxyHeadersMiddleware:
                     port = 0
                     scope["client"] = (host, port)
 
-        p = await self.app(scope, receive, send)
-        return p
+        return await self.app(scope, receive, send)
