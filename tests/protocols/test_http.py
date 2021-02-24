@@ -199,7 +199,6 @@ def test_request_logging(path, protocol_cls, caplog, event_loop):
     ) as protocol:
         protocol.data_received(get_request_with_query_string)
         protocol.loop.run_one()
-
         assert '"GET {} HTTP/1.1" 200'.format(path) in caplog.records[0].message
 
 
@@ -211,7 +210,6 @@ def test_head_request(protocol_cls, event_loop):
     with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
         protocol.data_received(SIMPLE_HEAD_REQUEST)
         protocol.loop.run_one()
-
         assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
         assert b"Hello, world" not in protocol.transport.buffer
 
@@ -232,7 +230,6 @@ def test_post_request(protocol_cls, event_loop):
     with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
         protocol.data_received(SIMPLE_POST_REQUEST)
         protocol.loop.run_one()
-
         assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
         assert b'Body: {"hello": "world"}' in protocol.transport.buffer
 
@@ -260,10 +257,8 @@ def test_keepalive_timeout(protocol_cls, event_loop):
         protocol.loop.run_one()
         assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
         assert not protocol.transport.is_closing()
-
         protocol.loop.run_later(with_delay=1)
         assert not protocol.transport.is_closing()
-
         protocol.loop.run_later(with_delay=5)
         assert protocol.transport.is_closing()
 
@@ -333,17 +328,14 @@ def test_pipelined_requests(protocol_cls, event_loop):
         protocol.data_received(SIMPLE_GET_REQUEST)
         protocol.data_received(SIMPLE_GET_REQUEST)
         protocol.data_received(SIMPLE_GET_REQUEST)
-
         protocol.loop.run_one()
         assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
         assert b"Hello, world" in protocol.transport.buffer
         protocol.transport.clear_buffer()
-
         protocol.loop.run_one()
         assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
         assert b"Hello, world" in protocol.transport.buffer
         protocol.transport.clear_buffer()
-
         protocol.loop.run_one()
         assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
         assert b"Hello, world" in protocol.transport.buffer
@@ -391,7 +383,6 @@ def test_invalid_http(protocol_cls, event_loop):
 
     with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
         protocol.data_received(b"x" * 100000)
-
         assert protocol.transport.is_closing()
 
 
@@ -445,7 +436,6 @@ def test_partial_response_returned(protocol_cls, event_loop):
     with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
         protocol.data_received(SIMPLE_GET_REQUEST)
         protocol.loop.run_one()
-
         assert b"HTTP/1.1 500 Internal Server Error" not in protocol.transport.buffer
         assert protocol.transport.is_closing()
 
@@ -590,7 +580,6 @@ def test_root_path(protocol_cls, event_loop):
     ) as protocol:
         protocol.data_received(SIMPLE_GET_REQUEST)
         protocol.loop.run_one()
-
         assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
         assert b"Path: /app/" in protocol.transport.buffer
 
@@ -625,7 +614,6 @@ def test_max_concurrency(protocol_cls, event_loop):
     ) as protocol:
         protocol.data_received(SIMPLE_GET_REQUEST)
         protocol.loop.run_one()
-
         assert b"HTTP/1.1 503 Service Unavailable" in protocol.transport.buffer
 
 
@@ -638,7 +626,6 @@ def test_shutdown_during_request(protocol_cls, event_loop):
         protocol.data_received(SIMPLE_GET_REQUEST)
         protocol.shutdown()
         protocol.loop.run_one()
-
         assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
         assert protocol.transport.is_closing()
 
@@ -650,7 +637,6 @@ def test_shutdown_during_idle(protocol_cls, event_loop):
 
     with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
         protocol.shutdown()
-
         assert protocol.transport.buffer == b""
         assert protocol.transport.is_closing()
 
@@ -682,7 +668,6 @@ def test_100_continue_sent_when_body_consumed(protocol_cls, event_loop):
         )
         protocol.data_received(EXPECT_100_REQUEST)
         protocol.loop.run_one()
-
         assert b"HTTP/1.1 100 Continue" in protocol.transport.buffer
         assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
         assert b'Body: {"hello": "world"}' in protocol.transport.buffer
@@ -707,7 +692,6 @@ def test_100_continue_not_sent_when_body_not_consumed(protocol_cls, event_loop):
         )
         protocol.data_received(EXPECT_100_REQUEST)
         protocol.loop.run_one()
-
         assert b"HTTP/1.1 100 Continue" not in protocol.transport.buffer
         assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
 
@@ -719,7 +703,6 @@ def test_unsupported_upgrade_request(protocol_cls, event_loop):
 
     with get_connected_protocol(app, protocol_cls, event_loop, ws="none") as protocol:
         protocol.data_received(UPGRADE_REQUEST)
-
         assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
         assert b"Unsupported upgrade request." in protocol.transport.buffer
 
@@ -733,7 +716,6 @@ def test_supported_upgrade_request(protocol_cls, event_loop):
         app, protocol_cls, event_loop, ws="wsproto"
     ) as protocol:
         protocol.data_received(UPGRADE_REQUEST)
-
         assert b"HTTP/1.1 426 " in protocol.transport.buffer
 
 
