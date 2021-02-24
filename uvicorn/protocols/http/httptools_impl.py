@@ -149,10 +149,14 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.cycle.message_event.set()
         if self.flow is not None:
             self.flow.resume_writing()
-        self.transport.close()
+        if exc is None:
+            self.transport.close()
+
 
     def eof_received(self):
-        pass
+        if self.logger.level <= TRACE_LOG_LEVEL:
+            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            self.logger.log(TRACE_LOG_LEVEL, "%sConnection lost", prefix)
 
     def _unset_keepalive_if_required(self):
         if self.timeout_keep_alive_task is not None:
