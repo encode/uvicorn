@@ -24,7 +24,7 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 
 ## Production
 
-* `--workers <int>` - Use multiple worker processes. Defaults to the value of the `$WEB_CONCURRENCY` environment variable.
+* `--workers <int>` - Use multiple worker processes. Defaults to the `$WEB_CONCURRENCY` environment variable if available, or 1.
 
 ## Logging
 

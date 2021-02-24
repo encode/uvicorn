@@ -25,6 +25,8 @@ STATUS_PHRASES = {
     status_code: _get_status_phrase(status_code) for status_code in range(100, 600)
 }
 
+CLOSE_HEADER = (b"connection", b"close")
+
 HIGH_WATER_LIMIT = 65536
 
 TRACE_LOG_LEVEL = 5
@@ -451,6 +453,9 @@ class RequestResponseCycle:
 
             status_code = message["status"]
             headers = self.default_headers + message.get("headers", [])
+
+            if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
+                headers = headers + [CLOSE_HEADER]
 
             if self.access_log:
                 self.access_logger.info(
