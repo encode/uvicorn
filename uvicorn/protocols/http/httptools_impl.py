@@ -152,7 +152,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         if exc is None:
             self.transport.close()
 
-
     def eof_received(self):
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
