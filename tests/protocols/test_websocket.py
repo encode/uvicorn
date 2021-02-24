@@ -374,7 +374,7 @@ async def test_app_close(protocol_cls):
             await websocket.send("abc")
             await websocket.recv()
 
-    config = Config(app=app, ws=protocol_cls, lifespan="off")
+    config = Config(app=app, ws=protocol_cls, lifespan="off", log_level="trace")
     async with run_server(config):
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
             await websocket_session("ws://127.0.0.1:8000")
