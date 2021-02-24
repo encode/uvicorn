@@ -327,7 +327,7 @@ async def test_send_before_handshake(protocol_cls):
     async def connect(url):
         await websockets.connect(url)
 
-    config = Config(app=app, ws=protocol_cls, lifespan="off")
+    config = Config(app=app, ws=protocol_cls, lifespan="off", log_level="trace")
     async with run_server(config):
         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
             await connect("ws://127.0.0.1:8000")
@@ -345,7 +345,7 @@ async def test_duplicate_handshake(protocol_cls):
         async with websockets.connect(url) as websocket:
             _ = await websocket.recv()
 
-    config = Config(app=app, ws=protocol_cls, lifespan="off")
+    config = Config(app=app, ws=protocol_cls, lifespan="off", log_level="trace")
     async with run_server(config):
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
             await connect("ws://127.0.0.1:8000")
