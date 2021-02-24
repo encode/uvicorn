@@ -39,8 +39,7 @@ Install using `pip`:
 $ pip install uvicorn
 ```
 
-This will install uvicorn with minimal (pure Python) dependencies 
-(note: this does not enable websockets support, see below for "activating" it).
+This will install uvicorn with minimal (pure Python) dependencies.
 
 ```shell
 $ pip install uvicorn[standard]
