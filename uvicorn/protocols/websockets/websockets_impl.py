@@ -224,7 +224,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
             elif message_type == "websocket.close":
                 code = message.get("code", 1000)
-                await self.close(code)
+                reason = message.get("reason", "")
+                await self.close(code, reason)
                 self.closed_event.set()
 
             else:

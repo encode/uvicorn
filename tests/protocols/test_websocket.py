@@ -377,14 +377,24 @@ async def test_asgi_return_value(protocol_cls):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
-async def test_app_close(protocol_cls):
+@pytest.mark.parametrize("code", [None, 1000, 1001])
+@pytest.mark.parametrize("reason", [None, "test"])
+async def test_app_close(protocol_cls, code, reason):
     async def app(scope, receive, send):
         while True:
             message = await receive()
             if message["type"] == "websocket.connect":
                 await send({"type": "websocket.accept"})
             elif message["type"] == "websocket.receive":
-                await send({"type": "websocket.close"})
+                reply = {"type": "websocket.close"}
+
+                if code is not None:
+                    reply["code"] = code
+
+                if reason is not None:
+                    reply["reason"] = reason
+
+                await send(reply)
             elif message["type"] == "websocket.disconnect":
                 break
 
@@ -398,7 +408,8 @@ async def test_app_close(protocol_cls):
     async with run_server(config):
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
             await websocket_session("ws://127.0.0.1:8000")
-        assert exc_info.value.code == 1000
+        assert exc_info.value.code == (code or 1000)
+        assert exc_info.value.reason == (reason or "")
 
 
 @pytest.mark.asyncio
