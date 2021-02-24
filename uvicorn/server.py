@@ -9,6 +9,7 @@ import sys
 import threading
 import time
 from email.utils import formatdate
+from typing import List
 
 import click
 
@@ -110,6 +111,7 @@ class Server:
                     create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
                 )
                 self.servers.append(server)
+            listeners = sockets
 
         elif config.fd is not None:
             # Use an existing socket, from a file descriptor.
@@ -117,8 +119,8 @@ class Server:
             server = await loop.create_server(
                 create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
             )
-            message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
-            logger.info(message % str(sock.getsockname()))
+            assert server.sockets is not None  # mypy
+            listeners = server.sockets
             self.servers = [server]
 
         elif config.uds is not None:
@@ -130,17 +132,12 @@ class Server:
                 create_protocol, path=config.uds, ssl=config.ssl, backlog=config.backlog
             )
             os.chmod(config.uds, uds_perms)
-            message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
-            logger.info(message % config.uds)
+            assert server.sockets is not None  # mypy
+            listeners = server.sockets
             self.servers = [server]
 
         else:
             # Standard case. Create a socket from a host/port pair.
-            addr_format = "%s://%s:%d"
-            if config.host and ":" in config.host:
-                # It's an IPv6 address.
-                addr_format = "%s://[%s]:%d"
-
             try:
                 server = await loop.create_server(
                     create_protocol,
@@ -153,9 +150,45 @@ class Server:
                 logger.error(exc)
                 await self.lifespan.shutdown()
                 sys.exit(1)
+            assert server.sockets is not None  # mypy
+            listeners = server.sockets
+            self.servers = [server]
+
+        if sockets is None:
+            self._log_started_message(listeners)
+        else:
+            # We're most likely running multiple workers, so a message has already been
+            # logged by `config.bind_socket()`.
+            pass
+
+        self.started = True
+
+    def _log_started_message(self, listeners: List[socket.SocketType]) -> None:
+        config = self.config
+
+        if config.fd is not None:
+            sock = listeners[0]
+            logger.info(
+                "Uvicorn running on socket %s (Press CTRL+C to quit)",
+                sock.getsockname(),
+            )
+
+        elif config.uds is not None:
+            logger.info(
+                "Uvicorn running on unix socket %s (Press CTRL+C to quit)", config.uds
+            )
+
+        else:
+            addr_format = "%s://%s:%d"
+            host = "0.0.0.0" if config.host is None else config.host
+            if ":" in host:
+                # It's an IPv6 address.
+                addr_format = "%s://[%s]:%d"
+
             port = config.port
             if port == 0:
-                port = server.sockets[0].getsockname()[1]
+                port = listeners[0].getpeername()[1]
+
             protocol_name = "https" if config.ssl else "http"
             message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
             color_message = (
@@ -166,13 +199,10 @@ class Server:
             logger.info(
                 message,
                 protocol_name,
-                config.host,
+                host,
                 port,
                 extra={"color_message": color_message},
             )
-            self.servers = [server]
-
-        self.started = True
 
     async def main_loop(self):
         counter = 0

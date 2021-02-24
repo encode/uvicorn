@@ -45,7 +45,7 @@ Options:
 
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
-                                  available. Not valid with --reload.
+                                  available, or 1. Not valid with --reload.
 
   --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
@@ -247,6 +247,8 @@ You should ensure that the `X-Forwarded-For` and `X-Forwarded-Proto` headers are
 
 Here's how a simple Nginx configuration might look. This example includes setting proxy headers, and using a UNIX domain socket to communicate with the application server.
 
+It also includes some basic configuration to forward websocket connections. For more info on this, check [Nginx recommendations][nginx_websocket].
+
 ```conf
 http {
   server {
@@ -259,6 +261,8 @@ http {
       proxy_set_header Host $http_host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
       proxy_redirect off;
       proxy_buffering off;
       proxy_pass http://uvicorn;
@@ -268,6 +272,11 @@ http {
       # path for static files
       root /path/to/app/static;
     }
+  }
+  
+  map $http_upgrade $connection_upgrade {
+    default upgrade;
+    '' close;
   }
 
   upstream uvicorn {
@@ -309,5 +318,6 @@ It also possible to use certificates with uvicorn's worker for gunicorn
 $ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornWorker example:app
 ```
 
+[nginx_websocket]: https://nginx.org/en/docs/http/websocket.html
 [letsencrypt]: https://letsencrypt.org/
 [mkcert]: https://github.com/FiloSottile/mkcert
