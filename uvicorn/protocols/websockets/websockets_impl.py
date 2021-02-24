@@ -73,6 +73,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.connections.remove(self)
         self.handshake_completed_event.set()
         super().connection_lost(exc)
+        if exc is None:
+            self.transport.close()
 
     def shutdown(self):
         self.ws_server.closing = True

@@ -65,6 +65,8 @@ class WSProtocol(asyncio.Protocol):
         if exc is not None:
             self.queue.put_nowait({"type": "websocket.disconnect"})
         self.connections.remove(self)
+        if exc is None:
+            self.transport.close()
 
     def eof_received(self):
         pass
