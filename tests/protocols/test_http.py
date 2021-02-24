@@ -126,7 +126,6 @@ class MockLoop:
     def __init__(self, event_loop):
         self.tasks = []
         self.later = []
-        # self.loop = asyncio.new_event_loop()
         self.loop = event_loop
 
     def create_task(self, coroutine):

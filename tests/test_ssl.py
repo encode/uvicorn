@@ -21,7 +21,6 @@ async def test_run(
         limit_max_requests=1,
         ssl_keyfile=tls_ca_certificate_private_key_path,
         ssl_certfile=tls_ca_certificate_pem_path,
-        log_level="trace",
     )
     async with run_server(config):
         async with httpx.AsyncClient(verify=tls_ca_ssl_context) as client:
@@ -36,7 +35,6 @@ async def test_run_chain(tls_ca_ssl_context, tls_certificate_pem_path):
         loop="asyncio",
         limit_max_requests=1,
         ssl_certfile=tls_certificate_pem_path,
-        log_level="trace",
     )
     async with run_server(config):
         async with httpx.AsyncClient(verify=tls_ca_ssl_context) as client:
@@ -57,7 +55,6 @@ async def test_run_password(
         ssl_keyfile=tls_ca_certificate_private_key_encrypted_path,
         ssl_certfile=tls_ca_certificate_pem_path,
         ssl_keyfile_password="uvicorn password for the win",
-        log_level="trace",
     )
     async with run_server(config):
         async with httpx.AsyncClient(verify=tls_ca_ssl_context) as client:
