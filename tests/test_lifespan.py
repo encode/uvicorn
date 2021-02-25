@@ -197,3 +197,33 @@ def test_lifespan_scope_asgi2app():
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+
+
+@pytest.mark.parametrize("mode", ("auto", "on"))
+@pytest.mark.parametrize("raise_exception", (True, False))
+def test_lifespan_with_failed_shutdown(mode, raise_exception):
+    async def app(scope, receive, send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await send({"type": "lifespan.startup.complete"})
+        message = await receive()
+        assert message["type"] == "lifespan.shutdown"
+        await send({"type": "lifespan.shutdown.failed"})
+
+        if raise_exception:
+            # App should be able to re-raise an exception if startup failed.
+            raise RuntimeError()
+
+    async def test():
+        config = Config(app=app, lifespan=mode)
+        lifespan = LifespanOn(config)
+
+        await lifespan.startup()
+        assert not lifespan.startup_failed
+        await lifespan.shutdown()
+        assert lifespan.shutdown_failed
+        assert lifespan.error_occured is raise_exception
+        assert lifespan.should_exit
+
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(test())
