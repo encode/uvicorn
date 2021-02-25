@@ -269,7 +269,7 @@ class H11Protocol(asyncio.Protocol):
             from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
 
             if AutoWebSocketsProtocol is None:
-                msg = "You have no ws libary installed, either use pip install uvicorn[standard] or install websockets / wsproto depending on the ws library you want to use."  # noqa: E501
+                msg = "No supported WebSocket library detected. Please use 'pip install uvicorn[standard]', or install 'websockets' or 'wsproto' manually."  # noqa: E501
                 self.logger.warning(msg)
             reason = STATUS_PHRASES[400]
             headers = [
