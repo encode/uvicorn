@@ -1,5 +1,3 @@
-import logging
-
 try:
     import websockets  # noqa
 except ImportError:  # pragma: no cover
@@ -7,12 +5,6 @@ except ImportError:  # pragma: no cover
         import wsproto  # noqa
     except ImportError:
         AutoWebSocketsProtocol = None
-        logger = logging.getLogger("uvicorn.error")
-        logger.warning(
-            "No websockets library is installed. You can run pip install "
-            "uvicorn[standard] to enable the websockets library or install wsproto "
-            "manually"
-        )
     else:
         from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
