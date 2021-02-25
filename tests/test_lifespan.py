@@ -235,3 +235,4 @@ def test_lifespan_with_failed_shutdown(mode, raise_exception):
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
