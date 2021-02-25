@@ -169,7 +169,6 @@ def get_connected_protocol(app, protocol_cls, event_loop, **kwargs):
     protocol.loop.close()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_get_request(protocol_cls, event_loop):
     app = Response("Hello, world", media_type="text/plain")
@@ -181,7 +180,6 @@ def test_get_request(protocol_cls, event_loop):
         assert b"Hello, world" in protocol.transport.buffer
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("path", ["/", "/?foo", "/?foo=bar", "/?foo=bar&baz=1"])
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_request_logging(path, protocol_cls, caplog, event_loop):
@@ -201,7 +199,6 @@ def test_request_logging(path, protocol_cls, caplog, event_loop):
         assert '"GET {} HTTP/1.1" 200'.format(path) in caplog.records[0].message
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_head_request(protocol_cls, event_loop):
     app = Response("Hello, world", media_type="text/plain")
@@ -213,7 +210,6 @@ def test_head_request(protocol_cls, event_loop):
         assert b"Hello, world" not in protocol.transport.buffer
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_post_request(protocol_cls, event_loop):
     async def app(scope, receive, send):
@@ -233,7 +229,6 @@ def test_post_request(protocol_cls, event_loop):
         assert b'Body: {"hello": "world"}' in protocol.transport.buffer
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_keepalive(protocol_cls, event_loop):
     app = Response(b"", status_code=204)
@@ -246,7 +241,6 @@ def test_keepalive(protocol_cls, event_loop):
         assert not protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_keepalive_timeout(protocol_cls, event_loop):
     app = Response(b"", status_code=204)
@@ -262,7 +256,6 @@ def test_keepalive_timeout(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_close(protocol_cls, event_loop):
     app = Response(b"", status_code=204, headers={"connection": "close"})
@@ -274,7 +267,6 @@ def test_close(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_chunked_encoding(protocol_cls, event_loop):
     app = Response(
@@ -289,7 +281,6 @@ def test_chunked_encoding(protocol_cls, event_loop):
         assert not protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_chunked_encoding_empty_body(protocol_cls, event_loop):
     app = Response(
@@ -304,7 +295,6 @@ def test_chunked_encoding_empty_body(protocol_cls, event_loop):
         assert not protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_chunked_encoding_head_request(protocol_cls, event_loop):
     app = Response(
@@ -318,7 +308,6 @@ def test_chunked_encoding_head_request(protocol_cls, event_loop):
         assert not protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_pipelined_requests(protocol_cls, event_loop):
     app = Response("Hello, world", media_type="text/plain")
@@ -341,7 +330,6 @@ def test_pipelined_requests(protocol_cls, event_loop):
         protocol.transport.clear_buffer()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_undersized_request(protocol_cls, event_loop):
     app = Response(b"xxx", headers={"content-length": "10"})
@@ -352,7 +340,6 @@ def test_undersized_request(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_oversized_request(protocol_cls, event_loop):
     app = Response(b"xxx" * 20, headers={"content-length": "10"})
@@ -363,7 +350,6 @@ def test_oversized_request(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_large_post_request(protocol_cls, event_loop):
     app = Response("Hello, world", media_type="text/plain")
@@ -375,7 +361,6 @@ def test_large_post_request(protocol_cls, event_loop):
         assert not protocol.transport.read_paused
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_invalid_http(protocol_cls, event_loop):
     app = Response("Hello, world", media_type="text/plain")
@@ -385,7 +370,6 @@ def test_invalid_http(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_app_exception(protocol_cls, event_loop):
     async def app(scope, receive, send):
@@ -398,7 +382,6 @@ def test_app_exception(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_exception_during_response(protocol_cls, event_loop):
     async def app(scope, receive, send):
@@ -413,7 +396,6 @@ def test_exception_during_response(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_no_response_returned(protocol_cls, event_loop):
     async def app(scope, receive, send):
@@ -426,7 +408,6 @@ def test_no_response_returned(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_partial_response_returned(protocol_cls, event_loop):
     async def app(scope, receive, send):
@@ -439,7 +420,6 @@ def test_partial_response_returned(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_duplicate_start_message(protocol_cls, event_loop):
     async def app(scope, receive, send):
@@ -453,7 +433,6 @@ def test_duplicate_start_message(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_missing_start_message(protocol_cls, event_loop):
     async def app(scope, receive, send):
@@ -466,7 +445,6 @@ def test_missing_start_message(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_message_after_body_complete(protocol_cls, event_loop):
     async def app(scope, receive, send):
@@ -481,7 +459,6 @@ def test_message_after_body_complete(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_value_returned(protocol_cls, event_loop):
     async def app(scope, receive, send):
@@ -496,7 +473,6 @@ def test_value_returned(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_early_disconnect(protocol_cls, event_loop):
     got_disconnect_event = False
@@ -519,7 +495,6 @@ def test_early_disconnect(protocol_cls, event_loop):
         assert got_disconnect_event
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_early_response(protocol_cls, event_loop):
     app = Response("Hello, world", media_type="text/plain")
@@ -532,7 +507,6 @@ def test_early_response(protocol_cls, event_loop):
         assert not protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_read_after_response(protocol_cls, event_loop):
     message_after_response = None
@@ -551,7 +525,6 @@ def test_read_after_response(protocol_cls, event_loop):
         assert message_after_response == {"type": "http.disconnect"}
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_http10_request(protocol_cls, event_loop):
     async def app(scope, receive, send):
@@ -566,7 +539,6 @@ def test_http10_request(protocol_cls, event_loop):
         assert b"Version: 1.0" in protocol.transport.buffer
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_root_path(protocol_cls, event_loop):
     async def app(scope, receive, send):
@@ -583,7 +555,6 @@ def test_root_path(protocol_cls, event_loop):
         assert b"Path: /app/" in protocol.transport.buffer
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_raw_path(protocol_cls, event_loop):
     async def app(scope, receive, send):
@@ -603,7 +574,6 @@ def test_raw_path(protocol_cls, event_loop):
         assert b"Done" in protocol.transport.buffer
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_max_concurrency(protocol_cls, event_loop):
     app = Response("Hello, world", media_type="text/plain")
@@ -616,7 +586,6 @@ def test_max_concurrency(protocol_cls, event_loop):
         assert b"HTTP/1.1 503 Service Unavailable" in protocol.transport.buffer
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_shutdown_during_request(protocol_cls, event_loop):
     app = Response(b"", status_code=204)
@@ -629,7 +598,6 @@ def test_shutdown_during_request(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_shutdown_during_idle(protocol_cls, event_loop):
     app = Response("Hello, world", media_type="text/plain")
@@ -640,7 +608,6 @@ def test_shutdown_during_idle(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_100_continue_sent_when_body_consumed(protocol_cls, event_loop):
     async def app(scope, receive, send):
@@ -672,7 +639,6 @@ def test_100_continue_sent_when_body_consumed(protocol_cls, event_loop):
         assert b'Body: {"hello": "world"}' in protocol.transport.buffer
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_100_continue_not_sent_when_body_not_consumed(protocol_cls, event_loop):
     app = Response(b"", status_code=204)
@@ -695,7 +661,6 @@ def test_100_continue_not_sent_when_body_not_consumed(protocol_cls, event_loop):
         assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_unsupported_upgrade_request(protocol_cls, event_loop):
     app = Response("Hello, world", media_type="text/plain")
@@ -706,7 +671,6 @@ def test_unsupported_upgrade_request(protocol_cls, event_loop):
         assert b"Unsupported upgrade request." in protocol.transport.buffer
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_supported_upgrade_request(protocol_cls, event_loop):
     app = Response("Hello, world", media_type="text/plain")
@@ -735,7 +699,6 @@ asgi_scope_data = [
 ]
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("asgi2or3_app, expected_scopes", asgi_scope_data)
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_scopes(asgi2or3_app, expected_scopes, protocol_cls, event_loop):
