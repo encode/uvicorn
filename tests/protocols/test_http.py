@@ -67,6 +67,7 @@ UPGRADE_REQUEST = b"\r\n".join(
         b"Host: example.org",
         b"Connection: upgrade",
         b"Upgrade: websocket",
+        b"Sec-WebSocket-Version: 11",
         b"",
         b"",
     ]
