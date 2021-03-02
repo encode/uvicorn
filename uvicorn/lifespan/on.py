@@ -27,7 +27,9 @@ class LifespanOn:
         self.logger.info("Waiting for application startup.")
 
         loop = asyncio.get_event_loop()
-        loop.create_task(self.main())
+        main_lifespan_task = loop.create_task(self.main())  # noqa: F841
+        # Keep a hard reference to prevent garbage collection
+        # See https://github.com/encode/uvicorn/pull/972
 
         await self.receive_queue.put({"type": "lifespan.startup"})
         await self.startup_event.wait()
