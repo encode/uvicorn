@@ -187,7 +187,7 @@ class Server:
 
             port = config.port
             if port == 0:
-                port = listeners[0].getpeername()[1]
+                port = listeners[0].getsockname()[1]
 
             protocol_name = "https" if config.ssl else "http"
             message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
