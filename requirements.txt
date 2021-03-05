@@ -2,6 +2,9 @@
 
 # Explicit optionals
 wsproto==1.0.*
+httptools==0.1.*
+uvloop==0.15.*; python_version >= '3.7'
+
 
 # Packaging
 twine
