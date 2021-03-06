@@ -201,7 +201,7 @@ class Config:
             self.reload_dirs = [os.getcwd()]
         else:
             if isinstance(reload_dirs, str):
-               self.reload_dirs = [reload_dirs]
+                self.reload_dirs = [reload_dirs]
             else:
                 self.reload_dirs = reload_dirs
 
