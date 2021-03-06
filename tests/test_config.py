@@ -63,6 +63,11 @@ def test_config_should_reload_is_set(app, expected_should_reload):
     assert config_reload.should_reload is expected_should_reload
 
 
+def test_reload_dir_is_set():
+    config = Config(app=asgi_app, reload=True, reload_dirs="reload_me")
+    assert config.reload_dirs == ["reload_me"]
+
+
 def test_wsgi_app():
     config = Config(app=wsgi_app, interface="wsgi", proxy_headers=False)
     config.load()
