@@ -158,7 +158,7 @@ def command(
     ssl_keyfile: str = Option(None, help="SSL key file."),
     ssl_certfile: str = Option(None, help="SSL certificate file."),
     ssl_keyfile_password: str = Option(None, help="SSL keyfile password."),
-    ssl_version: str = Option(
+    ssl_version: int = Option(
         SSL_PROTOCOL_VERSION, help="SSL version to use (see stdlib ssl module's)."
     ),
     ssl_cert_reqs: int = Option(
@@ -190,6 +190,7 @@ def command(
     ),
     factory: bool = Option(
         False,
+        "--factory",
         help="Treat APP as an application factory, i.e. a () -> <ASGI app> callable.",
     ),
 ):
