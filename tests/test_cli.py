@@ -1,7 +1,7 @@
 import importlib
 from unittest import mock
 
-from click.testing import CliRunner
+from typer.testing import CliRunner
 
 from uvicorn.main import main as cli
 

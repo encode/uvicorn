@@ -98,6 +98,9 @@ The uvicorn command line tool is the easiest way to run your application...
 $ uvicorn --help
 Usage: uvicorn [OPTIONS] APP
 
+Arguments:
+  APP  [required]
+
 Options:
   --host TEXT                     Bind socket to this host.  [default:
                                   127.0.0.1]
@@ -110,8 +113,7 @@ Options:
                                   of using the current working directory.
 
   --reload-delay FLOAT            Delay between previous and next check if
-                                  application needs to be. Defaults to 0.25s.
-                                  [default: 0.25]
+                                  application needs to be.  [default: 0.25]
 
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
@@ -135,7 +137,7 @@ Options:
                                   formats: .ini, .json, .yaml.
 
   --log-level [critical|error|warning|info|debug|trace]
-                                  Log level. [default: info]
+                                  Log level.  [default: info]
   --access-log / --no-access-log  Enable/Disable access log.
   --use-colors / --no-use-colors  Enable/Disable colorized logging.
   --proxy-headers / --no-proxy-headers
@@ -143,7 +145,7 @@ Options:
                                   X-Forwarded-For, X-Forwarded-Port to
                                   populate remote address info.
 
-  --forwarded-allow-ips TEXT      Comma seperated list of IPs to trust with
+  --forwarded-allow-ips TEXT      Comma separated list of IPs to trust with
                                   proxy headers. Defaults to the
                                   $FORWARDED_ALLOW_IPS environment variable if
                                   available, or '127.0.0.1'.
@@ -156,7 +158,7 @@ Options:
                                   responses.
 
   --backlog INTEGER               Maximum number of connections to hold in
-                                  backlog
+                                  backlog.
 
   --limit-max-requests INTEGER    Maximum number of requests to service before
                                   terminating the process.
@@ -165,16 +167,16 @@ Options:
                                   is received within this timeout.  [default:
                                   5]
 
-  --ssl-keyfile TEXT              SSL key file
-  --ssl-certfile TEXT             SSL certificate file
-  --ssl-keyfile-password TEXT     SSL keyfile password
-  --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
-                                  [default: 2]
+  --ssl-keyfile TEXT              SSL key file.
+  --ssl-certfile TEXT             SSL certificate file.
+  --ssl-keyfile-password TEXT     SSL keyfile password.
+  --ssl-version TEXT              SSL version to use (see stdlib ssl
+                                  module's).  [default: 2]
 
   --ssl-cert-reqs INTEGER         Whether client certificate is required (see
-                                  stdlib ssl module's)  [default: 0]
+                                  stdlib ssl module's).  [default: 0]
 
-  --ssl-ca-certs TEXT             CA certificates file
+  --ssl-ca-certs TEXT             CA certificates file.
   --ssl-ciphers TEXT              Ciphers to use (see stdlib ssl module's)
                                   [default: TLSv1]
 
@@ -186,7 +188,7 @@ Options:
                                   adding this to the PYTHONPATH. Defaults to
                                   the current working directory.  [default: .]
 
-  --factory                       Treat APP as an application factory, i.e. a
+  --factory / --no-factory        Treat APP as an application factory, i.e. a
                                   () -> <ASGI app> callable.  [default: False]
 
   --help                          Show this message and exit.
