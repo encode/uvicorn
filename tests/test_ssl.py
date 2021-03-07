@@ -55,6 +55,7 @@ async def test_run_password(
         ssl_keyfile=tls_ca_certificate_private_key_encrypted_path,
         ssl_certfile=tls_ca_certificate_pem_path,
         ssl_keyfile_password="uvicorn password for the win",
+        ssl_ca_certs=tls_ca_certificate_pem_path,
     )
     async with run_server(config):
         async with httpx.AsyncClient(verify=tls_ca_ssl_context) as client:
