@@ -170,7 +170,7 @@ Options:
   --ssl-keyfile TEXT              SSL key file.
   --ssl-certfile TEXT             SSL certificate file.
   --ssl-keyfile-password TEXT     SSL keyfile password.
-  --ssl-version TEXT              SSL version to use (see stdlib ssl
+  --ssl-version INTEGER           SSL version to use (see stdlib ssl
                                   module's).  [default: 2]
 
   --ssl-cert-reqs INTEGER         Whether client certificate is required (see
@@ -188,7 +188,7 @@ Options:
                                   adding this to the PYTHONPATH. Defaults to
                                   the current working directory.  [default: .]
 
-  --factory / --no-factory        Treat APP as an application factory, i.e. a
+  --factory                       Treat APP as an application factory, i.e. a
                                   () -> <ASGI app> callable.  [default: False]
 
   --help                          Show this message and exit.
