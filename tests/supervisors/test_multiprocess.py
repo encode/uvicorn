@@ -4,7 +4,7 @@ from uvicorn import Config
 from uvicorn.supervisors import Multiprocess
 
 
-def run(sockets):
+def run(sockets):  # pragma: no cover
     pass
 
 

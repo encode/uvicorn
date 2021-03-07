@@ -159,7 +159,7 @@ def test_ssl_config_combined(tls_certificate_pem_path):
     assert config.is_ssl is True
 
 
-def asgi2_app(scope):
+def asgi2_app(scope):  # pragma: no cover
     async def asgi(receive, send):
         pass
 
