@@ -31,7 +31,7 @@ INTERFACE_CHOICES = click.Choice(INTERFACES)
 logger = logging.getLogger("uvicorn.error")
 
 
-def print_version(ctx, param, value):
+def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> None:
     if not value or ctx.resilient_parsing:
         return
     click.echo(
@@ -362,7 +362,7 @@ def main(
     run(**kwargs)
 
 
-def run(app, **kwargs):
+def run(app, **kwargs) -> None:
     config = Config(app, **kwargs)
     server = Server(config=config)
 

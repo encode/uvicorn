@@ -11,7 +11,7 @@ https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 
 
 class ProxyHeadersMiddleware:
-    def __init__(self, app, trusted_hosts="127.0.0.1"):
+    def __init__(self, app, trusted_hosts="127.0.0.1") -> None:
         self.app = app
         if isinstance(trusted_hosts, str):
             self.trusted_hosts = [item.strip() for item in trusted_hosts.split(",")]

@@ -1,7 +1,9 @@
+import asyncio
 import urllib
+from typing import Optional, Tuple
 
 
-def get_remote_addr(transport):
+def get_remote_addr(transport: asyncio.Transport) -> Optional[Tuple[str, int]]:
     socket_info = transport.get_extra_info("socket")
     if socket_info is not None:
         try:
@@ -18,7 +20,7 @@ def get_remote_addr(transport):
     return None
 
 
-def get_local_addr(transport):
+def get_local_addr(transport: asyncio.Transport) -> Optional[Tuple[str, int]]:
     socket_info = transport.get_extra_info("socket")
     if socket_info is not None:
         info = socket_info.getsockname()
@@ -30,11 +32,11 @@ def get_local_addr(transport):
     return None
 
 
-def is_ssl(transport):
+def is_ssl(transport: asyncio.Transport) -> bool:
     return bool(transport.get_extra_info("sslcontext"))
 
 
-def get_client_addr(scope):
+def get_client_addr(scope) -> str:
     client = scope.get("client")
     if not client:
         return ""

@@ -2,6 +2,7 @@ import http
 import logging
 import sys
 from copy import copy
+from typing import Optional
 
 import click
 
@@ -28,8 +29,10 @@ class ColourizedFormatter(logging.Formatter):
         ),
     }
 
-    def __init__(self, fmt=None, datefmt=None, style="%", use_colors=None):
-        if use_colors in (True, False):
+    def __init__(
+        self, fmt=None, datefmt=None, style="%", use_colors: Optional[bool] = None
+    ) -> None:
+        if isinstance(use_colors, bool):
             self.use_colors = use_colors
         else:
             self.use_colors = sys.stdout.isatty()

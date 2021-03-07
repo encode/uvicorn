@@ -236,13 +236,13 @@ class HttpToolsProtocol(asyncio.Protocol):
             "headers": self.headers,
         }
 
-    def on_header(self, name: bytes, value: bytes):
+    def on_header(self, name: bytes, value: bytes) -> None:
         name = name.lower()
         if name == b"expect" and value.lower() == b"100-continue":
             self.expect_100_continue = True
         self.headers.append((name, value))
 
-    def on_headers_complete(self):
+    def on_headers_complete(self) -> None:
         http_version = self.parser.get_http_version()
         if http_version != "1.1":
             self.scope["http_version"] = http_version
@@ -284,7 +284,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.flow.pause_reading()
             self.pipeline.insert(0, (self.cycle, app))
 
-    def on_body(self, body: bytes):
+    def on_body(self, body: bytes) -> None:
         if self.parser.should_upgrade() or self.cycle.response_complete:
             return
         self.cycle.body += body
@@ -292,13 +292,13 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.flow.pause_reading()
         self.cycle.message_event.set()
 
-    def on_message_complete(self):
+    def on_message_complete(self) -> None:
         if self.parser.should_upgrade() or self.cycle.response_complete:
             return
         self.cycle.more_body = False
         self.cycle.message_event.set()
 
-    def on_response_complete(self):
+    def on_response_complete(self) -> None:
         # Callback for pipelined HTTP requests to be started.
         self.server_state.total_requests += 1
 
@@ -322,7 +322,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             task.add_done_callback(self.tasks.discard)
             self.tasks.add(task)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """
         Called by the server to commence a graceful shutdown.
         """
@@ -331,19 +331,19 @@ class HttpToolsProtocol(asyncio.Protocol):
         else:
             self.cycle.keep_alive = False
 
-    def pause_writing(self):
+    def pause_writing(self) -> None:
         """
         Called by the transport when the write buffer exceeds the high water mark.
         """
         self.flow.pause_writing()
 
-    def resume_writing(self):
+    def resume_writing(self) -> None:
         """
         Called by the transport when the write buffer drops below the low water mark.
         """
         self.flow.resume_writing()
 
-    def timeout_keep_alive_handler(self):
+    def timeout_keep_alive_handler(self) -> None:
         """
         Called on a keep-alive connection if no new data is received after a short
         delay.

@@ -1,10 +1,13 @@
 import logging
 import os
 import signal
+import socket
 import threading
+from typing import Callable, List, Optional
 
 import click
 
+from uvicorn.config import Config
 from uvicorn.subprocess import get_subprocess
 
 HANDLED_SIGNALS = (
@@ -16,13 +19,15 @@ logger = logging.getLogger("uvicorn.error")
 
 
 class BaseReload:
-    def __init__(self, config, target, sockets):
+    def __init__(
+        self, config: Config, target: Callable[..., None], sockets: List[socket.socket]
+    ) -> None:
         self.config = config
         self.target = target
         self.sockets = sockets
         self.should_exit = threading.Event()
         self.pid = os.getpid()
-        self.reloader_name = None
+        self.reloader_name: Optional[str] = None
 
     def signal_handler(self, sig, frame):
         """
@@ -65,7 +70,7 @@ class BaseReload:
         )
         self.process.start()
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.process.join()
         message = "Stopping reloader process [{}]".format(str(self.pid))
         color_message = "Stopping reloader process [{}]".format(
@@ -73,5 +78,5 @@ class BaseReload:
         )
         logger.info(message, extra={"color_message": color_message})
 
-    def should_restart(self):
+    def should_restart(self) -> bool:
         raise NotImplementedError("Reload strategies should override should_restart()")

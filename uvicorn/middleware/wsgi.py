@@ -2,6 +2,7 @@ import asyncio
 import concurrent.futures
 import io
 import sys
+import typing
 
 
 def build_environ(scope, message, body):
@@ -54,18 +55,18 @@ def build_environ(scope, message, body):
 
 
 class WSGIMiddleware:
-    def __init__(self, app, workers=10):
+    def __init__(self, app, workers: typing.Optional[int] = 10) -> None:
         self.app = app
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope, receive, send) -> None:
         assert scope["type"] == "http"
         instance = WSGIResponder(self.app, self.executor, scope)
         await instance(receive, send)
 
 
 class WSGIResponder:
-    def __init__(self, app, executor, scope):
+    def __init__(self, app, executor, scope) -> None:
         self.app = app
         self.executor = executor
         self.scope = scope
@@ -130,7 +131,7 @@ class WSGIResponder:
             )
             self.loop.call_soon_threadsafe(self.send_event.set)
 
-    def wsgi(self, environ, start_response):
+    def wsgi(self, environ, start_response) -> None:
         for chunk in self.app(environ, start_response):
             self.send_queue.append(
                 {"type": "http.response.body", "body": chunk, "more_body": True}

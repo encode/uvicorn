@@ -13,6 +13,8 @@ from typing import List
 
 import click
 
+from uvicorn.config import Config
+
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
@@ -26,7 +28,7 @@ class ServerState:
     Shared servers state that is available between all protocol instances.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.total_requests = 0
         self.connections = set()
         self.tasks = set()
@@ -34,7 +36,7 @@ class ServerState:
 
 
 class Server:
-    def __init__(self, config):
+    def __init__(self, config: Config) -> None:
         self.config = config
         self.server_state = ServerState()
 
@@ -43,12 +45,12 @@ class Server:
         self.force_exit = False
         self.last_notified = 0
 
-    def run(self, sockets=None):
+    def run(self, sockets=None) -> None:
         self.config.setup_event_loop()
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.serve(sockets=sockets))
 
-    async def serve(self, sockets=None):
+    async def serve(self, sockets=None) -> None:
         process_id = os.getpid()
 
         config = self.config

@@ -4,7 +4,7 @@ import selectors
 import sys
 
 
-def asyncio_setup():
+def asyncio_setup() -> None:
     if (
         sys.version_info.major >= 3
         and sys.version_info.minor >= 8

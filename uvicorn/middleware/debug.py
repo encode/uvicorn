@@ -3,11 +3,11 @@ import traceback
 
 
 class HTMLResponse:
-    def __init__(self, content, status_code):
+    def __init__(self, content: str, status_code: int) -> None:
         self.content = content
         self.status_code = status_code
 
-    async def __call__(self, scope, recieve, send):
+    async def __call__(self, scope, receive, send) -> None:
         await send(
             {
                 "type": "http.response.start",
@@ -25,11 +25,11 @@ class HTMLResponse:
 
 
 class PlainTextResponse:
-    def __init__(self, content, status_code):
+    def __init__(self, content: str, status_code: int) -> None:
         self.content = content
         self.status_code = status_code
 
-    async def __call__(self, scope, recieve, send):
+    async def __call__(self, scope, receive, send) -> None:
         await send(
             {
                 "type": "http.response.start",
@@ -46,7 +46,7 @@ class PlainTextResponse:
         )
 
 
-def get_accept_header(scope):
+def get_accept_header(scope) -> str:
     accept = "*/*"
 
     for key, value in scope.get("headers", []):
@@ -58,7 +58,7 @@ def get_accept_header(scope):
 
 
 class DebugMiddleware:
-    def __init__(self, app):
+    def __init__(self, app) -> None:
         self.app = app
 
     async def __call__(self, scope, receive, send):

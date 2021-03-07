@@ -52,7 +52,7 @@ class Multiprocess:
             process.start()
             self.processes.append(process)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         for process in self.processes:
             process.join()
 

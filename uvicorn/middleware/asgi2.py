@@ -1,7 +1,7 @@
 class ASGI2Middleware:
-    def __init__(self, app):
+    def __init__(self, app) -> None:
         self.app = app
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope, receive, send) -> None:
         instance = self.app(scope)
         await instance(receive, send)

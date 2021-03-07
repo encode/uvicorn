@@ -355,7 +355,7 @@ class Config:
         if loop_setup is not None:
             loop_setup()
 
-    def bind_socket(self):
+    def bind_socket(self) -> socket.socket:
         family = socket.AF_INET
         addr_format = "%s://%s:%d"
 
@@ -390,5 +390,5 @@ class Config:
         return sock
 
     @property
-    def should_reload(self):
+    def should_reload(self) -> bool:
         return isinstance(self.app, str) and (self.debug or self.reload)
