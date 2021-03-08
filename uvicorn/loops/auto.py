@@ -1,4 +1,4 @@
-def auto_loop_setup():
+def auto_loop_setup() -> None:
     try:
         import uvloop  # noqa
     except ImportError:  # pragma: no cover

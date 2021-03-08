@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import signal
+from typing import Any
 
 from gunicorn.workers.base import Worker
 
@@ -16,7 +17,7 @@ class UvicornWorker(Worker):
 
     CONFIG_KWARGS = {"loop": "uvloop", "http": "httptools"}
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(UvicornWorker, self).__init__(*args, **kwargs)
 
         logger = logging.getLogger("uvicorn.error")
@@ -58,24 +59,24 @@ class UvicornWorker(Worker):
 
         self.config = Config(**config_kwargs)
 
-    def init_process(self):
+    def init_process(self) -> None:
         self.config.setup_event_loop()
         super(UvicornWorker, self).init_process()
 
-    def init_signals(self):
+    def init_signals(self) -> None:
         # Reset signals so Gunicorn doesn't swallow subprocess return codes
         # other signals are set up by Server.install_signal_handlers()
         # See: https://github.com/encode/uvicorn/issues/894
         for s in self.SIGNALS:
             signal.signal(s, signal.SIG_DFL)
 
-    def run(self):
+    def run(self) -> None:
         self.config.app = self.wsgi
         server = Server(config=self.config)
         loop = asyncio.get_event_loop()
         loop.run_until_complete(server.serve(sockets=self.sockets))
 
-    async def callback_notify(self):
+    async def callback_notify(self) -> None:
         self.notify()
 
 
