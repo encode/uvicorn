@@ -247,3 +247,11 @@ def test_log_config_file(mocked_logging_config_module):
     mocked_logging_config_module.fileConfig.assert_called_once_with(
         "log_config", disable_existing_loggers=False
     )
+
+
+@pytest.mark.parametrize("log_level", [5, 10, 20, 30, 40, 50])
+def test_config_log_level(log_level):
+    Config(app=asgi_app, log_level=log_level)
+    assert logging.getLogger("uvicorn.error").level == log_level
+    assert logging.getLogger("uvicorn.access").level == log_level
+    assert logging.getLogger("uvicorn.asgi").level == log_level
