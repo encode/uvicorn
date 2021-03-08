@@ -78,21 +78,31 @@ class TestBaseReload:
         file = "example.py"
 
         app_dir = self.tmp_path.joinpath("app")
+        app_child_dir = app_dir.joinpath("child")
         app_ext_dir = self.tmp_path.joinpath("app_extension")
+
         app_file = app_dir.joinpath(file)
+        app_child_file = app_child_dir.joinpath(file)
         app_ext_file = app_ext_dir.joinpath(file)
+
         app_dir.mkdir()
+        app_child_dir.mkdir()
         app_ext_dir.mkdir()
+
         app_file.touch()
+        app_child_file.touch()
         app_ext_file.touch()
 
         with self.tmpdir.as_cwd():
             config = Config(
-                app=None, reload=True, reload_dirs=[str(app_dir), str(app_ext_dir)]
+                app=None,
+                reload=True,
+                reload_dirs=[str(app_dir), str(app_ext_dir), str(app_child_dir)],
             )
             reloader = self._setup_reloader(config)
 
             assert self._reload_tester(reloader, app_file)
+            assert self._reload_tester(reloader, app_child_file)
             assert self._reload_tester(reloader, app_ext_file)
 
             reloader.shutdown()

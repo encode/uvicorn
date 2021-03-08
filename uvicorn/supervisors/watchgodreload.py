@@ -1,3 +1,4 @@
+import itertools
 import logging
 import re
 from pathlib import Path
@@ -38,13 +39,9 @@ class WatchGodReload(BaseReload):
 
         # remove directories that already have a parent watched, so that we don't have
         # duplicated change events
-        for watch_dir in watch_dirs:
-            for compare_dir in watch_dirs:
-                if compare_dir is watch_dir:
-                    continue
-
-                if compare_dir in watch_dir.parents:
-                    watch_dirs_set.remove(watch_dir)
+        for watch_dir, compare_dir in itertools.combinations(watch_dirs, 2):
+            if compare_dir in watch_dir.parents:
+                watch_dirs_set.remove(watch_dir)
 
         self.watch_dir_set = watch_dirs_set
         for w in watch_dirs_set:
