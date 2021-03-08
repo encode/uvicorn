@@ -1,13 +1,17 @@
 import logging
+import os
 import re
 import socket
 from pathlib import Path
-from typing import Callable, List
+from typing import TYPE_CHECKING, Callable, List
 
 from watchgod import DefaultWatcher
 
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
+
+if TYPE_CHECKING:
+    DirEntry = os.DirEntry[str]
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -23,7 +27,7 @@ class CustomWatcher(DefaultWatcher):
         self._ignored = tuple(re.compile(r) for r in self.ignored)
         super().__init__(root_path)
 
-    def should_watch_file(self, entry) -> bool:
+    def should_watch_file(self, entry: "DirEntry") -> bool:
         return not any(r.search(entry.name) for r in self._ignored)
 
 

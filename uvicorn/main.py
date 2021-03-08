@@ -281,7 +281,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 def main(
-    app,
+    app: str,
     host: str,
     port: int,
     uds: str,
@@ -318,11 +318,10 @@ def main(
     use_colors: bool,
     app_dir: str,
     factory: bool,
-):
+) -> None:
     sys.path.insert(0, app_dir)
 
     kwargs = {
-        "app": app,
         "host": host,
         "port": port,
         "uds": uds,
@@ -359,10 +358,10 @@ def main(
         "use_colors": use_colors,
         "factory": factory,
     }
-    run(**kwargs)
+    run(app, **kwargs)
 
 
-def run(app, **kwargs) -> None:
+def run(app: str, **kwargs: typing.Any) -> None:
     config = Config(app, **kwargs)
     server = Server(config=config)
 
@@ -376,12 +375,10 @@ def run(app, **kwargs) -> None:
 
     if config.should_reload:
         sock = config.bind_socket()
-        supervisor = ChangeReload(config, target=server.run, sockets=[sock])
-        supervisor.run()
+        ChangeReload(config, target=server.run, sockets=[sock]).run()
     elif config.workers > 1:
         sock = config.bind_socket()
-        supervisor = Multiprocess(config, target=server.run, sockets=[sock])
-        supervisor.run()
+        Multiprocess(config, target=server.run, sockets=[sock]).run()
     else:
         server.run()
 

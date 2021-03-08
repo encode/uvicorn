@@ -6,19 +6,20 @@ from urllib.parse import unquote
 import websockets
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 
+from uvicorn._types import Message
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 
 class Server:
     closing = False
 
-    def register(self, ws):
+    def register(self, ws) -> None:
         pass
 
-    def unregister(self, ws):
+    def unregister(self, ws) -> None:
         pass
 
-    def is_serving(self):
+    def is_serving(self) -> bool:
         return not self.closing
 
 
@@ -61,7 +62,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             extensions=[ServerPerMessageDeflateFactory()],
         )
 
-    def connection_made(self, transport):
+    def connection_made(self, transport: asyncio.Transport) -> None:
         self.connections.add(self)
         self.transport = transport
         self.server = get_local_addr(transport)
@@ -74,7 +75,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.handshake_completed_event.set()
         super().connection_lost(exc)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.ws_server.closing = True
         self.transport.close()
 
@@ -129,7 +130,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         """
         return self.accepted_subprotocol
 
-    def send_500_response(self):
+    def send_500_response(self) -> None:
         msg = b"Internal Server Error"
         content = [
             b"HTTP/1.1 500 Internal Server Error\r\n"
@@ -153,7 +154,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.handshake_completed_event.set()
         await self.closed_event.wait()
 
-    async def run_asgi(self):
+    async def run_asgi(self) -> None:
         """
         Wrapper around the ASGI callable, handling exceptions and unexpected
         termination states.
@@ -182,7 +183,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 await self.handshake_completed_event.wait()
                 self.transport.close()
 
-    async def asgi_send(self, message):
+    async def asgi_send(self, message: Message) -> None:
         message_type = message["type"]
 
         if not self.handshake_started_event.is_set():
@@ -239,7 +240,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
             raise RuntimeError(msg % message_type)
 
-    async def asgi_receive(self):
+    async def asgi_receive(self) -> Message:
         if not self.connect_sent:
             self.connect_sent = True
             return {"type": "websocket.connect"}

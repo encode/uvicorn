@@ -29,13 +29,13 @@ class BaseReload:
         self.pid = os.getpid()
         self.reloader_name: Optional[str] = None
 
-    def signal_handler(self, sig, frame):
+    def signal_handler(self, sig: signal.Signals, frame) -> None:
         """
         A signal handler that is registered with the parent process.
         """
         self.should_exit.set()
 
-    def run(self):
+    def run(self) -> None:
         self.startup()
         while not self.should_exit.wait(self.config.reload_delay):
             if self.should_restart():
@@ -43,7 +43,7 @@ class BaseReload:
 
         self.shutdown()
 
-    def startup(self):
+    def startup(self) -> None:
         message = f"Started reloader process [{self.pid}] using {self.reloader_name}"
         color_message = "Started reloader process [{}] using {}".format(
             click.style(str(self.pid), fg="cyan", bold=True),
@@ -59,7 +59,7 @@ class BaseReload:
         )
         self.process.start()
 
-    def restart(self):
+    def restart(self) -> None:
         self.mtimes = {}
 
         self.process.terminate()

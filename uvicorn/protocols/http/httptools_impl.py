@@ -3,9 +3,13 @@ import http
 import logging
 import re
 import urllib
+from enum import IntEnum
+from typing import Optional
 
 import httptools
 
+from uvicorn._types import ASGI3App, Message, Receive, Scope, Send
+from uvicorn.config import Config
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -13,12 +17,13 @@ from uvicorn.protocols.utils import (
     get_remote_addr,
     is_ssl,
 )
+from uvicorn.server import ServerState
 
 HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")
 
 
-def _get_status_line(status_code):
+def _get_status_line(status_code: IntEnum) -> bytes:
     try:
         phrase = http.HTTPStatus(status_code).phrase.encode()
     except ValueError:
@@ -38,38 +43,38 @@ TRACE_LOG_LEVEL = 5
 
 
 class FlowControl:
-    def __init__(self, transport):
+    def __init__(self, transport: asyncio.Transport) -> None:
         self._transport = transport
         self.read_paused = False
         self.write_paused = False
         self._is_writable_event = asyncio.Event()
         self._is_writable_event.set()
 
-    async def drain(self):
+    async def drain(self) -> None:
         await self._is_writable_event.wait()
 
-    def pause_reading(self):
+    def pause_reading(self) -> None:
         if not self.read_paused:
             self.read_paused = True
             self._transport.pause_reading()
 
-    def resume_reading(self):
+    def resume_reading(self) -> None:
         if self.read_paused:
             self.read_paused = False
             self._transport.resume_reading()
 
-    def pause_writing(self):
+    def pause_writing(self) -> None:
         if not self.write_paused:
             self.write_paused = True
             self._is_writable_event.clear()
 
-    def resume_writing(self):
+    def resume_writing(self) -> None:
         if self.write_paused:
             self.write_paused = False
             self._is_writable_event.set()
 
 
-async def service_unavailable(scope, receive, send):
+async def service_unavailable(scope: Scope, receive: Receive, send: Send) -> None:
     await send(
         {
             "type": "http.response.start",
@@ -84,7 +89,12 @@ async def service_unavailable(scope, receive, send):
 
 
 class HttpToolsProtocol(asyncio.Protocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(
+        self,
+        config: Config,
+        server_state: ServerState,
+        _loop: Optional[asyncio.BaseEventLoop] = None,
+    ):
         if not config.loaded:
             config.load()
 
@@ -125,7 +135,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.cycle = None
 
     # Protocol interface
-    def connection_made(self, transport):
+    def connection_made(self, transport: asyncio.Transport) -> None:
         self.connections.add(self)
 
         self.transport = transport
@@ -138,7 +148,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
 
-    def connection_lost(self, exc):
+    def connection_lost(self, exc) -> None:
         self.connections.discard(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
@@ -152,15 +162,15 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.flow is not None:
             self.flow.resume_writing()
 
-    def eof_received(self):
+    def eof_received(self) -> None:
         pass
 
-    def _unset_keepalive_if_required(self):
+    def _unset_keepalive_if_required(self) -> None:
         if self.timeout_keep_alive_task is not None:
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
 
-    def data_received(self, data):
+    def data_received(self, data: bytes) -> None:
         self._unset_keepalive_if_required()
 
         try:
@@ -172,7 +182,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         except httptools.HttpParserUpgrade:
             self.handle_upgrade()
 
-    def handle_upgrade(self):
+    def handle_upgrade(self) -> None:
         upgrade_value = None
         for name, value in self.headers:
             if name == b"upgrade":
@@ -211,7 +221,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.transport.set_protocol(protocol)
 
     # Parser callbacks
-    def on_url(self, url):
+    def on_url(self, url: str) -> None:
         method = self.parser.get_method()
         parsed_url = httptools.parse_url(url)
         raw_path = parsed_url.path
@@ -393,7 +403,7 @@ class RequestResponseCycle:
         self.expected_content_length = 0
 
     # ASGI exception wrapper
-    async def run_asgi(self, app):
+    async def run_asgi(self, app: ASGI3App) -> None:
         try:
             result = await app(self.scope, self.receive, self.send)
         except BaseException as exc:
@@ -419,7 +429,7 @@ class RequestResponseCycle:
         finally:
             self.on_response = None
 
-    async def send_500_response(self):
+    async def send_500_response(self) -> None:
         await self.send(
             {
                 "type": "http.response.start",
@@ -435,7 +445,7 @@ class RequestResponseCycle:
         )
 
     # ASGI interface
-    async def send(self, message):
+    async def send(self, message: Message) -> None:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
@@ -544,7 +554,7 @@ class RequestResponseCycle:
             msg = "Unexpected ASGI message '%s' sent, after response already completed."
             raise RuntimeError(msg % message_type)
 
-    async def receive(self):
+    async def receive(self) -> Message:
         if self.waiting_for_100_continue and not self.transport.is_closing():
             self.transport.write(b"HTTP/1.1 100 Continue\r\n\r\n")
             self.waiting_for_100_continue = False

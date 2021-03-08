@@ -1,10 +1,10 @@
 import sys
-from typing import Optional
+from typing import Any, Awaitable, Callable, Dict, Optional, Type, Union
 
 if sys.version_info < (3, 8):
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import Literal, Protocol, TypedDict
 else:
-    from typing import Literal, TypedDict
+    from typing import Literal, Protocol, TypedDict
 
 
 class ASGISpecInfo(TypedDict):
@@ -29,3 +29,23 @@ class LifespanSendMessage(TypedDict):
         "lifespan.shutdown.failed",
     ]
     message: Optional[str]
+
+
+Scope = Dict[str, Any]
+Message = Dict[str, Any]
+
+Receive = Callable[[], Awaitable[Message]]
+Send = Callable[[Message], Awaitable[None]]
+
+
+class ASGI2Protocol(Protocol):
+    def __init__(self, scope: Scope) -> None:
+        ...
+
+    async def __call__(self, receive: Receive, send: Send) -> None:
+        ...
+
+
+ASGI2App = Type[ASGI2Protocol]
+ASGI3App = Callable[[Scope, Receive, Send], Awaitable[None]]
+ASGIApp = Union[ASGI2App, ASGI3App]

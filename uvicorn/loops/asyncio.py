@@ -14,5 +14,5 @@ def asyncio_setup() -> None:
         loop = asyncio.SelectorEventLoop(selector)
         asyncio.set_event_loop(loop)
     else:
-        loop = asyncio.new_event_loop()
+        loop = asyncio.new_event_loop()  # type: ignore
         asyncio.set_event_loop(loop)

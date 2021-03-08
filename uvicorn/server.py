@@ -9,7 +9,8 @@ import sys
 import threading
 import time
 from email.utils import formatdate
-from typing import List
+from types import FrameType
+from typing import List, Optional, Tuple
 
 import click
 
@@ -32,7 +33,7 @@ class ServerState:
         self.total_requests = 0
         self.connections = set()
         self.tasks = set()
-        self.default_headers = []
+        self.default_headers: List[Tuple[bytes, bytes]] = []
 
 
 class Server:
@@ -43,9 +44,9 @@ class Server:
         self.started = False
         self.should_exit = False
         self.force_exit = False
-        self.last_notified = 0
+        self.last_notified = 0.0
 
-    def run(self, sockets=None) -> None:
+    def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.serve(sockets=sockets))
@@ -206,7 +207,7 @@ class Server:
                 extra={"color_message": color_message},
             )
 
-    async def main_loop(self):
+    async def main_loop(self) -> None:
         counter = 0
         should_exit = await self.on_tick(counter)
         while not should_exit:
@@ -215,7 +216,7 @@ class Server:
             await asyncio.sleep(0.1)
             should_exit = await self.on_tick(counter)
 
-    async def on_tick(self, counter) -> bool:
+    async def on_tick(self, counter: int) -> bool:
         # Update the default headers, once per second.
         if counter % 10 == 0:
             current_time = time.time()
@@ -237,7 +238,7 @@ class Server:
             return self.server_state.total_requests >= self.config.limit_max_requests
         return False
 
-    async def shutdown(self, sockets=None):
+    async def shutdown(self, sockets: Optional[List[socket.socket]] = None) -> None:
         logger.info("Shutting down")
 
         # Stop accepting new connections.
@@ -286,7 +287,7 @@ class Server:
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)
 
-    def handle_exit(self, sig, frame):
+    def handle_exit(self, sig: signal.Signals, frame: FrameType) -> None:
         if self.should_exit:
             self.force_exit = True
         else:

@@ -38,7 +38,7 @@ class StatReload(BaseReload):
                 return True
         return False
 
-    def iter_py_files(self) -> Generator[Path, None, None]:
+    def iter_py_files(self) -> Generator[str, None, None]:
         for reload_dir in self.config.reload_dirs:
             for subdir, dirs, files in os.walk(reload_dir):
                 for file in files:

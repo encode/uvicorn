@@ -4,8 +4,12 @@ import io
 import sys
 import typing
 
+from uvicorn._types import ASGI3App, Message, Receive, Scope, Send
 
-def build_environ(scope, message, body):
+
+def build_environ(
+    scope: Scope, message: Message, body: bytes
+) -> typing.Dict[str, typing.Any]:
     """
     Builds a scope and request message into a WSGI environ object.
     """
@@ -55,18 +59,20 @@ def build_environ(scope, message, body):
 
 
 class WSGIMiddleware:
-    def __init__(self, app, workers: typing.Optional[int] = 10) -> None:
+    def __init__(self, app: ASGI3App, workers: typing.Optional[int] = 10) -> None:
         self.app = app
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
-    async def __call__(self, scope, receive, send) -> None:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         assert scope["type"] == "http"
         instance = WSGIResponder(self.app, self.executor, scope)
         await instance(receive, send)
 
 
 class WSGIResponder:
-    def __init__(self, app, executor, scope) -> None:
+    def __init__(
+        self, app: typing.Callable, executor: concurrent.futures.Executor, scope: Scope
+    ) -> None:
         self.app = app
         self.executor = executor
         self.scope = scope
@@ -74,7 +80,7 @@ class WSGIResponder:
         self.response_headers = None
         self.send_event = asyncio.Event()
         self.send_queue = []
-        self.loop = None
+        self.loop: asyncio.BaseEventLoop = None
         self.response_started = False
         self.exc_info = None
 
@@ -101,7 +107,7 @@ class WSGIResponder:
         if self.exc_info is not None:
             raise self.exc_info[0].with_traceback(self.exc_info[1], self.exc_info[2])
 
-    async def sender(self, send):
+    async def sender(self, send: typing.Callable) -> None:
         while True:
             if self.send_queue:
                 message = self.send_queue.pop(0)
@@ -131,7 +137,7 @@ class WSGIResponder:
             )
             self.loop.call_soon_threadsafe(self.send_event.set)
 
-    def wsgi(self, environ, start_response) -> None:
+    def wsgi(self, environ: typing.Dict[str, typing.Any], start_response) -> None:
         for chunk in self.app(environ, start_response):
             self.send_queue.append(
                 {"type": "http.response.body", "body": chunk, "more_body": True}

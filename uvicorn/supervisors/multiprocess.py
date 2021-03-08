@@ -1,10 +1,13 @@
 import logging
 import os
 import signal
+import socket
 import threading
+from typing import Callable, List
 
 import click
 
+from uvicorn.config import Config
 from uvicorn.subprocess import get_subprocess
 
 HANDLED_SIGNALS = (
@@ -16,7 +19,9 @@ logger = logging.getLogger("uvicorn.error")
 
 
 class Multiprocess:
-    def __init__(self, config, target, sockets):
+    def __init__(
+        self, config: Config, target: Callable[..., None], sockets: List[socket.socket]
+    ) -> None:
         self.config = config
         self.target = target
         self.sockets = sockets
@@ -24,18 +29,18 @@ class Multiprocess:
         self.should_exit = threading.Event()
         self.pid = os.getpid()
 
-    def signal_handler(self, sig, frame):
+    def signal_handler(self, sig: signal.Signals, frame) -> None:
         """
         A signal handler that is registered with the parent process.
         """
         self.should_exit.set()
 
-    def run(self):
+    def run(self) -> None:
         self.startup()
         self.should_exit.wait()
         self.shutdown()
 
-    def startup(self):
+    def startup(self) -> None:
         message = "Started parent process [{}]".format(str(self.pid))
         color_message = "Started parent process [{}]".format(
             click.style(str(self.pid), fg="cyan", bold=True)

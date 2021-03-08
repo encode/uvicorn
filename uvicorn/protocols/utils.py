@@ -2,6 +2,8 @@ import asyncio
 import urllib
 from typing import Optional, Tuple
 
+from uvicorn._types import Scope
+
 
 def get_remote_addr(transport: asyncio.Transport) -> Optional[Tuple[str, int]]:
     socket_info = transport.get_extra_info("socket")
@@ -36,14 +38,14 @@ def is_ssl(transport: asyncio.Transport) -> bool:
     return bool(transport.get_extra_info("sslcontext"))
 
 
-def get_client_addr(scope) -> str:
+def get_client_addr(scope: Scope) -> str:
     client = scope.get("client")
     if not client:
         return ""
     return "%s:%d" % client
 
 
-def get_path_with_query_string(scope):
+def get_path_with_query_string(scope: Scope) -> str:
     path_with_query_string = urllib.parse.quote(
         scope.get("root_path", "") + scope["path"]
     )
