@@ -465,8 +465,9 @@ DEFAULT_MAX_WS_BYTES = 2 ** 20
 MAX_WS_BYTES_MINUS1 = 1024 * 1024 * 16 - 1
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", ONLY_WEBSOCKETPROTOCOL)
-def test_send_binary_data_to_server_bigger_than_default(protocol_cls):
+async def test_send_binary_data_to_server_bigger_than_default(protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.accept"})
@@ -482,8 +483,7 @@ def test_send_binary_data_to_server_bigger_than_default(protocol_cls):
             await websocket.send(b"\x01" * DEFAULT_MAX_WS_BYTES_PLUS1)
             return await websocket.recv()
 
-    with run_server(App, protocol_cls=protocol_cls) as url:
-        loop = asyncio.new_event_loop()
-        data = loop.run_until_complete(send_text(url))
+    config = Config(app=App, ws=protocol_cls, lifespan="off")
+    async with run_server(config):
+        data = await send_text("ws://127.0.0.1:8000")
         assert data == b"\x01" * DEFAULT_MAX_WS_BYTES_PLUS1
-        loop.close()
