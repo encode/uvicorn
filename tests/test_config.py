@@ -247,3 +247,9 @@ def test_log_config_file(mocked_logging_config_module):
     mocked_logging_config_module.fileConfig.assert_called_once_with(
         "log_config", disable_existing_loggers=False
     )
+
+
+def test_ws_max_size():
+    config = Config(app=asgi_app, ws_max_size=1000)
+    config.load()
+    assert config.ws_max_size == 1000

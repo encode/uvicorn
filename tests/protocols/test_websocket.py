@@ -16,6 +16,7 @@ except ImportError:  # pragma: nocover
     ClientPerMessageDeflateFactory = None
 
 
+ONLY_WEBSOCKETPROTOCOL = [p for p in [WebSocketProtocol] if p is not None]
 WS_PROTOCOLS = [p for p in [WSProtocol, WebSocketProtocol] if p is not None]
 pytestmark = pytest.mark.skipif(
     websockets is None, reason="This test needs the websockets module"
@@ -457,3 +458,32 @@ async def test_subprotocols(protocol_cls, subprotocol):
     async with run_server(config):
         accepted_subprotocol = await get_subprotocol("ws://127.0.0.1:8000")
         assert accepted_subprotocol == subprotocol
+
+
+DEFAULT_MAX_WS_BYTES_PLUS1 = 2 ** 20 + 1
+DEFAULT_MAX_WS_BYTES = 2 ** 20
+MAX_WS_BYTES_MINUS1 = 1024 * 1024 * 16 - 1
+
+
+@pytest.mark.parametrize("protocol_cls", ONLY_WEBSOCKETPROTOCOL)
+def test_send_binary_data_to_server_bigger_than_default(protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+        async def websocket_receive(self, message):
+            _bytes = message.get("bytes")
+            await self.send({"type": "websocket.send", "bytes": _bytes})
+
+    async def send_text(url):
+        async with websockets.connect(
+            url, max_size=DEFAULT_MAX_WS_BYTES_PLUS1
+        ) as websocket:
+            await websocket.send(b"\x01" * DEFAULT_MAX_WS_BYTES_PLUS1)
+            return await websocket.recv()
+
+    with run_server(App, protocol_cls=protocol_cls) as url:
+        loop = asyncio.new_event_loop()
+        data = loop.run_until_complete(send_text(url))
+        assert data == b"\x01" * DEFAULT_MAX_WS_BYTES_PLUS1
+        loop.close()

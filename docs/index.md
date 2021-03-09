@@ -117,6 +117,7 @@ Options:
                                   $WEB_CONCURRENCY environment variable if
                                   available, or 1. Not valid with --reload.
 
+
   --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
                                   auto]
@@ -124,6 +125,9 @@ Options:
   --ws [auto|none|websockets|wsproto]
                                   WebSocket protocol implementation.
                                   [default: auto]
+
+  --ws-max-size INTEGER           WebSocket max size message in bytes
+                                  [default: 16777216]
 
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --interface [auto|asgi3|asgi2|wsgi]
