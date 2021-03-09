@@ -7,7 +7,7 @@ import os
 import socket
 import ssl
 import sys
-from typing import List, Literal, Tuple
+from typing import List, Tuple
 
 import click
 
@@ -219,7 +219,7 @@ class Config:
             self.forwarded_allow_ips = forwarded_allow_ips
 
     @property
-    def asgi_version(self) -> Literal["2.0", "3.0"]:
+    def asgi_version(self) -> str:
         return {"asgi2": "2.0", "asgi3": "3.0", "wsgi": "3.0"}[self.interface]
 
     @property
