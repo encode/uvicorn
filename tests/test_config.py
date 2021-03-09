@@ -268,7 +268,7 @@ def test_env_file(web_concurrency: int, forwarded_allow_ips: str, caplog, tmpdir
     """
     Test that one can load environment variables using an env file.
     """
-    fp = tmpdir.join("hello.txt")
+    fp = tmpdir.join(".env")
     content = (
         f"WEB_CONCURRENCY={web_concurrency}\n"
         f"FORWARDED_ALLOW_IPS={forwarded_allow_ips}\n"
