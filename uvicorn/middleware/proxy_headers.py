@@ -8,10 +8,17 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
+from uvicorn._types import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    HTTPScope,
+    WWWScope,
+)
 
 
 class ProxyHeadersMiddleware:
-    def __init__(self, app, trusted_hosts="127.0.0.1"):
+    def __init__(self, app: ASGI3Application, trusted_hosts: str = "127.0.0.1") -> None:
         self.app = app
         if isinstance(trusted_hosts, str):
             self.trusted_hosts = [item.strip() for item in trusted_hosts.split(",")]
@@ -19,7 +26,9 @@ class ProxyHeadersMiddleware:
             self.trusted_hosts = trusted_hosts
         self.always_trust = "*" in self.trusted_hosts
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         if scope["type"] in ("http", "websocket"):
             client_addr = scope.get("client")
             client_host = client_addr[0] if client_addr else None
@@ -31,6 +40,7 @@ class ProxyHeadersMiddleware:
                     # Determine if the incoming request was http or https based on
                     # the X-Forwarded-Proto header.
                     x_forwarded_proto = headers[b"x-forwarded-proto"].decode("latin1")
+                    # THE ISSUE IS HERE! \/
                     scope["scheme"] = x_forwarded_proto.strip()
 
                 if b"x-forwarded-for" in headers:
