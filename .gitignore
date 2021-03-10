@@ -6,3 +6,4 @@ uvicorn.egg-info/
 venv/
 htmlcov/
 site/
+.vscode
