@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import signal
+from typing import Any, Dict
 
 from gunicorn.workers.base import Worker
 
@@ -29,7 +30,7 @@ class UvicornWorker(Worker):
         logger.setLevel(self.log.access_log.level)
         logger.propagate = False
 
-        config_kwargs = {
+        config_kwargs: Dict[str, Any] = {
             "app": None,
             "log_config": None,
             "timeout_keep_alive": self.cfg.keepalive,

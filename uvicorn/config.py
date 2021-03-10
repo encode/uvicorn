@@ -7,7 +7,7 @@ import os
 import socket
 import ssl
 import sys
-from typing import List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import click
 
@@ -102,8 +102,14 @@ logger = logging.getLogger("uvicorn.error")
 
 
 def create_ssl_context(
-    certfile, keyfile, password, ssl_version, cert_reqs, ca_certs, ciphers
-):
+    certfile: Optional[str],
+    keyfile: Optional[str],
+    password: Optional[str],
+    ssl_version: int,
+    cert_reqs: int,
+    ca_certs: Optional[str],
+    ciphers: Optional[str],
+) -> ssl.SSLContext:
     ctx = ssl.SSLContext(ssl_version)
     get_password = (lambda: password) if password else None
     ctx.load_cert_chain(certfile, keyfile, get_password)
@@ -119,43 +125,43 @@ class Config:
     def __init__(
         self,
         app,
-        host="127.0.0.1",
-        port=8000,
-        uds=None,
-        fd=None,
-        loop="auto",
-        http="auto",
-        ws="auto",
-        lifespan="auto",
-        env_file=None,
-        log_config=LOGGING_CONFIG,
-        log_level=None,
-        access_log=True,
-        use_colors=None,
-        interface="auto",
-        debug=False,
-        reload=False,
-        reload_dirs=None,
-        reload_delay=None,
-        workers=None,
-        proxy_headers=True,
-        forwarded_allow_ips=None,
-        root_path="",
-        limit_concurrency=None,
-        limit_max_requests=None,
-        backlog=2048,
-        timeout_keep_alive=5,
-        timeout_notify=30,
-        callback_notify=None,
-        ssl_keyfile=None,
-        ssl_certfile=None,
-        ssl_keyfile_password=None,
-        ssl_version=SSL_PROTOCOL_VERSION,
-        ssl_cert_reqs=ssl.CERT_NONE,
-        ssl_ca_certs=None,
-        ssl_ciphers="TLSv1",
-        headers=None,
-        factory=False,
+        host: str = "127.0.0.1",
+        port: int = 8000,
+        uds: Optional[str] = None,
+        fd: Optional[int] = None,
+        loop: str = "auto",
+        http: str = "auto",
+        ws: str = "auto",
+        lifespan: str = "auto",
+        env_file: Optional[str] = None,
+        log_config: Union[Dict[str, Any], str] = LOGGING_CONFIG,
+        log_level: Optional[Union[str, int]] = None,
+        access_log: bool = True,
+        use_colors: Optional[bool] = None,
+        interface: str = "auto",
+        debug: bool = False,
+        reload: bool = False,
+        reload_dirs: Optional[List[str]] = None,
+        reload_delay: Optional[float] = None,
+        workers: Optional[int] = None,
+        proxy_headers: bool = True,
+        forwarded_allow_ips: Optional[str] = None,
+        root_path: str = "",
+        limit_concurrency: Optional[int] = None,
+        limit_max_requests: Optional[int] = None,
+        backlog: int = 2048,
+        timeout_keep_alive: int = 5,
+        timeout_notify: int = 30,
+        callback_notify: Callable[..., None] = None,
+        ssl_keyfile: Optional[str] = None,
+        ssl_certfile: Optional[str] = None,
+        ssl_keyfile_password: Optional[str] = None,
+        ssl_version: int = SSL_PROTOCOL_VERSION,
+        ssl_cert_reqs: int = ssl.CERT_NONE,
+        ssl_ca_certs: Optional[str] = None,
+        ssl_ciphers: str = "TLSv1",
+        headers: Optional[List[List[str]]] = None,
+        factory: bool = False,
     ):
         self.app = app
         self.host = host
@@ -190,8 +196,8 @@ class Config:
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
-        self.headers = headers if headers else []  # type: List[str]
-        self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
+        self.headers: List[List[str]] = headers if headers else []
+        self.encoded_headers: Optional[List[Tuple[bytes, bytes]]] = None
         self.factory = factory
 
         self.loaded = False
@@ -226,7 +232,7 @@ class Config:
     def is_ssl(self) -> bool:
         return bool(self.ssl_keyfile or self.ssl_certfile)
 
-    def configure_logging(self):
+    def configure_logging(self) -> None:
         logging.addLevelName(TRACE_LOG_LEVEL, "TRACE")
 
         if self.log_config is not None:
@@ -266,9 +272,10 @@ class Config:
             logging.getLogger("uvicorn.access").handlers = []
             logging.getLogger("uvicorn.access").propagate = False
 
-    def load(self):
+    def load(self) -> None:
         assert not self.loaded
 
+        self.ssl: Optional[ssl.SSLContext]
         if self.is_ssl:
             self.ssl = create_ssl_context(
                 keyfile=self.ssl_keyfile,
@@ -290,7 +297,7 @@ class Config:
             encoded_headers
             if b"server" in dict(encoded_headers)
             else [(b"server", b"uvicorn")] + encoded_headers
-        )  # type: List[Tuple[bytes, bytes]]
+        )
 
         if isinstance(self.http, str):
             self.http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
@@ -350,12 +357,12 @@ class Config:
 
         self.loaded = True
 
-    def setup_event_loop(self):
+    def setup_event_loop(self) -> None:
         loop_setup = import_from_string(LOOP_SETUPS[self.loop])
         if loop_setup is not None:
             loop_setup()
 
-    def bind_socket(self):
+    def bind_socket(self) -> socket.socket:
         family = socket.AF_INET
         addr_format = "%s://%s:%d"
 
@@ -390,5 +397,5 @@ class Config:
         return sock
 
     @property
-    def should_reload(self):
+    def should_reload(self) -> bool:
         return isinstance(self.app, str) and (self.debug or self.reload)
