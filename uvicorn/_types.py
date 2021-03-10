@@ -1,15 +1,5 @@
 import sys
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    Iterable,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Awaitable, Callable, Dict, Iterable, Optional, Tuple, Type, Union
 
 if sys.version_info < (3, 8):
     from typing_extensions import Literal, Protocol, TypedDict
