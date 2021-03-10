@@ -1,12 +1,13 @@
 import importlib
-from typing import Any
+from types import ModuleType
+from typing import Any, Union
 
 
 class ImportFromStringError(Exception):
     pass
 
 
-def import_from_string(import_str: Any) -> Any:
+def import_from_string(import_str: Union[ModuleType, str]) -> ModuleType:
     if not isinstance(import_str, str):
         return import_str
 
