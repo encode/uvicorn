@@ -1,6 +1,6 @@
 import importlib
 from types import ModuleType
-from typing import Any, Union
+from typing import Union
 
 
 class ImportFromStringError(Exception):
