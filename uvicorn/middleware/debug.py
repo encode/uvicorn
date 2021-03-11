@@ -1,6 +1,6 @@
 import html
 import traceback
-from typing import Awaitable, Union
+from typing import Union
 
 from uvicorn._types import (
     ASGI3Application,
