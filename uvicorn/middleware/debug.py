@@ -1,13 +1,25 @@
 import html
 import traceback
+from typing import Awaitable, Union
+
+from uvicorn._types import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGIReceiveEvent,
+    ASGISendCallable,
+    ASGISendEvent,
+    WWWScope,
+)
 
 
 class HTMLResponse:
-    def __init__(self, content, status_code):
+    def __init__(self, content: str, status_code: int):
         self.content = content
         self.status_code = status_code
 
-    async def __call__(self, scope, recieve, send):
+    async def __call__(
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         await send(
             {
                 "type": "http.response.start",
@@ -25,11 +37,13 @@ class HTMLResponse:
 
 
 class PlainTextResponse:
-    def __init__(self, content, status_code):
+    def __init__(self, content: str, status_code: int):
         self.content = content
         self.status_code = status_code
 
-    async def __call__(self, scope, recieve, send):
+    async def __call__(
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         await send(
             {
                 "type": "http.response.start",
@@ -46,7 +60,7 @@ class PlainTextResponse:
         )
 
 
-def get_accept_header(scope):
+def get_accept_header(scope: WWWScope) -> str:
     accept = "*/*"
 
     for key, value in scope.get("headers", []):
@@ -58,16 +72,18 @@ def get_accept_header(scope):
 
 
 class DebugMiddleware:
-    def __init__(self, app):
+    def __init__(self, app: ASGI3Application):
         self.app = app
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
 
         response_started = False
 
-        async def inner_send(message):
+        async def inner_send(message: ASGISendEvent) -> None:
             nonlocal response_started, send
 
             if message["type"] == "http.response.start":
@@ -81,6 +97,7 @@ class DebugMiddleware:
                 raise exc from None
 
             accept = get_accept_header(scope)
+            response: Union[HTMLResponse, PlainTextResponse]
             if "text/html" in accept:
                 exc_html = html.escape(traceback.format_exc())
                 content = (
