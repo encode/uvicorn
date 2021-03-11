@@ -1,5 +1,5 @@
 import logging
-from typing import Any, TypeVar, Union
+from typing import Any
 
 from uvicorn._types import (
     ASGI3Application,
