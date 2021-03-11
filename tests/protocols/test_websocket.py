@@ -139,10 +139,13 @@ async def test_headers(protocol_cls):
             headers = self.scope.get("headers")
             headers = dict(headers)
             assert headers[b"host"].startswith(b"127.0.0.1")
+            assert headers[b"username"] == bytes("abraão", "utf-8")
             await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.connect(
+            url, extra_headers=[("username", "abraão")]
+        ) as websocket:
             return websocket.open
 
     config = Config(app=App, ws=protocol_cls, lifespan="off")
