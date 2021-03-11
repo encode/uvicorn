@@ -5,7 +5,6 @@ from typing import Union
 from uvicorn._types import (
     ASGI3Application,
     ASGIReceiveCallable,
-    ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
     WWWScope,
