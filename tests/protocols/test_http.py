@@ -10,7 +10,7 @@ from uvicorn.protocols.http.h11_impl import H11Protocol
 
 try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
-except ImportError:  # pragma: nocover
+except ImportError:  # pragma: no cover
     HttpToolsProtocol = None
 
 

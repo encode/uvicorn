@@ -1,9 +1,9 @@
 import sys
 from typing import Dict, Iterable, Optional, Tuple, Union
 
-if sys.version_info < (3, 8):
+if sys.version_info < (3, 8):  # pragma: no cover
     from typing_extensions import Literal, TypedDict
-else:
+else:  # pragma: no cover
     from typing import Literal, TypedDict
 
 
