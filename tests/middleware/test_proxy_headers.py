@@ -52,7 +52,7 @@ async def test_proxy_headers_trusted_hosts(trusted_hosts, response_text):
             ["127.0.0.1", "10.0.2.1", "192.168.0.2"],
             "Remote: https://1.2.3.4:0",
         ),
-        # order isn't matter
+        # order doesn't matter
         (
             ["10.0.2.1", "192.168.0.2", "127.0.0.1"],
             "Remote: https://1.2.3.4:0",
