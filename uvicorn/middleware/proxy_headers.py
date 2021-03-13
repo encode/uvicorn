@@ -8,6 +8,7 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
+from typing import List
 
 
 class ProxyHeadersMiddleware:
