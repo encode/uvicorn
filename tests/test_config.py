@@ -262,3 +262,14 @@ def test_config_access_log(access_log: bool, handlers: int):
 
     assert len(logging.getLogger("uvicorn.access").handlers) == handlers
     assert config.access_log == access_log
+
+
+@pytest.mark.parametrize("log_level", [5, 10, 20, 30, 40, 50])
+def test_config_log_level(log_level):
+    config = Config(app=asgi_app, log_level=log_level)
+    config.load()
+
+    assert logging.getLogger("uvicorn.error").level == log_level
+    assert logging.getLogger("uvicorn.access").level == log_level
+    assert logging.getLogger("uvicorn.asgi").level == log_level
+    assert config.log_level == log_level
