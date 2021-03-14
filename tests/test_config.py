@@ -247,3 +247,18 @@ def test_log_config_file(mocked_logging_config_module):
     mocked_logging_config_module.fileConfig.assert_called_once_with(
         "log_config", disable_existing_loggers=False
     )
+
+
+@pytest.mark.parametrize(
+    "access_log, handlers",
+    [
+        pytest.param(True, 1, id="access log enabled should have single handler"),
+        pytest.param(False, 0, id="access log disabled shouldn't have handlers"),
+    ],
+)
+def test_config_access_log(access_log: bool, handlers: int):
+    config = Config(app=asgi_app, access_log=access_log)
+    config.load()
+
+    assert len(logging.getLogger("uvicorn.access").handlers) == handlers
+    assert config.access_log == access_log

@@ -20,14 +20,14 @@ class HTMLResponse:
         self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         await send(
-            {
+            {  # type: ignore
                 "type": "http.response.start",
                 "status": self.status_code,
                 "headers": [[b"content-type", b"text/html; charset=utf-8"]],
             }
         )
         await send(
-            {
+            {  # type: ignore
                 "type": "http.response.body",
                 "body": self.content.encode("utf-8"),
                 "more_body": False,
@@ -44,14 +44,14 @@ class PlainTextResponse:
         self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         await send(
-            {
+            {  # type: ignore
                 "type": "http.response.start",
                 "status": self.status_code,
                 "headers": [[b"content-type", b"text/plain; charset=utf-8"]],
             }
         )
         await send(
-            {
+            {  # type: ignore
                 "type": "http.response.body",
                 "body": self.content.encode("utf-8"),
                 "more_body": False,
