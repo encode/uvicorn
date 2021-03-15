@@ -1,5 +1,4 @@
 import asyncio
-import errno
 import inspect
 import json
 import logging
@@ -416,9 +415,9 @@ class Config:
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
             fd_name_format = "%s"
             color_message = (
-                    "Uvicorn running on "
-                    + click.style(fd_name_format, bold=True)
-                    + " (Press CTRL+C to quit)"
+                "Uvicorn running on "
+                + click.style(fd_name_format, bold=True)
+                + " (Press CTRL+C to quit)"
             )
             logger.info(
                 message,
