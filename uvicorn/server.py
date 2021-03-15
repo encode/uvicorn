@@ -91,7 +91,7 @@ class Server:
 
         loop = asyncio.get_event_loop()
 
-        if sockets is not None and any(sockets):
+        if sockets is not None:
             # Explicitly passed a list of open sockets.
             # We use this when the server is run from a Gunicorn worker.
 
