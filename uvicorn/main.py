@@ -363,9 +363,12 @@ def main(
 
 
 def run(app, **kwargs):
-    config = Config(app, **kwargs)
-    server = Server(config=config)
+    run_server(Server(config=Config(app, **kwargs)))
 
+
+def run_server(server):
+    config = server.config
+    app = config.app
     if (config.reload or config.workers > 1) and not isinstance(app, str):
         logger = logging.getLogger("uvicorn.error")
         logger.warning(
