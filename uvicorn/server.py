@@ -31,22 +31,33 @@ class ServerState:
         self.connections = set()
         self.tasks = set()
         self.default_headers = []
+        self.did_start = threading.Event()
+        self.did_exit = threading.Event()
 
 
 class Server:
     def __init__(self, config):
         self.config = config
         self.server_state = ServerState()
-
-        self.started = False
         self.should_exit = False
         self.force_exit = False
         self.last_notified = 0
 
+    @property
+    def started(self):
+        self.server_state.did_start.is_set()
+
+    @property
+    def exited(self):
+        return self.server_state.did_exit.is_set()
+
     def run(self, sockets=None):
-        self.config.setup_event_loop()
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.serve(sockets=sockets))
+        try:
+            self.config.setup_event_loop()
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self.serve(sockets=sockets))
+        finally:
+            self.server_state.did_exit.set()
 
     async def serve(self, sockets=None):
         process_id = os.getpid()
@@ -161,7 +172,7 @@ class Server:
             # logged by `config.bind_socket()`.
             pass
 
-        self.started = True
+        self.server_state.did_start.set()
 
     def _log_started_message(self, listeners: List[socket.SocketType]) -> None:
         config = self.config
