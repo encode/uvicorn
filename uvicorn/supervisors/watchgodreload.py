@@ -13,14 +13,19 @@ class CustomWatcher(DefaultWatcher):
     ignore_dotted_file_regex = r"^\/?(?:\w+\/)*(\.\w+)"
     ignored = []
 
-    def __init__(self, root_path):
+    def __init__(self, root_path, ignored_dirs):
         for t in self.ignored_file_regexes:
             self.ignored.append(t)
         self.ignored.append(self.ignore_dotted_file_regex)
         self._ignored = tuple(re.compile(r) for r in self.ignored)
+        self.ignored_dirs = ignored_dirs
         super().__init__(root_path)
 
     def should_watch_file(self, entry):
+        # analyzing ignored path impacts efficiency for big roots, so
+        # checking first, that ignored dirs are specified
+        if self.ignored_dirs and Path(entry.path).parent in self.ignored_dirs:
+            return False
         return not any(r.search(entry.name) for r in self._ignored)
 
 
@@ -48,7 +53,7 @@ class WatchGodReload(BaseReload):
 
         self.watch_dir_set = watch_dirs_set
         for w in watch_dirs_set:
-            self.watchers.append(CustomWatcher(w))
+            self.watchers.append(CustomWatcher(w, self.config.reload_exclude_dirs))
 
     def should_restart(self):
         for watcher in self.watchers:

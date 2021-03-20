@@ -7,6 +7,7 @@ import os
 import socket
 import ssl
 import sys
+from pathlib import Path
 from typing import List, Tuple
 
 import click
@@ -136,6 +137,7 @@ class Config:
         debug=False,
         reload=False,
         reload_dirs=None,
+        reload_exclude_dirs=None,
         reload_delay=None,
         workers=None,
         proxy_headers=True,
@@ -197,9 +199,18 @@ class Config:
         self.loaded = False
         self.configure_logging()
 
-        if reload_dirs is None:
-            self.reload_dirs = [os.getcwd()]
-        else:
+        if reload_dirs is not None and reload_exclude_dirs is not None:
+            logger.error("Can not specify both --reload-dirs and --reload-exclude-dirs")
+            sys.exit(1)
+
+        self.reload_dirs = [os.getcwd()]
+        self.reload_exclude_dirs = []
+
+        if reload_exclude_dirs is not None:
+            self.reload_exclude_dirs = [
+                Path(directory).absolute() for directory in reload_exclude_dirs
+            ]
+        elif reload_dirs is not None:
             self.reload_dirs = reload_dirs
 
         if env_file is not None:

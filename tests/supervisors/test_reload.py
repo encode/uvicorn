@@ -96,3 +96,20 @@ class TestBaseReload:
             assert self._reload_tester(reloader, app_ext_file)
 
             reloader.shutdown()
+
+    def test_should_not_reload_when_directories_excluded(self):
+        file = "excluded.py"
+
+        excluded_dir = self.tmp_path.joinpath("excluded")
+        excluded_dir.mkdir()
+        excluded_file = excluded_dir.joinpath(file)
+        excluded_file.touch()
+
+        with self.tmpdir.as_cwd():
+            config = Config(
+                app=None, reload=True, reload_exclude_dirs=[str(excluded_dir)]
+            )
+            reloader = self._setup_reloader(config)
+            assert not self._reload_tester(reloader, excluded_file)
+
+            reloader.shutdown()

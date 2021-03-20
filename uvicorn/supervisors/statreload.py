@@ -36,6 +36,11 @@ class StatReload(BaseReload):
     def iter_py_files(self):
         for reload_dir in self.config.reload_dirs:
             for subdir, dirs, files in os.walk(reload_dir):
+                if (
+                    self.config.reload_exclude_dirs
+                    and Path(subdir).absolute() in self.config.reload_exclude_dirs
+                ):
+                    continue
                 for file in files:
                     if file.endswith(".py"):
                         yield subdir + os.sep + file

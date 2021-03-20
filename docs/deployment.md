@@ -39,6 +39,9 @@ Options:
   --reload-dir TEXT               Set reload directories explicitly, instead
                                   of using the current working directory.
 
+  --reload-exclude-dir TEXT       Exclude directories from being watched by
+                                  auto-reloader.
+
   --reload-delay FLOAT            Delay between previous and next check if
                                   application needs to be. Defaults to 0.25s.
                                   [default: 0.25]

@@ -63,6 +63,18 @@ def test_config_should_reload_is_set(app, expected_should_reload):
     assert config_reload.should_reload is expected_should_reload
 
 
+def test_can_not_use_both_exclude_and_reload_dir_params():
+    with pytest.raises(SystemExit) as exit_error:
+        Config(
+            app=None,
+            reload=True,
+            reload_dirs=["included/dir"],
+            reload_exclude_dirs=["excluded/dir"],
+        )
+
+    assert exit_error.value.code == 1
+
+
 def test_wsgi_app():
     config = Config(app=wsgi_app, interface="wsgi", proxy_headers=False)
     config.load()
