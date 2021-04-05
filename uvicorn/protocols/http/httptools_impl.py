@@ -130,7 +130,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Per-request state
         self.url = None
         self.scope: dict = {}
-        self.headers: Tuple[Any, Any] = {}
+        self.headers: dict = {}
         self.expect_100_continue = False
         self.cycle: RequestResponseCycle
 
@@ -250,7 +250,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         name = name.lower()
         if name == b"expect" and value.lower() == b"100-continue":
             self.expect_100_continue = True
-        self.headers.append((name, value))
+        self.headers[name] = value
 
     def on_headers_complete(self) -> None:
         http_version = self.parser.get_http_version()
