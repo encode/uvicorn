@@ -4,7 +4,7 @@ import http
 import logging
 import re
 import urllib
-from typing import Any, ByteString, Callable, Dict, Optional, Tuple, Union
+from typing import Any, ByteString, Callable, Dict, Iterable, Optional, Tuple, Union
 
 import httptools
 
@@ -130,7 +130,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Per-request state
         self.url = None
         self.scope: dict = {}
-        self.headers: dict = {}
+        self.headers: Iterable[Tuple[bytes, bytes]] = {}
         self.expect_100_continue = False
         self.cycle: RequestResponseCycle
 
@@ -148,7 +148,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
 
-    def connection_lost(self, exc: Exception) -> None:
+    def connection_lost(self, exc: Any) -> None:
         self.connections.discard(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
