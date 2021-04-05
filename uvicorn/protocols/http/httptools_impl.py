@@ -129,7 +129,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         # Per-request state
         self.url = None
-        self.scope = None
+        self.scope: Optional[dict] = None
         self.headers: dict = {}
         self.expect_100_continue = False
         self.cycle: RequestResponseCycle
