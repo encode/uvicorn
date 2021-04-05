@@ -3,7 +3,7 @@ import http
 import logging
 import re
 import urllib
-from typing import ByteString, Callable, Dict, Union
+from typing import ByteString, Callable, Dict, Optional, Tuple
 
 import httptools
 
@@ -16,7 +16,7 @@ from uvicorn.protocols.utils import (
     get_remote_addr,
     is_ssl,
 )
-from uvicorn.server import ServerState
+from uvicorn.server import Server, ServerState
 
 HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")
@@ -121,15 +121,15 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Per-connection state
         self.transport: asyncio.Transport
         self.flow: FlowControl
-        self.server = None
-        self.client = None
-        self.scheme = None
+        self.server: Optional[Tuple[str, int]]
+        self.client: Optional[Tuple[str, int]]
+        self.scheme: str
         self.pipeline: list = []
 
         # Per-request state
         self.url = None
         self.scope = None
-        self.headers = None
+        self.headers: dict = {}
         self.expect_100_continue = False
         self.cycle: RequestResponseCycle
 
@@ -169,7 +169,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
 
-    def data_received(self, data) -> None:
+    def data_received(self, data: bytes) -> None:
         self._unset_keepalive_if_required()
 
         try:
