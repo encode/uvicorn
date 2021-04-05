@@ -110,7 +110,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.limit_concurrency = config.limit_concurrency
 
         # Timeouts
-        self.timeout_keep_alive_task: Optional[TimerHandle]
+        self.timeout_keep_alive_task: Optional[TimerHandle] = None
         self.timeout_keep_alive = config.timeout_keep_alive
 
         # Global state
@@ -122,8 +122,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Per-connection state
         self.transport: asyncio.Transport
         self.flow: FlowControl
-        self.server: Optional[Tuple[str, int]]
-        self.client: Optional[Tuple[str, int]]
+        self.server: Optional[Tuple[str, int]] = None
+        self.client: Optional[Tuple[str, int]] = None
         self.scheme: str
         self.pipeline: list = []
 
