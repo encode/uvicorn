@@ -132,10 +132,10 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.scope: dict = {}
         self.headers: list = []
         self.expect_100_continue = False
-        self.cycle: RequestResponseCycle = None
+        self.cycle: RequestResponseCycle = None  # type: ignore
 
     # Protocol interface
-    def connection_made(self, transport: asyncio.Transport) -> None:
+    def connection_made(self, transport: asyncio.Transport) -> None:  # type: ignore
         self.connections.add(self)
 
         self.transport = transport
@@ -272,7 +272,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         existing_cycle = self.cycle
         self.cycle = RequestResponseCycle(
-            scope=self.scope,
+            scope=self.scope,  # type: ignore
             transport=self.transport,
             flow=self.flow,
             logger=self.logger,
@@ -427,7 +427,7 @@ class RequestResponseCycle:
                 self.logger.error(msg)
                 self.transport.close()
         finally:
-            self.on_response = None
+            self.on_response = None  # type: ignore
 
     async def send_500_response(self) -> None:
         await self.send(
@@ -569,8 +569,8 @@ class RequestResponseCycle:
         else:
             message = {
                 "type": "http.request",
-                "body": self.body,
-                "more_body": self.more_body,
+                "body": self.body,  # type: ignore
+                "more_body": self.more_body,  # type: ignore
             }
             self.body = b""
 
