@@ -1,4 +1,5 @@
 import asyncio
+from asyncio.events import TimerHandle
 import http
 import logging
 import re
@@ -109,7 +110,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.limit_concurrency = config.limit_concurrency
 
         # Timeouts
-        self.timeout_keep_alive_task = None
+        self.timeout_keep_alive_task: Optional[TimerHandle]
         self.timeout_keep_alive = config.timeout_keep_alive
 
         # Global state
