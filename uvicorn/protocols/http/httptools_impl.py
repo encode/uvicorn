@@ -3,7 +3,7 @@ import http
 import logging
 import re
 import urllib
-from typing import ByteString, Callable
+from typing import ByteString, Callable, Dict, Union
 
 import httptools
 
@@ -49,25 +49,25 @@ class FlowControl:
         self._is_writable_event = asyncio.Event()
         self._is_writable_event.set()
 
-    async def drain(self):
+    async def drain(self) -> None:
         await self._is_writable_event.wait()
 
-    def pause_reading(self):
+    def pause_reading(self) -> None:
         if not self.read_paused:
             self.read_paused = True
             self._transport.pause_reading()
 
-    def resume_reading(self):
+    def resume_reading(self) -> None:
         if self.read_paused:
             self.read_paused = False
             self._transport.resume_reading()
 
-    def pause_writing(self):
+    def pause_writing(self) -> None:
         if not self.write_paused:
             self.write_paused = True
             self._is_writable_event.clear()
 
-    def resume_writing(self):
+    def resume_writing(self) -> None:
         if self.write_paused:
             self.write_paused = False
             self._is_writable_event.set()
@@ -91,7 +91,7 @@ class HttpToolsProtocol(asyncio.Protocol):
     def __init__(
         self,
         config: Config,
-        server_state=ServerState,
+        server_state: ServerState,
         _loop: asyncio.AbstractEventLoop = None,
     ) -> None:
         if not config.loaded:
@@ -119,19 +119,19 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.default_headers = server_state.default_headers
 
         # Per-connection state
-        self.transport = None
-        self.flow = None
+        self.transport: asyncio.Transport
+        self.flow: FlowControl
         self.server = None
         self.client = None
         self.scheme = None
-        self.pipeline = []
+        self.pipeline: list = []
 
         # Per-request state
         self.url = None
         self.scope = None
         self.headers = None
         self.expect_100_continue = False
-        self.cycle = None
+        self.cycle: RequestResponseCycle
 
     # Protocol interface
     def connection_made(self, transport: asyncio.Transport) -> None:
@@ -553,7 +553,7 @@ class RequestResponseCycle:
             msg = "Unexpected ASGI message '%s' sent, after response already completed."
             raise RuntimeError(msg % message_type)
 
-    async def receive(self) -> None:
+    async def receive(self) -> Dict:
         if self.waiting_for_100_continue and not self.transport.is_closing():
             self.transport.write(b"HTTP/1.1 100 Continue\r\n\r\n")
             self.waiting_for_100_continue = False
