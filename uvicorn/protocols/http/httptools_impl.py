@@ -16,7 +16,7 @@ from uvicorn.protocols.utils import (
     get_remote_addr,
     is_ssl,
 )
-from uvicorn.server import Server, ServerState
+from uvicorn.server import ServerState
 
 HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")
