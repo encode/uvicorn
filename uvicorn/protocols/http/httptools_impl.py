@@ -132,7 +132,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.scope: dict = {}
         self.headers: list = []
         self.expect_100_continue = False
-        self.cycle: RequestResponseCycle
+        self.cycle: RequestResponseCycle = None
 
     # Protocol interface
     def connection_made(self, transport: asyncio.Transport) -> None:
