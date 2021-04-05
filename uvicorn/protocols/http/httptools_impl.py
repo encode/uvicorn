@@ -4,7 +4,7 @@ import http
 import logging
 import re
 import urllib
-from typing import ByteString, Callable, Dict, Optional, Tuple
+from typing import Any, ByteString, Callable, Dict, Optional, Tuple
 
 import httptools
 
@@ -129,8 +129,8 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         # Per-request state
         self.url = None
-        self.scope: Optional[dict] = None
-        self.headers: dict = {}
+        self.scope: dict = {}
+        self.headers: Tuple[Any, Any] = {}
         self.expect_100_continue = False
         self.cycle: RequestResponseCycle
 
