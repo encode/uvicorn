@@ -1,14 +1,14 @@
 import asyncio
-from asyncio.events import TimerHandle
 import http
 import logging
 import re
 import urllib
+from asyncio.events import TimerHandle
 from typing import Any, ByteString, Callable, Dict, Optional, Tuple
 
 import httptools
 
-from uvicorn._types import Scope, HTTPScope
+from uvicorn._types import HTTPScope, Scope
 from uvicorn.config import Config
 from uvicorn.protocols.utils import (
     get_client_addr,
