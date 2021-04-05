@@ -4,7 +4,7 @@ import http
 import logging
 import re
 import urllib
-from typing import Any, ByteString, Callable, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, ByteString, Callable, Dict, Optional, Tuple
 
 import httptools
 
