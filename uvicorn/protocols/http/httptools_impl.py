@@ -399,7 +399,7 @@ class RequestResponseCycle:
         # Response state
         self.response_started = False
         self.response_complete = False
-        self.chunked_encoding = None
+        self.chunked_encoding: Optional[bool] = None
         self.expected_content_length = 0
 
     # ASGI exception wrapper
