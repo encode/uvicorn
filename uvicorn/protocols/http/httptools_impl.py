@@ -370,7 +370,7 @@ class RequestResponseCycle:
         flow: FlowControl,
         logger: logging.Logger,
         access_logger: logging.Logger,
-        access_log: logging.Logger,
+        access_log: bool,
         default_headers: list,
         message_event: asyncio.Event,
         expect_100_continue: bool,
