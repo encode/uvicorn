@@ -128,7 +128,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.pipeline: list = []
 
         # Per-request state
-        self.url = None
+        self.url: Optional[str] = None
         self.scope: dict = {}
         self.headers: list = []
         self.expect_100_continue = False
@@ -145,14 +145,14 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.scheme = "https" if is_ssl(transport) else "http"
 
         if self.logger.level <= TRACE_LOG_LEVEL:
-            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
 
     def connection_lost(self, exc: Any) -> None:
         self.connections.discard(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
-            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection lost", prefix)
 
         if self.cycle and not self.cycle.response_complete:
