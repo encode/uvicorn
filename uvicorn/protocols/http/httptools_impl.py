@@ -4,11 +4,11 @@ import http
 import logging
 import re
 import urllib
-from typing import Any, ByteString, Callable, Dict, Literal, Optional, Tuple, Union
+from typing import Any, ByteString, Callable, Dict, Optional, Tuple, Union
 
 import httptools
 
-from uvicorn._types import Scope, HTTPScope, WebsocketScope
+from uvicorn._types import Scope, HTTPScope
 from uvicorn.config import Config
 from uvicorn.protocols.utils import (
     get_client_addr,
@@ -365,7 +365,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
-        scope: Union[HTTPScope, WebsocketScope],
+        scope: HTTPScope,
         transport: asyncio.Transport,
         flow: FlowControl,
         logger: logging.Logger,
