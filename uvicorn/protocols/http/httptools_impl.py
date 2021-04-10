@@ -8,7 +8,7 @@ from typing import Any, ByteString, Callable, Dict, Optional, Tuple
 
 import httptools
 
-from uvicorn._types import HTTPScope, Scope
+from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, HTTPScope, Scope
 from uvicorn.config import Config
 from uvicorn.protocols.utils import (
     get_client_addr,
@@ -74,9 +74,11 @@ class FlowControl:
             self._is_writable_event.set()
 
 
-async def service_unavailable(scope: Scope, receive: Callable, send: Callable) -> None:
+async def service_unavailable(
+    scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+) -> None:
     await send(
-        {
+        {  # type: ignore
             "type": "http.response.start",
             "status": 503,
             "headers": [
@@ -85,7 +87,9 @@ async def service_unavailable(scope: Scope, receive: Callable, send: Callable) -
             ],
         }
     )
-    await send({"type": "http.response.body", "body": b"Service Unavailable"})
+    await send(
+        {"type": "http.response.body", "body": b"Service Unavailable"}  # type: ignore
+    )
 
 
 class HttpToolsProtocol(asyncio.Protocol):
