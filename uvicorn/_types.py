@@ -4,7 +4,7 @@ from typing import Awaitable, Callable, Dict, Iterable, Optional, Tuple, Type, U
 if sys.version_info < (3, 8):
     from typing_extensions import Literal, Protocol, TypedDict
 else:
-    from typing import Literal, TypedDict
+    from typing import Literal, Protocol, TypedDict
 
 
 class ASGISpecInfo(TypedDict):

@@ -4,11 +4,19 @@ import logging
 import re
 import urllib
 from asyncio.events import TimerHandle
-from typing import Any, ByteString, Callable, Dict, Optional, Tuple
+from typing import Any, ByteString, Callable, Optional, Tuple
 
 import httptools
 
-from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, HTTPScope, Scope
+from uvicorn._types import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGIReceiveEvent,
+    ASGISendCallable,
+    ASGISendEvent,
+    HTTPScope,
+    Scope,
+)
 from uvicorn.config import Config
 from uvicorn.protocols.utils import (
     get_client_addr,
@@ -407,7 +415,7 @@ class RequestResponseCycle:
         self.expected_content_length = 0
 
     # ASGI exception wrapper
-    async def run_asgi(self, app: Callable) -> None:
+    async def run_asgi(self, app: ASGI3Application) -> None:
         try:
             result = await app(self.scope, self.receive, self.send)
         except BaseException as exc:
@@ -435,7 +443,7 @@ class RequestResponseCycle:
 
     async def send_500_response(self) -> None:
         await self.send(
-            {
+            {  # type: ignore
                 "type": "http.response.start",
                 "status": 500,
                 "headers": [
@@ -445,11 +453,14 @@ class RequestResponseCycle:
             }
         )
         await self.send(
-            {"type": "http.response.body", "body": b"Internal Server Error"}
+            {  # type: ignore
+                "type": "http.response.body",
+                "body": b"Internal Server Error",
+            }
         )
 
     # ASGI interface
-    async def send(self, message: dict) -> None:
+    async def send(self, message: ASGISendEvent) -> None:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
@@ -467,8 +478,10 @@ class RequestResponseCycle:
             self.response_started = True
             self.waiting_for_100_continue = False
 
-            status_code = message["status"]
-            headers = self.default_headers + list(message.get("headers", []))
+            status_code = message["status"]  # type: ignore
+            headers = self.default_headers + list(
+                message.get("headers", [])  # type: ignore
+            )
 
             if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
                 headers = headers + [CLOSE_HEADER]
@@ -521,8 +534,8 @@ class RequestResponseCycle:
                 msg = "Expected ASGI message 'http.response.body', but got '%s'."
                 raise RuntimeError(msg % message_type)
 
-            body = message.get("body", b"")
-            more_body = message.get("more_body", False)
+            body = message.get("body", b"")  # type: ignore
+            more_body = message.get("more_body", False)  # type: ignore
 
             # Write response body
             if self.scope["method"] == "HEAD":
@@ -558,7 +571,7 @@ class RequestResponseCycle:
             msg = "Unexpected ASGI message '%s' sent, after response already completed."
             raise RuntimeError(msg % message_type)
 
-    async def receive(self) -> Dict:
+    async def receive(self) -> ASGIReceiveEvent:
         if self.waiting_for_100_continue and not self.transport.is_closing():
             self.transport.write(b"HTTP/1.1 100 Continue\r\n\r\n")
             self.waiting_for_100_continue = False
@@ -578,4 +591,4 @@ class RequestResponseCycle:
             }
             self.body = b""
 
-        return message
+        return message  # type: ignore
