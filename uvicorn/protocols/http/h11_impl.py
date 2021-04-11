@@ -6,7 +6,7 @@ from urllib.parse import unquote
 
 import h11
 
-from uvicorn._types import ASGIReceiveEvent, ASGISendEvent, HTTPScope
+from uvicorn._types import ASGI3Application, ASGIReceiveEvent, ASGISendEvent, HTTPScope
 from uvicorn.config import Config
 from uvicorn.protocols.utils import (
     get_client_addr,
@@ -407,7 +407,7 @@ class RequestResponseCycle:
         self.response_complete = False
 
     # ASGI exception wrapper
-    async def run_asgi(self, app: Callable) -> None:
+    async def run_asgi(self, app: ASGI3Application) -> None:
         try:
             result = await app(self.scope, self.receive, self.send)
         except BaseException as exc:
