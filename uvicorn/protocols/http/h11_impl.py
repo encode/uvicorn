@@ -6,7 +6,7 @@ from urllib.parse import unquote
 
 import h11
 
-from uvicorn._types import HTTPScope
+from uvicorn._types import ASGIReceiveEvent, ASGISendEvent, HTTPScope
 from uvicorn.config import Config
 from uvicorn.protocols.utils import (
     get_client_addr,
@@ -449,7 +449,7 @@ class RequestResponseCycle:
         )
 
     # ASGI interface
-    async def send(self, message: dict) -> None:
+    async def send(self, message: ASGISendEvent) -> None:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
@@ -528,7 +528,7 @@ class RequestResponseCycle:
                 self.transport.close()
             self.on_response()
 
-    async def receive(self) -> dict:
+    async def receive(self) -> ASGIReceiveEvent:
         if self.waiting_for_100_continue and not self.transport.is_closing():
             event = h11.InformationalResponse(
                 status_code=100, headers=[], reason="Continue"
