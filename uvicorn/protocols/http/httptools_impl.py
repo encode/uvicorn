@@ -140,8 +140,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.pipeline: list = []
 
         # Per-request state
-        self.url: Optional[str] = None
-        self.scope: dict = {}
+        self.url: bytes
+        self.scope: HTTPScope
         self.headers: list = []
         self.expect_100_continue = False
         self.cycle: RequestResponseCycle = None  # type: ignore
@@ -233,7 +233,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.transport.set_protocol(protocol)
 
     # Parser callbacks
-    def on_url(self, url: str) -> None:
+    def on_url(self, url: bytes) -> None:
         method = self.parser.get_method()
         parsed_url = httptools.parse_url(url)
         raw_path = parsed_url.path
@@ -256,6 +256,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             "raw_path": raw_path,
             "query_string": parsed_url.query if parsed_url.query else b"",
             "headers": self.headers,
+            "extensions": {},
         }
 
     def on_header(self, name: bytes, value: bytes) -> None:
@@ -284,7 +285,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         existing_cycle = self.cycle
         self.cycle = RequestResponseCycle(
-            scope=self.scope,  # type: ignore
+            scope=self.scope,
             transport=self.transport,
             flow=self.flow,
             logger=self.logger,
