@@ -439,7 +439,7 @@ class RequestResponseCycle:
                 self.logger.error(msg)
                 self.transport.close()
         finally:
-            self.on_response = None  # type: ignore
+            self.on_response = lambda _: None
 
     async def send_500_response(self) -> None:
         await self.send(
