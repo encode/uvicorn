@@ -179,20 +179,16 @@ class H2Protocol(asyncio.Protocol):
             self.transport.write(self.conn.data_to_send())
 
     def on_request_received(self, event: h2.events.RequestReceived):
-        raw_path, _, query_string = event.raw_path.partition(b"?")
         self.scope = {
             "type": "http",
             "asgi": {
                 "version": self.config.asgi_version,
                 "spec_version": "2.1",
             },
-            "http_version": event.http_version.decode("ascii"),
+            "http_version": "2",
             "server": self.server,
             "client": self.client,
             "root_path": self.root_path,
-            "raw_path": raw_path,
-            "path": unquote(raw_path),
-            "query_string": query_string,
             'extensions': {"http.response.push": {}},
             'headers': [],
         }
@@ -200,13 +196,18 @@ class H2Protocol(asyncio.Protocol):
             b":scheme": "scheme",
             b":authority": "authority",
             b":method": "method",
-            b":path": "path",
+            b":path": "raw_path",
         }
         for key, value in event.headers:
             if key in scope_mapping:
                 self.scope[scope_mapping[key]] = value.decode("ascii")
             else:
                 self.scope["headers"].append((key.lower(), value))
+        path, _, query_string = self.scope["raw_path"].partition("?")
+        self.scope["path"], self.scope["query_string"] = (
+            unquote(path),
+            query_string.encode("ascii"),
+        )
 
         # Handle 503 responses when 'limit_concurrency' is exceeded.
         if self.limit_concurrency is not None and (
