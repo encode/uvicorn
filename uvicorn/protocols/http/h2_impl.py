@@ -141,10 +141,41 @@ class H2Protocol(asyncio.Protocol):
         self.conn.initiate_connection()
         self.transport.write(self.conn.data_to_send())
 
+    def connection_lost(self, exc):
+        self.connections.discard(self)
+
+        self.logger.debug("%s - Disconnected", self.client[0])
+
+        for stream_id, stream in self.streams.items():
+            if stream.cycle:
+                if not stream.cycle.response_complete:
+                    stream.cycle.disconnected = True
+                    try:
+                        self.conn.close_connection(last_stream_id=stream_id)
+                        self.transport.write(self.conn.data_to_send())
+                    except h2.exceptions.ProtocolError as err:
+                        self.logger.debug(
+                            "connection lost, failed to close connection.", exc_info=err
+                        )
+                stream.cycle.message_event.set()
+
+        self.logger.debug(
+            "Disconnected, current streams: %s", list(self.streams.keys()), exc_info=exc
+        )
+        self.streams = {}
+        if self.flow is not None:
+            self.flow.resume_writing()
+
     def _unset_keepalive_if_required(self):
         if self.timeout_keep_alive_task is not None:
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
+
+    def eof_received(self):
+        self.logger.debug(
+            "eof received, current streams: %s", list(self.streams.keys())
+        )
+        self.streams = {}
 
     def data_received(self, data):
         self._unset_keepalive_if_required()
@@ -337,6 +368,34 @@ class H2Protocol(asyncio.Protocol):
         # if self.conn.our_state is h11.DONE and self.conn.their_state is h11.DONE:
         #     self.conn.start_next_cycle()
         #     self.handle_events()
+
+    def handle_upgrade(self, event):
+        pass
+
+    def pause_writing(self):
+        """
+        Called by the transport when the write buffer exceeds the high water mark.
+        """
+        self.flow.pause_writing()
+
+    def resume_writing(self):
+        """
+        Called by the transport when the write buffer drops below the low water mark.
+        """
+        self.flow.resume_writing()
+
+    def shutdown(self):
+        self.logger.debug(
+            "Shutdown. streams: %s, tasks: %s", self.streams.keys(), self.tasks
+        )
+        for stream_id, stream in self.streams.items():
+            if stream.cycle is None or stream.cycle.response_complete:
+                self.conn.close_connection(last_stream_id=stream_id)
+                self.transport.write(self.conn.data_to_send())
+            else:
+                stream.cycle.keep_alive = False
+        self.streams = {}
+        self.transport.close()
 
     def timeout_keep_alive_handler(self):
         """
