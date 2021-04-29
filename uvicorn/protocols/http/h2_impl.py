@@ -163,11 +163,11 @@ class H2Protocol(asyncio.Protocol):
             if event_type is h2.events.RequestReceived:
                 self.on_request_received(event)
             elif event_type is h2.events.DataReceived:
-                pass
+                self.on_data_received(event)
             elif event_type is h2.events.StreamEnded:
-                pass
+                self.on_stream_ended(event)
             elif event_type is h2.events.StreamReset:
-                pass
+                self.on_stream_reset(event)
             elif event_type is h2.events.WindowUpdated:
                 pass
             elif event_type is h2.events.PriorityUpdated:
@@ -175,9 +175,10 @@ class H2Protocol(asyncio.Protocol):
             elif event_type is h2.events.RemoteSettingsChanged:
                 pass
             elif event_type is h2.events.ConnectionTerminated:
-                pass
+                self.on_connection_terminated(event)
+            self.transport.write(self.conn.data_to_send())
 
-    def on_request_received(self, event):
+    def on_request_received(self, event: h2.events.RequestReceived):
         raw_path, _, query_string = event.raw_path.partition(b"?")
         self.scope = {
             "type": "http",
@@ -250,6 +251,70 @@ class H2Protocol(asyncio.Protocol):
         )
         self.tasks.add(task)
 
+    def on_data_received(self, event: h2.events.DataReceived):
+        stream_id = event.stream_id
+        self.logger.debug(
+            "On data received, current %s, streams: %s", stream_id, self.streams.keys()
+        )
+        try:
+            self.streams[stream_id].cycle.body += event.data
+        except KeyError:
+            self.conn.reset_stream(
+                stream_id, error_code=h2.errors.ErrorCodes.PROTOCOL_ERROR
+            )
+        else:
+            # In Hypercorn:
+            # self.conn.acknowledge_received_data(
+            #     event.flow_controlled_length, event.stream_id
+            # )
+            # To be done here, or in RequestResponseCycle's `receive()`? 😕
+            body_size = len(self.streams[stream_id].cycle.body)
+            if body_size > HIGH_WATER_LIMIT:
+                self.flow.pause_reading()
+            self.streams[stream_id].cycle.message_event.set()
+
+    def on_stream_ended(self, event: h2.events.StreamEnded):
+        stream_id = event.stream_id
+        self.logger.debug(
+            "On stream ended, current %s, streams: %s", stream_id, self.streams.keys()
+        )
+        try:
+            stream = self.streams[stream_id]
+        except KeyError:
+            self.conn.reset_stream(
+                stream_id, error_code=h2.errors.ErrorCodes.STREAM_CLOSED
+            )
+        else:
+            self.flow.resume_reading()
+            stream.cycle.more_body = False
+            self.streams[stream_id].cycle.message_event.set()
+
+    def on_stream_reset(self, event: h2.events.StreamReset):
+        self.logger.debug(
+            "stream(%s) reset by %s with error_code %s",
+            event.stream_id,
+            "server" if event.remote_reset else "remote peer",
+            event.error_code,
+        )
+        self.streams.pop(event.stream_id, None)
+        # In Hypercorn:
+        # app_put({"type": "http.disconnect"})
+
+    def on_connection_terminated(self, event: h2.events.ConnectionTerminated):
+        stream_id = event.last_stream_id
+        self.logger.debug(
+            "H2Connection terminated, additional_data(%s), error_code(%s), last_stream(%s), streams: %s",
+            event.additional_data,
+            event.error_code,
+            stream_id,
+            list(self.streams.keys()),
+        )
+        stream = self.streams.pop(stream_id)
+        if stream:
+            stream.cycle.disconnected = True
+        self.conn.close_connection(last_stream_id=stream_id)
+        self.transport.write(self.conn.data_to_send())
+        self.transport.close()
 
     def on_response_complete(self):
         self.server_state.total_requests += 1
