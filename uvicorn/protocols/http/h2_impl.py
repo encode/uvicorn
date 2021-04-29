@@ -11,7 +11,9 @@ import h2.events
 import h2.exceptions
 
 from uvicorn.protocols.utils import (
+    get_client_addr,
     get_local_addr,
+    get_path_with_query_string,
     get_remote_addr,
     is_ssl,
 )
@@ -447,3 +449,131 @@ class RequestResponseCycle:
         self.response_started = False
         self.response_complete = False
 
+    # ASGI exception wrapper
+    async def run_asgi(self, app):
+        try:
+            result = await app(self.scope, self.receive, self.send)
+        except BaseException as exc:
+            msg = "Exception in ASGI application\n"
+            self.logger.error(msg, exc_info=exc)
+            if not self.response_started:
+                await self.send_500_response()
+            else:
+                self.transport.close()
+        else:
+            if result is not None:
+                msg = "ASGI callable should return None, but returned '%s'."
+                self.logger.error(msg, result)
+                self.transport.close()
+            elif not self.response_started and not self.disconnected:
+                msg = "ASGI callable returned without starting response."
+                self.logger.error(msg)
+                await self.send_500_response()
+            elif not self.response_complete and not self.disconnected:
+                msg = "ASGI callable returned without completing response."
+                self.logger.error(msg)
+                self.transport.close()
+        finally:
+            self.on_response = None
+
+    async def send_500_response(self):
+        await self.send(
+            {
+                "type": "http.response.start",
+                "status": 500,
+                "headers": [
+                    (b"content-type", b"text/plain; charset=utf-8"),
+                    (b"connection", b"close"),
+                ],
+            }
+        )
+        await self.send(
+            {"type": "http.response.body", "body": b"Internal Server Error"}
+        )
+
+    # ASGI interface
+    async def send(self, message):
+        message_type = message["type"]
+
+        if self.disconnected:
+            return
+
+        if self.flow.write_paused:
+            await self.flow.drain()
+
+        if not self.response_started:
+            # Sending response status line and headers
+            if message_type != "http.response.start":
+                msg = "Expected ASGI message 'http.response.start', but got '%s'."
+                raise RuntimeError(msg % message_type)
+
+            self.response_started = True
+
+            status_code = message["status"]
+
+            headers = self.default_headers + message.get("headers", [])
+
+            if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
+                headers = headers + [CLOSE_HEADER]
+
+            if self.access_log:
+                self.access_logger.info(
+                    '%s - "%s %s HTTP/%s" %d',
+                    get_client_addr(self.scope),
+                    self.scope["method"],
+                    get_path_with_query_string(self.scope),
+                    self.scope["http_version"],
+                    status_code,
+                )
+
+            # Write response status line and headers
+            headers = ((":status", str(status_code)), *headers)
+            self.logger.debug("response start, message %s", message)
+            self.conn.send_headers(self.stream_id, headers, end_stream=False)
+            self.transport.write(self.conn.data_to_send())
+        elif not self.response_complete:
+            # Sending response body
+            if message_type == "http.response.body":
+                more_body = message.get("more_body", False)
+
+                # Write response body
+                if self.scope["method"] == "HEAD":
+                    body = b""
+                else:
+                    body = message.get("body", b"")
+                self.conn.send_data(self.stream_id, body, end_stream=(not more_body))
+                self.transport.write(self.conn.data_to_send())
+
+                # Handle response completion
+                if not more_body:
+                    self.response_complete = True
+            elif message_type == "http.response.push":
+                pass
+            else:
+                msg = "Expected ASGI message 'http.response.body' or 'http.response.push', but got '%s'."
+                raise RuntimeError(msg % message_type)
+        else:
+            # Response already sent
+            msg = "Unexpected ASGI message '%s' sent, after response already completed."
+            raise RuntimeError(msg % message_type)
+
+        if self.response_complete:
+            self.on_response()
+
+    async def receive(self):
+        if not self.disconnected and not self.response_complete:
+            self.flow.resume_reading()
+            await self.message_event.wait()
+            self.message_event.clear()
+
+        if self.disconnected or self.response_complete:
+            message = {"type": "http.disconnect"}
+        else:
+            message = {
+                "type": "http.request",
+                "body": self.body,
+                "more_body": self.more_body,
+            }
+            self.body = b""
+
+        return message
