@@ -261,9 +261,22 @@ class H11Protocol(asyncio.Protocol):
 
     def handle_upgrade(self, event):
         upgrade_value = None
+        has_body = False
         for name, value in self.headers:
             if name == b"upgrade":
                 upgrade_value = value.lower()
+            elif name in {"content-length", "transfer-encoding"}:
+                has_body = True
+
+        # https://http2.github.io/faq/#can-i-implement-http2-without-implementing-http11
+        if upgrade_value.lower() == "h2c" and not has_body:
+            # h2c stuff
+            # return
+            pass
+        elif event.method == b"PRI" and event.target == b"*" and event.http_version == b"2.0":
+            # https://tools.ietf.org/html/rfc7540#section-3.5
+            # return
+            pass
 
         if upgrade_value != b"websocket" or self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
