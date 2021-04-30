@@ -268,7 +268,6 @@ class H11Protocol(asyncio.Protocol):
             elif name in {"content-length", "transfer-encoding"}:
                 has_body = True
 
-        # https://http2.github.io/faq/#can-i-implement-http2-without-implementing-http11
         if upgrade_value.lower() == "h2c" and not has_body:
             self.connections.discard(self)
 
@@ -285,9 +284,17 @@ class H11Protocol(asyncio.Protocol):
             protocol.connection_made(self.transport, upgrade_request=event)
             self.transport.set_protocol(protocol)
 
-        # elif event.method == b"PRI" and event.target == b"*" and event.http_version == b"2.0":
-        #     # https://tools.ietf.org/html/rfc7540#section-3.5
-        #     pass
+        elif event.method == b"PRI" and event.target == b"*" and event.http_version == b"2.0":
+            # https://tools.ietf.org/html/rfc7540#section-3.5
+            self.connections.discard(self)
+
+            protocol = self.config.h2_protocol_class(
+                config=self.config,
+                server_state=self.server_state
+            )
+            protocol.connection_made(self.transport)
+            self.transport.set_protocol(protocol)
+            protocol.data_received(b"PRI * HTTP/2.0\r\n\r\n" + self.conn.trailing_data[0])
 
         elif upgrade_value == b"websocket" and self.ws_protocol_class is not None:
             self.connections.discard(self)
