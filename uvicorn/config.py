@@ -113,6 +113,7 @@ def create_ssl_context(
         ctx.load_verify_locations(ca_certs)
     if ciphers:
         ctx.set_ciphers(ciphers)
+    # TODO: http2 related stuff implementation
     return ctx
 
 

@@ -101,8 +101,7 @@ class H2Protocol(asyncio.Protocol):
         self.conn = h2.connection.H2Connection(
             config=h2.config.H2Configuration(client_side=False, header_encoding=None)
         )
-        # In Hypercorn:
-        # self.conn.local_settings = ...
+        # TODO: Set h2-connection settings from `config`
 
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
@@ -143,6 +142,7 @@ class H2Protocol(asyncio.Protocol):
         if upgrade_request is None:
             self.conn.initiate_connection()
         else:
+            # TODO: Implementation for handling h2c upgrade
             # Different implementations for httptools and h11 for handling h2c
             return
 
@@ -309,7 +309,8 @@ class H2Protocol(asyncio.Protocol):
             # self.conn.acknowledge_received_data(
             #     event.flow_controlled_length, event.stream_id
             # )
-            # To be done here, or in RequestResponseCycle's `receive()`? 😕
+            # TODO: To be done here, or in RequestResponseCycle's `receive()`? 😕
+
             body_size = len(self.streams[stream_id].cycle.body)
             if body_size > HIGH_WATER_LIMIT:
                 self.flow.pause_reading()
@@ -339,6 +340,8 @@ class H2Protocol(asyncio.Protocol):
             event.error_code,
         )
         self.streams.pop(event.stream_id, None)
+
+        # TODO: To be done or not?
         # In Hypercorn:
         # app_put({"type": "http.disconnect"})
 
@@ -373,11 +376,6 @@ class H2Protocol(asyncio.Protocol):
 
         # Unpause data reads if needed.
         self.flow.resume_reading()
-
-        # Unblock any pipelined events.
-        # if self.conn.our_state is h11.DONE and self.conn.their_state is h11.DONE:
-        #     self.conn.start_next_cycle()
-        #     self.handle_events()
 
     def handle_upgrade(self, event):
         pass
@@ -556,6 +554,7 @@ class RequestResponseCycle:
                 if not more_body:
                     self.response_complete = True
             elif message_type == "http.response.push":
+                # TODO: Implement or Not?
                 # https://groups.google.com/a/chromium.org/g/blink-dev/c/K3rYLvmQUBY/m/vOWBKZGoAQAJ 😕
                 pass
             else:
