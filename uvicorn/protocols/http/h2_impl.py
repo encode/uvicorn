@@ -97,9 +97,13 @@ class H2Protocol(asyncio.Protocol):
         self.logger = logging.getLogger("uvicorn.error")
         self.access_logger = logging.getLogger("uvicorn.access")
         self.access_log = self.access_logger.hasHandlers()
+
         self.conn = h2.connection.H2Connection(
             config=h2.config.H2Configuration(client_side=False, header_encoding=None)
         )
+        # In Hypercorn:
+        # self.conn.local_settings = ...
+
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
         self.limit_concurrency = config.limit_concurrency
@@ -139,7 +143,7 @@ class H2Protocol(asyncio.Protocol):
         if upgrade_request is None:
             self.conn.initiate_connection()
         else:
-            # Different implementations for httptools and h11
+            # Different implementations for httptools and h11 for handling h2c
             return
 
         self.transport.write(self.conn.data_to_send())
@@ -552,6 +556,7 @@ class RequestResponseCycle:
                 if not more_body:
                     self.response_complete = True
             elif message_type == "http.response.push":
+                # https://groups.google.com/a/chromium.org/g/blink-dev/c/K3rYLvmQUBY/m/vOWBKZGoAQAJ 😕
                 pass
             else:
                 msg = "Expected ASGI message 'http.response.body' or 'http.response.push', but got '%s'."
