@@ -40,6 +40,7 @@ HTTP_PROTOCOLS = {
     "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
     "h11": "uvicorn.protocols.http.h11_impl:H11Protocol",
     "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
+    "h2": "uvicorn.protocols.http.h2_impl:H2Protocol",
 }
 WS_PROTOCOLS = {
     "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",
@@ -193,6 +194,7 @@ class Config:
         self.headers = headers if headers else []  # type: List[str]
         self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
         self.factory = factory
+        self.h2_protocol_class = None
 
         self.loaded = False
         self.configure_logging()
@@ -303,6 +305,8 @@ class Config:
             self.ws_protocol_class = self.ws
 
         self.lifespan_class = import_from_string(LIFESPAN[self.lifespan])
+
+        self.h2_protocol_class = import_from_string(HTTP_PROTOCOLS['h2'])
 
         try:
             self.loaded_app = import_from_string(self.app)

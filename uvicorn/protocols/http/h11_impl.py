@@ -270,15 +270,39 @@ class H11Protocol(asyncio.Protocol):
 
         # https://http2.github.io/faq/#can-i-implement-http2-without-implementing-http11
         if upgrade_value.lower() == "h2c" and not has_body:
-            # h2c stuff
-            # return
-            pass
-        elif event.method == b"PRI" and event.target == b"*" and event.http_version == b"2.0":
-            # https://tools.ietf.org/html/rfc7540#section-3.5
-            # return
-            pass
+            self.connections.discard(self)
 
-        if upgrade_value != b"websocket" or self.ws_protocol_class is None:
+            headers = ((b"upgrade", b"h2c"), *self.headers)
+            self.transport.write(
+                self.conn.send(
+                    h11.InformationalResponse(status_code=101, headers=headers)
+                )
+            )
+            protocol = self.config.h2_protocol_class(
+                config=self.config,
+                server_state=self.server_state
+            )
+            protocol.connection_made(self.transport, upgrade_request=event)
+            self.transport.set_protocol(protocol)
+
+        # elif event.method == b"PRI" and event.target == b"*" and event.http_version == b"2.0":
+        #     # https://tools.ietf.org/html/rfc7540#section-3.5
+        #     pass
+
+        elif upgrade_value == b"websocket" and self.ws_protocol_class is not None:
+            self.connections.discard(self)
+            output = [event.method, b" ", event.target, b" HTTP/1.1\r\n"]
+            for name, value in self.headers:
+                output += [name, b": ", value, b"\r\n"]
+            output.append(b"\r\n")
+            protocol = self.ws_protocol_class(
+                config=self.config, server_state=self.server_state
+            )
+            protocol.connection_made(self.transport)
+            protocol.data_received(b"".join(output))
+            self.transport.set_protocol(protocol)
+
+        else:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
 
@@ -303,19 +327,6 @@ class H11Protocol(asyncio.Protocol):
             output = self.conn.send(event)
             self.transport.write(output)
             self.transport.close()
-            return
-
-        self.connections.discard(self)
-        output = [event.method, b" ", event.target, b" HTTP/1.1\r\n"]
-        for name, value in self.headers:
-            output += [name, b": ", value, b"\r\n"]
-        output.append(b"\r\n")
-        protocol = self.ws_protocol_class(
-            config=self.config, server_state=self.server_state
-        )
-        protocol.connection_made(self.transport)
-        protocol.data_received(b"".join(output))
-        self.transport.set_protocol(protocol)
 
     def on_response_complete(self):
         self.server_state.total_requests += 1
