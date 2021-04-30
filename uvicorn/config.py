@@ -307,7 +307,7 @@ class Config:
 
         self.lifespan_class = import_from_string(LIFESPAN[self.lifespan])
 
-        self.h2_protocol_class = import_from_string(HTTP_PROTOCOLS['h2'])
+        self.h2_protocol_class = import_from_string(HTTP_PROTOCOLS["h2"])
 
         try:
             self.loaded_app = import_from_string(self.app)

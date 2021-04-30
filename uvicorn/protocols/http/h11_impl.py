@@ -264,17 +264,22 @@ class H11Protocol(asyncio.Protocol):
                 self.cycle.message_event.set()
 
     def check_connection_preface(self, event):
-        if event.method == b"PRI" and event.target == b"*" and event.http_version == b"2.0":
+        if (
+            event.method == b"PRI"
+            and event.target == b"*"
+            and event.http_version == b"2.0"
+        ):
             # https://tools.ietf.org/html/rfc7540#section-3.5
             self.connections.discard(self)
 
             protocol = self.config.h2_protocol_class(
-                config=self.config,
-                server_state=self.server_state
+                config=self.config, server_state=self.server_state
             )
             protocol.connection_made(self.transport)
             self.transport.set_protocol(protocol)
-            protocol.data_received(b"PRI * HTTP/2.0\r\n\r\n" + self.conn.trailing_data[0])
+            protocol.data_received(
+                b"PRI * HTTP/2.0\r\n\r\n" + self.conn.trailing_data[0]
+            )
             return True
         return False
 
@@ -297,8 +302,7 @@ class H11Protocol(asyncio.Protocol):
                 )
             )
             protocol = self.config.h2_protocol_class(
-                config=self.config,
-                server_state=self.server_state
+                config=self.config, server_state=self.server_state
             )
             protocol.connection_made(self.transport, upgrade_request=event)
             self.transport.set_protocol(protocol)

@@ -230,8 +230,8 @@ class H2Protocol(asyncio.Protocol):
             "server": self.server,
             "client": self.client,
             "root_path": self.root_path,
-            'extensions': {"http.response.push": {}},
-            'headers': [],
+            "extensions": {"http.response.push": {}},
+            "headers": [],
         }
         scope_mapping = {
             b":scheme": "scheme",
@@ -252,8 +252,8 @@ class H2Protocol(asyncio.Protocol):
 
         # Handle 503 responses when 'limit_concurrency' is exceeded.
         if self.limit_concurrency is not None and (
-                len(self.connections) >= self.limit_concurrency
-                or len(self.tasks) >= self.limit_concurrency
+            len(self.connections) >= self.limit_concurrency
+            or len(self.tasks) >= self.limit_concurrency
         ):
             app = service_unavailable
             message = "Exceeded concurrency limit."
@@ -418,18 +418,18 @@ class H2Protocol(asyncio.Protocol):
 
 class RequestResponseCycle:
     def __init__(
-            self,
-            stream_id,
-            scope,
-            conn,
-            transport,
-            flow,
-            logger,
-            access_logger,
-            access_log,
-            default_headers,
-            message_event,
-            on_response,
+        self,
+        stream_id,
+        scope,
+        conn,
+        transport,
+        flow,
+        logger,
+        access_logger,
+        access_log,
+        default_headers,
+        message_event,
+        on_response,
     ):
         self.stream_id = stream_id
         self.scope = scope
