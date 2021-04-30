@@ -127,7 +127,7 @@ class H2Protocol(asyncio.Protocol):
         self.streams = {}
 
     # Protocol interface
-    def connection_made(self, transport):
+    def connection_made(self, transport, upgrade_request=None):
         self.connections.add(self)
 
         self.transport = transport
@@ -136,12 +136,16 @@ class H2Protocol(asyncio.Protocol):
         self.client = get_remote_addr(transport)
         self.scheme = "https" if is_ssl(transport) else "http"
 
+        if upgrade_request is None:
+            self.conn.initiate_connection()
+        else:
+            # Different implementations for httptools and h11
+            return
+
+        self.transport.write(self.conn.data_to_send())
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
-
-        self.conn.initiate_connection()
-        self.transport.write(self.conn.data_to_send())
 
     def connection_lost(self, exc):
         self.connections.discard(self)
