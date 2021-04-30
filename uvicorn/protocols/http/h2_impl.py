@@ -348,7 +348,8 @@ class H2Protocol(asyncio.Protocol):
     def on_connection_terminated(self, event: h2.events.ConnectionTerminated):
         stream_id = event.last_stream_id
         self.logger.debug(
-            "H2Connection terminated, additional_data(%s), error_code(%s), last_stream(%s), streams: %s",
+            "H2Connection terminated, additional_data(%s), "
+            "error_code(%s), last_stream(%s), streams: %s",
             event.additional_data,
             event.error_code,
             stream_id,
@@ -407,7 +408,8 @@ class H2Protocol(asyncio.Protocol):
 
     def timeout_keep_alive_handler(self):
         """
-        Called on a keep-alive connection if no new data is received after a short delay.
+        Called on a keep-alive connection if no new data is received after a short
+        delay.
         """
         if not self.transport.is_closing():
             for stream_id, stream in self.streams.items():
@@ -555,10 +557,13 @@ class RequestResponseCycle:
                     self.response_complete = True
             elif message_type == "http.response.push":
                 # TODO: Implement or Not?
-                # https://groups.google.com/a/chromium.org/g/blink-dev/c/K3rYLvmQUBY/m/vOWBKZGoAQAJ 😕
+                # https://groups.google.com/a/chromium.org/g/blink-dev/c/K3rYLvmQUBY/m/vOWBKZGoAQAJ 😕  # noqa: E501
                 pass
             else:
-                msg = "Expected ASGI message 'http.response.body' or 'http.response.push', but got '%s'."
+                msg = (
+                    "Expected ASGI message 'http.response.body' "
+                    "or 'http.response.push', but got '%s'."
+                )
                 raise RuntimeError(msg % message_type)
         else:
             # Response already sent
