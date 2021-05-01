@@ -103,7 +103,7 @@ logger = logging.getLogger("uvicorn.error")
 
 
 def create_ssl_context(
-    certfile, keyfile, password, ssl_version, cert_reqs, ca_certs, ciphers
+    certfile, keyfile, password, ssl_version, cert_reqs, ca_certs, ciphers, enable_h2
 ):
     ctx = ssl.SSLContext(ssl_version)
     get_password = (lambda: password) if password else None
@@ -113,7 +113,20 @@ def create_ssl_context(
         ctx.load_verify_locations(ca_certs)
     if ciphers:
         ctx.set_ciphers(ciphers)
-    # TODO: http2 related stuff implementation
+    if enable_h2:
+        ctx.options |= (
+            ssl.OP_NO_SSLv2
+            | ssl.OP_NO_SSLv3
+            | ssl.OP_NO_TLSv1
+            | ssl.OP_NO_TLSv1_1
+            | ssl.OP_NO_COMPRESSION
+            | ssl.OP_CIPHER_SERVER_PREFERENCE
+        )
+        ctx.set_alpn_protocols(["h2", "http/1.1"])
+        try:
+            ctx.set_npn_protocols(["h2", "http/1.1"])
+        except NotImplementedError:
+            pass
     return ctx
 
 
@@ -281,6 +294,7 @@ class Config:
                 cert_reqs=self.ssl_cert_reqs,
                 ca_certs=self.ssl_ca_certs,
                 ciphers=self.ssl_ciphers,
+                enable_h2=self.http in ("h2",),
             )
         else:
             self.ssl = None
