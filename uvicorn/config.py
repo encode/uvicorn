@@ -209,6 +209,9 @@ class Config:
         self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
         self.factory = factory
         self.h2_protocol_class = None
+        self.h2_max_concurrent_streams = 100
+        self.h2_max_header_list_size = 2 ** 16
+        self.h2_max_inbound_frame_size = 2 ** 14
 
         self.loaded = False
         self.configure_logging()

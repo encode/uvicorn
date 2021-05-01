@@ -9,6 +9,7 @@ import h2.connection
 import h2.errors
 import h2.events
 import h2.exceptions
+import h2.settings
 
 from uvicorn.protocols.utils import (
     get_client_addr,
@@ -101,7 +102,14 @@ class H2Protocol(asyncio.Protocol):
         self.conn = h2.connection.H2Connection(
             config=h2.config.H2Configuration(client_side=False, header_encoding=None)
         )
-        # TODO: Set h2-connection settings from `config`
+        self.conn.DEFAULT_MAX_INBOUND_FRAME_SIZE = config.h2_max_inbound_frame_size
+        self.conn.local_settings = h2.settings.Settings(
+            client=False,
+            initial_values={
+                h2.settings.SettingCodes.MAX_CONCURRENT_STREAMS: config.h2_max_concurrent_streams,  # noqa: E501
+                h2.settings.SettingCodes.MAX_HEADER_LIST_SIZE: config.h2_max_header_list_size,  # noqa: E501
+            },
+        )
 
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
