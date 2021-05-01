@@ -149,12 +149,30 @@ class H2Protocol(asyncio.Protocol):
 
         if upgrade_request is None:
             self.conn.initiate_connection()
+            self.transport.write(self.conn.data_to_send())
         else:
-            # TODO: Implementation for handling h2c upgrade
-            # Different implementations for httptools and h11 for handling h2c
-            return
+            # TODO: Implementations for httptools_impl to handle h2c
+            # For now, only h11_impl will handle h2c
 
-        self.transport.write(self.conn.data_to_send())
+            # if type(upgrade_request) == h11.Request
+            settings = ""
+            headers = []
+            for name, value in upgrade_request.headers:
+                if name.lower() == b"http2-settings":
+                    settings = value.decode()
+                elif name.lower() == b"host":
+                    headers.append((b":authority", value))
+                headers.append((name, value))
+            headers.append((b":method", upgrade_request.method))
+            headers.append((b":path", upgrade_request.target))
+            headers.append((b":scheme", self.scheme.encode("ascii")))
+            self.conn.initiate_upgrade_connection(settings)
+            self.transport.write(self.conn.data_to_send())
+            event = h2.events.RequestReceived()
+            event.stream_id = 1
+            event.headers = headers
+            self.on_request_received(event)
+
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
@@ -314,6 +332,7 @@ class H2Protocol(asyncio.Protocol):
             )
         else:
             # In Hypercorn:
+            # https://gitlab.com/pgjones/hypercorn/-/blob/0.11.2/src/hypercorn/protocol/h2.py#L233-235
             # self.conn.acknowledge_received_data(
             #     event.flow_controlled_length, event.stream_id
             # )
