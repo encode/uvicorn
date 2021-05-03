@@ -212,6 +212,7 @@ class Config:
         self.h2_max_concurrent_streams = 100
         self.h2_max_header_list_size = 2 ** 16
         self.h2_max_inbound_frame_size = 2 ** 14
+        self.h2_ssl_ciphers = "ECDHE+AESGCM"
 
         self.loaded = False
         self.configure_logging()
@@ -288,6 +289,12 @@ class Config:
     def load(self):
         assert not self.loaded
 
+        enable_h2 = self.http in ("h2",)
+        ciphers = (
+            self.h2_ssl_ciphers
+            if (self.ssl_ciphers == "TLSv1" and enable_h2)
+            else self.ssl_ciphers
+        )
         if self.is_ssl:
             self.ssl = create_ssl_context(
                 keyfile=self.ssl_keyfile,
@@ -296,8 +303,8 @@ class Config:
                 ssl_version=self.ssl_version,
                 cert_reqs=self.ssl_cert_reqs,
                 ca_certs=self.ssl_ca_certs,
-                ciphers=self.ssl_ciphers,
-                enable_h2=self.http in ("h2",),
+                ciphers=ciphers,
+                enable_h2=enable_h2,
             )
         else:
             self.ssl = None
