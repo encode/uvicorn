@@ -457,3 +457,18 @@ async def test_subprotocols(protocol_cls, subprotocol):
     async with run_server(config):
         accepted_subprotocol = await get_subprotocol("ws://127.0.0.1:8000")
         assert accepted_subprotocol == subprotocol
+
+
+@pytest.mark.asyncio
+async def test_message_max_size():
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+    config = Config(app=App, ws=WebSocketProtocol, ws_max_size=1000, lifespan="off")
+    async with run_server(config):
+        async with websockets.connect("ws://127.0.0.1:8000") as websocket:
+            with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
+                await websocket.send(b"a" * 1001)
+                await websocket.recv()
+            assert exc_info.value.code == 1009
