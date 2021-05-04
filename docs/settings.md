@@ -20,7 +20,7 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 ## Development
 
 * `--reload` - Enable auto-reload.
-* `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default all directories in current directory will be watched.
+* `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default all directories in current directory will be watched. If you are running programmatically use `reload_dirs=[]` and pass a list of strings.
 
 ## Production
 
