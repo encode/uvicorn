@@ -1,5 +1,6 @@
 import logging
 import os
+import platform
 import signal
 import threading
 
@@ -57,7 +58,10 @@ class BaseReload:
     def restart(self):
         self.mtimes = {}
 
-        self.process.terminate()
+        if platform.system() == "Windows":
+            os.kill(self.process.pid, signal.CTRL_C_EVENT)
+        else:
+            self.process.terminate()
         self.process.join()
 
         self.process = get_subprocess(
