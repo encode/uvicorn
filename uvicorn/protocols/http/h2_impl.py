@@ -108,6 +108,7 @@ class H2Protocol(asyncio.Protocol):
             initial_values={
                 h2.settings.SettingCodes.MAX_CONCURRENT_STREAMS: config.h2_max_concurrent_streams,  # noqa: E501
                 h2.settings.SettingCodes.MAX_HEADER_LIST_SIZE: config.h2_max_header_list_size,  # noqa: E501
+                h2.settings.SettingCodes.ENABLE_CONNECT_PROTOCOL: 1,
             },
         )
 
@@ -265,9 +266,13 @@ class H2Protocol(asyncio.Protocol):
             b":method": "method",
             b":path": "raw_path",
         }
+
+        websocket_protocol = False
         for key, value in event.headers:
             if key in scope_mapping:
                 self.scope[scope_mapping[key]] = value.decode("ascii")
+            elif key == b":protocol" and value == b"websocket":
+                websocket_protocol = True
             else:
                 self.scope["headers"].append((key.lower(), value))
         path, _, query_string = self.scope["raw_path"].partition("?")
@@ -275,6 +280,10 @@ class H2Protocol(asyncio.Protocol):
             unquote(path),
             query_string.encode("ascii"),
         )
+
+        if self.scope["method"] == "CONNECT" and websocket_protocol:
+            # TODO: Websocket Extended CONNECT Implementation
+            pass
 
         # Handle 503 responses when 'limit_concurrency' is exceeded.
         if self.limit_concurrency is not None and (
