@@ -1,6 +1,5 @@
 import asyncio
 
-
 CLOSE_HEADER = (b"connection", b"close")
 
 HIGH_WATER_LIMIT = 65536
