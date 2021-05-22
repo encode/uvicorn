@@ -5,14 +5,14 @@ import re
 import urllib
 
 import httptools
-from flow_control import (
+
+from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
     HIGH_WATER_LIMIT,
     TRACE_LOG_LEVEL,
     FlowControl,
     service_unavailable,
 )
-
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
