@@ -94,7 +94,7 @@ The uvicorn command line tool is the easiest way to run your application...
 ### Command line options
 
 <!-- :cli_usage: -->
-```
+``` bash
 $ uvicorn --help
 Usage: uvicorn [OPTIONS] APP
 
