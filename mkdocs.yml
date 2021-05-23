@@ -15,8 +15,8 @@ nav:
     - Server Behavior: 'server-behavior.md'
 
 markdown_extensions:
-  - pymdownx.highlight
-  - pymdownx.superfences
+  - codehilite:
+      css_class: highlight
   - toc:
       permalink: true
 
