@@ -115,7 +115,7 @@ Options:
 
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
-                                  available, or 1. Not valid with --reload.
+                                  available. Not valid with --reload.
 
   --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
@@ -131,9 +131,7 @@ Options:
                                   application interface.  [default: auto]
 
   --env-file PATH                 Environment configuration file.
-  --log-config PATH               Logging configuration file. Supported
-                                  formats: .ini, .json, .yaml.
-
+  --log-config PATH               Logging configuration file.
   --log-level [critical|error|warning|info|debug|trace]
                                   Log level. [default: info]
   --access-log / --no-access-log  Enable/Disable access log.
@@ -167,7 +165,6 @@ Options:
 
   --ssl-keyfile TEXT              SSL key file
   --ssl-certfile TEXT             SSL certificate file
-  --ssl-keyfile-password TEXT     SSL keyfile password
   --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
                                   [default: 2]
 
@@ -185,9 +182,6 @@ Options:
   --app-dir TEXT                  Look for APP in the specified directory, by
                                   adding this to the PYTHONPATH. Defaults to
                                   the current working directory.  [default: .]
-
-  --factory                       Treat APP as an application factory, i.e. a
-                                  () -> <ASGI app> callable.  [default: False]
 
   --help                          Show this message and exit.
 ```
