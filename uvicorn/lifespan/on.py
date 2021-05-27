@@ -48,7 +48,7 @@ class LifespanOn:
         main_lifespan_task = loop.create_task(self.main())  # noqa: F841
         # Keep a hard reference to prevent garbage collection
         # See https://github.com/encode/uvicorn/pull/972
-        startup_event: LifespanStartupEvent {"type": "lifespan.startup"}
+        startup_event: LifespanStartupEvent = {"type": "lifespan.startup"}
         await self.receive_queue.put(startup_event)
         await self.startup_event.wait()
 
