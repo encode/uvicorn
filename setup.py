@@ -36,8 +36,8 @@ def get_packages(package):
 
 env_marker_cpython = (
     "sys_platform != 'win32'"
-    " and sys_platform != 'cygwin'"
-    " and platform_python_implementation != 'PyPy'"
+    " and (sys_platform != 'cygwin'"
+    " and platform_python_implementation != 'PyPy')"
 )
 
 env_marker_win = "sys_platform == 'win32'"
