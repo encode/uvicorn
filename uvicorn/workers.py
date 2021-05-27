@@ -70,7 +70,12 @@ class UvicornWorker(Worker):
             signal.signal(s, signal.SIG_DFL)
 
     def run(self):
-        self.config.app = self.wsgi
+        config = self.config
+        config.app = self.wsgi
+
+        if not config.loaded:
+            config.load()
+
         server = Server(config=self.config)
         loop = asyncio.get_event_loop()
         loop.run_until_complete(server.serve(sockets=self.sockets))
