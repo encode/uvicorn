@@ -48,8 +48,8 @@ class LifespanOn:
         main_lifespan_task = loop.create_task(self.main())  # noqa: F841
         # Keep a hard reference to prevent garbage collection
         # See https://github.com/encode/uvicorn/pull/972
-
-        await self.receive_queue.put(LifespanStartupEvent(type="lifespan.startup"))
+        startup_event: LifespanStartupEvent {"type": "lifespan.startup"}
+        await self.receive_queue.put(startup_event)
         await self.startup_event.wait()
 
         if self.startup_failed or (self.error_occured and self.config.lifespan == "on"):
@@ -62,7 +62,8 @@ class LifespanOn:
         if self.error_occured:
             return
         self.logger.info("Waiting for application shutdown.")
-        await self.receive_queue.put(LifespanShutdownEvent(type="lifespan.shutdown"))
+        shutdown_event: LifespanShutdownEvent = {"type": "lifespan.shutdown"}
+        await self.receive_queue.put(shutdown_event)
         await self.shutdown_event.wait()
 
         if self.shutdown_failed or (
