@@ -44,6 +44,7 @@ env_marker_win = "sys_platform == 'win32'"
 env_marker_below_38 = "python_version < '3.8'"
 
 minimal_requirements = [
+    "asgiref>=3.3.4",
     "click>=7.*",
     "h11>=0.8",
     "typing-extensions;" + env_marker_below_38,
