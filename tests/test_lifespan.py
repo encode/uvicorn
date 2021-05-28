@@ -209,14 +209,16 @@ def test_lifespan_scope_asgi2app():
 
 @pytest.mark.parametrize("mode", ("auto", "on"))
 @pytest.mark.parametrize("raise_exception", (True, False))
-def test_lifespan_with_failed_shutdown(mode, raise_exception):
+def test_lifespan_with_failed_shutdown(mode, raise_exception, caplog):
     async def app(scope, receive, send):
         message = await receive()
         assert message["type"] == "lifespan.startup"
         await send({"type": "lifespan.startup.complete"})
         message = await receive()
         assert message["type"] == "lifespan.shutdown"
-        await send({"type": "lifespan.shutdown.failed"})
+        await send(
+            {"type": "lifespan.shutdown.failed", "message": "the lifespan event failed"}
+        )
 
         if raise_exception:
             # App should be able to re-raise an exception if startup failed.
@@ -235,4 +237,11 @@ def test_lifespan_with_failed_shutdown(mode, raise_exception):
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    error_messages = [
+        record.message
+        for record in caplog.records
+        if record.name == "uvicorn.error" and record.levelname == "ERROR"
+    ]
+    assert "the lifespan event failed" in error_messages.pop(0)
+    assert "Application shutdown failed. Exiting." in error_messages.pop(0)
     loop.close()

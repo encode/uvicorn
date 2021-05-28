@@ -36,22 +36,23 @@ def get_packages(package):
 
 env_marker_cpython = (
     "sys_platform != 'win32'"
-    " and sys_platform != 'cygwin'"
-    " and platform_python_implementation != 'PyPy'"
+    " and (sys_platform != 'cygwin'"
+    " and platform_python_implementation != 'PyPy')"
 )
 
 env_marker_win = "sys_platform == 'win32'"
 env_marker_below_38 = "python_version < '3.8'"
 
 minimal_requirements = [
-    "click==7.*",
+    "asgiref>=3.3.4",
+    "click>=7.*",
     "h11>=0.8",
     "typing-extensions;" + env_marker_below_38,
 ]
 
 
 extra_requirements = [
-    "websockets==8.*",
+    "websockets>=8.*",
     "httptools==0.1.* ;" + env_marker_cpython,
     "uvloop>=0.14.0,!=0.15.0,!=0.15.1; " + env_marker_cpython,
     "colorama>=0.4;" + env_marker_win,
