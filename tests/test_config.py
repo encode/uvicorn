@@ -159,11 +159,11 @@ def test_ssl_config_combined(tls_certificate_pem_path):
     assert config.is_ssl is True
 
 
-def asgi2_app(scope):  # pragma: no cover
-    async def asgi(receive, send):
+def asgi2_app(scope):
+    async def asgi(receive, send):  # pragma: nocover
         pass
 
-    return asgi
+    return asgi  # pragma: nocover
 
 
 @pytest.mark.parametrize(
