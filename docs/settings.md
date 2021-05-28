@@ -4,6 +4,8 @@ Use the following options to configure Uvicorn, when running from the command li
 
 If you're running using programmatically, using `uvicorn.run(...)`, then use
 equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=True, access_log=False)`.
+Please note, in this scene, if you need reloading feature (`reload=True`),
+you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main module.
 
 ## Application
 

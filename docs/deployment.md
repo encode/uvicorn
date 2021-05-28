@@ -133,6 +133,8 @@ uvicorn.run(app, host="127.0.0.1", port=5000, log_level="info")
 However, this style only works if you are not using multiprocessing (`workers=NUM`)
 or reloading (`reload=True`), so we recommend using the import string style.
 
+Also note if you are using reloading(`reload=True`), you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main module to protect your "entry point".
+
 ## Using a process manager
 
 Running Uvicorn using a process manager ensures that you can run multiple processes in a resilient manner, and allows you to perform server upgrades without dropping requests.
