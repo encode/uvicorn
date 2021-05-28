@@ -53,7 +53,7 @@ minimal_requirements = [
 
 extra_requirements = [
     "websockets>=8.*",
-    "httptools==0.2.* ;" + env_marker_cpython,
+    "httptools==0.2.* ;",
     "uvloop>=0.14.0,!=0.15.0,!=0.15.1; " + env_marker_cpython,
     "colorama>=0.4;" + env_marker_win,
     "watchgod>=0.6",
