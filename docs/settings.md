@@ -2,7 +2,7 @@
 
 Use the following options to configure Uvicorn, when running from the command line.
 
-If you're running using programmatically, using `uvicorn.run(...)`, then use
+If you're running programmatically, using `uvicorn.run(...)`, then use
 equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=True, access_log=False)`.
 
 ## Application
@@ -20,7 +20,7 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 ## Development
 
 * `--reload` - Enable auto-reload.
-* `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default all directories in current directory will be watched.
+* `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default all directories in current directory will be watched. If you are running programmatically use `reload_dirs=[]` and pass a list of strings.
 
 ## Production
 
