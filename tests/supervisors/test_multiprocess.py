@@ -4,8 +4,8 @@ from uvicorn import Config
 from uvicorn.supervisors import Multiprocess
 
 
-def run(sockets):  # pragma: no cover
-    pass
+def run(sockets):
+    pass  # pragma: no cover
 
 
 def test_multiprocess_run():
