@@ -94,7 +94,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         """
         path_portion, _, query_string = path.partition("?")
 
-        websockets.handshake.check_request(headers)
+        websockets.legacy.handshake.check_request(headers)
 
         subprotocols = []
         for header in headers.get_all("Sec-WebSocket-Protocol"):
