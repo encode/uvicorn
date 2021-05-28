@@ -2,7 +2,7 @@ import asyncio
 import urllib
 from typing import Optional, Tuple
 
-from uvicorn._types import WWWScope
+from asgiref.typing import WWWScope
 
 
 def get_remote_addr(transport: asyncio.Transport) -> Optional[Tuple[str, int]]:
