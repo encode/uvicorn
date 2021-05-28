@@ -20,8 +20,8 @@ class TestBaseReload:
         self.tmp_path = Path(tmpdir)
         self.reloader_class = reloader_class
 
-    def run(self, sockets):  # pragma: no cover
-        pass
+    def run(self, sockets):
+        pass  # pragma: no cover
 
     def _setup_reloader(self, config: Config) -> BaseReload:
         reloader = self.reloader_class(config, target=self.run, sockets=[])
