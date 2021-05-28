@@ -160,10 +160,10 @@ def test_ssl_config_combined(tls_certificate_pem_path):
 
 
 def asgi2_app(scope):
-    async def asgi(receive, send):
+    async def asgi(receive, send):  # pragma: nocover
         pass
 
-    return asgi
+    return asgi  # pragma: nocover
 
 
 @pytest.mark.parametrize(

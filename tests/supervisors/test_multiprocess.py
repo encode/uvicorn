@@ -5,7 +5,7 @@ from uvicorn.supervisors import Multiprocess
 
 
 def run(sockets):
-    pass
+    pass  # pragma: no cover
 
 
 def test_multiprocess_run():
