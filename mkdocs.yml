@@ -15,8 +15,8 @@ nav:
     - Server Behavior: 'server-behavior.md'
 
 markdown_extensions:
-  - markdown.extensions.codehilite:
-      guess_lang: false
+  - codehilite:
+      css_class: highlight
   - toc:
       permalink: true
 

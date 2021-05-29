@@ -5,6 +5,7 @@ from typing import Callable
 from urllib.parse import unquote
 
 import websockets
+from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
@@ -58,7 +59,12 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         self.ws_server = Server()
 
-        super().__init__(ws_handler=self.ws_handler, ws_server=self.ws_server)
+        super().__init__(
+            ws_handler=self.ws_handler,
+            ws_server=self.ws_server,
+            extensions=[ServerPerMessageDeflateFactory()],
+            max_size=self.config.ws_max_size,
+        )
 
     def connection_made(self, transport):
         self.connections.add(self)
@@ -225,7 +231,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
             elif message_type == "websocket.close":
                 code = message.get("code", 1000)
-                await self.close(code)
+                reason = message.get("reason", "")
+                await self.close(code, reason)
                 self.closed_event.set()
 
             else:

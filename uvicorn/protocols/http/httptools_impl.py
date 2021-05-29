@@ -7,6 +7,13 @@ from typing import Callable
 
 import httptools
 
+from uvicorn.protocols.http.flow_control import (
+    CLOSE_HEADER,
+    HIGH_WATER_LIMIT,
+    TRACE_LOG_LEVEL,
+    FlowControl,
+    service_unavailable,
+)
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -30,56 +37,6 @@ def _get_status_line(status_code):
 STATUS_LINE = {
     status_code: _get_status_line(status_code) for status_code in range(100, 600)
 }
-
-HIGH_WATER_LIMIT = 65536
-
-TRACE_LOG_LEVEL = 5
-
-
-class FlowControl:
-    def __init__(self, transport):
-        self._transport = transport
-        self.read_paused = False
-        self.write_paused = False
-        self._is_writable_event = asyncio.Event()
-        self._is_writable_event.set()
-
-    async def drain(self):
-        await self._is_writable_event.wait()
-
-    def pause_reading(self):
-        if not self.read_paused:
-            self.read_paused = True
-            self._transport.pause_reading()
-
-    def resume_reading(self):
-        if self.read_paused:
-            self.read_paused = False
-            self._transport.resume_reading()
-
-    def pause_writing(self):
-        if not self.write_paused:
-            self.write_paused = True
-            self._is_writable_event.clear()
-
-    def resume_writing(self):
-        if self.write_paused:
-            self.write_paused = False
-            self._is_writable_event.set()
-
-
-async def service_unavailable(scope, receive, send):
-    await send(
-        {
-            "type": "http.response.start",
-            "status": 503,
-            "headers": [
-                (b"content-type", b"text/plain; charset=utf-8"),
-                (b"connection", b"close"),
-            ],
-        }
-    )
-    await send({"type": "http.response.body", "body": b"Service Unavailable"})
 
 
 class HttpToolsProtocol(asyncio.Protocol):
@@ -186,6 +143,13 @@ class HttpToolsProtocol(asyncio.Protocol):
         if upgrade_value != b"websocket" or self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
+
+            from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
+
+            if AutoWebSocketsProtocol is None:
+                msg = "No supported WebSocket library detected. Please use 'pip install uvicorn[standard]', or install 'websockets' or 'wsproto' manually."  # noqa: E501
+                self.logger.warning(msg)
+
             content = [STATUS_LINE[400]]
             for name, value in self.default_headers:
                 content.extend([name, b": ", value, b"\r\n"])
@@ -462,6 +426,9 @@ class RequestResponseCycle:
 
             status_code = message["status"]
             headers = self.default_headers + list(message.get("headers", []))
+
+            if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
+                headers = headers + [CLOSE_HEADER]
 
             if self.access_log:
                 self.access_logger.info(
