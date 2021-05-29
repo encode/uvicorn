@@ -5,6 +5,7 @@ import sys
 import typing
 
 import click
+from asgiref.typing import ASGIApplication
 
 import uvicorn
 from uvicorn.config import (
@@ -31,7 +32,7 @@ INTERFACE_CHOICES = click.Choice(INTERFACES)
 logger = logging.getLogger("uvicorn.error")
 
 
-def print_version(ctx, param, value):
+def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> None:
     if not value or ctx.resilient_parsing:
         return
     click.echo(
@@ -90,7 +91,7 @@ def print_version(ctx, param, value):
     default=None,
     type=int,
     help="Number of worker processes. Defaults to the $WEB_CONCURRENCY environment"
-    " variable if available. Not valid with --reload.",
+    " variable if available, or 1. Not valid with --reload.",
 )
 @click.option(
     "--loop",
@@ -116,19 +117,19 @@ def print_version(ctx, param, value):
 @click.option(
     "--ws-max-size",
     type=int,
-    default=1048576,
+    default=16777216,
     help="WebSocket max size message in bytes",
     show_default=True,
 )
 @click.option(
-    "--ping_interval",
+    "--ws_ping_interval",
     type=float,
     default=20,
     help="WebSocket ping interval",
     show_default=True,
 )
 @click.option(
-    "--ping_timeout",
+    "--ws_ping_timeout",
     type=float,
     default=20,
     help="WebSocket ping timeout",
@@ -302,7 +303,7 @@ def print_version(ctx, param, value):
     show_default=True,
 )
 def main(
-    app,
+    app: str,
     host: str,
     port: int,
     uds: str,
@@ -311,8 +312,8 @@ def main(
     http: str,
     ws: str,
     ws_max_size: int,
-    ping_interval: float,
-    ping_timeout: float,
+    ws_ping_interval: float,
+    ws_ping_timeout: float,
     lifespan: str,
     interface: str,
     debug: bool,
@@ -342,11 +343,10 @@ def main(
     use_colors: bool,
     app_dir: str,
     factory: bool,
-):
+) -> None:
     sys.path.insert(0, app_dir)
 
     kwargs = {
-        "app": app,
         "host": host,
         "port": port,
         "uds": uds,
@@ -355,8 +355,8 @@ def main(
         "http": http,
         "ws": ws,
         "ws_max_size": ws_max_size,
-        "ping_interval": ping_interval,
-        "ping_timeout": ping_timeout,
+        "ws_ping_interval": ws_ping_interval,
+        "ws_ping_timeout": ws_ping_timeout,
         "lifespan": lifespan,
         "env_file": env_file,
         "log_config": LOGGING_CONFIG if log_config is None else log_config,
@@ -386,10 +386,10 @@ def main(
         "use_colors": use_colors,
         "factory": factory,
     }
-    run(**kwargs)
+    run(app, **kwargs)
 
 
-def run(app, **kwargs):
+def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
     config = Config(app, **kwargs)
     server = Server(config=config)
 
@@ -403,12 +403,10 @@ def run(app, **kwargs):
 
     if config.should_reload:
         sock = config.bind_socket()
-        supervisor = ChangeReload(config, target=server.run, sockets=[sock])
-        supervisor.run()
+        ChangeReload(config, target=server.run, sockets=[sock]).run()
     elif config.workers > 1:
         sock = config.bind_socket()
-        supervisor = Multiprocess(config, target=server.run, sockets=[sock])
-        supervisor.run()
+        Multiprocess(config, target=server.run, sockets=[sock]).run()
     else:
         server.run()
 

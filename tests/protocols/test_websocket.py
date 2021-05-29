@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from tests.utils import does_not_raise, run_server
+from tests.utils import run_server
 from uvicorn.config import Config
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
@@ -16,8 +16,7 @@ except ImportError:  # pragma: nocover
     ClientPerMessageDeflateFactory = None
 
 
-DEFAULT_MAX_WS_BYTES_PLUS1 = 2 ** 20 + 1  # 1 048 577
-DEFAULT_MAX_WS_BYTES = 2 ** 20  # 1 048 576
+ONLY_WEBSOCKETPROTOCOL = [p for p in [WebSocketProtocol] if p is not None]
 WS_PROTOCOLS = [p for p in [WSProtocol, WebSocketProtocol] if p is not None]
 pytestmark = pytest.mark.skipif(
     websockets is None, reason="This test needs the websockets module"
@@ -55,7 +54,11 @@ async def test_invalid_upgrade(protocol_cls):
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 "http://127.0.0.1:8000",
-                headers={"upgrade": "websocket", "connection": "upgrade"},
+                headers={
+                    "upgrade": "websocket",
+                    "connection": "upgrade",
+                    "sec-webSocket-version": "11",
+                },
                 timeout=5,
             )
         if response.status_code == 426:
@@ -379,14 +382,24 @@ async def test_asgi_return_value(protocol_cls):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
-async def test_app_close(protocol_cls):
+@pytest.mark.parametrize("code", [None, 1000, 1001])
+@pytest.mark.parametrize("reason", [None, "test"])
+async def test_app_close(protocol_cls, code, reason):
     async def app(scope, receive, send):
         while True:
             message = await receive()
             if message["type"] == "websocket.connect":
                 await send({"type": "websocket.accept"})
             elif message["type"] == "websocket.receive":
-                await send({"type": "websocket.close"})
+                reply = {"type": "websocket.close"}
+
+                if code is not None:
+                    reply["code"] = code
+
+                if reason is not None:
+                    reply["reason"] = reason
+
+                await send(reply)
             elif message["type"] == "websocket.disconnect":
                 break
 
@@ -446,30 +459,29 @@ async def test_subprotocols(protocol_cls, subprotocol):
         assert accepted_subprotocol == subprotocol
 
 
+MAX_WS_BYTES = 1024 * 1024 * 16
+MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
+
+
 @pytest.mark.asyncio
+@pytest.mark.parametrize("protocol_cls", ONLY_WEBSOCKETPROTOCOL)
 @pytest.mark.parametrize(
-    "ws_max_size_server, ws_actual_msg_size, expectation",
+    "client_size_sent, server_size_max, expected_result",
     [
-        (DEFAULT_MAX_WS_BYTES, DEFAULT_MAX_WS_BYTES, does_not_raise()),
-        (
-            DEFAULT_MAX_WS_BYTES,
-            DEFAULT_MAX_WS_BYTES_PLUS1,
-            pytest.raises(websockets.ConnectionClosedError),
-        ),
-        (None, DEFAULT_MAX_WS_BYTES_PLUS1, does_not_raise()),
-        (100, 100, does_not_raise()),
-        (100, 101, pytest.raises(websockets.ConnectionClosedError)),
+        (MAX_WS_BYTES, MAX_WS_BYTES, 0),
+        (MAX_WS_BYTES_PLUS1, MAX_WS_BYTES, 1009),
+        (10, 10, 0),
+        (11, 10, 1009),
     ],
     ids=[
-        "server: default max, client: default max >OK",
-        "server: default max, client: default max + 1byte > FAIL 1009",
-        "server: no limit, client: default max + 1byte > OK",
-        "server: 100 bytes, client: 100 bytes > OK",
-        "server: 100 bytes, client: 101 bytes > FAIL 1009",
+        "max=defaults sent=defaults",
+        "max=defaults sent=defaults+1",
+        "max=10 sent=10",
+        "max=10 sent=11",
     ],
 )
-async def test_send_binary_data_check_max_size(
-    ws_max_size_server, ws_actual_msg_size, expectation
+async def test_send_binary_data_to_server_bigger_than_default(
+    protocol_cls, client_size_sent, server_size_max, expected_result
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -480,16 +492,18 @@ async def test_send_binary_data_check_max_size(
             await self.send({"type": "websocket.send", "bytes": _bytes})
 
     async def send_text(url):
-        async with websockets.connect(url, max_size=ws_actual_msg_size) as websocket:
-            await websocket.send(b"\x01" * ws_actual_msg_size)
+        async with websockets.connect(url, max_size=client_size_sent) as websocket:
+            await websocket.send(b"\x01" * client_size_sent)
             return await websocket.recv()
 
-    config = Config(app=App, lifespan="off", ws_max_size=ws_max_size_server)
+    config = Config(
+        app=App, ws=protocol_cls, lifespan="off", ws_max_size=server_size_max
+    )
     async with run_server(config):
-        with expectation:
+        if expected_result == 0:
             data = await send_text("ws://127.0.0.1:8000")
-            assert data == b"\x01" * (
-                ws_max_size_server
-                if ws_max_size_server is not None
-                else ws_actual_msg_size
-            )
+            assert data == b"\x01" * client_size_sent
+        else:
+            with pytest.raises(websockets.ConnectionClosedError) as e:
+                data = await send_text("ws://127.0.0.1:8000")
+            assert e.value.code == expected_result
