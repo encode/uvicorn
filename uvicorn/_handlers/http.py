@@ -6,8 +6,6 @@ from uvicorn.config import Config
 if TYPE_CHECKING:  # pragma: no cover
     from uvicorn.server import ServerState
 
-MAX_RECV = 65536
-
 
 async def handle_http(
     reader: asyncio.StreamReader,
