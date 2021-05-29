@@ -63,10 +63,9 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             ws_handler=self.ws_handler,
             ws_server=self.ws_server,
             max_size=self.config.ws_max_size,
-            ping_interval=self.config.ping_interval,
-            ping_timeout=self.config.ping_timeout,
+            ping_interval=self.config.ws_ping_interval,
+            ping_timeout=self.config.ws_ping_timeout,
             extensions=[ServerPerMessageDeflateFactory()],
-            max_size=self.config.ws_max_size,
         )
 
     def connection_made(self, transport):

@@ -22,10 +22,10 @@ from uvicorn.config import (
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
-LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
-HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
-WS_CHOICES = click.Choice(WS_PROTOCOLS.keys())
-LIFESPAN_CHOICES = click.Choice(LIFESPAN.keys())
+LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
+HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
+WS_CHOICES = click.Choice(list(WS_PROTOCOLS.keys()))
+LIFESPAN_CHOICES = click.Choice(list(LIFESPAN.keys()))
 LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
