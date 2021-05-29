@@ -114,6 +114,13 @@ def print_version(ctx, param, value):
     show_default=True,
 )
 @click.option(
+    "--ws-max-size",
+    type=int,
+    default=16777216,
+    help="WebSocket max size message in bytes",
+    show_default=True,
+)
+@click.option(
     "--lifespan",
     type=LIFESPAN_CHOICES,
     default="auto",
@@ -289,6 +296,7 @@ def main(
     loop: str,
     http: str,
     ws: str,
+    ws_max_size: int,
     lifespan: str,
     interface: str,
     debug: bool,
@@ -330,6 +338,7 @@ def main(
         "loop": loop,
         "http": http,
         "ws": ws,
+        "ws_max_size": ws_max_size,
         "lifespan": lifespan,
         "env_file": env_file,
         "log_config": LOGGING_CONFIG if log_config is None else log_config,

@@ -7,7 +7,12 @@ import os
 import socket
 import ssl
 import sys
-from typing import List, Tuple
+from typing import List, Tuple, Union
+
+if sys.version_info < (3, 8):
+    from typing_extensions import Literal
+else:
+    from typing import Literal
 
 import click
 
@@ -126,6 +131,7 @@ class Config:
         loop="auto",
         http="auto",
         ws="auto",
+        ws_max_size=16 * 1024 * 1024,
         lifespan="auto",
         env_file=None,
         log_config=LOGGING_CONFIG,
@@ -165,6 +171,7 @@ class Config:
         self.loop = loop
         self.http = http
         self.ws = ws
+        self.ws_max_size = ws_max_size
         self.lifespan = lifespan
         self.log_config = log_config
         self.log_level = log_level
@@ -219,7 +226,7 @@ class Config:
             self.forwarded_allow_ips = forwarded_allow_ips
 
     @property
-    def asgi_version(self) -> str:
+    def asgi_version(self) -> Union[Literal["2.0"], Literal["3.0"]]:
         return {"asgi2": "2.0", "asgi3": "3.0", "wsgi": "3.0"}[self.interface]
 
     @property
