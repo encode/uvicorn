@@ -5,6 +5,7 @@ import sys
 import typing
 
 import click
+from asgiref.typing import ASGIApplication
 
 import uvicorn
 from uvicorn.config import (
@@ -370,7 +371,7 @@ def main(
     run(app, **kwargs)
 
 
-def run(app: str, **kwargs: typing.Any) -> None:
+def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
     config = Config(app, **kwargs)
     server = Server(config=config)
 
