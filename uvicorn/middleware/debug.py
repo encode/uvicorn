@@ -2,7 +2,7 @@ import html
 import traceback
 from typing import Union
 
-from uvicorn._types import (
+from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
