@@ -160,10 +160,10 @@ def test_ssl_config_combined(tls_certificate_pem_path):
 
 
 def asgi2_app(scope):
-    async def asgi(receive, send):
+    async def asgi(receive, send):  # pragma: nocover
         pass
 
-    return asgi
+    return asgi  # pragma: nocover
 
 
 @pytest.mark.parametrize(
@@ -247,3 +247,29 @@ def test_log_config_file(mocked_logging_config_module):
     mocked_logging_config_module.fileConfig.assert_called_once_with(
         "log_config", disable_existing_loggers=False
     )
+
+
+@pytest.mark.parametrize(
+    "access_log, handlers",
+    [
+        pytest.param(True, 1, id="access log enabled should have single handler"),
+        pytest.param(False, 0, id="access log disabled shouldn't have handlers"),
+    ],
+)
+def test_config_access_log(access_log: bool, handlers: int):
+    config = Config(app=asgi_app, access_log=access_log)
+    config.load()
+
+    assert len(logging.getLogger("uvicorn.access").handlers) == handlers
+    assert config.access_log == access_log
+
+
+@pytest.mark.parametrize("log_level", [5, 10, 20, 30, 40, 50])
+def test_config_log_level(log_level):
+    config = Config(app=asgi_app, log_level=log_level)
+    config.load()
+
+    assert logging.getLogger("uvicorn.error").level == log_level
+    assert logging.getLogger("uvicorn.access").level == log_level
+    assert logging.getLogger("uvicorn.asgi").level == log_level
+    assert config.log_level == log_level

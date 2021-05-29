@@ -1,4 +1,4 @@
-from uvicorn._types import (
+from asgiref.typing import (
     ASGI2Application,
     ASGIReceiveCallable,
     ASGISendCallable,
