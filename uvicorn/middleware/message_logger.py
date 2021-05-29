@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from uvicorn._types import (
+from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGIReceiveEvent,
@@ -19,7 +19,7 @@ PLACEHOLDER_FORMAT = {
 TRACE_LOG_LEVEL = 5
 
 
-def message_with_placeholders(message):
+def message_with_placeholders(message: Any) -> Any:
     """
     Return an ASGI message, with any body-type content omitted and replaced
     with a placeholder.

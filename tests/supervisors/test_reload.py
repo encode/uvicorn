@@ -21,7 +21,7 @@ class TestBaseReload:
         self.reloader_class = reloader_class
 
     def run(self, sockets):
-        pass
+        pass  # pragma: no cover
 
     def _setup_reloader(self, config: Config) -> BaseReload:
         reloader = self.reloader_class(config, target=self.run, sockets=[])

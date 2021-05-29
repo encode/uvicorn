@@ -16,6 +16,7 @@ except ImportError:  # pragma: nocover
     ClientPerMessageDeflateFactory = None
 
 
+ONLY_WEBSOCKETPROTOCOL = [p for p in [WebSocketProtocol] if p is not None]
 WS_PROTOCOLS = [p for p in [WSProtocol, WebSocketProtocol] if p is not None]
 pytestmark = pytest.mark.skipif(
     websockets is None, reason="This test needs the websockets module"
@@ -457,3 +458,53 @@ async def test_subprotocols(protocol_cls, subprotocol):
     async with run_server(config):
         accepted_subprotocol = await get_subprotocol("ws://127.0.0.1:8000")
         assert accepted_subprotocol == subprotocol
+
+
+MAX_WS_BYTES = 1024 * 1024 * 16
+MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("protocol_cls", ONLY_WEBSOCKETPROTOCOL)
+@pytest.mark.parametrize(
+    "client_size_sent, server_size_max, expected_result",
+    [
+        (MAX_WS_BYTES, MAX_WS_BYTES, 0),
+        (MAX_WS_BYTES_PLUS1, MAX_WS_BYTES, 1009),
+        (10, 10, 0),
+        (11, 10, 1009),
+    ],
+    ids=[
+        "max=defaults sent=defaults",
+        "max=defaults sent=defaults+1",
+        "max=10 sent=10",
+        "max=10 sent=11",
+    ],
+)
+async def test_send_binary_data_to_server_bigger_than_default(
+    protocol_cls, client_size_sent, server_size_max, expected_result
+):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+        async def websocket_receive(self, message):
+            _bytes = message.get("bytes")
+            await self.send({"type": "websocket.send", "bytes": _bytes})
+
+    async def send_text(url):
+        async with websockets.connect(url, max_size=client_size_sent) as websocket:
+            await websocket.send(b"\x01" * client_size_sent)
+            return await websocket.recv()
+
+    config = Config(
+        app=App, ws=protocol_cls, lifespan="off", ws_max_size=server_size_max
+    )
+    async with run_server(config):
+        if expected_result == 0:
+            data = await send_text("ws://127.0.0.1:8000")
+            assert data == b"\x01" * client_size_sent
+        else:
+            with pytest.raises(websockets.ConnectionClosedError) as e:
+                data = await send_text("ws://127.0.0.1:8000")
+            assert e.value.code == expected_result
