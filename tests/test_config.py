@@ -273,3 +273,9 @@ def test_config_log_level(log_level):
     assert logging.getLogger("uvicorn.access").level == log_level
     assert logging.getLogger("uvicorn.asgi").level == log_level
     assert config.log_level == log_level
+
+
+def test_ws_max_size():
+    config = Config(app=asgi_app, ws_max_size=1000)
+    config.load()
+    assert config.ws_max_size == 1000

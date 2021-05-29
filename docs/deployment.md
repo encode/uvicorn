@@ -49,6 +49,8 @@ Options:
   --ws [auto|none|websockets|wsproto]
                                   WebSocket protocol implementation.
                                   [default: auto]
+  --ws-max-size INTEGER           WebSocket max size message in bytes
+                                  [default: 16777216]
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --interface [auto|asgi3|asgi2|wsgi]
                                   Select ASGI3, ASGI2, or WSGI as the
@@ -100,6 +102,7 @@ Options:
                                   () -> <ASGI app> callable.  [default: False]
   --help                          Show this message and exit.
 ```
+
 
 See the [settings documentation](settings.md) for more details on the supported options for running uvicorn.
 
