@@ -103,7 +103,7 @@ class AccessFormatter(ColourizedFormatter):
             http_version,
             status_code,
         ) = recordcopy.args
-        status_code = self.get_status_code(status_code)  # type: ignore
+        status_code = self.get_status_code(int(status_code))
         request_line = "%s %s HTTP/%s" % (method, full_path, http_version)
         if self.use_colors:
             request_line = click.style(request_line, bold=True)
