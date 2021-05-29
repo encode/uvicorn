@@ -460,8 +460,8 @@ async def test_subprotocols(protocol_cls, subprotocol):
         assert accepted_subprotocol == subprotocol
 
 
-MAX_WS_BYTES_PLUS1 = 1024 * 1024 * 16 + 1
 MAX_WS_BYTES = 1024 * 1024 * 16
+MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
 
 
 @pytest.mark.asyncio
