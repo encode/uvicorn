@@ -28,10 +28,7 @@ async def app(scope, receive, send):
 
 @pytest.mark.asyncio
 async def test_trace_logging(caplog):
-    config = Config(
-        app=app,
-        log_level="trace",
-    )
+    config = Config(app=app, log_level="trace")
     with caplog_for_logger(caplog, "uvicorn.asgi"):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
