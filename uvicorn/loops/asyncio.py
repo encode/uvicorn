@@ -4,7 +4,7 @@ import selectors
 import sys
 
 
-def asyncio_setup() -> None:
+def asyncio_setup() -> None:  # pragma: no cover
     loop: asyncio.AbstractEventLoop
     if (
         sys.version_info.major >= 3

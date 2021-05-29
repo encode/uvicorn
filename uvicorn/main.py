@@ -21,10 +21,10 @@ from uvicorn.config import (
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
-LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
-HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
-WS_CHOICES = click.Choice(WS_PROTOCOLS.keys())
-LIFESPAN_CHOICES = click.Choice(LIFESPAN.keys())
+LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
+HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
+WS_CHOICES = click.Choice(list(WS_PROTOCOLS.keys()))
+LIFESPAN_CHOICES = click.Choice(list(LIFESPAN.keys()))
 LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
@@ -111,6 +111,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     type=WS_CHOICES,
     default="auto",
     help="WebSocket protocol implementation.",
+    show_default=True,
+)
+@click.option(
+    "--ws-max-size",
+    type=int,
+    default=16777216,
+    help="WebSocket max size message in bytes",
     show_default=True,
 )
 @click.option(
@@ -289,6 +296,7 @@ def main(
     loop: str,
     http: str,
     ws: str,
+    ws_max_size: int,
     lifespan: str,
     interface: str,
     debug: bool,
@@ -329,6 +337,7 @@ def main(
         "loop": loop,
         "http": http,
         "ws": ws,
+        "ws_max_size": ws_max_size,
         "lifespan": lifespan,
         "env_file": env_file,
         "log_config": LOGGING_CONFIG if log_config is None else log_config,
