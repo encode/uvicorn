@@ -309,7 +309,6 @@ class H11Protocol(asyncio.Protocol):
             output = self.conn.send(event)
             self.transport.write(output)
             self.transport.close()
-            return
 
     def on_response_complete(self):
         self.server_state.total_requests += 1
