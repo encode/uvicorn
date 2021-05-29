@@ -106,5 +106,5 @@ def test_build_environ_encoding():
         "query_string": b"a=123&b=456",
         "headers": [],
     }
-    environ = build_environ(scope, b"", b"")
+    environ = build_environ(scope, b"")
     assert environ["PATH_INFO"] == "/文".encode("utf8").decode("latin-1")
