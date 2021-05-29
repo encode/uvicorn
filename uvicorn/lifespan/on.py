@@ -1,9 +1,27 @@
 import asyncio
 import logging
 from asyncio import Queue
+from typing import Union
+
+from asgiref.typing import (
+    LifespanScope,
+    LifespanShutdownCompleteEvent,
+    LifespanShutdownEvent,
+    LifespanShutdownFailedEvent,
+    LifespanStartupCompleteEvent,
+    LifespanStartupEvent,
+    LifespanStartupFailedEvent,
+)
 
 from uvicorn import Config
-from uvicorn._types import LifespanReceiveMessage, LifespanScope, LifespanSendMessage
+
+LifespanReceiveMessage = Union[LifespanStartupEvent, LifespanShutdownEvent]
+LifespanSendMessage = Union[
+    LifespanStartupFailedEvent,
+    LifespanShutdownFailedEvent,
+    LifespanStartupCompleteEvent,
+    LifespanShutdownCompleteEvent,
+]
 
 STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
 
@@ -30,8 +48,8 @@ class LifespanOn:
         main_lifespan_task = loop.create_task(self.main())  # noqa: F841
         # Keep a hard reference to prevent garbage collection
         # See https://github.com/encode/uvicorn/pull/972
-
-        await self.receive_queue.put({"type": "lifespan.startup"})
+        startup_event: LifespanStartupEvent = {"type": "lifespan.startup"}
+        await self.receive_queue.put(startup_event)
         await self.startup_event.wait()
 
         if self.startup_failed or (self.error_occured and self.config.lifespan == "on"):
@@ -44,7 +62,8 @@ class LifespanOn:
         if self.error_occured:
             return
         self.logger.info("Waiting for application shutdown.")
-        await self.receive_queue.put({"type": "lifespan.shutdown"})
+        shutdown_event: LifespanShutdownEvent = {"type": "lifespan.shutdown"}
+        await self.receive_queue.put(shutdown_event)
         await self.shutdown_event.wait()
 
         if self.shutdown_failed or (
