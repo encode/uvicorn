@@ -264,16 +264,16 @@ def forwarded_allow_ips(request):
         del os.environ["FORWARDED_ALLOW_IPS"]
 
 
-def test_env_file(web_concurrency: int, forwarded_allow_ips: str, caplog, tmpdir):
+def test_env_file(web_concurrency: int, forwarded_allow_ips: str, caplog, tmp_path):
     """
     Test that one can load environment variables using an env file.
     """
-    fp = tmpdir.join(".env")
+    fp = tmp_path / ".env"
     content = (
         f"WEB_CONCURRENCY={web_concurrency}\n"
         f"FORWARDED_ALLOW_IPS={forwarded_allow_ips}\n"
     )
-    fp.write(content)
+    fp.write_text(content)
     with caplog.at_level(logging.INFO):
         config = Config(app=asgi_app, env_file=fp)
         config.load()
