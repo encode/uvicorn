@@ -160,6 +160,18 @@ def test_ssl_config_combined(tls_certificate_pem_path):
     assert config.is_ssl is True
 
 
+def test_ssl_config_h2(tls_certificate_pem_path):
+    config = Config(
+        app=asgi_app,
+        http="h2",
+        ssl_certfile=tls_certificate_pem_path,
+    )
+    config.load()
+
+    assert config.is_ssl is True
+    # TODO: Should we also check HTTP/2-Specific 'ciphers' and 'options' here?
+
+
 def asgi2_app(scope):
     async def asgi(receive, send):  # pragma: nocover
         pass
