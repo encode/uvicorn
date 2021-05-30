@@ -31,7 +31,7 @@ class BaseReload:
         self.sockets = sockets
         self.should_exit = threading.Event()
         self.pid = os.getpid()
-        self.reloader_name = None
+        self.reloader_name: Optional[str] = None
 
     def signal_handler(self, sig: signal.Signals, frame: FrameType) -> None:
         """

@@ -10,7 +10,7 @@ https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
 from typing import List
 
-from uvicorn._types import (
+from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
@@ -27,9 +27,7 @@ class ProxyHeadersMiddleware:
             self.trusted_hosts = set(trusted_hosts)
         self.always_trust = "*" in self.trusted_hosts
 
-    def get_trusted_client_host(
-        self, x_forwarded_for_hosts
-    ):  # type: (List[str]) -> str
+    def get_trusted_client_host(self, x_forwarded_for_hosts: List[str]) -> str:
         if self.always_trust:
             return x_forwarded_for_hosts[0]
 
@@ -51,7 +49,6 @@ class ProxyHeadersMiddleware:
                     # Determine if the incoming request was http or https based on
                     # the X-Forwarded-Proto header.
                     x_forwarded_proto = headers[b"x-forwarded-proto"].decode("latin1")
-                    # THE ISSUE IS HERE! \/
                     scope["scheme"] = x_forwarded_proto.strip()
 
                 if b"x-forwarded-for" in headers:
