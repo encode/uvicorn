@@ -181,6 +181,9 @@ class H11Protocol(asyncio.Protocol):
                         if b"upgrade" in tokens:
                             self.handle_upgrade(event)
                             return
+                    elif name == b"upgrade" and value.lower() == b"h2c":
+                        self.handle_upgrade(event)
+                        return
 
                 # Handle 503 responses when 'limit_concurrency' is exceeded.
                 if self.limit_concurrency is not None and (
@@ -254,7 +257,7 @@ class H11Protocol(asyncio.Protocol):
             elif name in {"content-length", "transfer-encoding"}:
                 has_body = True
 
-        if upgrade_value.lower() == "h2c" and not has_body:
+        if upgrade_value == b"h2c" and not has_body:
             self.connections.discard(self)
 
             headers = ((b"upgrade", b"h2c"), *self.headers)
