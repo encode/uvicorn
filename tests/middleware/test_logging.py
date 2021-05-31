@@ -63,8 +63,9 @@ async def test_access_logging(caplog):
 
 
 @pytest.mark.asyncio
-async def test_default_logging(caplog):
-    config = Config(app=app)
+@pytest.mark.parametrize("use_colors", [(True), (False)])
+async def test_default_logging(use_colors, caplog):
+    config = Config(app=app, use_colors=use_colors)
     with caplog_for_logger(caplog, "uvicorn.access"):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
