@@ -1,9 +1,11 @@
+import asyncio
 import sys
+import threading
 
 import httpx
 import pytest
 
-from uvicorn.middleware.wsgi import WSGIMiddleware, build_environ
+from uvicorn.middleware.wsgi import Body, WSGIMiddleware, build_environ
 
 
 def hello_world(environ, start_response):
@@ -109,3 +111,44 @@ def test_build_environ_encoding():
     environ = build_environ(scope, b"")
     assert environ["PATH_INFO"] == "/文".encode("utf8").decode("latin-1")
     assert environ["HTTP_KEY"] == "value1,value2"
+
+
+def test_body():
+    event_loop = asyncio.new_event_loop()
+    threading.Thread(target=event_loop.run_forever, daemon=True).start()
+
+    async def receive():
+        return {
+            "type": "http.request.body",
+            "body": b"""This is a body test.
+Why do this?
+To prevent memory leaks.
+And cancel pre-reading.
+Newline.0
+Newline.1
+Newline.2
+Newline.3
+""",
+        }
+
+    body = Body(event_loop, receive)
+    assert body.readline() == b"This is a body test.\n"
+    assert body.read(4) == b"Why "
+    assert body.readline(2) == b"do"
+    assert body.readline(20) == b" this?\n"
+
+    assert body.readlines(2) == [
+        b"To prevent memory leaks.\n",
+        b"And cancel pre-reading.\n",
+    ]
+    for index, line in enumerate(body):
+        assert line == b"Newline." + str(index).encode("utf8") + b"\n"
+        if index == 1:
+            break
+    assert body.readlines() == [
+        b"Newline.2\n",
+        b"Newline.3\n",
+    ]
+    assert body.readlines() == []
+    assert body.readline() == b""
+    assert body.read() == b""
