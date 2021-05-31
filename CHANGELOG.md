@@ -5,8 +5,7 @@
 ### Added
 
 - Defaults ws max_size on server to 16MB (#995) 5/29/21
- -Improve user feedback if no ws library installed (#1023) 5/27/21
-- Improve user feedback if no ws library installed (#926) 2/25/21
+- Improve user feedback if no ws library installed (#926 and #1023) 2/27/21
 - Support 'reason' field in 'websocket.close' messages (#957) 2/24/21
 - Implemented lifespan.shutdown.failed (#755) 2/25/21
 
