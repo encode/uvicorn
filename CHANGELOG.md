@@ -23,7 +23,7 @@
 
 ### Fixed
 
-- Fix gunicorn worker not running if extras not installed (#901) 5/28/21, 6:34 PM e3570ce5
+- Fix gunicorn worker not running if extras not installed (#901) 5/28/21
 - Fix socket port 0 (#975) 3/5/21
 - Prevent garbage collection of main lifespan task (#972) 3/4/21
 
