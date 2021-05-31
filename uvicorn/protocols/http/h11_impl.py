@@ -1,11 +1,13 @@
 import asyncio
 import http
 import logging
+import time
+import traceback
 from urllib.parse import unquote
 
 import h11
 
-from uvicorn.logging import TRACE_LOG_LEVEL
+from uvicorn.logging import TRACE_LOG_LEVEL, GunicornSafeAtoms
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
     HIGH_WATER_LIMIT,
@@ -164,6 +166,11 @@ class H11Protocol(asyncio.Protocol):
                     "raw_path": raw_path,
                     "query_string": query_string,
                     "headers": self.headers,
+                    "extensions": {
+                        "uvicorn_request_duration": {
+                            "request_start_time": time.monotonic(),
+                        }
+                    },
                 }
 
                 for name, value in self.headers:
@@ -192,6 +199,7 @@ class H11Protocol(asyncio.Protocol):
                     logger=self.logger,
                     access_logger=self.access_logger,
                     access_log=self.access_log,
+                    gunicorn_log=self.config.gunicorn_log,
                     default_headers=self.default_headers,
                     message_event=asyncio.Event(),
                     on_response=self.on_response_complete,
@@ -330,6 +338,7 @@ class RequestResponseCycle:
         logger,
         access_logger,
         access_log,
+        gunicorn_log,
         default_headers,
         message_event,
         on_response,
@@ -341,6 +350,7 @@ class RequestResponseCycle:
         self.logger = logger
         self.access_logger = access_logger
         self.access_log = access_log
+        self.gunicorn_log = gunicorn_log
         self.default_headers = default_headers
         self.message_event = message_event
         self.on_response = on_response
@@ -357,6 +367,12 @@ class RequestResponseCycle:
         # Response state
         self.response_started = False
         self.response_complete = False
+
+        # For logging
+        if self.gunicorn_log:
+            self.gunicorn_atoms = GunicornSafeAtoms(self.scope)
+        else:
+            self.gunicorn_atoms = None
 
     # ASGI exception wrapper
     async def run_asgi(self, app):
@@ -410,6 +426,9 @@ class RequestResponseCycle:
         if self.disconnected:
             return
 
+        if self.gunicorn_atoms is not None:
+            self.gunicorn_atoms.on_asgi_message(message)
+
         if not self.response_started:
             # Sending response status line and headers
             if message_type != "http.response.start":
@@ -425,7 +444,7 @@ class RequestResponseCycle:
             if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
                 headers = headers + [CLOSE_HEADER]
 
-            if self.access_log:
+            if self.access_log and self.gunicorn_log is None:
                 self.access_logger.info(
                     '%s - "%s %s HTTP/%s" %d',
                     get_client_addr(self.scope),
@@ -466,6 +485,18 @@ class RequestResponseCycle:
                 self.message_event.set()
                 event = h11.EndOfMessage()
                 output = self.conn.send(event)
+
+                duration_extension = self.scope['extensions']['uvicorn_request_duration']
+                duration_extension["response_end_time"] = time.monotonic()
+                if self.gunicorn_log is not None:
+                    try:
+                        self.gunicorn_log.access_log.info(
+                            self.gunicorn_log.cfg.access_log_format,
+                            self.gunicorn_atoms,
+                        )
+                    except:  # noqa
+                        self.gunicorn_log.error(traceback.format_exc())
+
                 self.transport.write(output)
 
         else:

@@ -425,14 +425,14 @@ class RequestResponseCycle:
     async def send(self, message):
         message_type = message["type"]
 
-        if self.gunicorn_atoms is not None:
-            self.gunicorn_atoms.on_asgi_message(message)
-
         if self.flow.write_paused and not self.disconnected:
             await self.flow.drain()
 
         if self.disconnected:
             return
+
+        if self.gunicorn_atoms is not None:
+            self.gunicorn_atoms.on_asgi_message(message)
 
         if not self.response_started:
             # Sending response status line and headers
@@ -449,7 +449,7 @@ class RequestResponseCycle:
             if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
                 headers = headers + [CLOSE_HEADER]
 
-            if self.access_log and not self.gunicorn_log:
+            if self.access_log and self.gunicorn_log is None:
                 self.access_logger.info(
                     '%s - "%s %s HTTP/%s" %d',
                     get_client_addr(self.scope),
@@ -527,14 +527,13 @@ class RequestResponseCycle:
                 duration_extension = self.scope['extensions']['uvicorn_request_duration']
                 duration_extension['response_end_time'] = time.monotonic()
 
-                if self.gunicorn_log:
+                if self.gunicorn_log is not None:
                     try:
                         self.gunicorn_log.access_log.info(
                             self.gunicorn_log.cfg.access_log_format,
                             self.gunicorn_atoms,
                         )
-                    except:
-                        import traceback
+                    except:  # noqa
                         self.gunicorn_log.error(traceback.format_exc())
 
                 self.message_event.set()
