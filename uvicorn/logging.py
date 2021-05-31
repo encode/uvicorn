@@ -43,10 +43,7 @@ class ColourizedFormatter(logging.Formatter):
         super().__init__(fmt=fmt, datefmt=datefmt, style=style)
 
     def color_level_name(self, level_name: str, level_no: int) -> str:
-        def default(level_name: str) -> str:
-            return str(level_name)
-
-        func = self.level_name_colors.get(level_no, default)
+        func = self.level_name_colors[level_no]
         return func(level_name)
 
     def should_use_colors(self) -> bool:
