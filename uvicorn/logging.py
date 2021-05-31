@@ -47,7 +47,7 @@ class ColourizedFormatter(logging.Formatter):
         return func(level_name)
 
     def should_use_colors(self) -> bool:
-        return True
+        return True  # pragma: no cover
 
     def formatMessage(self, record: logging.LogRecord) -> str:
         recordcopy = copy(record)
@@ -64,7 +64,7 @@ class ColourizedFormatter(logging.Formatter):
 
 class DefaultFormatter(ColourizedFormatter):
     def should_use_colors(self) -> bool:
-        return sys.stderr.isatty()
+        return sys.stderr.isatty()  # pragma: no cover
 
 
 class AccessFormatter(ColourizedFormatter):

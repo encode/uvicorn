@@ -46,8 +46,9 @@ async def test_trace_logging(caplog):
 
 
 @pytest.mark.asyncio
-async def test_access_logging(caplog):
-    config = Config(app=app)
+@pytest.mark.parametrize("use_colors", [(True), (False), (None)])
+async def test_access_logging(use_colors, caplog):
+    config = Config(app=app, use_colors=use_colors)
     with caplog_for_logger(caplog, "uvicorn.access"):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
@@ -81,3 +82,25 @@ async def test_default_logging(use_colors, caplog):
         assert "Uvicorn running on http://127.0.0.1:8000" in messages.pop(0)
         assert '"GET / HTTP/1.1" 204' in messages.pop(0)
         assert "Shutting down" in messages.pop(0)
+
+
+@pytest.mark.asyncio
+async def test_unknown_status_code(caplog):
+    async def app(scope, receive, send):
+        assert scope["type"] == "http"
+        await send({"type": "http.response.start", "status": 599, "headers": []})
+        await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+    config = Config(app=app)
+    with caplog_for_logger(caplog, "uvicorn.access"):
+        async with run_server(config):
+            async with httpx.AsyncClient() as client:
+                response = await client.get("http://127.0.0.1:8000")
+
+        assert response.status_code == 599
+        messages = [
+            record.message
+            for record in caplog.records
+            if record.name == "uvicorn.access"
+        ]
+        assert '"GET / HTTP/1.1" 599' in messages.pop()
