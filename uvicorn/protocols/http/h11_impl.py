@@ -238,7 +238,9 @@ class H11Protocol(asyncio.Protocol):
             self.connections.discard(self)
 
             protocol = self.config.h2_protocol_class(
-                config=self.config, server_state=self.server_state
+                config=self.config,
+                server_state=self.server_state,
+                on_connection_lost=self.on_connection_lost,
             )
             protocol.connection_made(self.transport)
             self.transport.set_protocol(protocol)
@@ -267,7 +269,9 @@ class H11Protocol(asyncio.Protocol):
                 )
             )
             protocol = self.config.h2_protocol_class(
-                config=self.config, server_state=self.server_state
+                config=self.config,
+                server_state=self.server_state,
+                on_connection_lost=self.on_connection_lost,
             )
             protocol.connection_made(self.transport, upgrade_request=event)
             self.transport.set_protocol(protocol)
