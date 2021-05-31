@@ -5,12 +5,21 @@ starting child processes.
 import multiprocessing
 import os
 import sys
+from multiprocessing.context import SpawnProcess
+from socket import socket
+from typing import Callable, List, Optional
+
+from uvicorn.config import Config
 
 multiprocessing.allow_connection_pickling()
 spawn = multiprocessing.get_context("spawn")
 
 
-def get_subprocess(config, target, sockets):
+def get_subprocess(
+    config: Config,
+    target: Callable[..., None],
+    sockets: List[socket],
+) -> SpawnProcess:
     """
     Called in the parent process, to instantiate a new child process instance.
     The child is not yet started at this point.
@@ -23,6 +32,7 @@ def get_subprocess(config, target, sockets):
     """
     # We pass across the stdin fileno, and reopen it in the child process.
     # This is required for some debugging environments.
+    stdin_fileno: Optional[int]
     try:
         stdin_fileno = sys.stdin.fileno()
     except OSError:
@@ -38,7 +48,12 @@ def get_subprocess(config, target, sockets):
     return spawn.Process(target=subprocess_started, kwargs=kwargs)
 
 
-def subprocess_started(config, target, sockets, stdin_fileno):
+def subprocess_started(
+    config: Config,
+    target: Callable[..., None],
+    sockets: List[socket],
+    stdin_fileno: Optional[int],
+) -> None:
     """
     Called when the child process starts.
 

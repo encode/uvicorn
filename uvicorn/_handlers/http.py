@@ -89,10 +89,10 @@ async def handle_http(
 
 def _get_current_task() -> asyncio.Task:
     try:
-        current_task = asyncio.current_task
+        current_task = asyncio.current_task  # type: ignore
     except AttributeError:  # pragma: no cover
         # Python 3.6.
-        current_task = asyncio.Task.current_task
+        current_task = asyncio.Task.current_task  # type: ignore
 
     task = current_task()
     assert task is not None
