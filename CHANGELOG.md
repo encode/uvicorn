@@ -13,6 +13,8 @@
 
 - Switch to asyncio streams API (#869) 5/29/21
 - Update httptools from 0.1.* to 0.2.* (#1024) 5/28/21
+- Change websockets version to v9 (#1038) 5/27/21
+- Allow Click 8.0, refs #1016 (#1042) 5/23/21
 - Add search for a trusted host in ProxyHeadersMiddleware (#591) 3/13/21
 - Up wsproto to 1.0.0 (#892) 2/25/21
 
@@ -46,12 +48,10 @@
 - tests: ignore coverage on helper test functions (#980) 5/28/21, 7:26 PM abde790a
 - Add docs warning about reload and debug flags (#949) (#1045) (#1047) 5/28/21, 2:30 PM d81b96ee
 - Update docs about reload_dirs (#1028) 5/28/21, 11:23 AM 3542cb61
-- Change websockets version to v9 (#1038) 5/27/21, 3:00 PM 5314a900
 - ♻️ Replace _types module by asgiref.typing (#1044) 5/27/21, 3:00 PM 926a8f5d
 - 📝 Update markdown extensions to highlight code (#1043) 5/27/21, 10:04 AM d28f6835
 - Moved FlowControl class and globals to its own file in uvicorn/protocols/http/ (#1034) 5/27/21, 9:28 AM 21ff87f1
 - Fix PEP 508 violation (#1035) 5/24/21, 4:21 PM 0c9393ac
-- Allow Click 8.0, refs #1016 (#1042) 5/23/21, 6:00 AM 2c06f6dd
 - coverage: add log level config coverage (#986) 3/14/21, 6:20 PM bf1c64e2
 - coverage: add access log config coverage (#987) 3/14/21, 7:15 AM 862e774f
 - tests: ignore test on supervisors init file (#988) 3/11/21, 1:59 PM baff0843
