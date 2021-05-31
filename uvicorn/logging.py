@@ -44,7 +44,7 @@ class ColourizedFormatter(logging.Formatter):
 
     def color_level_name(self, level_name: str, level_no: int) -> str:
         def default(level_name: str) -> str:
-            return str(level_name)
+            return str(level_name)  # pragma: no cover
 
         func = self.level_name_colors.get(level_no, default)
         return func(level_name)
@@ -88,7 +88,7 @@ class AccessFormatter(ColourizedFormatter):
         if self.use_colors:
 
             def default(code: int) -> str:
-                return status_and_phrase
+                return status_and_phrase  # pragma: no cover
 
             func = self.status_code_colours.get(status_code // 100, default)
             return func(status_and_phrase)
