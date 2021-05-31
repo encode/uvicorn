@@ -104,7 +104,8 @@ def test_build_environ_encoding():
         "path": "/文",
         "root_path": "/文",
         "query_string": b"a=123&b=456",
-        "headers": [],
+        "headers": [(b"key", b"value1"), (b"key", b"value2")],
     }
     environ = build_environ(scope, b"")
     assert environ["PATH_INFO"] == "/文".encode("utf8").decode("latin-1")
+    assert environ["HTTP_KEY"] == "value1,value2"

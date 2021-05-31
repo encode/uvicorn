@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import socket
 from copy import deepcopy
 
@@ -247,6 +248,40 @@ def test_log_config_file(mocked_logging_config_module):
     mocked_logging_config_module.fileConfig.assert_called_once_with(
         "log_config", disable_existing_loggers=False
     )
+
+
+@pytest.fixture(params=[0, 1])
+def web_concurrency(request):
+    yield request.param
+    if os.getenv("WEB_CONCURRENCY"):
+        del os.environ["WEB_CONCURRENCY"]
+
+
+@pytest.fixture(params=["127.0.0.1", "127.0.0.2"])
+def forwarded_allow_ips(request):
+    yield request.param
+    if os.getenv("FORWARDED_ALLOW_IPS"):
+        del os.environ["FORWARDED_ALLOW_IPS"]
+
+
+def test_env_file(web_concurrency: int, forwarded_allow_ips: str, caplog, tmp_path):
+    """
+    Test that one can load environment variables using an env file.
+    """
+    fp = tmp_path / ".env"
+    content = (
+        f"WEB_CONCURRENCY={web_concurrency}\n"
+        f"FORWARDED_ALLOW_IPS={forwarded_allow_ips}\n"
+    )
+    fp.write_text(content)
+    with caplog.at_level(logging.INFO):
+        config = Config(app=asgi_app, env_file=fp)
+        config.load()
+
+    assert config.workers == int(os.getenv("WEB_CONCURRENCY"))
+    assert config.forwarded_allow_ips == os.getenv("FORWARDED_ALLOW_IPS")
+    assert len(caplog.records) == 1
+    assert f"Loading environment from '{fp}'" in caplog.records[0].message
 
 
 @pytest.mark.parametrize(
