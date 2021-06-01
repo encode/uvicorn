@@ -8,13 +8,13 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
-from typing import List
+from typing import List, Optional
 
 from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
-    WWWScope,
+    Scope,
 )
 
 
@@ -27,7 +27,9 @@ class ProxyHeadersMiddleware:
             self.trusted_hosts = set(trusted_hosts)
         self.always_trust = "*" in self.trusted_hosts
 
-    def get_trusted_client_host(self, x_forwarded_for_hosts: List[str]) -> str:
+    def get_trusted_client_host(
+        self, x_forwarded_for_hosts: List[str]
+    ) -> Optional[str]:
         if self.always_trust:
             return x_forwarded_for_hosts[0]
 
@@ -35,21 +37,23 @@ class ProxyHeadersMiddleware:
             if host not in self.trusted_hosts:
                 return host
 
+        return None
+
     async def __call__(
-        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] in ("http", "websocket"):
-            client_addr = scope.get("client")
+            client_addr = scope.get("client")  # type: ignore
             client_host = client_addr[0] if client_addr else None
 
             if self.always_trust or client_host in self.trusted_hosts:
-                headers = dict(scope["headers"])
+                headers = dict(scope["headers"])  # type: ignore
 
                 if b"x-forwarded-proto" in headers:
                     # Determine if the incoming request was http or https based on
                     # the X-Forwarded-Proto header.
                     x_forwarded_proto = headers[b"x-forwarded-proto"].decode("latin1")
-                    scope["scheme"] = x_forwarded_proto.strip()
+                    scope["scheme"] = x_forwarded_proto.strip()  # type: ignore
 
                 if b"x-forwarded-for" in headers:
                     # Determine the client address from the last trusted IP in the
@@ -61,6 +65,6 @@ class ProxyHeadersMiddleware:
                     ]
                     host = self.get_trusted_client_host(x_forwarded_for_hosts)
                     port = 0
-                    scope["client"] = (host, port)
+                    scope["client"] = (host, port)  # type: ignore
 
         return await self.app(scope, receive, send)
