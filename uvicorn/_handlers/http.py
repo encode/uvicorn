@@ -35,6 +35,12 @@ async def handle_http(
     loop = asyncio.get_event_loop()
     connection_lost = loop.create_future()
 
+    ssl_object = writer.get_extra_info("ssl_object")
+    if ssl_object is not None:
+        alpn_protocol = ssl_object.selected_alpn_protocol()
+        if alpn_protocol == "h2":
+            config.http_protocol_class = config.h2_protocol_class
+
     # Switch the protocol from the stream reader to our own HTTP protocol class.
     protocol = config.http_protocol_class(
         config=config,
