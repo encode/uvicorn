@@ -743,7 +743,7 @@ def test_invalid_http_request(request_line, protocol_cls, caplog, event_loop):
     ],
 )
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-def test_get_long_path_request(path_symbols_num, protocol_cls):
+def test_get_long_path_request(path_symbols_num, protocol_cls, event_loop):
     async def app(scope, receive, send):
         nonlocal path_symbols_num
         path = scope["path"]
@@ -754,9 +754,9 @@ def test_get_long_path_request(path_symbols_num, protocol_cls):
         response = Response("Done", media_type="text/plain")
         await response(scope, receive, send)
 
-    protocol = get_connected_protocol(app, protocol_cls, root_path="/app")
-    request = LONG_PATH_REQUEST_TEMPLATE % (path_symbols_num * b"A")
-    protocol.data_received(request)
-    protocol.loop.run_one()
+    with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
+        request = LONG_PATH_REQUEST_TEMPLATE % (path_symbols_num * b"A")
+        protocol.data_received(request)
+        protocol.loop.run_one()
 
-    assert b"Done" in protocol.transport.buffer
+        assert b"Done" in protocol.transport.buffer
