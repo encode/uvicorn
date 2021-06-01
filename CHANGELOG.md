@@ -1,6 +1,6 @@
 # Change Log
 
-## 0.14.0 - this week hopefully
+## 0.14.0 - 2021-06-01
 
 ### Added
 
@@ -11,53 +11,19 @@
 
 ### Changed
 
+- Upgraded websockets requirements (#1065)  6/1/21
 - Switch to asyncio streams API (#869) 5/29/21
 - Update httptools from 0.1.* to 0.2.* (#1024) 5/28/21
-- Change websockets version to v9 (#1038) 5/27/21
 - Allow Click 8.0, refs #1016 (#1042) 5/23/21
 - Add search for a trusted host in ProxyHeadersMiddleware (#591) 3/13/21
 - Up wsproto to 1.0.0 (#892) 2/25/21
 
-### Deprecated
-
-### Removed
-
 ### Fixed
 
+- Force reload_dirs to be a list (#978) 6/1/21
 - Fix gunicorn worker not running if extras not installed (#901) 5/28/21
 - Fix socket port 0 (#975) 3/5/21
 - Prevent garbage collection of main lifespan task (#972) 3/4/21
-
-### WILL BE SKIPPED FROM CHANGELOG
-
-- 🚨 Cover __init__.py on mypy (#1055) 46 minutes ago c68e9a70
-- 🚨 Cover __main__.py on mypy (#1052) 50 minutes ago 9414317e
-- Fixed typo reload vs reloader (#971) Yesterday 10:48 PM 2b0f3bd7
-- 🚨 Cover mypy on  _handlers subpackage (#1051) Yesterday 12:00 PM 6a1714a9
-- tests: add env file config coverage (#985) Yesterday 2:36 AM 05214a4c
-- Improved wsgi middleware coverage (#1050) 5/29/21, 8:45 PM 3ee6d3d6
-- fix: add mypy on message_logger.py (#1004) 5/29/21, 8:37 AM b72c3862
-- fix: mypy issues (#990) 5/29/21, 8:00 AM 38b201fd
-- fix: add mypy on debug.py (#1002) 5/29/21, 7:23 AM 797f70b2
-- Test logging (#964) 5/29/21, 7:07 AM 3e1e33eb
-- fix: add mypy on watchgodreload.py (#993) 5/29/21, 7:03 AM dfcad719
-- fix: add mypy on logging.py (#1003) 5/29/21, 6:50 AM d3655473
-- fix: add mypy on asgi2.py (#1000) 5/29/21, 6:38 AM e30bf135
-- fix: add mypy on basereload.py (#994) 5/29/21, 4:40 AM 3129c526
-- coverage: pin higher coverage (#1006) 5/28/21, 10:18 PM 4c485cc9
-- tests: ignore coverage on helper test functions (#980) 5/28/21, 7:26 PM abde790a
-- Add docs warning about reload and debug flags (#949) (#1045) (#1047) 5/28/21, 2:30 PM d81b96ee
-- Update docs about reload_dirs (#1028) 5/28/21, 11:23 AM 3542cb61
-- ♻️ Replace _types module by asgiref.typing (#1044) 5/27/21, 3:00 PM 926a8f5d
-- 📝 Update markdown extensions to highlight code (#1043) 5/27/21, 10:04 AM d28f6835
-- Moved FlowControl class and globals to its own file in uvicorn/protocols/http/ (#1034) 5/27/21, 9:28 AM 21ff87f1
-- Fix PEP 508 violation (#1035) 5/24/21, 4:21 PM 0c9393ac
-- coverage: add log level config coverage (#986) 3/14/21, 6:20 PM bf1c64e2
-- coverage: add access log config coverage (#987) 3/14/21, 7:15 AM 862e774f
-- tests: ignore test on supervisors init file (#988) 3/11/21, 1:59 PM baff0843
-- fix: mypy issues on importer.py and protocol/utils.py (#991) 3/11/21, 1:56 PM c5c73434
-- tests: add ssl coverage (#982) 3/8/21, 11:34 AM 89678885
-- tests: add log coverage on lifespan failed shutdown event (#981) 3/8/21, 8:39 AM 1e3eb1e1
 
 ## 0.13.4 - 2021-02-20
 
