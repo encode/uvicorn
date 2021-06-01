@@ -8,11 +8,16 @@ import sys
 import threading
 import time
 from email.utils import formatdate
-from typing import List, Optional, Set, Tuple
+from types import FrameType
+from typing import List, Optional, Set, Tuple, Union
 
 import click
 
 from uvicorn.config import Config
+from uvicorn.protocols.http.h11_impl import H11Protocol
+from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
+from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 from ._handlers.http import handle_http
 
@@ -23,6 +28,8 @@ HANDLED_SIGNALS = (
 
 logger = logging.getLogger("uvicorn.error")
 
+Protocols = Union[H11Protocol, HttpToolsProtocol, WSProtocol, WebSocketProtocol]
+
 
 class ServerState:
     """
@@ -31,8 +38,8 @@ class ServerState:
 
     def __init__(self) -> None:
         self.total_requests = 0
-        self.connections: Set[asyncio.Protocol] = set()
-        self.tasks = set()
+        self.connections: Set[Protocols] = set()
+        self.tasks: Set[asyncio.Task] = set()
         self.default_headers: List[Tuple[bytes, bytes]] = []
 
 
@@ -44,14 +51,14 @@ class Server:
         self.started = False
         self.should_exit = False
         self.force_exit = False
-        self.last_notified = 0
+        self.last_notified = 0.0
 
     def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.serve(sockets=sockets))
 
-    async def serve(self, sockets=None):
+    async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
         process_id = os.getpid()
 
         config = self.config
@@ -289,7 +296,8 @@ class Server:
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)
 
-    def handle_exit(self, sig, frame) -> None:
+    def handle_exit(self, sig: signal.Signals, frame: FrameType) -> None:
+
         if self.should_exit:
             self.force_exit = True
         else:
