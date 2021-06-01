@@ -110,6 +110,8 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.cycle.message_event.set()
         if self.flow is not None:
             self.flow.resume_writing()
+        if exc is None:
+            self.transport.close()
 
         if self.on_connection_lost is not None:
             self.on_connection_lost()

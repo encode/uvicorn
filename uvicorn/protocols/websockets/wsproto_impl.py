@@ -71,6 +71,8 @@ class WSProtocol(asyncio.Protocol):
         self.connections.remove(self)
         if self.on_connection_lost is not None:
             self.on_connection_lost()
+        if exc is None:
+            self.transport.close()
 
     def eof_received(self):
         pass
