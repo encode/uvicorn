@@ -1,31 +1,37 @@
 import asyncio
 import http
 import logging
-from typing import Callable
+from typing import Callable, Optional
 from urllib.parse import unquote
 
 import websockets
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 
+from uvicorn.config import Config
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+from uvicorn.server import ServerState
 
 
 class Server:
     closing = False
 
-    def register(self, ws):
+    def register(self, ws: websockets.WebSocketServerProtocol) -> None:
         pass
 
-    def unregister(self, ws):
+    def unregister(self, ws: websockets.WebSocketServerProtocol) -> None:
         pass
 
-    def is_serving(self):
+    def is_serving(self) -> bool:
         return not self.closing
 
 
 class WebSocketProtocol(websockets.WebSocketServerProtocol):
     def __init__(
-        self, config, server_state, on_connection_lost: Callable = None, _loop=None
+        self,
+        config: Config,
+        server_state: ServerState,
+        on_connection_lost: Callable = None,
+        _loop: Optional[asyncio.BaseEventLoop] = None,
     ):
         if not config.loaded:
             config.load()
@@ -42,7 +48,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.tasks = server_state.tasks
 
         # Connection state
-        self.transport = None
+        self.transport: Optional[asyncio.BaseTransport] = None
         self.server = None
         self.client = None
         self.scheme = None
@@ -57,7 +63,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.accepted_subprotocol = None
         self.transfer_data_task = None
 
-        self.ws_server = Server()
+        self.ws_server: Server = Server()
 
         super().__init__(
             ws_handler=self.ws_handler,
@@ -66,7 +72,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             max_size=self.config.ws_max_size,
         )
 
-    def connection_made(self, transport):
+    def connection_made(self, transport: asyncio.BaseTransport) -> None:
         self.connections.add(self)
         self.transport = transport
         self.server = get_local_addr(transport)
@@ -74,14 +80,14 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.scheme = "wss" if is_ssl(transport) else "ws"
         super().connection_made(transport)
 
-    def connection_lost(self, exc):
+    def connection_lost(self, exc) -> None:
         self.connections.remove(self)
         self.handshake_completed_event.set()
         super().connection_lost(exc)
         if self.on_connection_lost is not None:
             self.on_connection_lost()
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.ws_server.closing = True
         self.transport.close()
 
@@ -136,7 +142,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         """
         return self.accepted_subprotocol
 
-    def send_500_response(self):
+    def send_500_response(self) -> None:
         msg = b"Internal Server Error"
         content = [
             b"HTTP/1.1 500 Internal Server Error\r\n"
@@ -160,7 +166,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.handshake_completed_event.set()
         await self.closed_event.wait()
 
-    async def run_asgi(self):
+    async def run_asgi(self) -> None:
         """
         Wrapper around the ASGI callable, handling exceptions and unexpected
         termination states.
