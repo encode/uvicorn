@@ -227,7 +227,10 @@ class Config:
         if reload_dirs is None:
             self.reload_dirs = [os.getcwd()]
         else:
-            self.reload_dirs = reload_dirs
+            if isinstance(reload_dirs, str):
+                self.reload_dirs = [reload_dirs]
+            else:
+                self.reload_dirs = reload_dirs
 
         if env_file is not None:
             from dotenv import load_dotenv
