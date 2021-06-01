@@ -73,6 +73,26 @@ UPGRADE_REQUEST = b"\r\n".join(
     ]
 )
 
+UPGRADE_REQUEST_h2c = b"\r\n".join(
+    [
+        b"GET / HTTP/1.1",
+        b"Host: example.org",
+        b"Upgrade: h2c",
+        b"HTTP2-Settings: SomeHTTP2Setting",
+        b"",
+        b"",
+    ]
+)
+
+UPGRADE_REQUEST_HTTP2_PRIOR = b"\r\n".join(
+    [
+        b"PRI * HTTP/2.0",
+        b"",
+        b"",
+    ]
+)
+
+
 INVALID_REQUEST_TEMPLATE = b"\r\n".join(
     [
         b"%s",
@@ -681,6 +701,24 @@ def test_supported_upgrade_request(protocol_cls, event_loop):
     ) as protocol:
         protocol.data_received(UPGRADE_REQUEST)
         assert b"HTTP/1.1 426 " in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", [H11Protocol])
+def test_h2c_upgrade_request(protocol_cls, event_loop):
+    app = Response("Hello, world", media_type="text/plain")
+
+    with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
+        protocol.data_received(UPGRADE_REQUEST_h2c)
+        # TODO: check h2c_upgrade_request response
+
+
+@pytest.mark.parametrize("protocol_cls", [H11Protocol])
+def test_h2_prior_upgrade_request(protocol_cls, event_loop):
+    app = Response("Hello, world", media_type="text/plain")
+
+    with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
+        protocol.data_received(UPGRADE_REQUEST_HTTP2_PRIOR)
+        # TODO: check h2_prior_upgrade_request response
 
 
 async def asgi3app(scope, receive, send):
