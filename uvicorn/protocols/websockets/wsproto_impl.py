@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import Callable
 from urllib.parse import unquote
 
 import h11
@@ -16,12 +17,15 @@ assert wsproto.__version__ > "0.13", "Need wsproto version 0.13"
 
 
 class WSProtocol(asyncio.Protocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(
+        self, config, server_state, on_connection_lost: Callable = None, _loop=None
+    ):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
+        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.root_path = config.root_path
@@ -65,6 +69,10 @@ class WSProtocol(asyncio.Protocol):
         if exc is not None:
             self.queue.put_nowait({"type": "websocket.disconnect"})
         self.connections.remove(self)
+        if self.on_connection_lost is not None:
+            self.on_connection_lost()
+        if exc is None:
+            self.transport.close()
 
     def eof_received(self):
         pass
@@ -279,8 +287,11 @@ class WSProtocol(asyncio.Protocol):
             elif message_type == "websocket.close":
                 self.close_sent = True
                 code = message.get("code", 1000)
+                reason = message.get("reason", "")
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
-                output = self.conn.send(wsproto.events.CloseConnection(code=code))
+                output = self.conn.send(
+                    wsproto.events.CloseConnection(code=code, reason=reason)
+                )
                 if not self.transport.is_closing():
                     self.transport.write(output)
                     self.transport.close()

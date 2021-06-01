@@ -1,9 +1,11 @@
 import asyncio
 import http
 import logging
+from typing import Callable
 from urllib.parse import unquote
 
 import websockets
+from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
@@ -22,12 +24,15 @@ class Server:
 
 
 class WebSocketProtocol(websockets.WebSocketServerProtocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(
+        self, config, server_state, on_connection_lost: Callable = None, _loop=None
+    ):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
+        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.root_path = config.root_path
@@ -54,7 +59,12 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         self.ws_server = Server()
 
-        super().__init__(ws_handler=self.ws_handler, ws_server=self.ws_server)
+        super().__init__(
+            ws_handler=self.ws_handler,
+            ws_server=self.ws_server,
+            extensions=[ServerPerMessageDeflateFactory()],
+            max_size=self.config.ws_max_size,
+        )
 
     def connection_made(self, transport):
         self.connections.add(self)
@@ -68,6 +78,10 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.connections.remove(self)
         self.handshake_completed_event.set()
         super().connection_lost(exc)
+        if self.on_connection_lost is not None:
+            self.on_connection_lost()
+        if exc is None:
+            self.transport.close()
 
     def shutdown(self):
         self.ws_server.closing = True
@@ -87,7 +101,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         """
         path_portion, _, query_string = path.partition("?")
 
-        websockets.handshake.check_request(headers)
+        websockets.legacy.handshake.check_request(headers)
 
         subprotocols = []
         for header in headers.get_all("Sec-WebSocket-Protocol"):
@@ -219,7 +233,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
             elif message_type == "websocket.close":
                 code = message.get("code", 1000)
-                await self.close(code)
+                reason = message.get("reason", "")
+                await self.close(code, reason)
                 self.closed_event.set()
 
             else:

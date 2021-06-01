@@ -37,6 +37,7 @@ def test_lifespan_on():
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
 
 
 def test_lifespan_off():
@@ -52,6 +53,7 @@ def test_lifespan_off():
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
 
 
 def test_lifespan_auto():
@@ -84,6 +86,7 @@ def test_lifespan_auto():
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
 
 
 def test_lifespan_auto_with_error():
@@ -101,6 +104,7 @@ def test_lifespan_auto_with_error():
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
 
 
 def test_lifespan_on_with_error():
@@ -119,6 +123,7 @@ def test_lifespan_on_with_error():
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
 
 
 @pytest.mark.parametrize("mode", ("auto", "on"))
@@ -146,6 +151,7 @@ def test_lifespan_with_failed_startup(mode, raise_exception, caplog):
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
     error_messages = [
         record.message
         for record in caplog.records
@@ -174,6 +180,7 @@ def test_lifespan_scope_asgi3app():
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
 
 
 def test_lifespan_scope_asgi2app():
@@ -197,3 +204,44 @@ def test_lifespan_scope_asgi2app():
 
     loop = asyncio.new_event_loop()
     loop.run_until_complete(test())
+    loop.close()
+
+
+@pytest.mark.parametrize("mode", ("auto", "on"))
+@pytest.mark.parametrize("raise_exception", (True, False))
+def test_lifespan_with_failed_shutdown(mode, raise_exception, caplog):
+    async def app(scope, receive, send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await send({"type": "lifespan.startup.complete"})
+        message = await receive()
+        assert message["type"] == "lifespan.shutdown"
+        await send(
+            {"type": "lifespan.shutdown.failed", "message": "the lifespan event failed"}
+        )
+
+        if raise_exception:
+            # App should be able to re-raise an exception if startup failed.
+            raise RuntimeError()
+
+    async def test():
+        config = Config(app=app, lifespan=mode)
+        lifespan = LifespanOn(config)
+
+        await lifespan.startup()
+        assert not lifespan.startup_failed
+        await lifespan.shutdown()
+        assert lifespan.shutdown_failed
+        assert lifespan.error_occured is raise_exception
+        assert lifespan.should_exit
+
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(test())
+    error_messages = [
+        record.message
+        for record in caplog.records
+        if record.name == "uvicorn.error" and record.levelname == "ERROR"
+    ]
+    assert "the lifespan event failed" in error_messages.pop(0)
+    assert "Application shutdown failed. Exiting." in error_messages.pop(0)
+    loop.close()

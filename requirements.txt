@@ -1,7 +1,7 @@
 -e .[standard]
 
 # Explicit optionals
-wsproto==0.15.*
+wsproto==1.0.*
 
 # Packaging
 twine
@@ -14,7 +14,6 @@ flake8
 isort
 pytest
 pytest-mock
-requests
 mypy
 trustme
 cryptography

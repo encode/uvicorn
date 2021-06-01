@@ -7,13 +7,16 @@ from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 try:
     import websockets
+    from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
 
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 except ImportError:  # pragma: nocover
     websockets = None
     WebSocketProtocol = None
+    ClientPerMessageDeflateFactory = None
 
 
+ONLY_WEBSOCKETPROTOCOL = [p for p in [WebSocketProtocol] if p is not None]
 WS_PROTOCOLS = [p for p in [WSProtocol, WebSocketProtocol] if p is not None]
 pytestmark = pytest.mark.skipif(
     websockets is None, reason="This test needs the websockets module"
@@ -51,7 +54,11 @@ async def test_invalid_upgrade(protocol_cls):
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 "http://127.0.0.1:8000",
-                headers={"upgrade": "websocket", "connection": "upgrade"},
+                headers={
+                    "upgrade": "websocket",
+                    "connection": "upgrade",
+                    "sec-webSocket-version": "11",
+                },
                 timeout=5,
             )
         if response.status_code == 426:
@@ -85,6 +92,24 @@ async def test_accept_connection(protocol_cls):
     async with run_server(config):
         is_open = await open_connection("ws://127.0.0.1:8000")
         assert is_open
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
+async def test_supports_permessage_deflate_extension(protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+    async def open_connection(url):
+        extension_factories = [ClientPerMessageDeflateFactory()]
+        async with websockets.connect(url, extensions=extension_factories) as websocket:
+            return [extension.name for extension in websocket.extensions]
+
+    config = Config(app=App, ws=protocol_cls, lifespan="off")
+    async with run_server(config):
+        extension_names = await open_connection("ws://127.0.0.1:8000")
+        assert "permessage-deflate" in extension_names
 
 
 @pytest.mark.asyncio
@@ -357,14 +382,24 @@ async def test_asgi_return_value(protocol_cls):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("protocol_cls", WS_PROTOCOLS)
-async def test_app_close(protocol_cls):
+@pytest.mark.parametrize("code", [None, 1000, 1001])
+@pytest.mark.parametrize("reason", [None, "test"])
+async def test_app_close(protocol_cls, code, reason):
     async def app(scope, receive, send):
         while True:
             message = await receive()
             if message["type"] == "websocket.connect":
                 await send({"type": "websocket.accept"})
             elif message["type"] == "websocket.receive":
-                await send({"type": "websocket.close"})
+                reply = {"type": "websocket.close"}
+
+                if code is not None:
+                    reply["code"] = code
+
+                if reason is not None:
+                    reply["reason"] = reason
+
+                await send(reply)
             elif message["type"] == "websocket.disconnect":
                 break
 
@@ -378,7 +413,8 @@ async def test_app_close(protocol_cls):
     async with run_server(config):
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
             await websocket_session("ws://127.0.0.1:8000")
-        assert exc_info.value.code == 1000
+        assert exc_info.value.code == (code or 1000)
+        assert exc_info.value.reason == (reason or "")
 
 
 @pytest.mark.asyncio
@@ -422,3 +458,53 @@ async def test_subprotocols(protocol_cls, subprotocol):
     async with run_server(config):
         accepted_subprotocol = await get_subprotocol("ws://127.0.0.1:8000")
         assert accepted_subprotocol == subprotocol
+
+
+MAX_WS_BYTES = 1024 * 1024 * 16
+MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("protocol_cls", ONLY_WEBSOCKETPROTOCOL)
+@pytest.mark.parametrize(
+    "client_size_sent, server_size_max, expected_result",
+    [
+        (MAX_WS_BYTES, MAX_WS_BYTES, 0),
+        (MAX_WS_BYTES_PLUS1, MAX_WS_BYTES, 1009),
+        (10, 10, 0),
+        (11, 10, 1009),
+    ],
+    ids=[
+        "max=defaults sent=defaults",
+        "max=defaults sent=defaults+1",
+        "max=10 sent=10",
+        "max=10 sent=11",
+    ],
+)
+async def test_send_binary_data_to_server_bigger_than_default(
+    protocol_cls, client_size_sent, server_size_max, expected_result
+):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+        async def websocket_receive(self, message):
+            _bytes = message.get("bytes")
+            await self.send({"type": "websocket.send", "bytes": _bytes})
+
+    async def send_text(url):
+        async with websockets.connect(url, max_size=client_size_sent) as websocket:
+            await websocket.send(b"\x01" * client_size_sent)
+            return await websocket.recv()
+
+    config = Config(
+        app=App, ws=protocol_cls, lifespan="off", ws_max_size=server_size_max
+    )
+    async with run_server(config):
+        if expected_result == 0:
+            data = await send_text("ws://127.0.0.1:8000")
+            assert data == b"\x01" * client_size_sent
+        else:
+            with pytest.raises(websockets.ConnectionClosedError) as e:
+                data = await send_text("ws://127.0.0.1:8000")
+            assert e.value.code == expected_result

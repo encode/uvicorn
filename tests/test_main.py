@@ -12,6 +12,21 @@ async def app(scope, receive, send):
 
 
 @pytest.mark.asyncio
+async def test_return_close_header():
+    config = Config(app=app, host="localhost", loop="asyncio", limit_max_requests=1)
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "http://127.0.0.1:8000", headers={"connection": "close"}
+            )
+
+    assert response.status_code == 204
+    assert (
+        "connection" in response.headers and response.headers["connection"] == "close"
+    )
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "host, url",
     [

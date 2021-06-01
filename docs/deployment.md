@@ -31,39 +31,33 @@ Usage: uvicorn [OPTIONS] APP
 Options:
   --host TEXT                     Bind socket to this host.  [default:
                                   127.0.0.1]
-
   --port INTEGER                  Bind socket to this port.  [default: 8000]
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
   --reload                        Enable auto-reload.
   --reload-dir TEXT               Set reload directories explicitly, instead
                                   of using the current working directory.
-
   --reload-delay FLOAT            Delay between previous and next check if
                                   application needs to be. Defaults to 0.25s.
                                   [default: 0.25]
-
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
-                                  available. Not valid with --reload.
-
+                                  available, or 1. Not valid with --reload.
   --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
                                   auto]
-
   --ws [auto|none|websockets|wsproto]
                                   WebSocket protocol implementation.
                                   [default: auto]
-
+  --ws-max-size INTEGER           WebSocket max size message in bytes
+                                  [default: 16777216]
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --interface [auto|asgi3|asgi2|wsgi]
                                   Select ASGI3, ASGI2, or WSGI as the
                                   application interface.  [default: auto]
-
   --env-file PATH                 Environment configuration file.
   --log-config PATH               Logging configuration file. Supported
                                   formats: .ini, .json, .yaml.
-
   --log-level [critical|error|warning|info|debug|trace]
                                   Log level. [default: info]
   --access-log / --no-access-log  Enable/Disable access log.
@@ -72,55 +66,43 @@ Options:
                                   Enable/Disable X-Forwarded-Proto,
                                   X-Forwarded-For, X-Forwarded-Port to
                                   populate remote address info.
-
   --forwarded-allow-ips TEXT      Comma seperated list of IPs to trust with
                                   proxy headers. Defaults to the
                                   $FORWARDED_ALLOW_IPS environment variable if
                                   available, or '127.0.0.1'.
-
   --root-path TEXT                Set the ASGI 'root_path' for applications
                                   submounted below a given URL path.
-
   --limit-concurrency INTEGER     Maximum number of concurrent connections or
                                   tasks to allow, before issuing HTTP 503
                                   responses.
-
   --backlog INTEGER               Maximum number of connections to hold in
                                   backlog
-
   --limit-max-requests INTEGER    Maximum number of requests to service before
                                   terminating the process.
-
   --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
                                   is received within this timeout.  [default:
                                   5]
-
   --ssl-keyfile TEXT              SSL key file
   --ssl-certfile TEXT             SSL certificate file
   --ssl-keyfile-password TEXT     SSL keyfile password
   --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
                                   [default: 2]
-
   --ssl-cert-reqs INTEGER         Whether client certificate is required (see
                                   stdlib ssl module's)  [default: 0]
-
   --ssl-ca-certs TEXT             CA certificates file
   --ssl-ciphers TEXT              Ciphers to use (see stdlib ssl module's)
                                   [default: TLSv1]
-
   --header TEXT                   Specify custom default HTTP response headers
                                   as a Name:Value pair
-
   --version                       Display the uvicorn version and exit.
   --app-dir TEXT                  Look for APP in the specified directory, by
                                   adding this to the PYTHONPATH. Defaults to
                                   the current working directory.  [default: .]
-
   --factory                       Treat APP as an application factory, i.e. a
                                   () -> <ASGI app> callable.  [default: False]
-
   --help                          Show this message and exit.
 ```
+
 
 See the [settings documentation](settings.md) for more details on the supported options for running uvicorn.
 
@@ -153,6 +135,8 @@ uvicorn.run(app, host="127.0.0.1", port=5000, log_level="info")
 
 However, this style only works if you are not using multiprocessing (`workers=NUM`)
 or reloading (`reload=True`), so we recommend using the import string style.
+
+Also note that in this case, you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main module.
 
 ## Using a process manager
 
@@ -247,6 +231,8 @@ You should ensure that the `X-Forwarded-For` and `X-Forwarded-Proto` headers are
 
 Here's how a simple Nginx configuration might look. This example includes setting proxy headers, and using a UNIX domain socket to communicate with the application server.
 
+It also includes some basic configuration to forward websocket connections. For more info on this, check [Nginx recommendations][nginx_websocket].
+
 ```conf
 http {
   server {
@@ -259,6 +245,8 @@ http {
       proxy_set_header Host $http_host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
       proxy_redirect off;
       proxy_buffering off;
       proxy_pass http://uvicorn;
@@ -268,6 +256,11 @@ http {
       # path for static files
       root /path/to/app/static;
     }
+  }
+  
+  map $http_upgrade $connection_upgrade {
+    default upgrade;
+    '' close;
   }
 
   upstream uvicorn {
@@ -309,5 +302,6 @@ It also possible to use certificates with uvicorn's worker for gunicorn
 $ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornWorker example:app
 ```
 
+[nginx_websocket]: https://nginx.org/en/docs/http/websocket.html
 [letsencrypt]: https://letsencrypt.org/
 [mkcert]: https://github.com/FiloSottile/mkcert
