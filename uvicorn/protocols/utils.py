@@ -1,5 +1,5 @@
 import asyncio
-import urllib
+import urllib.parse
 from typing import Optional, Tuple
 
 from asgiref.typing import WWWScope

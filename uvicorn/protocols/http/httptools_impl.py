@@ -3,6 +3,7 @@ import http
 import logging
 import re
 import urllib
+from typing import Callable
 
 import httptools
 
@@ -39,12 +40,15 @@ STATUS_LINE = {
 
 
 class HttpToolsProtocol(asyncio.Protocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(
+        self, config, server_state, on_connection_lost: Callable = None, _loop=None
+    ):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
+        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.access_logger = logging.getLogger("uvicorn.access")
@@ -109,6 +113,9 @@ class HttpToolsProtocol(asyncio.Protocol):
         if exc is None:
             self.transport.close()
 
+        if self.on_connection_lost is not None:
+            self.on_connection_lost()
+
     def eof_received(self):
         pass
 
@@ -168,7 +175,9 @@ class HttpToolsProtocol(asyncio.Protocol):
             output += [name, b": ", value, b"\r\n"]
         output.append(b"\r\n")
         protocol = self.ws_protocol_class(
-            config=self.config, server_state=self.server_state
+            config=self.config,
+            server_state=self.server_state,
+            on_connection_lost=self.on_connection_lost,
         )
         protocol.connection_made(self.transport)
         protocol.data_received(b"".join(output))

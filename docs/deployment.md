@@ -49,6 +49,8 @@ Options:
   --ws [auto|none|websockets|wsproto]
                                   WebSocket protocol implementation.
                                   [default: auto]
+  --ws-max-size INTEGER           WebSocket max size message in bytes
+                                  [default: 16777216]
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --interface [auto|asgi3|asgi2|wsgi]
                                   Select ASGI3, ASGI2, or WSGI as the
@@ -101,6 +103,7 @@ Options:
   --help                          Show this message and exit.
 ```
 
+
 See the [settings documentation](settings.md) for more details on the supported options for running uvicorn.
 
 ## Running programmatically
@@ -132,6 +135,8 @@ uvicorn.run(app, host="127.0.0.1", port=5000, log_level="info")
 
 However, this style only works if you are not using multiprocessing (`workers=NUM`)
 or reloading (`reload=True`), so we recommend using the import string style.
+
+Also note that in this case, you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main module.
 
 ## Using a process manager
 

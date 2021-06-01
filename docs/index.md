@@ -55,7 +55,7 @@ In this context, "Cython-based" means the following:
 Moreover, "optional extras" means that:
 
 - the websocket protocol will be handled by `websockets` (should you want to use `wsproto` you'd need to install it manually) if possible.
-- the `--reloader` flag in development mode will use `watchgod`.
+- the `--reload` flag in development mode will use `watchgod`.
 - windows users will have `colorama` installed for the colored logs.
 - `python-dotenv` will be installed should you want to use the `--env-file` option.
 - `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
@@ -119,6 +119,8 @@ Options:
   --ws [auto|none|websockets|wsproto]
                                   WebSocket protocol implementation.
                                   [default: auto]
+  --ws-max-size INTEGER           WebSocket max size message in bytes
+                                  [default: 16777216]
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --interface [auto|asgi3|asgi2|wsgi]
                                   Select ASGI3, ASGI2, or WSGI as the

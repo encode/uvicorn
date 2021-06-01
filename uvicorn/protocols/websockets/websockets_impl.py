@@ -1,6 +1,7 @@
 import asyncio
 import http
 import logging
+from typing import Callable
 from urllib.parse import unquote
 
 import websockets
@@ -23,12 +24,15 @@ class Server:
 
 
 class WebSocketProtocol(websockets.WebSocketServerProtocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(
+        self, config, server_state, on_connection_lost: Callable = None, _loop=None
+    ):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
+        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.root_path = config.root_path
@@ -59,6 +63,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             ws_handler=self.ws_handler,
             ws_server=self.ws_server,
             extensions=[ServerPerMessageDeflateFactory()],
+            max_size=self.config.ws_max_size,
         )
 
     def connection_made(self, transport):
@@ -73,6 +78,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.connections.remove(self)
         self.handshake_completed_event.set()
         super().connection_lost(exc)
+        if self.on_connection_lost is not None:
+            self.on_connection_lost()
         if exc is None:
             self.transport.close()
 
