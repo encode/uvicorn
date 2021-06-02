@@ -8,7 +8,7 @@ import socket
 import ssl
 import sys
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 if sys.version_info < (3, 8):
     from typing_extensions import Literal
@@ -141,7 +141,7 @@ class Config:
         ws_max_size: int = 16 * 1024 * 1024,
         lifespan: str = "auto",
         env_file: Optional[str] = None,
-        log_config: Union[Dict[str, Any], str] = LOGGING_CONFIG,
+        log_config: Optional[Union[dict, str]] = LOGGING_CONFIG,
         log_level: Optional[Union[str, int]] = None,
         access_log: bool = True,
         use_colors: Optional[bool] = None,
