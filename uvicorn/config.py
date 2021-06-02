@@ -8,7 +8,7 @@ import socket
 import ssl
 import sys
 from pathlib import Path
-from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Union
+from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
 
 if sys.version_info < (3, 8):
     from typing_extensions import Literal
@@ -137,8 +137,8 @@ class Config:
         uds: Optional[str] = None,
         fd: Optional[int] = None,
         loop: str = "auto",
-        http: str = "auto",
-        ws: str = "auto",
+        http: Union[Type[asyncio.Protocol], str] = "auto",
+        ws: Union[Type[asyncio.Protocol], str] = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
         lifespan: str = "auto",
         env_file: Optional[Union[Path, str]] = None,
