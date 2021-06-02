@@ -316,12 +316,14 @@ class Config:
         )
 
         if isinstance(self.http, str):
-            self.http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
+            http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
+            self.http_protocol_class: Type[asyncio.Protocol] = http_protocol_class
         else:
             self.http_protocol_class = self.http
 
         if isinstance(self.ws, str):
-            self.ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
+            ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
+            self.ws_protocol_class: Optional[Type[asyncio.Protocol]] = ws_protocol_class
         else:
             self.ws_protocol_class = self.ws
 
@@ -374,9 +376,13 @@ class Config:
         self.loaded = True
 
     def setup_event_loop(self) -> None:
-        loop_setup = import_from_string(LOOP_SETUPS[self.loop])
-        if loop_setup is not None:
-            loop_setup()
+        loop_setup_str: Optional[str] = LOOP_SETUPS[self.loop]
+        if loop_setup_str:
+            loop_setup: Callable = import_from_string(loop_setup_str)
+            if not inspect.isfunction(loop_setup):
+                raise ImportFromStringError("Asyncio event loop must be a callable.")
+            else:
+                loop_setup()
 
     def bind_socket(self) -> socket.socket:
         family = socket.AF_INET
