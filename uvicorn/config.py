@@ -149,7 +149,7 @@ class Config:
         interface: Literal["auto", "asgi3", "asgi2", "wsgi"] = "auto",
         debug: bool = False,
         reload: bool = False,
-        reload_dirs: Optional[List[str]] = None,
+        reload_dirs: Optional[Union[List[str], str]] = None,
         reload_delay: Optional[float] = None,
         workers: Optional[int] = None,
         proxy_headers: bool = True,
