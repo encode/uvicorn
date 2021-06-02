@@ -18,6 +18,7 @@ mypy
 trustme
 cryptography
 coverage
+starlette
 httpx==0.16.*
 pytest-asyncio==0.14.*
 async_generator; python_version < '3.7'
