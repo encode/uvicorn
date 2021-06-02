@@ -141,7 +141,7 @@ class Config:
         ws: str = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
         lifespan: str = "auto",
-        env_file: Optional[str] = None,
+        env_file: Optional[Union[Path, str]] = None,
         log_config: Optional[Union[dict, str]] = LOGGING_CONFIG,
         log_level: Optional[Union[str, int]] = None,
         access_log: bool = True,
