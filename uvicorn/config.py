@@ -108,7 +108,7 @@ logger = logging.getLogger("uvicorn.error")
 
 
 def create_ssl_context(
-    certfile: Optional[str],
+    certfile: Union[Path, str],
     keyfile: Optional[str],
     password: Optional[str],
     ssl_version: int,
@@ -161,7 +161,7 @@ class Config:
         timeout_notify: int = 30,
         callback_notify: Callable[..., None] = None,
         ssl_keyfile: Optional[str] = None,
-        ssl_certfile: Optional[str] = None,
+        ssl_certfile: Optional[Union[Path, str]] = None,
         ssl_keyfile_password: Optional[str] = None,
         ssl_version: int = SSL_PROTOCOL_VERSION,
         ssl_cert_reqs: int = ssl.CERT_NONE,
@@ -286,9 +286,8 @@ class Config:
     def load(self) -> None:
         assert not self.loaded
 
-        self.ssl: Optional[ssl.SSLContext]
-        if self.is_ssl:
-            self.ssl = create_ssl_context(
+        if self.is_ssl and self.ssl_certfile:
+            self.ssl: Optional[ssl.SSLContext] = create_ssl_context(
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
                 password=self.ssl_keyfile_password,
