@@ -146,7 +146,7 @@ class Config:
         log_level: Optional[Union[str, int]] = None,
         access_log: bool = True,
         use_colors: Optional[bool] = None,
-        interface: str = "auto",
+        interface: Literal["auto", "asgi3", "asgi2", "wsgi"] = "auto",
         debug: bool = False,
         reload: bool = False,
         reload_dirs: Optional[List[str]] = None,
@@ -237,8 +237,13 @@ class Config:
             self.forwarded_allow_ips = forwarded_allow_ips
 
     @property
-    def asgi_version(self) -> str:
-        return {"asgi2": "2.0", "asgi3": "3.0", "wsgi": "3.0"}[self.interface]
+    def asgi_version(self) -> Literal["2.0", "3.0"]:
+        mapping: Dict[str, Literal["2.0", "3.0"]] = {
+            "asgi2": "2.0",
+            "asgi3": "3.0",
+            "wsgi": "3.0",
+        }
+        return mapping[self.interface]
 
     @property
     def is_ssl(self) -> bool:
