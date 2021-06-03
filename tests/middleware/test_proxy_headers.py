@@ -15,28 +15,30 @@ async def app(scope, receive, send):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("trusted_hosts", "response_text"),
+    ("trusted_hosts", "x_forwarded_for", "response_text"),
     [
-        # always trust
-        ("*", "Remote: https://1.2.3.4:0"),
-        # trusted proxy
-        ("127.0.0.1", "Remote: https://1.2.3.4:0"),
-        (["127.0.0.1"], "Remote: https://1.2.3.4:0"),
-        # trusted proxy list
-        (["127.0.0.1", "10.0.0.1"], "Remote: https://1.2.3.4:0"),
-        ("127.0.0.1, 10.0.0.1", "Remote: https://1.2.3.4:0"),
-        # request from untrusted proxy
-        ("192.168.0.1", "Remote: http://127.0.0.1:123"),
+        # # always trust
+        # ("*", "1.2.3.4", "Remote: https://1.2.3.4:0"),
+        # # trusted proxy
+        # ("127.0.0.1", "1.2.3.4", "Remote: https://1.2.3.4:0"),
+        # (["127.0.0.1"], "1.2.3.4", "Remote: https://1.2.3.4:0"),
+        # # trusted proxy list
+        # (["127.0.0.1", "10.0.0.1"], "1.2.3.4", "Remote: https://1.2.3.4:0"),
+        # ("127.0.0.1, 10.0.0.1", "1.2.3.4", "Remote: https://1.2.3.4:0"),
+        # # request from untrusted proxy
+        # ("192.168.0.1", "1.2.3.4", "Remote: http://127.0.0.1:123"),
         # https://github.com/encode/uvicorn/issues/1068
-        ("1.2.3.4", "Remote: https://1.2.3.4:0")
+        ("127.0.0.1", "127.0.0.1", "Remote: https://127.0.0.1:0"),
     ],
 )
-async def test_proxy_headers_trusted_hosts(trusted_hosts, response_text):
+async def test_proxy_headers_trusted_hosts(
+    trusted_hosts, x_forwarded_for, response_text
+):
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts=trusted_hosts)
     async with httpx.AsyncClient(
         app=app_with_middleware, base_url="http://testserver"
     ) as client:
-        headers = {"X-Forwarded-Proto": "https", "X-Forwarded-For": "1.2.3.4"}
+        headers = {"X-Forwarded-Proto": "https", "X-Forwarded-For": x_forwarded_for}
         response = await client.get("/", headers=headers)
 
     assert response.status_code == 200
