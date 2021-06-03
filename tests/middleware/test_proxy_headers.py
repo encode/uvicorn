@@ -27,6 +27,8 @@ async def app(scope, receive, send):
         ("127.0.0.1, 10.0.0.1", "Remote: https://1.2.3.4:0"),
         # request from untrusted proxy
         ("192.168.0.1", "Remote: http://127.0.0.1:123"),
+        # https://github.com/encode/uvicorn/issues/1068
+        ("1.2.3.4", "Remote: https://1.2.3.4:0")
     ],
 )
 async def test_proxy_headers_trusted_hosts(trusted_hosts, response_text):
