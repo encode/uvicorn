@@ -23,7 +23,7 @@ class ProxyHeadersMiddleware:
     def get_trusted_client_host(
         self, x_forwarded_for_hosts
     ):  # type: (List[str]) -> str
-        if self.always_trust:
+        if self.always_trust or (self.trusted_hosts == set(x_forwarded_for_hosts)):
             return x_forwarded_for_hosts[0]
 
         for host in reversed(x_forwarded_for_hosts):

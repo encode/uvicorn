@@ -17,16 +17,16 @@ async def app(scope, receive, send):
 @pytest.mark.parametrize(
     ("trusted_hosts", "x_forwarded_for", "response_text"),
     [
-        # # always trust
-        # ("*", "1.2.3.4", "Remote: https://1.2.3.4:0"),
-        # # trusted proxy
-        # ("127.0.0.1", "1.2.3.4", "Remote: https://1.2.3.4:0"),
-        # (["127.0.0.1"], "1.2.3.4", "Remote: https://1.2.3.4:0"),
-        # # trusted proxy list
-        # (["127.0.0.1", "10.0.0.1"], "1.2.3.4", "Remote: https://1.2.3.4:0"),
-        # ("127.0.0.1, 10.0.0.1", "1.2.3.4", "Remote: https://1.2.3.4:0"),
-        # # request from untrusted proxy
-        # ("192.168.0.1", "1.2.3.4", "Remote: http://127.0.0.1:123"),
+        # always trust
+        ("*", "1.2.3.4", "Remote: https://1.2.3.4:0"),
+        # trusted proxy
+        ("127.0.0.1", "1.2.3.4", "Remote: https://1.2.3.4:0"),
+        (["127.0.0.1"], "1.2.3.4", "Remote: https://1.2.3.4:0"),
+        # trusted proxy list
+        (["127.0.0.1", "10.0.0.1"], "1.2.3.4", "Remote: https://1.2.3.4:0"),
+        ("127.0.0.1, 10.0.0.1", "1.2.3.4", "Remote: https://1.2.3.4:0"),
+        # request from untrusted proxy
+        ("192.168.0.1", "1.2.3.4", "Remote: http://127.0.0.1:123"),
         # https://github.com/encode/uvicorn/issues/1068
         ("127.0.0.1", "127.0.0.1", "Remote: https://127.0.0.1:0"),
     ],
