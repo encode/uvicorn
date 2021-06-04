@@ -46,8 +46,9 @@ class Server:
 
     def run(self, sockets=None):
         self.config.setup_event_loop()
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.serve(sockets=sockets))
+        if sys.version_info >= (3, 7):
+            return asyncio.run(self.serve(sockets=sockets))
+        return asyncio.get_event_loop().run_until_complete(self.serve(sockets=sockets))
 
     async def serve(self, sockets=None):
         process_id = os.getpid()
