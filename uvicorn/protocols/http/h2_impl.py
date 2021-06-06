@@ -158,7 +158,9 @@ class H2Protocol(asyncio.Protocol):
         if self.flow is not None:
             self.flow.resume_writing()
 
-        # TODO: https://github.com/encode/uvicorn/pull/929#discussion_r582739354
+        if exc is None:
+            # Ref: https://github.com/encode/uvicorn/pull/929#discussion_r582739354
+            self.transport.close()
 
         if self.on_connection_lost is not None:
             self.on_connection_lost()
