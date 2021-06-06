@@ -703,13 +703,13 @@ def test_supported_upgrade_request(protocol_cls, event_loop):
         assert b"HTTP/1.1 426 " in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", [H11Protocol])
-def test_h2c_upgrade_request(protocol_cls, event_loop):
-    app = Response("Hello, world", media_type="text/plain")
-
-    with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
-        protocol.data_received(UPGRADE_REQUEST_h2c)
-        # TODO: check h2c_upgrade_request response
+# @pytest.mark.parametrize("protocol_cls", [H11Protocol])
+# def test_h2c_upgrade_request(protocol_cls, event_loop):
+#     app = Response("Hello, world", media_type="text/plain")
+#
+#     with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
+#         protocol.data_received(UPGRADE_REQUEST_h2c)
+#         # TODO: check h2c_upgrade_request response
 
 
 @pytest.mark.parametrize("protocol_cls", [H11Protocol])
