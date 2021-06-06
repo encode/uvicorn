@@ -128,6 +128,7 @@ class H2Protocol(asyncio.Protocol):
             event.stream_id = 1
             event.headers = headers
             self.on_request_received(event)
+            self.on_stream_ended(event)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""

@@ -277,6 +277,9 @@ class H11Protocol(asyncio.Protocol):
             )
             protocol.connection_made(self.transport, upgrade_request=event)
             self.transport.set_protocol(protocol)
+            request_data = self.conn.trailing_data[0]
+            if request_data != b"":
+                protocol.data_received(request_data)
 
         elif upgrade_value == b"websocket" and self.ws_protocol_class is not None:
             self.connections.discard(self)
