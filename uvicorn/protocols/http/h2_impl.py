@@ -94,7 +94,7 @@ class H2Protocol(asyncio.Protocol):
         self.streams = {}
 
     # Protocol interface
-    def connection_made(self, transport, upgrade_request=None):
+    def connection_made(self, transport: asyncio.Transport, upgrade_request=None):
         self.connections.add(self)
 
         self.transport = transport
@@ -375,9 +375,6 @@ class H2Protocol(asyncio.Protocol):
 
         # Unpause data reads if needed.
         self.flow.resume_reading()
-
-    def handle_upgrade(self, event):
-        pass
 
     def pause_writing(self):
         """
