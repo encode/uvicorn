@@ -24,6 +24,7 @@ async_generator; python_version < '3.7'
 
 
 # Documentation
-mkdocs
+# from git due to https://github.com/mkdocs/mkdocs/pull/2209#issuecomment-855703485
+https://github.com/mkdocs/mkdocs/archive/b221df94fa7f29a2e63edfaeda56e3285b183f91.tar.gz#egg=mkdocs
 mkdocs-material
 
