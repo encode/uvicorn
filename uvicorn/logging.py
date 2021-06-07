@@ -2,6 +2,7 @@ import http
 import logging
 import sys
 from copy import copy
+from typing import Optional
 
 import click
 
@@ -28,24 +29,30 @@ class ColourizedFormatter(logging.Formatter):
         ),
     }
 
-    def __init__(self, fmt=None, datefmt=None, style="%", use_colors=None):
+    def __init__(
+        self,
+        fmt: Optional[str] = None,
+        datefmt: Optional[str] = None,
+        style: str = "%",
+        use_colors: Optional[bool] = None,
+    ):
         if use_colors in (True, False):
             self.use_colors = use_colors
         else:
             self.use_colors = sys.stdout.isatty()
         super().__init__(fmt=fmt, datefmt=datefmt, style=style)
 
-    def color_level_name(self, level_name, level_no):
-        def default(level_name):
-            return str(level_name)
+    def color_level_name(self, level_name: str, level_no: int) -> str:
+        def default(level_name: str) -> str:
+            return str(level_name)  # pragma: no cover
 
         func = self.level_name_colors.get(level_no, default)
         return func(level_name)
 
-    def should_use_colors(self):
-        return True
+    def should_use_colors(self) -> bool:
+        return True  # pragma: no cover
 
-    def formatMessage(self, record):
+    def formatMessage(self, record: logging.LogRecord) -> str:
         recordcopy = copy(record)
         levelname = recordcopy.levelname
         seperator = " " * (8 - len(recordcopy.levelname))
@@ -59,8 +66,8 @@ class ColourizedFormatter(logging.Formatter):
 
 
 class DefaultFormatter(ColourizedFormatter):
-    def should_use_colors(self):
-        return sys.stderr.isatty()
+    def should_use_colors(self) -> bool:
+        return sys.stderr.isatty()  # pragma: no cover
 
 
 class AccessFormatter(ColourizedFormatter):
@@ -72,7 +79,7 @@ class AccessFormatter(ColourizedFormatter):
         5: lambda code: click.style(str(code), fg="bright_red"),
     }
 
-    def get_status_code(self, status_code: int):
+    def get_status_code(self, status_code: int) -> str:
         try:
             status_phrase = http.HTTPStatus(status_code).phrase
         except ValueError:
@@ -80,14 +87,14 @@ class AccessFormatter(ColourizedFormatter):
         status_and_phrase = "%s %s" % (status_code, status_phrase)
         if self.use_colors:
 
-            def default(code):
-                return status_and_phrase
+            def default(code: int) -> str:
+                return status_and_phrase  # pragma: no cover
 
             func = self.status_code_colours.get(status_code // 100, default)
             return func(status_and_phrase)
         return status_and_phrase
 
-    def formatMessage(self, record):
+    def formatMessage(self, record: logging.LogRecord) -> str:
         recordcopy = copy(record)
         (
             client_addr,
@@ -96,7 +103,7 @@ class AccessFormatter(ColourizedFormatter):
             http_version,
             status_code,
         ) = recordcopy.args
-        status_code = self.get_status_code(status_code)
+        status_code = self.get_status_code(int(status_code))
         request_line = "%s %s HTTP/%s" % (method, full_path, http_version)
         if self.use_colors:
             request_line = click.style(request_line, bold=True)
