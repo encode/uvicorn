@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import socket
+import sys
 from copy import deepcopy
 
 import pytest
@@ -320,3 +321,24 @@ def test_ws_max_size():
     config = Config(app=asgi_app, ws_max_size=1000)
     config.load()
     assert config.ws_max_size == 1000
+
+
+@pytest.mark.parametrize(
+    "reload, workers",
+    [
+        (True, 1),
+        (False, 2),
+    ],
+)
+@pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
+def test_bind_unix_socket_works_with_reload_or_workers(tmp_path, reload, workers):
+    uds_file = tmp_path / "uvicorn.sock"
+    config = Config(
+        app=asgi_app, uds=uds_file.as_posix(), reload=reload, workers=workers
+    )
+    config.load()
+    sock = config.bind_socket()
+    assert isinstance(sock, socket.socket)
+    assert sock.family == socket.AF_UNIX
+    assert sock.getsockname() == uds_file.as_posix()
+    sock.close()
