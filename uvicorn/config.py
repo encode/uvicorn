@@ -7,7 +7,6 @@ import os
 import socket
 import ssl
 import sys
-from pathlib import Path
 from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
 
 if sys.version_info < (3, 8):
@@ -109,12 +108,12 @@ logger = logging.getLogger("uvicorn.error")
 
 
 def create_ssl_context(
-    certfile: Union[Path, str],
-    keyfile: Optional[str],
+    certfile: Union[str, os.PathLike],
+    keyfile: Optional[Union[str, os.PathLike]],
     password: Optional[str],
     ssl_version: int,
     cert_reqs: int,
-    ca_certs: Optional[str],
+    ca_certs: Optional[Union[str, os.PathLike]],
     ciphers: Optional[str],
 ) -> ssl.SSLContext:
     ctx = ssl.SSLContext(ssl_version)
@@ -141,7 +140,7 @@ class Config:
         ws: Union[Type[asyncio.Protocol], str] = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
         lifespan: str = "auto",
-        env_file: Optional[Union[Path, str]] = None,
+        env_file: Optional[Union[str, os.PathLike]] = None,
         log_config: Optional[Union[dict, str]] = LOGGING_CONFIG,
         log_level: Optional[Union[str, int]] = None,
         access_log: bool = True,
@@ -162,7 +161,7 @@ class Config:
         timeout_notify: int = 30,
         callback_notify: Callable[..., None] = None,
         ssl_keyfile: Optional[str] = None,
-        ssl_certfile: Optional[Union[Path, str]] = None,
+        ssl_certfile: Optional[Union[str, os.PathLike]] = None,
         ssl_keyfile_password: Optional[str] = None,
         ssl_version: int = SSL_PROTOCOL_VERSION,
         ssl_cert_reqs: int = ssl.CERT_NONE,
