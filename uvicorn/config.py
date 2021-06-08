@@ -66,8 +66,7 @@ LOOP_SETUPS = {
 INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
 
 
-# Fallback to 'ssl.PROTOCOL_SSLv23' in order to support Python < 3.5.3.
-SSL_PROTOCOL_VERSION = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
+SSL_PROTOCOL_VERSION = ssl.PROTOCOL_TLS_SERVER
 
 
 LOGGING_CONFIG = {
