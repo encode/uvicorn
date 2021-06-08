@@ -50,7 +50,10 @@ This will install uvicorn with "Cython-based" dependencies (where possible) and 
 In this context, "Cython-based" means the following:
 
 - the event loop `uvloop` will be installed and used if possible.
+  - `uvloop` is a fast, drop-in replacement of the built-in asyncio event loop. It is implemented in Cython and should always be used in production. Read more [here][uvloop_docs].
+  - The built-in asyncio event loop serves as an easy-to-read reference implementation and is there for easy debugging as it's pure-python based.
 - the http protocol will be handled by `httptools` if possible.
+  - Read more about comparison with `h11` [here][httptools_vs_h11].
 
 Moreover, "optional extras" means that:
 
@@ -477,3 +480,5 @@ Its most distinctive features are built-in support for dependency injection, aut
 [asgi-http]: https://asgi.readthedocs.io/en/latest/specs/www.html
 [daphne]: https://github.com/django/daphne
 [hypercorn]: https://gitlab.com/pgjones/hypercorn
+[uvloop_docs]: https://uvloop.readthedocs.io/
+[httptools_vs_h11]: https://github.com/python-hyper/h11/issues/9
