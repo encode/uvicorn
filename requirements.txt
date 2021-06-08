@@ -15,6 +15,7 @@ isort
 pytest
 pytest-mock
 mypy
+types-pyyaml
 trustme
 cryptography
 coverage
