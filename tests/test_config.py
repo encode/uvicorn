@@ -5,7 +5,8 @@ import socket
 import sys
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable, Iterator, Optional
+from types import TracebackType
+from typing import Callable, Iterable, Iterator, MutableMapping, Optional, Tuple, Type
 from unittest.mock import MagicMock
 
 if sys.version_info < (3, 8):
@@ -23,6 +24,9 @@ from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
+
+ExcInfo = Tuple[Type[BaseException], BaseException, Optional[TracebackType]]
+StartResponse = Callable[[str, Iterable[Tuple[str, str]], Optional[ExcInfo]], None]
 
 
 @pytest.fixture
@@ -51,7 +55,7 @@ async def asgi_app(
     pass  # pragma: nocover
 
 
-def wsgi_app(environ: Any, start_response: Any) -> None:
+def wsgi_app(environ: MutableMapping, start_response: StartResponse) -> None:
     pass  # pragma: nocover
 
 
@@ -286,15 +290,15 @@ def test_log_config_file(mocked_logging_config_module: MagicMock) -> None:
 
 
 @pytest.fixture(params=[0, 1])
-def web_concurrency(request: Any) -> Iterator[int]:
-    yield request.param
+def web_concurrency(request: pytest.FixtureRequest) -> Iterator[int]:
+    yield getattr(request, "param")
     if os.getenv("WEB_CONCURRENCY"):
         del os.environ["WEB_CONCURRENCY"]
 
 
 @pytest.fixture(params=["127.0.0.1", "127.0.0.2"])
-def forwarded_allow_ips(request: Any) -> Iterator[str]:
-    yield request.param
+def forwarded_allow_ips(request: pytest.FixtureRequest) -> Iterator[str]:
+    yield getattr(request, "param")
     if os.getenv("FORWARDED_ALLOW_IPS"):
         del os.environ["FORWARDED_ALLOW_IPS"]
 
