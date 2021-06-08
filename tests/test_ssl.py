@@ -50,6 +50,20 @@ async def test_run_chain(
 
 
 @pytest.mark.asyncio
+async def test_run_chain_only(tls_ca_ssl_context, tls_certificate_key_and_chain_path):
+    config = Config(
+        app=app,
+        loop="asyncio",
+        limit_max_requests=1,
+        ssl_certfile=tls_certificate_key_and_chain_path,
+    )
+    async with run_server(config):
+        async with httpx.AsyncClient(verify=tls_ca_ssl_context) as client:
+            response = await client.get("https://127.0.0.1:8000")
+    assert response.status_code == 204
+
+
+@pytest.mark.asyncio
 async def test_run_password(
     tls_ca_ssl_context,
     tls_certificate_server_cert_path,
