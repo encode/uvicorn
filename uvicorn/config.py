@@ -366,7 +366,44 @@ class Config:
             loop_setup()
 
     def bind_socket(self):
-        if not self.uds and not self.fd:
+        if self.uds:
+            path = self.uds
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+                sock.bind(path)
+                uds_perms = 0o666
+                os.chmod(self.uds, uds_perms)
+            except OSError as exc:
+                logger.error(exc)
+                sys.exit(1)
+
+            message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
+            sock_name_format = "%s"
+            color_message = (
+                "Uvicorn running on "
+                + click.style(sock_name_format, bold=True)
+                + " (Press CTRL+C to quit)"
+            )
+            logger.info(
+                message,
+                self.uds,
+                extra={"color_message": color_message},
+            )
+        elif self.fd:
+            sock = socket.fromfd(self.fd, socket.AF_UNIX, socket.SOCK_STREAM)
+            message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
+            fd_name_format = "%s"
+            color_message = (
+                "Uvicorn running on "
+                + click.style(fd_name_format, bold=True)
+                + " (Press CTRL+C to quit)"
+            )
+            logger.info(
+                message,
+                sock.getsockname(),
+                extra={"color_message": color_message},
+            )
+        else:
             family = socket.AF_INET
             addr_format = "%s://%s:%d"
 
@@ -395,43 +432,6 @@ class Config:
                 protocol_name,
                 self.host,
                 self.port,
-                extra={"color_message": color_message},
-            )
-        elif self.uds:
-            path = self.uds
-            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            try:
-                sock.bind(path)
-                uds_perms = 0o666
-                os.chmod(self.uds, uds_perms)
-            except OSError as exc:
-                logger.error(exc)
-                sys.exit(1)
-            # sock.setblocking(False)
-            message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
-            sock_name_format = "%s"
-            color_message = (
-                "Uvicorn running on "
-                + click.style(sock_name_format, bold=True)
-                + " (Press CTRL+C to quit)"
-            )
-            logger.info(
-                message,
-                self.uds,
-                extra={"color_message": color_message},
-            )
-        elif self.fd:
-            sock = socket.fromfd(self.fd, socket.AF_UNIX, socket.SOCK_STREAM)
-            message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
-            fd_name_format = "%s"
-            color_message = (
-                "Uvicorn running on "
-                + click.style(fd_name_format, bold=True)
-                + " (Press CTRL+C to quit)"
-            )
-            logger.info(
-                message,
-                sock.getsockname(),
                 extra={"color_message": color_message},
             )
         sock.set_inheritable(True)
