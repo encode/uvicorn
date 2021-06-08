@@ -30,5 +30,5 @@ mkdocs-material
 
 # py3.10 workarounds
 https://github.com/aaugustin/websockets/archive/cb11516e0ed4fe2b67ab6c1511650bd42115d0b6.tar.gz#egg=websockets; python_version > '3.6'
-https://github.com/encode/httpx/archive/5ef0d29baddf077bfbc71e6e1a14009ad7e0505d.tar.gz#egg=httpx
+https://github.com/encode/httpx/archive/7eb610e606f4b95260c4835de4e9147477dcc6d7.tar.gz#egg=httpx
 https://github.com/python-trio/trustme/archive/6abfddd5f3139bde9ee4ba0f848fb7c84c9ac54c.tar.gz#egg=trustme
