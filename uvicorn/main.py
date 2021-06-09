@@ -122,7 +122,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
-    "--ws_ping_interval",
+    "--ws-ping-interval",
     type=float,
     default=20,
     help="WebSocket ping interval",
