@@ -49,20 +49,20 @@ def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> D
         environ["REMOTE_ADDR"] = client[0]
 
     # Go through headers and make them into environ entries
-    for name_, value_ in scope.get("headers", []):
-        name: str = name_.decode("latin1")
-        if name == "content-length":
+    for name, value in scope.get("headers", []):
+        name_str: str = name.decode("latin1")
+        if name_str == "content-length":
             corrected_name = "CONTENT_LENGTH"
-        elif name == "content-type":
+        elif name_str == "content-type":
             corrected_name = "CONTENT_TYPE"
         else:
-            corrected_name = "HTTP_%s" % name.upper().replace("-", "_")
+            corrected_name = "HTTP_%s" % name_str.upper().replace("-", "_")
         # HTTPbis say only ASCII chars are allowed in headers, but we latin1
         # just in case
-        value: str = value_.decode("latin1")
+        value_str: str = value.decode("latin1")
         if corrected_name in environ:
-            value = environ[corrected_name] + "," + value
-        environ[corrected_name] = value
+            value_str = environ[corrected_name] + "," + value_str
+        environ[corrected_name] = value_str
     return environ
 
 
@@ -83,7 +83,7 @@ class WSGIResponder:
     def __init__(
         self,
         app: ASGI3Application,
-        executor: concurrent.futures.ThreadPoolExecutor,
+        executor: concurrent.futures.Executor,
         scope: HTTPScope,
     ):
         self.app = app
