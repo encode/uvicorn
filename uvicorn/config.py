@@ -132,6 +132,8 @@ class Config:
         http="auto",
         ws="auto",
         ws_max_size=16 * 1024 * 1024,
+        ws_ping_interval=20,
+        ws_ping_timeout=20,
         lifespan="auto",
         env_file=None,
         log_config=LOGGING_CONFIG,
@@ -172,6 +174,8 @@ class Config:
         self.http = http
         self.ws = ws
         self.ws_max_size = ws_max_size
+        self.ws_ping_interval = ws_ping_interval
+        self.ws_ping_timeout = ws_ping_timeout
         self.lifespan = lifespan
         self.log_config = log_config
         self.log_level = log_level
@@ -207,7 +211,10 @@ class Config:
         if reload_dirs is None:
             self.reload_dirs = [os.getcwd()]
         else:
-            self.reload_dirs = reload_dirs
+            if isinstance(reload_dirs, str):
+                self.reload_dirs = [reload_dirs]
+            else:
+                self.reload_dirs = reload_dirs
 
         if env_file is not None:
             from dotenv import load_dotenv

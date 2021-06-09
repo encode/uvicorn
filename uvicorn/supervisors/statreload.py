@@ -1,19 +1,27 @@
 import logging
 import os
 from pathlib import Path
+from socket import socket
+from typing import Callable, Iterator, List, Optional
 
+from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
 
 logger = logging.getLogger("uvicorn.error")
 
 
 class StatReload(BaseReload):
-    def __init__(self, config, target, sockets):
+    def __init__(
+        self,
+        config: Config,
+        target: Callable[[Optional[List[socket]]], None],
+        sockets: List[socket],
+    ) -> None:
         super().__init__(config, target, sockets)
         self.reloader_name = "statreload"
         self.mtimes = {}
 
-    def should_restart(self):
+    def should_restart(self) -> bool:
         for filename in self.iter_py_files():
             try:
                 mtime = os.path.getmtime(filename)
@@ -33,7 +41,7 @@ class StatReload(BaseReload):
                 return True
         return False
 
-    def iter_py_files(self):
+    def iter_py_files(self) -> Iterator[str]:
         for reload_dir in self.config.reload_dirs:
             for subdir, dirs, files in os.walk(reload_dir):
                 for file in files:
