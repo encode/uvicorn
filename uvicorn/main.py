@@ -129,7 +129,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
-    "--ws_ping_timeout",
+    "--ws-ping-timeout",
     type=float,
     default=20,
     help="WebSocket ping timeout",
