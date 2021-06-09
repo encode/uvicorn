@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import socket
+import sys
 from copy import deepcopy
 
 import pytest
@@ -320,3 +321,20 @@ def test_ws_max_size():
     config = Config(app=asgi_app, ws_max_size=1000)
     config.load()
     assert config.ws_max_size == 1000
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="Skipping unix domain tests on Windows",
+)
+def test_config_rebind_socket():
+    sock = socket.socket()
+    config = Config(app=asgi_app, port=10000)
+    try:
+        sock.bind((config.host, config.port))
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
+            config.bind_socket()
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == 1
+    finally:
+        sock.close()
