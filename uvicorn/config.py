@@ -139,6 +139,8 @@ class Config:
         http: Union[Type[asyncio.Protocol], str] = "auto",
         ws: Union[Type[asyncio.Protocol], str] = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
+        ws_ping_interval: int = 20,
+        ws_ping_timeout: int = 20,
         lifespan: str = "auto",
         env_file: Optional[Union[str, os.PathLike]] = None,
         log_config: Optional[Union[dict, str]] = LOGGING_CONFIG,
@@ -179,6 +181,8 @@ class Config:
         self.http = http
         self.ws = ws
         self.ws_max_size = ws_max_size
+        self.ws_ping_interval = ws_ping_interval
+        self.ws_ping_timeout = ws_ping_timeout
         self.lifespan = lifespan
         self.log_config = log_config
         self.log_level = log_level

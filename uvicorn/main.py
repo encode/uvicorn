@@ -122,6 +122,20 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
+    "--ws-ping-interval",
+    type=float,
+    default=20,
+    help="WebSocket ping interval",
+    show_default=True,
+)
+@click.option(
+    "--ws-ping-timeout",
+    type=float,
+    default=20,
+    help="WebSocket ping timeout",
+    show_default=True,
+)
+@click.option(
     "--lifespan",
     type=LIFESPAN_CHOICES,
     default="auto",
@@ -298,6 +312,8 @@ def main(
     http: str,
     ws: str,
     ws_max_size: int,
+    ws_ping_interval: float,
+    ws_ping_timeout: float,
     lifespan: str,
     interface: str,
     debug: bool,
@@ -339,6 +355,8 @@ def main(
         "http": http,
         "ws": ws,
         "ws_max_size": ws_max_size,
+        "ws_ping_interval": ws_ping_interval,
+        "ws_ping_timeout": ws_ping_timeout,
         "lifespan": lifespan,
         "env_file": env_file,
         "log_config": LOGGING_CONFIG if log_config is None else log_config,
