@@ -10,6 +10,7 @@ from asgiref.typing import (
     ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
+    HTTPRequestEvent,
     HTTPResponseBodyEvent,
     HTTPResponseStartEvent,
     HTTPScope,
@@ -99,11 +100,11 @@ class WSGIResponder:
     async def __call__(
         self, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
-        message = await receive()
+        message: HTTPRequestEvent = await receive()
         body = message.get("body", b"")
         more_body = message.get("more_body", False)
         while more_body:
-            body_message = await receive()
+            body_message: HTTPRequestEvent = await receive()
             body += body_message.get("body", b"")
             more_body = body_message.get("more_body", False)
         environ = build_environ(self.scope, message, body)
