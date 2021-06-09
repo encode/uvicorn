@@ -5,9 +5,15 @@ from typing import Any, ByteString, Callable
 from urllib.parse import unquote
 
 import h11
+from asgiref.typing import ASGI3Application, ASGIReceiveEvent, ASGISendEvent, HTTPScope
 
-from uvicorn._types import ASGI3Application, ASGIReceiveEvent, ASGISendEvent, HTTPScope
-from uvicorn.config import Config
+from uvicorn.protocols.http.flow_control import (
+    CLOSE_HEADER,
+    HIGH_WATER_LIMIT,
+    TRACE_LOG_LEVEL,
+    FlowControl,
+    service_unavailable,
+)
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -15,7 +21,6 @@ from uvicorn.protocols.utils import (
     get_remote_addr,
     is_ssl,
 )
-from uvicorn.server import ServerState
 
 
 def _get_status_phrase(status_code: http.HTTPStatus) -> ByteString:
@@ -29,71 +34,17 @@ STATUS_PHRASES = {
     status_code: _get_status_phrase(status_code) for status_code in range(100, 600)
 }
 
-CLOSE_HEADER = (b"connection", b"close")
-
-HIGH_WATER_LIMIT = 65536
-
-TRACE_LOG_LEVEL = 5
-
-
-class FlowControl:
-    def __init__(self, transport: asyncio.Transport) -> None:
-        self._transport = transport
-        self.read_paused = False
-        self.write_paused = False
-        self._is_writable_event = asyncio.Event()
-        self._is_writable_event.set()
-
-    async def drain(self) -> bool:
-        await self._is_writable_event.wait()
-
-    def pause_reading(self) -> None:
-        if not self.read_paused:
-            self.read_paused = True
-            self._transport.pause_reading()
-
-    def resume_reading(self) -> None:
-        if self.read_paused:
-            self.read_paused = False
-            self._transport.resume_reading()
-
-    def pause_writing(self) -> None:
-        if not self.write_paused:
-            self.write_paused = True
-            self._is_writable_event.clear()
-
-    def resume_writing(self) -> None:
-        if self.write_paused:
-            self.write_paused = False
-            self._is_writable_event.set()
-
-
-async def service_unavailable(scope, receive, send) -> None:
-    await send(
-        {
-            "type": "http.response.start",
-            "status": 503,
-            "headers": [
-                (b"content-type", b"text/plain; charset=utf-8"),
-                (b"connection", b"close"),
-            ],
-        }
-    )
-    await send({"type": "http.response.body", "body": b"Service Unavailable"})
-
 
 class H11Protocol(asyncio.Protocol):
     def __init__(
-        self,
-        config: Config,
-        server_state: ServerState,
-        _loop: asyncio.AbstractEventLoop = None,
-    ) -> None:
+        self, config, server_state, on_connection_lost: Callable = None, _loop=None
+    ):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
+        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.access_logger = logging.getLogger("uvicorn.access")
@@ -160,6 +111,11 @@ class H11Protocol(asyncio.Protocol):
             self.cycle.message_event.set()
         if self.flow is not None:
             self.flow.resume_writing()
+        if exc is None:
+            self.transport.close()
+
+        if self.on_connection_lost is not None:
+            self.on_connection_lost()
 
     def eof_received(self) -> None:
         pass
@@ -307,7 +263,9 @@ class H11Protocol(asyncio.Protocol):
             output += [name, b": ", value, b"\r\n"]
         output.append(b"\r\n")
         protocol = self.ws_protocol_class(
-            config=self.config, server_state=self.server_state
+            config=self.config,
+            server_state=self.server_state,
+            on_connection_lost=self.on_connection_lost,
         )
         protocol.connection_made(self.transport)
         protocol.data_received(b"".join(output))
