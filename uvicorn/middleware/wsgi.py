@@ -2,18 +2,21 @@ import asyncio
 import concurrent.futures
 import io
 import sys
-from typing import Awaitable, Dict, Iterable, Optional, Tuple
+from typing import Awaitable, Dict, Iterable, List, Optional, Tuple
 
-from uvicorn._types import (
+from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
+    ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
+    HTTPResponseBodyEvent,
+    HTTPResponseStartEvent,
     HTTPScope,
 )
 
 
-def build_environ(scope: HTTPScope, message: ASGISendEvent, body: bytes) -> Dict:
+def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> Dict:
     """
     Builds a scope and request message into a WSGI environ object.
     """
@@ -45,8 +48,8 @@ def build_environ(scope: HTTPScope, message: ASGISendEvent, body: bytes) -> Dict
         environ["REMOTE_ADDR"] = client[0]
 
     # Go through headers and make them into environ entries
-    for name, value in scope.get("headers", []):
-        name = name.decode("latin1")
+    for name_, value_ in scope.get("headers", []):
+        name: str = name_.decode("latin1")
         if name == "content-length":
             corrected_name = "CONTENT_LENGTH"
         elif name == "content-type":
@@ -55,7 +58,7 @@ def build_environ(scope: HTTPScope, message: ASGISendEvent, body: bytes) -> Dict
             corrected_name = "HTTP_%s" % name.upper().replace("-", "_")
         # HTTPbis say only ASCII chars are allowed in headers, but we latin1
         # just in case
-        value = value.decode("latin1")
+        value: str = value_.decode("latin1")
         if corrected_name in environ:
             value = environ[corrected_name] + "," + value
         environ[corrected_name] = value
@@ -63,7 +66,7 @@ def build_environ(scope: HTTPScope, message: ASGISendEvent, body: bytes) -> Dict
 
 
 class WSGIMiddleware:
-    def __init__(self, app: ASGI3Application, workers: int = 10) -> None:
+    def __init__(self, app: ASGI3Application, workers: int = 10):
         self.app = app
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
@@ -81,15 +84,15 @@ class WSGIResponder:
         app: ASGI3Application,
         executor: concurrent.futures.ThreadPoolExecutor,
         scope: HTTPScope,
-    ) -> Awaitable:
+    ):
         self.app = app
         self.executor = executor
         self.scope = scope
         self.status = None
         self.response_headers = None
         self.send_event = asyncio.Event()
-        self.send_queue = []
-        self.loop = None
+        self.send_queue: List[Optional[ASGISendEvent]] = []
+        self.loop: asyncio.AbstractEventLoop = None  # type: ignore
         self.response_started = False
         self.exc_info: Optional[str] = None
 
@@ -132,33 +135,36 @@ class WSGIResponder:
     def start_response(
         self,
         status: str,
-        response_headers: Iterable[Tuple[bytes, bytes]],
+        response_headers: Iterable[Tuple[str, str]],
         exc_info: Optional[str] = None,
     ) -> None:
         self.exc_info = exc_info
         if not self.response_started:
             self.response_started = True
-            status_code, _ = status.split(" ", 1)
-            status_code = int(status_code)
+            status_code_str, _ = status.split(" ", 1)
+            status_code: int = int(status_code_str)
             headers = [
                 (name.encode("ascii"), value.encode("ascii"))
                 for name, value in response_headers
             ]
-            self.send_queue.append(
-                {
-                    "type": "http.response.start",
-                    "status": status_code,
-                    "headers": headers,
-                }
-            )
+            http_response_start_event: HTTPResponseStartEvent = {
+                "type": "http.response.start",
+                "status": status_code,
+                "headers": headers,
+            }
+            self.send_queue.append(http_response_start_event)
             self.loop.call_soon_threadsafe(self.send_event.set)
 
     def wsgi(self, environ: Dict, start_response: Awaitable[None]) -> None:
         for chunk in self.app(environ, start_response):
-            self.send_queue.append(
-                {"type": "http.response.body", "body": chunk, "more_body": True}
-            )
+            http_response_body_event: HTTPResponseBodyEvent = {
+                "type": "http.response.body",
+                "body": chunk,
+                "more_body": True,
+            }
+            self.send_queue.append(http_response_body_event)
             self.loop.call_soon_threadsafe(self.send_event.set)
 
-        self.send_queue.append({"type": "http.response.body", "body": b""})
+        http_response_body_event = {"type": "http.response.body", "body": b""}
+        self.send_queue.append(http_response_body_event)
         self.loop.call_soon_threadsafe(self.send_event.set)
