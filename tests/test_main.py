@@ -1,3 +1,6 @@
+import socket
+import sys
+
 import httpx
 import pytest
 
@@ -59,3 +62,45 @@ async def test_run_reload():
         async with httpx.AsyncClient() as client:
             response = await client.get("http://127.0.0.1:8000")
     assert response.status_code == 204
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="Skipping uds test on Windows",
+)
+@pytest.mark.asyncio
+async def test_run_uds(tmp_path):
+    uds = str(tmp_path / "socket")
+    config = Config(app=app, loop="asyncio", limit_max_requests=1, uds=uds)
+    async with run_server(config):
+        data = b"GET / HTTP/1.1\r\n\r\n"
+        client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            client.connect(uds)
+            r = client.sendall(data)
+            assert r is None
+        finally:
+            client.close()
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="Skipping uds test on Windows",
+)
+@pytest.mark.asyncio
+async def test_run_fd(tmp_path):
+    uds = str(tmp_path / "socket")
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    fd = sock.fileno()
+    sock.bind(uds)
+    config = Config(app=app, loop="asyncio", limit_max_requests=1, fd=fd)
+    async with run_server(config):
+        data = b"GET / HTTP/1.1\r\n\r\n"
+        client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            client.connect(uds)
+            r = client.sendall(data)
+            assert r is None
+        finally:
+            client.close()
+            sock.close()

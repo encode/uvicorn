@@ -35,7 +35,7 @@ logger = logging.getLogger("uvicorn.error")
 def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> None:
     if not value or ctx.resilient_parsing:
         return
-    click.echo(
+    click.echo(  # pragma: no cover
         "Running uvicorn %s with %s %s on %s"
         % (
             uvicorn.__version__,
@@ -44,7 +44,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
             platform.system(),
         )
     )
-    ctx.exit()
+    ctx.exit()  # pragma: no cover
 
 
 @click.command()
