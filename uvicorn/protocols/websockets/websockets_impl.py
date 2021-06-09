@@ -62,8 +62,10 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         super().__init__(
             ws_handler=self.ws_handler,
             ws_server=self.ws_server,
-            extensions=[ServerPerMessageDeflateFactory()],
             max_size=self.config.ws_max_size,
+            ping_interval=self.config.ws_ping_interval,
+            ping_timeout=self.config.ws_ping_timeout,
+            extensions=[ServerPerMessageDeflateFactory()],
         )
 
     def connection_made(self, transport):
@@ -80,6 +82,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         super().connection_lost(exc)
         if self.on_connection_lost is not None:
             self.on_connection_lost()
+        if exc is None:
+            self.transport.close()
 
     def shutdown(self):
         self.ws_server.closing = True
@@ -99,7 +103,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         """
         path_portion, _, query_string = path.partition("?")
 
-        websockets.handshake.check_request(headers)
+        websockets.legacy.handshake.check_request(headers)
 
         subprotocols = []
         for header in headers.get_all("Sec-WebSocket-Protocol"):
