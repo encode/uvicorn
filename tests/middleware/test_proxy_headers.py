@@ -1,14 +1,21 @@
+from typing import List, Union
+
 import httpx
 import pytest
+from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
 from tests.response import Response
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 
-async def app(scope, receive, send):
-    scheme = scope["scheme"]
-    host, port = scope["client"]
-    addr = "%s://%s:%d" % (scheme, host, port)
+async def app(
+    scope: Scope,
+    receive: ASGIReceiveCallable,
+    send: ASGISendCallable,
+) -> None:
+    scheme = scope["scheme"]  # type: ignore
+    host, port = scope["client"]  # type: ignore
+    addr = "%s://%s:%d" % (scheme, host, port)  # type: ignore
     response = Response("Remote: " + addr, media_type="text/plain")
     await response(scope, receive, send)
 
@@ -29,7 +36,9 @@ async def app(scope, receive, send):
         ("192.168.0.1", "Remote: http://127.0.0.1:123"),
     ],
 )
-async def test_proxy_headers_trusted_hosts(trusted_hosts, response_text):
+async def test_proxy_headers_trusted_hosts(
+    trusted_hosts: Union[List[str], str], response_text: str
+) -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts=trusted_hosts)
     async with httpx.AsyncClient(
         app=app_with_middleware, base_url="http://testserver"
@@ -61,7 +70,9 @@ async def test_proxy_headers_trusted_hosts(trusted_hosts, response_text):
         (["192.168.0.2", "127.0.0.1"], "Remote: https://10.0.2.1:0"),
     ],
 )
-async def test_proxy_headers_multiple_proxies(trusted_hosts, response_text):
+async def test_proxy_headers_multiple_proxies(
+    trusted_hosts: Union[List[str], str], response_text: str
+) -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts=trusted_hosts)
     async with httpx.AsyncClient(
         app=app_with_middleware, base_url="http://testserver"
@@ -77,7 +88,7 @@ async def test_proxy_headers_multiple_proxies(trusted_hosts, response_text):
 
 
 @pytest.mark.asyncio
-async def test_proxy_headers_invalid_x_forwarded_for():
+async def test_proxy_headers_invalid_x_forwarded_for() -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts="*")
     async with httpx.AsyncClient(
         app=app_with_middleware, base_url="http://testserver"

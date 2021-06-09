@@ -8,7 +8,7 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
-from typing import List, Optional
+from typing import List, Optional, Tuple, Union
 
 from asgiref.typing import (
     ASGI3Application,
@@ -19,7 +19,9 @@ from asgiref.typing import (
 
 
 class ProxyHeadersMiddleware:
-    def __init__(self, app: ASGI3Application, trusted_hosts: str = "127.0.0.1") -> None:
+    def __init__(
+        self, app: ASGI3Application, trusted_hosts: Union[List[str], str] = "127.0.0.1"
+    ) -> None:
         self.app = app
         if isinstance(trusted_hosts, str):
             self.trusted_hosts = {item.strip() for item in trusted_hosts.split(",")}
@@ -43,7 +45,7 @@ class ProxyHeadersMiddleware:
         self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] in ("http", "websocket"):
-            client_addr = scope.get("client")  # type: ignore
+            client_addr: Optional[Tuple[str, int]] = scope.get("client")  # type: ignore
             client_host = client_addr[0] if client_addr else None
 
             if self.always_trust or client_host in self.trusted_hosts:
