@@ -1,5 +1,30 @@
 # Change Log
 
+## 0.14.0 - 2021-06-01
+
+### Added
+
+- Defaults ws max_size on server to 16MB (#995) 5/29/21
+- Improve user feedback if no ws library installed (#926 and #1023) 2/27/21
+- Support 'reason' field in 'websocket.close' messages (#957) 2/24/21
+- Implemented lifespan.shutdown.failed (#755) 2/25/21
+
+### Changed
+
+- Upgraded websockets requirements (#1065)  6/1/21
+- Switch to asyncio streams API (#869) 5/29/21
+- Update httptools from 0.1.* to 0.2.* (#1024) 5/28/21
+- Allow Click 8.0, refs #1016 (#1042) 5/23/21
+- Add search for a trusted host in ProxyHeadersMiddleware (#591) 3/13/21
+- Up wsproto to 1.0.0 (#892) 2/25/21
+
+### Fixed
+
+- Force reload_dirs to be a list (#978) 6/1/21
+- Fix gunicorn worker not running if extras not installed (#901) 5/28/21
+- Fix socket port 0 (#975) 3/5/21
+- Prevent garbage collection of main lifespan task (#972) 3/4/21
+
 ## 0.13.4 - 2021-02-20
 
 ### Fixed

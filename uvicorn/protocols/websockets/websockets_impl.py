@@ -1,6 +1,7 @@
 import asyncio
 import http
 import logging
+from typing import Callable
 from urllib.parse import unquote
 
 import websockets
@@ -23,12 +24,15 @@ class Server:
 
 
 class WebSocketProtocol(websockets.WebSocketServerProtocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(
+        self, config, server_state, on_connection_lost: Callable = None, _loop=None
+    ):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
+        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.root_path = config.root_path
@@ -58,6 +62,9 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         super().__init__(
             ws_handler=self.ws_handler,
             ws_server=self.ws_server,
+            max_size=self.config.ws_max_size,
+            ping_interval=self.config.ws_ping_interval,
+            ping_timeout=self.config.ws_ping_timeout,
             extensions=[ServerPerMessageDeflateFactory()],
         )
 
@@ -73,6 +80,10 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.connections.remove(self)
         self.handshake_completed_event.set()
         super().connection_lost(exc)
+        if self.on_connection_lost is not None:
+            self.on_connection_lost()
+        if exc is None:
+            self.transport.close()
 
     def shutdown(self):
         self.ws_server.closing = True
@@ -92,7 +103,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         """
         path_portion, _, query_string = path.partition("?")
 
-        websockets.handshake.check_request(headers)
+        websockets.legacy.handshake.check_request(headers)
 
         subprotocols = []
         for header in headers.get_all("Sec-WebSocket-Protocol"):
