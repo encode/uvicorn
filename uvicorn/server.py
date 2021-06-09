@@ -139,6 +139,7 @@ class Server:
             uds_perms = 0o666
             if os.path.exists(config.uds):
                 uds_perms = os.stat(config.uds).st_mode
+            assert sys.platform != "win32"  # mypy
             server = await asyncio.start_unix_server(
                 handler, path=config.uds, ssl=config.ssl, backlog=config.backlog
             )
