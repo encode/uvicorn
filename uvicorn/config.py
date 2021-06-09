@@ -32,6 +32,12 @@ from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
+HttpProtocolType = Literal["auto", "h11", "httptools"]
+WsProtocolType = Literal["auto", "none", "websockets", "wsproto"]
+LifespanType = Literal["auto", "on", "off"]
+LoopSetupType = Literal["none", "auto", "asyncio", "uvloop"]
+InterfaceType = Literal["auto", "asgi3", "asgi2", "wsgi"]
+
 TRACE_LOG_LEVEL: int = 5
 
 LOG_LEVELS: Dict[str, int] = {
@@ -42,29 +48,29 @@ LOG_LEVELS: Dict[str, int] = {
     "debug": logging.DEBUG,
     "trace": TRACE_LOG_LEVEL,
 }
-HTTP_PROTOCOLS: Dict[str, str] = {
+HTTP_PROTOCOLS: Dict[HttpProtocolType, str] = {
     "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
     "h11": "uvicorn.protocols.http.h11_impl:H11Protocol",
     "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
 }
-WS_PROTOCOLS: Dict[str, Optional[str]] = {
+WS_PROTOCOLS: Dict[WsProtocolType, Optional[str]] = {
     "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",
     "none": None,
     "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
     "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
 }
-LIFESPAN: Dict[str, str] = {
+LIFESPAN: Dict[LifespanType, str] = {
     "auto": "uvicorn.lifespan.on:LifespanOn",
     "on": "uvicorn.lifespan.on:LifespanOn",
     "off": "uvicorn.lifespan.off:LifespanOff",
 }
-LOOP_SETUPS: Dict[str, Optional[str]] = {
+LOOP_SETUPS: Dict[LoopSetupType, Optional[str]] = {
     "none": None,
     "auto": "uvicorn.loops.auto:auto_loop_setup",
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
 }
-INTERFACES: List[str] = ["auto", "asgi3", "asgi2", "wsgi"]
+INTERFACES: List[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
 
 
 # Fallback to 'ssl.PROTOCOL_SSLv23' in order to support Python < 3.5.3.
@@ -135,19 +141,19 @@ class Config:
         port: int = 8000,
         uds: Optional[str] = None,
         fd: Optional[int] = None,
-        loop: str = "auto",
-        http: Union[Type[asyncio.Protocol], str] = "auto",
-        ws: Union[Type[asyncio.Protocol], str] = "auto",
+        loop: LoopSetupType = "auto",
+        http: Union[Type[asyncio.Protocol], HttpProtocolType] = "auto",
+        ws: Union[Type[asyncio.Protocol], WsProtocolType] = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
         ws_ping_interval: int = 20,
         ws_ping_timeout: int = 20,
-        lifespan: str = "auto",
+        lifespan: LifespanType = "auto",
         env_file: Optional[Union[str, os.PathLike]] = None,
         log_config: Optional[Union[dict, str]] = LOGGING_CONFIG,
         log_level: Optional[Union[str, int]] = None,
         access_log: bool = True,
         use_colors: Optional[bool] = None,
-        interface: Literal["auto", "asgi3", "asgi2", "wsgi"] = "auto",
+        interface: InterfaceType = "auto",
         debug: bool = False,
         reload: bool = False,
         reload_dirs: Optional[Union[List[str], str]] = None,
