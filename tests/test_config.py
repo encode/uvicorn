@@ -334,6 +334,7 @@ def test_config_rebind_socket():
     sock.bind((config.host, config.port))
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         config.bind_socket()
-    sock.close()
     assert pytest_wrapped_e.type == SystemExit
     assert pytest_wrapped_e.value.code == 1
+    sock.close()
+    assert sock.fileno() == -1
