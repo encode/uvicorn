@@ -323,18 +323,23 @@ def test_ws_max_size():
     assert config.ws_max_size == 1000
 
 
+@pytest.fixture
+def socket_fixture():
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 8000))
+    yield
+    sock.close()
+    assert sock.fileno() == -1
+
+
 @pytest.mark.skipif(
     sys.platform == "win32",
     reason="Skipping unix domain tests on Windows",
 )
-def test_config_rebind_socket():
-    sock = socket.socket()
+def test_config_rebind_socket(socket_fixture):
     config = Config(app=asgi_app)
     config.load()
-    sock.bind((config.host, config.port))
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         config.bind_socket()
     assert pytest_wrapped_e.type == SystemExit
     assert pytest_wrapped_e.value.code == 1
-    sock.close()
-    assert sock.fileno() == -1
