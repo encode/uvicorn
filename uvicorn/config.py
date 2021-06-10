@@ -32,8 +32,8 @@ from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
-HttpProtocolType = Literal["auto", "h11", "httptools"]
-WsProtocolType = Literal["auto", "none", "websockets", "wsproto"]
+HTTPProtocolType = Literal["auto", "h11", "httptools"]
+WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
 LifespanType = Literal["auto", "on", "off"]
 LoopSetupType = Literal["none", "auto", "asyncio", "uvloop"]
 InterfaceType = Literal["auto", "asgi3", "asgi2", "wsgi"]
@@ -48,12 +48,12 @@ LOG_LEVELS: Dict[str, int] = {
     "debug": logging.DEBUG,
     "trace": TRACE_LOG_LEVEL,
 }
-HTTP_PROTOCOLS: Dict[HttpProtocolType, str] = {
+HTTP_PROTOCOLS: Dict[HTTPProtocolType, str] = {
     "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
     "h11": "uvicorn.protocols.http.h11_impl:H11Protocol",
     "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
 }
-WS_PROTOCOLS: Dict[WsProtocolType, Optional[str]] = {
+WS_PROTOCOLS: Dict[WSProtocolType, Optional[str]] = {
     "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",
     "none": None,
     "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
@@ -142,8 +142,8 @@ class Config:
         uds: Optional[str] = None,
         fd: Optional[int] = None,
         loop: LoopSetupType = "auto",
-        http: Union[Type[asyncio.Protocol], HttpProtocolType] = "auto",
-        ws: Union[Type[asyncio.Protocol], WsProtocolType] = "auto",
+        http: Union[Type[asyncio.Protocol], HTTPProtocolType] = "auto",
+        ws: Union[Type[asyncio.Protocol], WSProtocolType] = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
         ws_ping_interval: int = 20,
         ws_ping_timeout: int = 20,
