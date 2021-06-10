@@ -384,11 +384,7 @@ class Config:
                 + click.style(sock_name_format, bold=True)
                 + " (Press CTRL+C to quit)"
             )
-            logger.info(
-                message,
-                self.uds,
-                extra={"color_message": color_message},
-            )
+            logger_args = [self.uds]
         elif self.fd:
             sock = socket.fromfd(self.fd, socket.AF_UNIX, socket.SOCK_STREAM)
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
@@ -398,11 +394,7 @@ class Config:
                 + click.style(fd_name_format, bold=True)
                 + " (Press CTRL+C to quit)"
             )
-            logger.info(
-                message,
-                sock.getsockname(),
-                extra={"color_message": color_message},
-            )
+            logger_args = [sock.getsockname()]
         else:
             family = socket.AF_INET
             addr_format = "%s://%s:%d"
@@ -427,13 +419,8 @@ class Config:
                 + " (Press CTRL+C to quit)"
             )
             protocol_name = "https" if self.is_ssl else "http"
-            logger.info(
-                message,
-                protocol_name,
-                self.host,
-                self.port,
-                extra={"color_message": color_message},
-            )
+            logger_args = [protocol_name, self.host, self.port]
+        logger.info(message, *logger_args, extra={"color_message": color_message})
         sock.set_inheritable(True)
         return sock
 
