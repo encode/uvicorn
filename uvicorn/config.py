@@ -385,13 +385,8 @@ class Config:
         self.loaded = True
 
     def setup_event_loop(self) -> None:
-        loop_setup_str: Optional[str] = LOOP_SETUPS[self.loop]
-        if loop_setup_str:
-            loop_setup: Callable = import_from_string(loop_setup_str)
-            if not inspect.isfunction(loop_setup):
-                raise ImportFromStringError("Asyncio event loop must be a callable.")
-            else:
-                loop_setup()
+        loop_setup: Callable = import_from_string(LOOP_SETUPS[self.loop])
+        loop_setup()
 
     def bind_socket(self) -> socket.socket:
         family = socket.AF_INET
