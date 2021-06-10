@@ -392,8 +392,8 @@ def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
         Multiprocess(config, target=server.run, sockets=[sock]).run()
     else:
         server.run()
-        if config.uds:
-            os.remove(config.uds)
+    if config.uds:
+        os.remove(config.uds)
 
 
 if __name__ == "__main__":
