@@ -1,12 +1,14 @@
 import asyncio
 import http
 import logging
-from typing import Any, ByteString, Callable
+from typing import Callable, List, Optional, Tuple
 from urllib.parse import unquote
 
 import h11
-from asgiref.typing import ASGI3Application, ASGIReceiveEvent, ASGISendEvent, HTTPScope
+from asgiref.typing import ASGI3Application, Scope
+from typing_extensions import Literal
 
+from uvicorn.config import Config
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
     HIGH_WATER_LIMIT,
@@ -21,9 +23,10 @@ from uvicorn.protocols.utils import (
     get_remote_addr,
     is_ssl,
 )
+from uvicorn.server import ServerState
 
 
-def _get_status_phrase(status_code: http.HTTPStatus) -> ByteString:
+def _get_status_phrase(status_code: int) -> bytes:
     try:
         return http.HTTPStatus(status_code).phrase.encode()
     except ValueError:
@@ -37,7 +40,11 @@ STATUS_PHRASES = {
 
 class H11Protocol(asyncio.Protocol):
     def __init__(
-        self, config, server_state, on_connection_lost: Callable = None, _loop=None
+        self,
+        config: Config,
+        server_state: ServerState,
+        on_connection_lost: Optional[Callable[..., None]] = None,
+        _loop: Optional[asyncio.BaseEventLoop] = None,
     ):
         if not config.loaded:
             config.load()
@@ -65,19 +72,19 @@ class H11Protocol(asyncio.Protocol):
         self.default_headers = server_state.default_headers
 
         # Per-connection state
-        self.transport = None
-        self.flow = None
-        self.server = None
-        self.client = None
-        self.scheme = None
+        self.transport: asyncio.Transport = None  # type: ignore[assignment]
+        self.flow: FlowControl = None  # type: ignore[assignment]
+        self.server: Optional[Tuple[str, int]] = None
+        self.client: Optional[Tuple[str, int]] = None
+        self.scheme: Optional[Literal["https", "http"]] = None
 
         # Per-request state
-        self.scope = None
-        self.headers = None
-        self.cycle = None
+        self.scope: Scope = None
+        self.headers: List[Tuple[bytes, bytes]] = None
+        self.cycle: RequestResponseCycle = None  # type: ignore[assignment]
 
     # Protocol interface
-    def connection_made(self, transport: asyncio.Transport) -> None:
+    def connection_made(self, transport: asyncio.Transport) -> None:  # type: ignore
         self.connections.add(self)
 
         self.transport = transport
@@ -87,14 +94,16 @@ class H11Protocol(asyncio.Protocol):
         self.scheme = "https" if is_ssl(transport) else "http"
 
         if self.logger.level <= TRACE_LOG_LEVEL:
-            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            port, host = tuple(self.client)  # type: ignore[arg-type]
+            prefix = f"{port}:{host} - " if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
 
-    def connection_lost(self, exc: Any) -> None:
+    def connection_lost(self, exc: Optional[Exception]) -> None:
         self.connections.discard(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
-            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            port, host = tuple(self.client)  # type: ignore[arg-type]
+            prefix = f"{port}:{host} - " if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection lost", prefix)
 
         if self.cycle and not self.cycle.response_complete:
@@ -125,7 +134,7 @@ class H11Protocol(asyncio.Protocol):
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
 
-    def data_received(self, data) -> None:
+    def data_received(self, data: bytes) -> None:
         self._unset_keepalive_if_required()
 
         self.conn.receive_data(data)
@@ -329,7 +338,7 @@ class H11Protocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
-        scope: HTTPScope,
+        scope: Scope,
         conn: h11.Connection,
         transport: asyncio.Transport,
         flow: FlowControl,
@@ -338,7 +347,7 @@ class RequestResponseCycle:
         access_log: bool,
         default_headers: list,
         message_event: asyncio.Event,
-        on_response: Callable,
+        on_response: Callable[..., None],
     ):
         self.scope = scope
         self.conn = conn
@@ -407,7 +416,7 @@ class RequestResponseCycle:
         )
 
     # ASGI interface
-    async def send(self, message: ASGISendEvent) -> None:
+    async def send(self, message) -> None:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
@@ -486,7 +495,7 @@ class RequestResponseCycle:
                 self.transport.close()
             self.on_response()
 
-    async def receive(self) -> ASGIReceiveEvent:
+    async def receive(self):
         if self.waiting_for_100_continue and not self.transport.is_closing():
             event = h11.InformationalResponse(
                 status_code=100, headers=[], reason="Continue"
