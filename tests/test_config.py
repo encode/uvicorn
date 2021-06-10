@@ -149,7 +149,7 @@ def test_app_factory(caplog: pytest.LogCaptureFixture) -> None:
     assert len(caplog.records) == 1
     assert "--factory" in caplog.records[0].message
 
-    # App not a no-arguments ASGIApplication.
+    # App not a no-arguments callable.
     config = Config(app=asgi_app, factory=True)
     with pytest.raises(SystemExit):
         config.load()
