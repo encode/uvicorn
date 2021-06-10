@@ -2,7 +2,7 @@ import asyncio
 import concurrent.futures
 import io
 import sys
-from typing import Awaitable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Awaitable, Dict, Iterable, List, Optional, Tuple
 
 from asgiref.typing import (
     ASGI3Application,
@@ -61,7 +61,9 @@ def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> D
         # just in case
         value_str: str = value.decode("latin1")
         if corrected_name in environ:
-            value_str = environ[corrected_name] + "," + value_str
+            corrected_name_environ = environ[corrected_name]
+            assert isinstance(corrected_name_environ, str)
+            value_str = corrected_name_environ + "," + value_str
         environ[corrected_name] = value_str
     return environ
 
@@ -95,16 +97,16 @@ class WSGIResponder:
         self.send_queue: List[Optional[ASGISendEvent]] = []
         self.loop: asyncio.AbstractEventLoop = None  # type: ignore
         self.response_started = False
-        self.exc_info: Optional[str] = None
+        self.exc_info: Any = None
 
     async def __call__(
         self, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
-        message: HTTPRequestEvent = await receive()
+        message: HTTPRequestEvent = await receive()  # type: ignore
         body = message.get("body", b"")
         more_body = message.get("more_body", False)
         while more_body:
-            body_message: HTTPRequestEvent = await receive()
+            body_message: HTTPRequestEvent = await receive()  # type: ignore
             body += body_message.get("body", b"")
             more_body = body_message.get("more_body", False)
         environ = build_environ(self.scope, message, body)
@@ -157,15 +159,19 @@ class WSGIResponder:
             self.loop.call_soon_threadsafe(self.send_event.set)
 
     def wsgi(self, environ: Dict, start_response: Awaitable[None]) -> None:
-        for chunk in self.app(environ, start_response):
-            http_response_body_event: HTTPResponseBodyEvent = {
+        for chunk in self.app(environ, start_response):  # type: ignore
+            response_body: HTTPResponseBodyEvent = {
                 "type": "http.response.body",
                 "body": chunk,
                 "more_body": True,
             }
-            self.send_queue.append(http_response_body_event)
+            self.send_queue.append(response_body)
             self.loop.call_soon_threadsafe(self.send_event.set)
 
-        http_response_body_event = {"type": "http.response.body", "body": b""}
-        self.send_queue.append(http_response_body_event)
+        empty_body: HTTPResponseBodyEvent = {
+            "type": "http.response.body",
+            "body": b"",
+            "more_body": False,
+        }
+        self.send_queue.append(empty_body)
         self.loop.call_soon_threadsafe(self.send_event.set)
