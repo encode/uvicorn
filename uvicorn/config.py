@@ -305,7 +305,8 @@ class Config:
     def load(self) -> None:
         assert not self.loaded
 
-        if self.is_ssl and self.ssl_certfile:
+        if self.is_ssl:
+            assert self.ssl_certfile
             self.ssl: Optional[ssl.SSLContext] = create_ssl_context(
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
