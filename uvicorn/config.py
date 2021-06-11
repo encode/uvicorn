@@ -326,7 +326,7 @@ class Config:
             [(b"server", b"uvicorn")] + encoded_headers
             if b"server" not in dict(encoded_headers) and self.server_header
             else encoded_headers
-        )  # type: List[Tuple[bytes, bytes]]
+        )
 
         if isinstance(self.http, str):
             http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
