@@ -3,7 +3,7 @@ FROM python:3.9-slim-buster as builder
 RUN export DEBIAN_FRONTEND=noninteractive && \
   apt-get update && \
   apt-get -y upgrade && \
-  apt-get install -y --no-install-recommends curl build-essential git wait-for-it && \
+  apt-get install -y --no-install-recommends wait-for-it && \
   apt-get -y clean && \
   rm -rf /var/lib/apt/lists/*
 RUN pip install gunicorn starlette
