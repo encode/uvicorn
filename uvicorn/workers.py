@@ -76,7 +76,7 @@ class UvicornWorker(Worker):
         server = Server(config=self.config)
         loop = asyncio.get_event_loop()
         loop.run_until_complete(server.serve(sockets=self.sockets))
-        # Exit with status 3 when worker starts failed, so Gunicorn 
+        # Exit with status 3 when worker starts failed, so Gunicorn
         # can shut it down to avoid infinite start/stop cycles.
         # See: https://github.com/encode/uvicorn/issues/1066
         if not server.started:
