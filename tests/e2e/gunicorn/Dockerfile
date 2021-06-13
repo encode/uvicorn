@@ -6,7 +6,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
   apt-get install -y --no-install-recommends curl build-essential git wait-for-it && \
   apt-get -y clean && \
   rm -rf /var/lib/apt/lists/*
-RUN pip install gunicorn
+RUN pip install gunicorn starlette
 COPY ["requirements.txt", "setup.py", "setup.cfg", "README.md", "/opt/"]
 COPY ./uvicorn /opt/uvicorn
 WORKDIR /opt
