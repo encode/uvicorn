@@ -28,7 +28,6 @@ def uvicorn_e2e_gunicorn():
 
 
 @pytest.mark.asyncio
-@pytest.mark.filterwarnings("ignore:unclosed")
 @pytest.mark.parametrize(
     "app, expected_exit_code",
     [
