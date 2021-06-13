@@ -4,7 +4,6 @@ import httpx
 import pytest
 from docker import DockerClient
 
-
 E2E_BASE = pathlib.Path(__file__).parent
 TEST_BASE = E2E_BASE.parent
 UVICORN_BASE = TEST_BASE.parent
