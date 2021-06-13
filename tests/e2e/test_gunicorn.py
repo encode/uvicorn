@@ -30,13 +30,13 @@ def uvicorn_e2e_gunicorn():
 @pytest.mark.asyncio
 @pytest.mark.filterwarnings("ignore:unclosed")
 @pytest.mark.parametrize(
-    "app",
+    "app, expected_exit_code",
     [
-        ("default.py"),
-        ("startup_failed.py"),
+        ("default.py", 0),
+        ("startup_failed.py", 137),
     ],
 )
-async def test_gunicorn_default(uvicorn_e2e_gunicorn, app):
+async def test_gunicorn_default(uvicorn_e2e_gunicorn, app, expected_exit_code):
     asgi_app_path = E2E_BASE / "gunicorn" / app
     app_name = asgi_app_path.stem
     container = docker_client.containers.run(
@@ -50,9 +50,10 @@ async def test_gunicorn_default(uvicorn_e2e_gunicorn, app):
     )
     try:
         exit_code, output = container.exec_run(cmd=["wait-for-it", "localhost:8000"])
-        assert exit_code == 0
-        async with httpx.AsyncClient() as client:
-            response = await client.get("http://127.0.0.1:8000")
-        assert response.status_code == 204
+        assert exit_code == expected_exit_code
+        if expected_exit_code == 0:
+            async with httpx.AsyncClient() as client:
+                response = await client.get("http://127.0.0.1:8000")
+            assert response.status_code == 204
     finally:
         container.stop()
