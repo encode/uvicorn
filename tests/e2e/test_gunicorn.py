@@ -1,4 +1,5 @@
 import pathlib
+import sys
 
 import httpx
 import pytest
@@ -28,6 +29,9 @@ def uvicorn_e2e_gunicorn():
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="Github actions can't run this on windows"
+)
 @pytest.mark.parametrize(
     "app, expected_exit_code",
     [
