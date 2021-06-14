@@ -130,8 +130,9 @@ class GunicornSafeAtoms(abc.Mapping):
     - escapes double quotes found in atom strings
     """
 
-    def __init__(self, scope):
+    def __init__(self, scope, timing):
         self.scope = scope
+        self.timing = timing
         self.status_code = None
         self.response_headers = {}
         self.response_length = 0
@@ -148,8 +149,7 @@ class GunicornSafeAtoms(abc.Mapping):
 
     @property
     def duration(self):
-        d = self.scope["response_end_time"] - self.scope["request_start_time"]
-        return d
+        return self.timing.total_duration_seconds()
 
     def on_asgi_message(self, message):
         if message["type"] == "http.response.start":

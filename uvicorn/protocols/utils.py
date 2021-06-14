@@ -1,4 +1,5 @@
 import asyncio
+import time
 import urllib.parse
 from typing import Optional, Tuple
 
@@ -54,3 +55,32 @@ def get_path_with_query_string(scope: WWWScope) -> str:
             path_with_query_string, scope["query_string"].decode("ascii")
         )
     return path_with_query_string
+
+
+class RequestResponseTiming:
+    def __init__(self):
+        self.request_start_time: Optional[int] = None
+        self.request_end_time: Optional[int] = None
+        self.response_start_time: Optional[int] = None
+        self.response_end_time: Optional[int] = None
+
+    def request_started(self):
+        self.request_start_time = time.monotonic()
+
+    def request_ended(self):
+        self.request_end_time = time.monotonic()
+
+    def response_started(self):
+        self.response_start_time = time.monotonic()
+
+    def response_ended(self):
+        self.response_end_time = time.monotonic()
+
+    def request_duration_seconds(self):
+        return self.request_end_time - self.request_start_time
+
+    def response_duration_seconds(self):
+        return self.response_end_time - self.response_start_time
+
+    def total_duration_seconds(self):
+        return self.response_end_time - self.request_start_time
