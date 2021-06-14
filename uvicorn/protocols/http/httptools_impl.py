@@ -17,6 +17,7 @@ from uvicorn.protocols.http.flow_control import (
     service_unavailable,
 )
 from uvicorn.protocols.utils import (
+    RequestResponseTiming,
     get_client_addr,
     get_local_addr,
     get_path_with_query_string,
@@ -82,6 +83,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.headers = None
         self.expect_100_continue = False
         self.cycle = None
+        self.request_start_time = None
 
     # Protocol interface
     def connection_made(self, transport):
@@ -206,12 +208,10 @@ class HttpToolsProtocol(asyncio.Protocol):
             "raw_path": raw_path,
             "query_string": parsed_url.query if parsed_url.query else b"",
             "headers": self.headers,
-            "extensions": {
-                "uvicorn_request_duration": {
-                    "request_start_time": time.monotonic(),
-                }
-            },
         }
+
+    def on_message_begin(self):
+        self.request_start_time = time.monotonic()
 
     def on_header(self, name: bytes, value: bytes):
         name = name.lower()
@@ -252,6 +252,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             keep_alive=http_version != "1.0",
             on_response=self.on_response_complete,
         )
+        self.cycle.timing.request_start_time = self.request_start_time
         if existing_cycle is None or existing_cycle.response_complete:
             # Standard case - start processing the request.
             task = self.loop.create_task(self.cycle.run_asgi(app))
@@ -275,6 +276,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             return
         self.cycle.more_body = False
         self.cycle.message_event.set()
+        self.cycle.timing.request_ended()
 
     def on_response_complete(self):
         # Callback for pipelined HTTP requests to be started.
@@ -371,10 +373,11 @@ class RequestResponseCycle:
         self.response_complete = False
         self.chunked_encoding = None
         self.expected_content_length = 0
+        self.timing = RequestResponseTiming()
 
         # For logging.
         if self.gunicorn_log:
-            self.gunicorn_atoms = GunicornSafeAtoms(self.scope)
+            self.gunicorn_atoms = GunicornSafeAtoms(self.scope, self.timing)
         else:
             self.gunicorn_atoms = None
 
@@ -440,6 +443,7 @@ class RequestResponseCycle:
                 raise RuntimeError(msg % message_type)
 
             self.response_started = True
+            self.timing.response_started()
             self.waiting_for_100_continue = False
 
             status_code = message["status"]
@@ -523,8 +527,7 @@ class RequestResponseCycle:
                 if self.expected_content_length != 0:
                     raise RuntimeError("Response content shorter than Content-Length")
                 self.response_complete = True
-                duration_scope = self.scope["extensions"]["uvicorn_request_duration"]
-                duration_scope["response_end_time"] = time.monotonic()
+                self.timing.response_ended()
 
                 if self.gunicorn_log is not None:
                     try:
