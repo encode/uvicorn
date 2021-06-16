@@ -1,7 +1,8 @@
 import asyncio
-import platform
-import selectors
-import sys
+
+# import platform
+# import selectors
+# import sys
 
 
 def asyncio_setup() -> None:  # pragma: no cover
