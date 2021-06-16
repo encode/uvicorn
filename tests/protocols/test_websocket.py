@@ -461,27 +461,27 @@ async def test_client_close(ws_protocol_cls, http_protocol_cls):
         await websocket_session("ws://127.0.0.1:8000")
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-# @pytest.mark.parametrize("subprotocol", ["proto1", "proto2"])
-# async def test_subprotocols(ws_protocol_cls, http_protocol_cls, subprotocol):
-#     class App(WebSocketResponse):
-#         async def websocket_connect(self, message):
-#             await self.send({"type": "websocket.accept", "subprotocol": subprotocol})
-#
-#     async def get_subprotocol(url):
-#         async with websockets.connect(
-#             url, subprotocols=["proto1", "proto2"]
-#         ) as websocket:
-#             return websocket.subprotocol
-#
-#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-#     async with run_server(config):
-#         accepted_subprotocol = await get_subprotocol("ws://127.0.0.1:8000")
-#         assert accepted_subprotocol == subprotocol
-#
-#
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+@pytest.mark.parametrize("subprotocol", ["proto1", "proto2"])
+async def test_subprotocols(ws_protocol_cls, http_protocol_cls, subprotocol):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept", "subprotocol": subprotocol})
+
+    async def get_subprotocol(url):
+        async with websockets.connect(
+            url, subprotocols=["proto1", "proto2"]
+        ) as websocket:
+            return websocket.subprotocol
+
+    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        accepted_subprotocol = await get_subprotocol("ws://127.0.0.1:8000")
+        assert accepted_subprotocol == subprotocol
+
+
 # MAX_WS_BYTES = 1024 * 1024 * 16
 # MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
 #
