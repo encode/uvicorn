@@ -160,28 +160,28 @@ async def test_headers(ws_protocol_cls, http_protocol_cls):
         assert is_open
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-# async def test_path_and_raw_path(ws_protocol_cls, http_protocol_cls):
-#     class App(WebSocketResponse):
-#         async def websocket_connect(self, message):
-#             path = self.scope.get("path")
-#             raw_path = self.scope.get("raw_path")
-#             assert path == "/one/two"
-#             assert raw_path == "/one%2Ftwo"
-#             await self.send({"type": "websocket.accept"})
-#
-#     async def open_connection(url):
-#         async with websockets.connect(url) as websocket:
-#             return websocket.open
-#
-#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-#     async with run_server(config):
-#         is_open = await open_connection("ws://127.0.0.1:8000/one%2Ftwo")
-#         assert is_open
-#
-#
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_path_and_raw_path(ws_protocol_cls, http_protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            path = self.scope.get("path")
+            raw_path = self.scope.get("raw_path")
+            assert path == "/one/two"
+            assert raw_path == "/one%2Ftwo"
+            await self.send({"type": "websocket.accept"})
+
+    async def open_connection(url):
+        async with websockets.connect(url) as websocket:
+            return websocket.open
+
+    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        is_open = await open_connection("ws://127.0.0.1:8000/one%2Ftwo")
+        assert is_open
+
+
 # @pytest.mark.asyncio
 # @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 # @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
