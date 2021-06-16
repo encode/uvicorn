@@ -399,44 +399,44 @@ async def test_asgi_return_value(ws_protocol_cls, http_protocol_cls):
         assert exc_info.value.code == 1006
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-# @pytest.mark.parametrize("code", [None, 1000, 1001])
-# @pytest.mark.parametrize("reason", [None, "test"])
-# async def test_app_close(ws_protocol_cls, http_protocol_cls, code, reason):
-#     async def app(scope, receive, send):
-#         while True:
-#             message = await receive()
-#             if message["type"] == "websocket.connect":
-#                 await send({"type": "websocket.accept"})
-#             elif message["type"] == "websocket.receive":
-#                 reply = {"type": "websocket.close"}
-#
-#                 if code is not None:
-#                     reply["code"] = code
-#
-#                 if reason is not None:
-#                     reply["reason"] = reason
-#
-#                 await send(reply)
-#             elif message["type"] == "websocket.disconnect":
-#                 break
-#
-#     async def websocket_session(url):
-#         async with websockets.connect(url) as websocket:
-#             await websocket.ping()
-#             await websocket.send("abc")
-#             await websocket.recv()
-#
-#     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-#     async with run_server(config):
-#         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
-#             await websocket_session("ws://127.0.0.1:8000")
-#         assert exc_info.value.code == (code or 1000)
-#         assert exc_info.value.reason == (reason or "")
-#
-#
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+@pytest.mark.parametrize("code", [None, 1000, 1001])
+@pytest.mark.parametrize("reason", [None, "test"])
+async def test_app_close(ws_protocol_cls, http_protocol_cls, code, reason):
+    async def app(scope, receive, send):
+        while True:
+            message = await receive()
+            if message["type"] == "websocket.connect":
+                await send({"type": "websocket.accept"})
+            elif message["type"] == "websocket.receive":
+                reply = {"type": "websocket.close"}
+
+                if code is not None:
+                    reply["code"] = code
+
+                if reason is not None:
+                    reply["reason"] = reason
+
+                await send(reply)
+            elif message["type"] == "websocket.disconnect":
+                break
+
+    async def websocket_session(url):
+        async with websockets.connect(url) as websocket:
+            await websocket.ping()
+            await websocket.send("abc")
+            await websocket.recv()
+
+    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
+            await websocket_session("ws://127.0.0.1:8000")
+        assert exc_info.value.code == (code or 1000)
+        assert exc_info.value.reason == (reason or "")
+
+
 # @pytest.mark.asyncio
 # @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 # @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
