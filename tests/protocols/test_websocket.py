@@ -293,35 +293,35 @@ async def test_send_binary_data_to_server(ws_protocol_cls, http_protocol_cls):
         assert data == b"abc"
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-# async def test_send_after_protocol_close(ws_protocol_cls, http_protocol_cls):
-#     class App(WebSocketResponse):
-#         async def websocket_connect(self, message):
-#             await self.send({"type": "websocket.accept"})
-#             await self.send({"type": "websocket.send", "text": "123"})
-#             await self.send({"type": "websocket.close"})
-#             with pytest.raises(Exception):
-#                 await self.send({"type": "websocket.send", "text": "123"})
-#
-#     async def get_data(url):
-#         async with websockets.connect(url) as websocket:
-#             data = await websocket.recv()
-#             is_open = True
-#             try:
-#                 await websocket.recv()
-#             except Exception:
-#                 is_open = False
-#             return (data, is_open)
-#
-#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-#     async with run_server(config):
-#         (data, is_open) = await get_data("ws://127.0.0.1:8000")
-#         assert data == "123"
-#         assert not is_open
-#
-#
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_send_after_protocol_close(ws_protocol_cls, http_protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+            await self.send({"type": "websocket.send", "text": "123"})
+            await self.send({"type": "websocket.close"})
+            with pytest.raises(Exception):
+                await self.send({"type": "websocket.send", "text": "123"})
+
+    async def get_data(url):
+        async with websockets.connect(url) as websocket:
+            data = await websocket.recv()
+            is_open = True
+            try:
+                await websocket.recv()
+            except Exception:
+                is_open = False
+            return (data, is_open)
+
+    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        (data, is_open) = await get_data("ws://127.0.0.1:8000")
+        assert data == "123"
+        assert not is_open
+
+
 # @pytest.mark.asyncio
 # @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 # @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
