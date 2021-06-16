@@ -11,7 +11,8 @@ if [ -z $GITHUB_ACTIONS ]; then
     scripts/check
 fi
 
-${PREFIX}coverage run --debug config -m pytest
+#${PREFIX}coverage run --debug config -m pytest
+PYTHONWARNINGS=all PYTHONTRACEMALLOC=25 pytest -W error -p no:warnings -s tests/protocols/test_websocket.py
 
 if [ -z $GITHUB_ACTIONS ]; then
     scripts/coverage

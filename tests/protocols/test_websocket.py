@@ -44,498 +44,498 @@ class WebSocketResponse:
                 break
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_invalid_upgrade(ws_protocol_cls, http_protocol_cls):
-    def app(scope):
-        return None
-
-    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls)
-    async with run_server(config):
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "http://127.0.0.1:8000",
-                headers={
-                    "upgrade": "websocket",
-                    "connection": "upgrade",
-                    "sec-webSocket-version": "11",
-                },
-                timeout=5,
-            )
-        if response.status_code == 426:
-            # response.text == ""
-            pass  # ok, wsproto 0.13
-        else:
-            assert response.status_code == 400
-            assert response.text.lower().strip().rstrip(".") in [
-                "missing sec-websocket-key header",
-                "missing sec-websocket-version header",  # websockets
-                "missing or empty sec-websocket-key header",  # wsproto
-                "failed to open a websocket connection: missing "
-                "sec-websocket-key header",
-                "failed to open a websocket connection: missing or empty "
-                "sec-websocket-key header",
-            ]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_accept_connection(ws_protocol_cls, http_protocol_cls):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            await self.send({"type": "websocket.accept"})
-
-    async def open_connection(url):
-        async with websockets.connect(url) as websocket:
-            return websocket.open
-
-    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        is_open = await open_connection("ws://127.0.0.1:8000")
-        assert is_open
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_supports_permessage_deflate_extension(
-    ws_protocol_cls, http_protocol_cls
-):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            await self.send({"type": "websocket.accept"})
-
-    async def open_connection(url):
-        extension_factories = [ClientPerMessageDeflateFactory()]
-        async with websockets.connect(url, extensions=extension_factories) as websocket:
-            return [extension.name for extension in websocket.extensions]
-
-    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        extension_names = await open_connection("ws://127.0.0.1:8000")
-        assert "permessage-deflate" in extension_names
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_close_connection(ws_protocol_cls, http_protocol_cls):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            await self.send({"type": "websocket.close"})
-
-    async def open_connection(url):
-        try:
-            await websockets.connect(url)
-        except websockets.exceptions.InvalidHandshake:
-            return False
-        return True  # pragma: no cover
-
-    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        is_open = await open_connection("ws://127.0.0.1:8000")
-        assert not is_open
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_headers(ws_protocol_cls, http_protocol_cls):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            headers = self.scope.get("headers")
-            headers = dict(headers)
-            assert headers[b"host"].startswith(b"127.0.0.1")
-            await self.send({"type": "websocket.accept"})
-
-    async def open_connection(url):
-        async with websockets.connect(url) as websocket:
-            return websocket.open
-
-    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        is_open = await open_connection("ws://127.0.0.1:8000")
-        assert is_open
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_path_and_raw_path(ws_protocol_cls, http_protocol_cls):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            path = self.scope.get("path")
-            raw_path = self.scope.get("raw_path")
-            assert path == "/one/two"
-            assert raw_path == "/one%2Ftwo"
-            await self.send({"type": "websocket.accept"})
-
-    async def open_connection(url):
-        async with websockets.connect(url) as websocket:
-            return websocket.open
-
-    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        is_open = await open_connection("ws://127.0.0.1:8000/one%2Ftwo")
-        assert is_open
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_send_text_data_to_client(ws_protocol_cls, http_protocol_cls):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            await self.send({"type": "websocket.accept"})
-            await self.send({"type": "websocket.send", "text": "123"})
-
-    async def get_data(url):
-        async with websockets.connect(url) as websocket:
-            return await websocket.recv()
-
-    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        data = await get_data("ws://127.0.0.1:8000")
-        assert data == "123"
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_send_binary_data_to_client(ws_protocol_cls, http_protocol_cls):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            await self.send({"type": "websocket.accept"})
-            await self.send({"type": "websocket.send", "bytes": b"123"})
-
-    async def get_data(url):
-        async with websockets.connect(url) as websocket:
-            return await websocket.recv()
-
-    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        data = await get_data("ws://127.0.0.1:8000")
-        assert data == b"123"
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_send_and_close_connection(ws_protocol_cls, http_protocol_cls):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            await self.send({"type": "websocket.accept"})
-            await self.send({"type": "websocket.send", "text": "123"})
-            await self.send({"type": "websocket.close"})
-
-    async def get_data(url):
-        async with websockets.connect(url) as websocket:
-            data = await websocket.recv()
-            is_open = True
-            try:
-                await websocket.recv()
-            except Exception:
-                is_open = False
-            return (data, is_open)
-
-    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        (data, is_open) = await get_data("ws://127.0.0.1:8000")
-        assert data == "123"
-        assert not is_open
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_send_text_data_to_server(ws_protocol_cls, http_protocol_cls):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            await self.send({"type": "websocket.accept"})
-
-        async def websocket_receive(self, message):
-            _text = message.get("text")
-            await self.send({"type": "websocket.send", "text": _text})
-
-    async def send_text(url):
-        async with websockets.connect(url) as websocket:
-            await websocket.send("abc")
-            return await websocket.recv()
-
-    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        data = await send_text("ws://127.0.0.1:8000")
-        assert data == "abc"
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_send_binary_data_to_server(ws_protocol_cls, http_protocol_cls):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            await self.send({"type": "websocket.accept"})
-
-        async def websocket_receive(self, message):
-            _bytes = message.get("bytes")
-            await self.send({"type": "websocket.send", "bytes": _bytes})
-
-    async def send_text(url):
-        async with websockets.connect(url) as websocket:
-            await websocket.send(b"abc")
-            return await websocket.recv()
-
-    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        data = await send_text("ws://127.0.0.1:8000")
-        assert data == b"abc"
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_send_after_protocol_close(ws_protocol_cls, http_protocol_cls):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            await self.send({"type": "websocket.accept"})
-            await self.send({"type": "websocket.send", "text": "123"})
-            await self.send({"type": "websocket.close"})
-            with pytest.raises(Exception):
-                await self.send({"type": "websocket.send", "text": "123"})
-
-    async def get_data(url):
-        async with websockets.connect(url) as websocket:
-            data = await websocket.recv()
-            is_open = True
-            try:
-                await websocket.recv()
-            except Exception:
-                is_open = False
-            return (data, is_open)
-
-    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        (data, is_open) = await get_data("ws://127.0.0.1:8000")
-        assert data == "123"
-        assert not is_open
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_missing_handshake(ws_protocol_cls, http_protocol_cls):
-    async def app(app, receive, send):
-        pass
-
-    async def connect(url):
-        await websockets.connect(url)
-
-    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
-            await connect("ws://127.0.0.1:8000")
-        assert exc_info.value.status_code == 500
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_send_before_handshake(ws_protocol_cls, http_protocol_cls):
-    async def app(scope, receive, send):
-        await send({"type": "websocket.send", "text": "123"})
-
-    async def connect(url):
-        await websockets.connect(url)
-
-    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
-            await connect("ws://127.0.0.1:8000")
-        assert exc_info.value.status_code == 500
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_duplicate_handshake(ws_protocol_cls, http_protocol_cls):
-    async def app(scope, receive, send):
-        await send({"type": "websocket.accept"})
-        await send({"type": "websocket.accept"})
-
-    async def connect(url):
-        async with websockets.connect(url) as websocket:
-            _ = await websocket.recv()
-
-    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
-            await connect("ws://127.0.0.1:8000")
-        assert exc_info.value.code == 1006
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_asgi_return_value(ws_protocol_cls, http_protocol_cls):
-    """
-    The ASGI callable should return 'None'. If it doesn't make sure that
-    the connection is closed with an error condition.
-    """
-
-    async def app(scope, receive, send):
-        await send({"type": "websocket.accept"})
-        return 123
-
-    async def connect(url):
-        async with websockets.connect(url) as websocket:
-            _ = await websocket.recv()
-
-    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
-            await connect("ws://127.0.0.1:8000")
-        assert exc_info.value.code == 1006
-
-
 # @pytest.mark.asyncio
 # @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 # @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-# @pytest.mark.parametrize("code", [None, 1000, 1001])
-# @pytest.mark.parametrize("reason", [None, "test"])
-# async def test_app_close(ws_protocol_cls, http_protocol_cls, code, reason):
-#     async def app(scope, receive, send):
-#         while True:
-#             message = await receive()
-#             if message["type"] == "websocket.connect":
-#                 await send({"type": "websocket.accept"})
-#             elif message["type"] == "websocket.receive":
-#                 reply = {"type": "websocket.close"}
+# async def test_invalid_upgrade(ws_protocol_cls, http_protocol_cls):
+#     def app(scope):
+#         return None
 #
-#                 if code is not None:
-#                     reply["code"] = code
+#     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls)
+#     async with run_server(config):
+#         async with httpx.AsyncClient() as client:
+#             response = await client.get(
+#                 "http://127.0.0.1:8000",
+#                 headers={
+#                     "upgrade": "websocket",
+#                     "connection": "upgrade",
+#                     "sec-webSocket-version": "11",
+#                 },
+#                 timeout=5,
+#             )
+#         if response.status_code == 426:
+#             # response.text == ""
+#             pass  # ok, wsproto 0.13
+#         else:
+#             assert response.status_code == 400
+#             assert response.text.lower().strip().rstrip(".") in [
+#                 "missing sec-websocket-key header",
+#                 "missing sec-websocket-version header",  # websockets
+#                 "missing or empty sec-websocket-key header",  # wsproto
+#                 "failed to open a websocket connection: missing "
+#                 "sec-websocket-key header",
+#                 "failed to open a websocket connection: missing or empty "
+#                 "sec-websocket-key header",
+#             ]
 #
-#                 if reason is not None:
-#                     reply["reason"] = reason
 #
-#                 await send(reply)
-#             elif message["type"] == "websocket.disconnect":
-#                 break
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_accept_connection(ws_protocol_cls, http_protocol_cls):
+#     class App(WebSocketResponse):
+#         async def websocket_connect(self, message):
+#             await self.send({"type": "websocket.accept"})
 #
-#     async def websocket_session(url):
+#     async def open_connection(url):
 #         async with websockets.connect(url) as websocket:
-#             await websocket.ping()
+#             return websocket.open
+#
+#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         is_open = await open_connection("ws://127.0.0.1:8000")
+#         assert is_open
+#
+#
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_supports_permessage_deflate_extension(
+#     ws_protocol_cls, http_protocol_cls
+# ):
+#     class App(WebSocketResponse):
+#         async def websocket_connect(self, message):
+#             await self.send({"type": "websocket.accept"})
+#
+#     async def open_connection(url):
+#         extension_factories = [ClientPerMessageDeflateFactory()]
+#         async with websockets.connect(url, extensions=extension_factories) as websocket:
+#             return [extension.name for extension in websocket.extensions]
+#
+#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         extension_names = await open_connection("ws://127.0.0.1:8000")
+#         assert "permessage-deflate" in extension_names
+#
+#
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_close_connection(ws_protocol_cls, http_protocol_cls):
+#     class App(WebSocketResponse):
+#         async def websocket_connect(self, message):
+#             await self.send({"type": "websocket.close"})
+#
+#     async def open_connection(url):
+#         try:
+#             await websockets.connect(url)
+#         except websockets.exceptions.InvalidHandshake:
+#             return False
+#         return True  # pragma: no cover
+#
+#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         is_open = await open_connection("ws://127.0.0.1:8000")
+#         assert not is_open
+#
+#
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_headers(ws_protocol_cls, http_protocol_cls):
+#     class App(WebSocketResponse):
+#         async def websocket_connect(self, message):
+#             headers = self.scope.get("headers")
+#             headers = dict(headers)
+#             assert headers[b"host"].startswith(b"127.0.0.1")
+#             await self.send({"type": "websocket.accept"})
+#
+#     async def open_connection(url):
+#         async with websockets.connect(url) as websocket:
+#             return websocket.open
+#
+#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         is_open = await open_connection("ws://127.0.0.1:8000")
+#         assert is_open
+#
+#
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_path_and_raw_path(ws_protocol_cls, http_protocol_cls):
+#     class App(WebSocketResponse):
+#         async def websocket_connect(self, message):
+#             path = self.scope.get("path")
+#             raw_path = self.scope.get("raw_path")
+#             assert path == "/one/two"
+#             assert raw_path == "/one%2Ftwo"
+#             await self.send({"type": "websocket.accept"})
+#
+#     async def open_connection(url):
+#         async with websockets.connect(url) as websocket:
+#             return websocket.open
+#
+#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         is_open = await open_connection("ws://127.0.0.1:8000/one%2Ftwo")
+#         assert is_open
+#
+#
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_send_text_data_to_client(ws_protocol_cls, http_protocol_cls):
+#     class App(WebSocketResponse):
+#         async def websocket_connect(self, message):
+#             await self.send({"type": "websocket.accept"})
+#             await self.send({"type": "websocket.send", "text": "123"})
+#
+#     async def get_data(url):
+#         async with websockets.connect(url) as websocket:
+#             return await websocket.recv()
+#
+#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         data = await get_data("ws://127.0.0.1:8000")
+#         assert data == "123"
+#
+#
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_send_binary_data_to_client(ws_protocol_cls, http_protocol_cls):
+#     class App(WebSocketResponse):
+#         async def websocket_connect(self, message):
+#             await self.send({"type": "websocket.accept"})
+#             await self.send({"type": "websocket.send", "bytes": b"123"})
+#
+#     async def get_data(url):
+#         async with websockets.connect(url) as websocket:
+#             return await websocket.recv()
+#
+#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         data = await get_data("ws://127.0.0.1:8000")
+#         assert data == b"123"
+#
+#
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_send_and_close_connection(ws_protocol_cls, http_protocol_cls):
+#     class App(WebSocketResponse):
+#         async def websocket_connect(self, message):
+#             await self.send({"type": "websocket.accept"})
+#             await self.send({"type": "websocket.send", "text": "123"})
+#             await self.send({"type": "websocket.close"})
+#
+#     async def get_data(url):
+#         async with websockets.connect(url) as websocket:
+#             data = await websocket.recv()
+#             is_open = True
+#             try:
+#                 await websocket.recv()
+#             except Exception:
+#                 is_open = False
+#             return (data, is_open)
+#
+#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         (data, is_open) = await get_data("ws://127.0.0.1:8000")
+#         assert data == "123"
+#         assert not is_open
+#
+#
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_send_text_data_to_server(ws_protocol_cls, http_protocol_cls):
+#     class App(WebSocketResponse):
+#         async def websocket_connect(self, message):
+#             await self.send({"type": "websocket.accept"})
+#
+#         async def websocket_receive(self, message):
+#             _text = message.get("text")
+#             await self.send({"type": "websocket.send", "text": _text})
+#
+#     async def send_text(url):
+#         async with websockets.connect(url) as websocket:
 #             await websocket.send("abc")
-#             await websocket.recv()
+#             return await websocket.recv()
+#
+#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         data = await send_text("ws://127.0.0.1:8000")
+#         assert data == "abc"
+#
+#
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_send_binary_data_to_server(ws_protocol_cls, http_protocol_cls):
+#     class App(WebSocketResponse):
+#         async def websocket_connect(self, message):
+#             await self.send({"type": "websocket.accept"})
+#
+#         async def websocket_receive(self, message):
+#             _bytes = message.get("bytes")
+#             await self.send({"type": "websocket.send", "bytes": _bytes})
+#
+#     async def send_text(url):
+#         async with websockets.connect(url) as websocket:
+#             await websocket.send(b"abc")
+#             return await websocket.recv()
+#
+#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         data = await send_text("ws://127.0.0.1:8000")
+#         assert data == b"abc"
+#
+#
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_send_after_protocol_close(ws_protocol_cls, http_protocol_cls):
+#     class App(WebSocketResponse):
+#         async def websocket_connect(self, message):
+#             await self.send({"type": "websocket.accept"})
+#             await self.send({"type": "websocket.send", "text": "123"})
+#             await self.send({"type": "websocket.close"})
+#             with pytest.raises(Exception):
+#                 await self.send({"type": "websocket.send", "text": "123"})
+#
+#     async def get_data(url):
+#         async with websockets.connect(url) as websocket:
+#             data = await websocket.recv()
+#             is_open = True
+#             try:
+#                 await websocket.recv()
+#             except Exception:
+#                 is_open = False
+#             return (data, is_open)
+#
+#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         (data, is_open) = await get_data("ws://127.0.0.1:8000")
+#         assert data == "123"
+#         assert not is_open
+#
+#
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_missing_handshake(ws_protocol_cls, http_protocol_cls):
+#     async def app(app, receive, send):
+#         pass
+#
+#     async def connect(url):
+#         await websockets.connect(url)
+#
+#     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
+#             await connect("ws://127.0.0.1:8000")
+#         assert exc_info.value.status_code == 500
+#
+#
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_send_before_handshake(ws_protocol_cls, http_protocol_cls):
+#     async def app(scope, receive, send):
+#         await send({"type": "websocket.send", "text": "123"})
+#
+#     async def connect(url):
+#         await websockets.connect(url)
+#
+#     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
+#             await connect("ws://127.0.0.1:8000")
+#         assert exc_info.value.status_code == 500
+#
+#
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_duplicate_handshake(ws_protocol_cls, http_protocol_cls):
+#     async def app(scope, receive, send):
+#         await send({"type": "websocket.accept"})
+#         await send({"type": "websocket.accept"})
+#
+#     async def connect(url):
+#         async with websockets.connect(url) as websocket:
+#             _ = await websocket.recv()
 #
 #     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
 #     async with run_server(config):
 #         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
-#             await websocket_session("ws://127.0.0.1:8000")
-#         assert exc_info.value.code == (code or 1000)
-#         assert exc_info.value.reason == (reason or "")
-
-
+#             await connect("ws://127.0.0.1:8000")
+#         assert exc_info.value.code == 1006
+#
+#
 # @pytest.mark.asyncio
 # @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 # @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-# async def test_client_close(ws_protocol_cls, http_protocol_cls):
-#     async def app(scope, receive, send):
-#         while True:
-#             message = await receive()
-#             if message["type"] == "websocket.connect":
-#                 await send({"type": "websocket.accept"})
-#             elif message["type"] == "websocket.receive":
-#                 pass
-#             elif message["type"] == "websocket.disconnect":
-#                 break
+# async def test_asgi_return_value(ws_protocol_cls, http_protocol_cls):
+#     """
+#     The ASGI callable should return 'None'. If it doesn't make sure that
+#     the connection is closed with an error condition.
+#     """
 #
-#     async def websocket_session(url):
+#     async def app(scope, receive, send):
+#         await send({"type": "websocket.accept"})
+#         return 123
+#
+#     async def connect(url):
 #         async with websockets.connect(url) as websocket:
-#             await websocket.ping()
-#             await websocket.send("abc")
+#             _ = await websocket.recv()
 #
 #     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
 #     async with run_server(config):
-#         await websocket_session("ws://127.0.0.1:8000")
+#         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
+#             await connect("ws://127.0.0.1:8000")
+#         assert exc_info.value.code == 1006
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-@pytest.mark.parametrize("subprotocol", ["proto1", "proto2"])
-async def test_subprotocols(ws_protocol_cls, http_protocol_cls, subprotocol):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            await self.send({"type": "websocket.accept", "subprotocol": subprotocol})
+@pytest.mark.parametrize("code", [None, 1000, 1001])
+@pytest.mark.parametrize("reason", [None, "test"])
+async def test_app_close(ws_protocol_cls, http_protocol_cls, code, reason):
+    async def app(scope, receive, send):
+        while True:
+            message = await receive()
+            if message["type"] == "websocket.connect":
+                await send({"type": "websocket.accept"})
+            elif message["type"] == "websocket.receive":
+                reply = {"type": "websocket.close"}
 
-    async def get_subprotocol(url):
-        async with websockets.connect(
-            url, subprotocols=["proto1", "proto2"]
-        ) as websocket:
-            return websocket.subprotocol
+                if code is not None:
+                    reply["code"] = code
 
-    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+                if reason is not None:
+                    reply["reason"] = reason
+
+                await send(reply)
+            elif message["type"] == "websocket.disconnect":
+                break
+
+    async def websocket_session(url):
+        async with websockets.connect(url) as websocket:
+            await websocket.ping()
+            await websocket.send("abc")
+            await websocket.recv()
+
+    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
     async with run_server(config):
-        accepted_subprotocol = await get_subprotocol("ws://127.0.0.1:8000")
-        assert accepted_subprotocol == subprotocol
-
-
-MAX_WS_BYTES = 1024 * 1024 * 16
-MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
+        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
+            await websocket_session("ws://127.0.0.1:8000")
+        assert exc_info.value.code == (code or 1000)
+        assert exc_info.value.reason == (reason or "")
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", ONLY_WEBSOCKETPROTOCOL)
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-@pytest.mark.parametrize(
-    "client_size_sent, server_size_max, expected_result",
-    [
-        (MAX_WS_BYTES, MAX_WS_BYTES, 0),
-        (MAX_WS_BYTES_PLUS1, MAX_WS_BYTES, 1009),
-        (10, 10, 0),
-        (11, 10, 1009),
-    ],
-    ids=[
-        "max=defaults sent=defaults",
-        "max=defaults sent=defaults+1",
-        "max=10 sent=10",
-        "max=10 sent=11",
-    ],
-)
-async def test_send_binary_data_to_server_bigger_than_default(
-    ws_protocol_cls,
-    http_protocol_cls,
-    client_size_sent,
-    server_size_max,
-    expected_result,
-):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            await self.send({"type": "websocket.accept"})
+async def test_client_close(ws_protocol_cls, http_protocol_cls):
+    async def app(scope, receive, send):
+        while True:
+            message = await receive()
+            if message["type"] == "websocket.connect":
+                await send({"type": "websocket.accept"})
+            elif message["type"] == "websocket.receive":
+                pass
+            elif message["type"] == "websocket.disconnect":
+                break
 
-        async def websocket_receive(self, message):
-            _bytes = message.get("bytes")
-            await self.send({"type": "websocket.send", "bytes": _bytes})
+    async def websocket_session(url):
+        async with websockets.connect(url) as websocket:
+            await websocket.ping()
+            await websocket.send("abc")
 
-    async def send_text(url):
-        async with websockets.connect(url, max_size=client_size_sent) as websocket:
-            await websocket.send(b"\x01" * client_size_sent)
-            return await websocket.recv()
-
-    config = Config(
-        app=App,
-        ws=ws_protocol_cls,
-        http=http_protocol_cls,
-        lifespan="off",
-        ws_max_size=server_size_max,
-    )
+    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
     async with run_server(config):
-        if expected_result == 0:
-            data = await send_text("ws://127.0.0.1:8000")
-            assert data == b"\x01" * client_size_sent
-        else:
-            with pytest.raises(websockets.ConnectionClosedError) as e:
-                data = await send_text("ws://127.0.0.1:8000")
-            assert e.value.code == expected_result
+        await websocket_session("ws://127.0.0.1:8000")
+
+
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# @pytest.mark.parametrize("subprotocol", ["proto1", "proto2"])
+# async def test_subprotocols(ws_protocol_cls, http_protocol_cls, subprotocol):
+#     class App(WebSocketResponse):
+#         async def websocket_connect(self, message):
+#             await self.send({"type": "websocket.accept", "subprotocol": subprotocol})
+#
+#     async def get_subprotocol(url):
+#         async with websockets.connect(
+#             url, subprotocols=["proto1", "proto2"]
+#         ) as websocket:
+#             return websocket.subprotocol
+#
+#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         accepted_subprotocol = await get_subprotocol("ws://127.0.0.1:8000")
+#         assert accepted_subprotocol == subprotocol
+#
+#
+# MAX_WS_BYTES = 1024 * 1024 * 16
+# MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
+#
+#
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", ONLY_WEBSOCKETPROTOCOL)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# @pytest.mark.parametrize(
+#     "client_size_sent, server_size_max, expected_result",
+#     [
+#         (MAX_WS_BYTES, MAX_WS_BYTES, 0),
+#         (MAX_WS_BYTES_PLUS1, MAX_WS_BYTES, 1009),
+#         (10, 10, 0),
+#         (11, 10, 1009),
+#     ],
+#     ids=[
+#         "max=defaults sent=defaults",
+#         "max=defaults sent=defaults+1",
+#         "max=10 sent=10",
+#         "max=10 sent=11",
+#     ],
+# )
+# async def test_send_binary_data_to_server_bigger_than_default(
+#     ws_protocol_cls,
+#     http_protocol_cls,
+#     client_size_sent,
+#     server_size_max,
+#     expected_result,
+# ):
+#     class App(WebSocketResponse):
+#         async def websocket_connect(self, message):
+#             await self.send({"type": "websocket.accept"})
+#
+#         async def websocket_receive(self, message):
+#             _bytes = message.get("bytes")
+#             await self.send({"type": "websocket.send", "bytes": _bytes})
+#
+#     async def send_text(url):
+#         async with websockets.connect(url, max_size=client_size_sent) as websocket:
+#             await websocket.send(b"\x01" * client_size_sent)
+#             return await websocket.recv()
+#
+#     config = Config(
+#         app=App,
+#         ws=ws_protocol_cls,
+#         http=http_protocol_cls,
+#         lifespan="off",
+#         ws_max_size=server_size_max,
+#     )
+#     async with run_server(config):
+#         if expected_result == 0:
+#             data = await send_text("ws://127.0.0.1:8000")
+#             assert data == b"\x01" * client_size_sent
+#         else:
+#             with pytest.raises(websockets.ConnectionClosedError) as e:
+#                 data = await send_text("ws://127.0.0.1:8000")
+#             assert e.value.code == expected_result
