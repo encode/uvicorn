@@ -339,23 +339,23 @@ async def test_missing_handshake(ws_protocol_cls, http_protocol_cls):
         assert exc_info.value.status_code == 500
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-# async def test_send_before_handshake(ws_protocol_cls, http_protocol_cls):
-#     async def app(scope, receive, send):
-#         await send({"type": "websocket.send", "text": "123"})
-#
-#     async def connect(url):
-#         await websockets.connect(url)
-#
-#     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-#     async with run_server(config):
-#         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
-#             await connect("ws://127.0.0.1:8000")
-#         assert exc_info.value.status_code == 500
-#
-#
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_send_before_handshake(ws_protocol_cls, http_protocol_cls):
+    async def app(scope, receive, send):
+        await send({"type": "websocket.send", "text": "123"})
+
+    async def connect(url):
+        await websockets.connect(url)
+
+    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
+            await connect("ws://127.0.0.1:8000")
+        assert exc_info.value.status_code == 500
+
+
 # @pytest.mark.asyncio
 # @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 # @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
