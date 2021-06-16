@@ -118,27 +118,27 @@ async def test_supports_permessage_deflate_extension(
         assert "permessage-deflate" in extension_names
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-# async def test_close_connection(ws_protocol_cls, http_protocol_cls):
-#     class App(WebSocketResponse):
-#         async def websocket_connect(self, message):
-#             await self.send({"type": "websocket.close"})
-#
-#     async def open_connection(url):
-#         try:
-#             await websockets.connect(url)
-#         except websockets.exceptions.InvalidHandshake:
-#             return False
-#         return True  # pragma: no cover
-#
-#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-#     async with run_server(config):
-#         is_open = await open_connection("ws://127.0.0.1:8000")
-#         assert not is_open
-#
-#
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_close_connection(ws_protocol_cls, http_protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.close"})
+
+    async def open_connection(url):
+        try:
+            await websockets.connect(url)
+        except websockets.exceptions.InvalidHandshake:
+            return False
+        return True  # pragma: no cover
+
+    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        is_open = await open_connection("ws://127.0.0.1:8000")
+        assert not is_open
+
+
 # @pytest.mark.asyncio
 # @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 # @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
