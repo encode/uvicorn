@@ -201,25 +201,25 @@ async def test_send_text_data_to_client(ws_protocol_cls, http_protocol_cls):
         assert data == "123"
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-# async def test_send_binary_data_to_client(ws_protocol_cls, http_protocol_cls):
-#     class App(WebSocketResponse):
-#         async def websocket_connect(self, message):
-#             await self.send({"type": "websocket.accept"})
-#             await self.send({"type": "websocket.send", "bytes": b"123"})
-#
-#     async def get_data(url):
-#         async with websockets.connect(url) as websocket:
-#             return await websocket.recv()
-#
-#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-#     async with run_server(config):
-#         data = await get_data("ws://127.0.0.1:8000")
-#         assert data == b"123"
-#
-#
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_send_binary_data_to_client(ws_protocol_cls, http_protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+            await self.send({"type": "websocket.send", "bytes": b"123"})
+
+    async def get_data(url):
+        async with websockets.connect(url) as websocket:
+            return await websocket.recv()
+
+    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        data = await get_data("ws://127.0.0.1:8000")
+        assert data == b"123"
+
+
 # @pytest.mark.asyncio
 # @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 # @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
