@@ -97,27 +97,27 @@ async def test_accept_connection(ws_protocol_cls, http_protocol_cls):
         assert is_open
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-# async def test_supports_permessage_deflate_extension(
-#     ws_protocol_cls, http_protocol_cls
-# ):
-#     class App(WebSocketResponse):
-#         async def websocket_connect(self, message):
-#             await self.send({"type": "websocket.accept"})
-#
-#     async def open_connection(url):
-#         extension_factories = [ClientPerMessageDeflateFactory()]
-#         async with websockets.connect(url, extensions=extension_factories) as websocket:
-#             return [extension.name for extension in websocket.extensions]
-#
-#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-#     async with run_server(config):
-#         extension_names = await open_connection("ws://127.0.0.1:8000")
-#         assert "permessage-deflate" in extension_names
-#
-#
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_supports_permessage_deflate_extension(
+    ws_protocol_cls, http_protocol_cls
+):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+    async def open_connection(url):
+        extension_factories = [ClientPerMessageDeflateFactory()]
+        async with websockets.connect(url, extensions=extension_factories) as websocket:
+            return [extension.name for extension in websocket.extensions]
+
+    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        extension_names = await open_connection("ws://127.0.0.1:8000")
+        assert "permessage-deflate" in extension_names
+
+
 # @pytest.mark.asyncio
 # @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 # @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
