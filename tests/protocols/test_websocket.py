@@ -375,30 +375,30 @@ async def test_duplicate_handshake(ws_protocol_cls, http_protocol_cls):
         assert exc_info.value.code == 1006
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-# async def test_asgi_return_value(ws_protocol_cls, http_protocol_cls):
-#     """
-#     The ASGI callable should return 'None'. If it doesn't make sure that
-#     the connection is closed with an error condition.
-#     """
-#
-#     async def app(scope, receive, send):
-#         await send({"type": "websocket.accept"})
-#         return 123
-#
-#     async def connect(url):
-#         async with websockets.connect(url) as websocket:
-#             _ = await websocket.recv()
-#
-#     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-#     async with run_server(config):
-#         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
-#             await connect("ws://127.0.0.1:8000")
-#         assert exc_info.value.code == 1006
-#
-#
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_asgi_return_value(ws_protocol_cls, http_protocol_cls):
+    """
+    The ASGI callable should return 'None'. If it doesn't make sure that
+    the connection is closed with an error condition.
+    """
+
+    async def app(scope, receive, send):
+        await send({"type": "websocket.accept"})
+        return 123
+
+    async def connect(url):
+        async with websockets.connect(url) as websocket:
+            _ = await websocket.recv()
+
+    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
+            await connect("ws://127.0.0.1:8000")
+        assert exc_info.value.code == 1006
+
+
 # @pytest.mark.asyncio
 # @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 # @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
