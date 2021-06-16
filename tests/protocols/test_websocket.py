@@ -437,28 +437,28 @@ async def test_asgi_return_value(ws_protocol_cls, http_protocol_cls):
 #         assert exc_info.value.reason == (reason or "")
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_client_close(ws_protocol_cls, http_protocol_cls):
-    async def app(scope, receive, send):
-        while True:
-            message = await receive()
-            if message["type"] == "websocket.connect":
-                await send({"type": "websocket.accept"})
-            elif message["type"] == "websocket.receive":
-                pass
-            elif message["type"] == "websocket.disconnect":
-                break
-
-    async def websocket_session(url):
-        async with websockets.connect(url) as websocket:
-            await websocket.ping()
-            await websocket.send("abc")
-
-    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-    async with run_server(config):
-        await websocket_session("ws://127.0.0.1:8000")
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+# async def test_client_close(ws_protocol_cls, http_protocol_cls):
+#     async def app(scope, receive, send):
+#         while True:
+#             message = await receive()
+#             if message["type"] == "websocket.connect":
+#                 await send({"type": "websocket.accept"})
+#             elif message["type"] == "websocket.receive":
+#                 pass
+#             elif message["type"] == "websocket.disconnect":
+#                 break
+#
+#     async def websocket_session(url):
+#         async with websockets.connect(url) as websocket:
+#             await websocket.ping()
+#             await websocket.send("abc")
+#
+#     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+#     async with run_server(config):
+#         await websocket_session("ws://127.0.0.1:8000")
 
 
 @pytest.mark.asyncio
