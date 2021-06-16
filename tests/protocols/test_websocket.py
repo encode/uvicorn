@@ -247,29 +247,29 @@ async def test_send_and_close_connection(ws_protocol_cls, http_protocol_cls):
         assert not is_open
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-# async def test_send_text_data_to_server(ws_protocol_cls, http_protocol_cls):
-#     class App(WebSocketResponse):
-#         async def websocket_connect(self, message):
-#             await self.send({"type": "websocket.accept"})
-#
-#         async def websocket_receive(self, message):
-#             _text = message.get("text")
-#             await self.send({"type": "websocket.send", "text": _text})
-#
-#     async def send_text(url):
-#         async with websockets.connect(url) as websocket:
-#             await websocket.send("abc")
-#             return await websocket.recv()
-#
-#     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-#     async with run_server(config):
-#         data = await send_text("ws://127.0.0.1:8000")
-#         assert data == "abc"
-#
-#
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_send_text_data_to_server(ws_protocol_cls, http_protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+        async def websocket_receive(self, message):
+            _text = message.get("text")
+            await self.send({"type": "websocket.send", "text": _text})
+
+    async def send_text(url):
+        async with websockets.connect(url) as websocket:
+            await websocket.send("abc")
+            return await websocket.recv()
+
+    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        data = await send_text("ws://127.0.0.1:8000")
+        assert data == "abc"
+
+
 # @pytest.mark.asyncio
 # @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 # @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
