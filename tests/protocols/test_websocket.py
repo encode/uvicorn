@@ -356,25 +356,25 @@ async def test_send_before_handshake(ws_protocol_cls, http_protocol_cls):
         assert exc_info.value.status_code == 500
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-# @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-# async def test_duplicate_handshake(ws_protocol_cls, http_protocol_cls):
-#     async def app(scope, receive, send):
-#         await send({"type": "websocket.accept"})
-#         await send({"type": "websocket.accept"})
-#
-#     async def connect(url):
-#         async with websockets.connect(url) as websocket:
-#             _ = await websocket.recv()
-#
-#     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
-#     async with run_server(config):
-#         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
-#             await connect("ws://127.0.0.1:8000")
-#         assert exc_info.value.code == 1006
-#
-#
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_duplicate_handshake(ws_protocol_cls, http_protocol_cls):
+    async def app(scope, receive, send):
+        await send({"type": "websocket.accept"})
+        await send({"type": "websocket.accept"})
+
+    async def connect(url):
+        async with websockets.connect(url) as websocket:
+            _ = await websocket.recv()
+
+    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
+            await connect("ws://127.0.0.1:8000")
+        assert exc_info.value.code == 1006
+
+
 # @pytest.mark.asyncio
 # @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 # @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
