@@ -100,7 +100,9 @@ async def test_accept_connection(ws_protocol_cls, http_protocol_cls):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_supports_permessage_deflate_extension(ws_protocol_cls, http_protocol_cls):
+async def test_supports_permessage_deflate_extension(
+    ws_protocol_cls, http_protocol_cls
+):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.accept"})
@@ -503,7 +505,11 @@ MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
     ],
 )
 async def test_send_binary_data_to_server_bigger_than_default(
-    ws_protocol_cls, http_protocol_cls, client_size_sent, server_size_max, expected_result
+    ws_protocol_cls,
+    http_protocol_cls,
+    client_size_sent,
+    server_size_max,
+    expected_result,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -519,7 +525,11 @@ async def test_send_binary_data_to_server_bigger_than_default(
             return await websocket.recv()
 
     config = Config(
-        app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", ws_max_size=server_size_max
+        app=App,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        ws_max_size=server_size_max,
     )
     async with run_server(config):
         if expected_result == 0:
