@@ -4,8 +4,7 @@ import logging
 from typing import Callable
 from urllib.parse import unquote
 
-# work around https://github.com/aaugustin/websockets/issues/989
-import websockets.exceptions
+import websockets
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
