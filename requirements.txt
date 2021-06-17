@@ -18,7 +18,7 @@ mypy
 trustme
 cryptography
 coverage
-httpx>=0.16.0
+httpx>=0.18.2
 pytest-asyncio==0.14.*
 async_generator; python_version < '3.7'
 
@@ -30,4 +30,3 @@ mkdocs-material
 
 # py3.10 workarounds
 https://github.com/aaugustin/websockets/archive/cb11516e0ed4fe2b67ab6c1511650bd42115d0b6.tar.gz#egg=websockets; python_version > '3.6'
-https://github.com/encode/httpx/archive/7eb610e606f4b95260c4835de4e9147477dcc6d7.tar.gz#egg=httpx
