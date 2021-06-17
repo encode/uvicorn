@@ -8,4 +8,4 @@ export SOURCE_FILES="uvicorn tests"
 
 set -x
 
-#${PREFIX}coverage report --show-missing --skip-covered --fail-under=95
+${PREFIX}coverage report --show-missing --skip-covered --fail-under=95
