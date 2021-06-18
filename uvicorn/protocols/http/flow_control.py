@@ -12,8 +12,6 @@ CLOSE_HEADER = (b"connection", b"close")
 
 HIGH_WATER_LIMIT = 65536
 
-TRACE_LOG_LEVEL = 5
-
 
 class FlowControl:
     def __init__(self, transport: asyncio.Transport) -> None:

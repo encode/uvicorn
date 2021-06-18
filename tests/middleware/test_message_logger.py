@@ -1,9 +1,8 @@
 import httpx
 import pytest
 
+from uvicorn.config import TRACE_LOG_LEVEL
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
-
-TRACE_LOG_LEVEL = 5
 
 
 @pytest.mark.asyncio

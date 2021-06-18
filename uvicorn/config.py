@@ -9,6 +9,8 @@ import ssl
 import sys
 from typing import List, Tuple, Union
 
+from uvicorn.logging import TRACE_LOG_LEVEL
+
 if sys.version_info < (3, 8):
     from typing_extensions import Literal
 else:
@@ -30,8 +32,6 @@ from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
-
-TRACE_LOG_LEVEL = 5
 
 LOG_LEVELS = {
     "critical": logging.CRITICAL,
