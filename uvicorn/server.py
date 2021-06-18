@@ -72,11 +72,7 @@ class Server:
 
         message = "Finished server process [%d]"
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
-        logger.info(
-            "Finished server process [%d]",
-            process_id,
-            extra={"color_message": color_message},
-        )
+        logger.info(message, process_id, extra={"color_message": color_message})
 
     async def startup(self, sockets: list = None) -> None:
         await self.lifespan.startup()
