@@ -11,13 +11,13 @@ from uvicorn import Config
 @contextlib.contextmanager
 def caplog_for_logger(caplog, logger_name):
     logger = logging.getLogger(logger_name)
-    if logger.propagate:
-        logger.propagate = False
+    logger.propagate, old_propagate = False, logger.propagate
     logger.addHandler(caplog.handler)
     try:
         yield caplog
     finally:
         logger.removeHandler(caplog.handler)
+        logger.propagate = old_propagate
 
 
 async def app(scope, receive, send):
