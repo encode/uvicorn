@@ -7,7 +7,7 @@ from urllib.parse import unquote
 import websockets
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 
-from uvicorn.config import TRACE_LOG_LEVEL
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 
