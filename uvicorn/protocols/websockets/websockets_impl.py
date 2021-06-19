@@ -78,7 +78,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
-            self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
+            self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection made", prefix)
 
         super().connection_made(transport)
 
@@ -87,7 +87,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
-            self.logger.log(TRACE_LOG_LEVEL, "%sConnection lost", prefix)
+            self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection lost", prefix)
 
         self.handshake_completed_event.set()
         super().connection_lost(exc)

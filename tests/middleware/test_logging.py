@@ -60,8 +60,8 @@ async def test_trace_logging_on_http_protocol(http_protocol, caplog):
             for record in caplog.records
             if record.name == "uvicorn.error"
         ]
-        assert any(" - Connection made" in message for message in messages)
-        assert any(" - Connection lost" in message for message in messages)
+        assert any(" - HTTP connection made" in message for message in messages)
+        assert any(" - HTTP connection lost" in message for message in messages)
 
 
 @pytest.mark.asyncio
@@ -91,8 +91,9 @@ async def test_trace_logging_on_ws_protocol(ws_protocol, caplog):
             if record.name == "uvicorn.error"
         ]
         print(messages)
-        assert any(" - Connection made" in message for message in messages)
-        assert any(" - Connection lost" in message for message in messages)
+        assert any(" - Upgrading to WebSocket" in message for message in messages)
+        assert any(" - WebSocket connection made" in message for message in messages)
+        assert any(" - WebSocket connection lost" in message for message in messages)
 
 
 @pytest.mark.asyncio
