@@ -124,7 +124,7 @@ class AccessFormatter(ColourizedFormatter):
         return super().formatMessage(recordcopy)
 
 
-class GunicornSafeAtoms(abc.Mapping):
+class GunicornSafeAtoms(abc.Mapping):  # pragma: no cover
     """Implement atoms necessary for gunicorn log.
 
     This class does a few things:
