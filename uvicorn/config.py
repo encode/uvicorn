@@ -390,8 +390,9 @@ class Config:
         self.loaded = True
 
     def setup_event_loop(self) -> None:
-        loop_setup: Callable = import_from_string(LOOP_SETUPS[self.loop])
-        loop_setup()
+        loop_setup: Optional[Callable] = import_from_string(LOOP_SETUPS[self.loop])
+        if loop_setup is not None:
+            loop_setup()
 
     def bind_socket(self) -> socket.socket:
         family = socket.AF_INET
