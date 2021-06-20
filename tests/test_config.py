@@ -6,7 +6,6 @@ import sys
 import typing
 from copy import deepcopy
 from pathlib import Path
-from types import TracebackType
 from unittest.mock import MagicMock
 
 if sys.version_info < (3, 8):
@@ -19,19 +18,12 @@ import yaml
 from asgiref.typing import ASGIApplication, ASGIReceiveCallable, ASGISendCallable, Scope
 from pytest_mock import MockerFixture
 
+from uvicorn._types import Environ, StartResponse
 from uvicorn.config import LOGGING_CONFIG, Config
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
-
-Environ = typing.MutableMapping[str, typing.Any]
-ExcInfo = typing.Tuple[
-    typing.Type[BaseException], BaseException, typing.Optional[TracebackType]
-]
-StartResponse = typing.Callable[
-    [str, typing.Iterable[typing.Tuple[str, str]], typing.Optional[ExcInfo]], None
-]
 
 
 @pytest.fixture
