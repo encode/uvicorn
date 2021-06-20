@@ -2,6 +2,7 @@ import random
 import re
 import signal
 import subprocess
+import sys
 import time
 
 import pytest
@@ -9,7 +10,8 @@ import requests
 
 
 # XXX: copypaste from test_main
-async def app(scope, receive, send):
+# Exclude from coverage, because this code is executed in subprocess.
+async def app(scope, receive, send):  # pragma: no cover
     assert scope["type"] == "http"
     await send(
         {
@@ -21,6 +23,9 @@ async def app(scope, receive, send):
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
+@pytest.mark.xfail(
+    sys.platform == "win32", reason="gunicorn process doesn't start on windows?"
+)
 @pytest.mark.parametrize(
     "worker_class",
     [

@@ -58,6 +58,11 @@ def get_path_with_query_string(scope: WWWScope) -> str:
 
 
 class RequestResponseTiming:
+    # XXX: switch to "time.perf_counter" because apparently on windows
+    # time.monotonis is using GetTickCount64 which has ~15ms resolution (it
+    # caused problems in tests on windows)
+    #
+    # ref: https://github.com/python-trio/trio/issues/33#issue-202432431
     def __init__(self) -> None:
         self._request_start_time: Optional[float] = None
         self._request_end_time: Optional[float] = None
