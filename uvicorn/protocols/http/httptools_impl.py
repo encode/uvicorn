@@ -260,7 +260,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             keep_alive=http_version != "1.0",
             on_response=self.on_response_complete,
         )
-        self.cycle.timing.request_start_time = self.request_start_time
+        self.cycle.timing._request_start_time = self.request_start_time
         if existing_cycle is None or existing_cycle.response_complete:
             # Standard case - start processing the request.
             task = self.loop.create_task(self.cycle.run_asgi(app))

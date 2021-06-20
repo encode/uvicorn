@@ -2,12 +2,16 @@ import http
 import logging
 import sys
 import time
+import typing
 from collections import abc
 from copy import copy
 from os import getpid
-from typing import Optional
+from typing import Any, Callable, Dict, Iterator, Optional
 
 import click
+
+if typing.TYPE_CHECKING:
+    import uvicorn.protocols.utils
 
 TRACE_LOG_LEVEL = 5
 
@@ -130,17 +134,19 @@ class GunicornSafeAtoms(abc.Mapping):
     - escapes double quotes found in atom strings
     """
 
-    def __init__(self, scope, timing):
+    def __init__(
+        self, scope: dict, timing: "uvicorn.protocols.utils.RequestResponseTiming"
+    ):
         self.scope = scope
         self.timing = timing
         self.status_code = None
-        self.response_headers = {}
-        self.response_length = 0
+        self.response_headers: Dict[str, str] = {}
+        self._response_length = 0
 
-        self._request_headers = None
+        self._request_headers: Optional[Dict[str, str]] = None
 
     @property
-    def request_headers(self):
+    def request_headers(self) -> Dict[str, str]:
         if self._request_headers is None:
             self._request_headers = {
                 k.decode("ascii"): v.decode("ascii") for k, v in self.scope["headers"]
@@ -148,30 +154,39 @@ class GunicornSafeAtoms(abc.Mapping):
         return self._request_headers
 
     @property
-    def duration(self):
+    def duration(self) -> float:
         return self.timing.total_duration_seconds()
 
-    def on_asgi_message(self, message):
+    def on_asgi_message(self, message: Dict[str, Any]) -> None:
         if message["type"] == "http.response.start":
             self.status_code = message["status"]
             self.response_headers = {
                 k.decode("ascii"): v.decode("ascii") for k, v in message["headers"]
             }
         elif message["type"] == "http.response.body":
-            self.response_length += len(message.get("body", ""))
+            self._response_length += len(message.get("body", ""))
 
-    def _request_header(self, key):
+    def _request_header(self, key: str) -> Optional[str]:
         return self.request_headers.get(key.lower())
 
-    def _response_header(self, key):
+    def _response_header(self, key: str) -> Optional[str]:
         return self.response_headers.get(key.lower())
 
-    def _wsgi_environ_variable(self, key):
+    def _wsgi_environ_variable(self, key: str) -> None:
         # FIXME: provide fallbacks to access WSGI environ (at least the
         # required variables).
-        return None
+        raise NotImplementedError
 
-    def __getitem__(self, key):
+    @classmethod
+    def _log_format_atom(cls, val: Optional[str]) -> str:
+        if val is None:
+            return "-"
+        if isinstance(val, str):
+            return val.replace('"', '\\"')
+        return val
+
+    def __getitem__(self, key: str) -> str:
+        retval: Optional[str]
         if key in self.HANDLERS:
             retval = self.HANDLERS[key](self)
         elif key.startswith("{"):
@@ -180,46 +195,50 @@ class GunicornSafeAtoms(abc.Mapping):
             elif key.endswith("}o"):
                 retval = self._response_header(key[1:-2])
             elif key.endswith("}e"):
-                retval = self._wsgi_environ_variable(key[1:-2])
+                # retval = self._wsgi_environ_variable(key[1:-2])
+                raise NotImplementedError("WSGI environ not supported")
             else:
                 retval = None
         else:
             retval = None
+        return self._log_format_atom(retval)
 
-        if retval is None:
-            return "-"
-        if isinstance(retval, str):
-            return retval.replace('"', '\\"')
-        return retval
+    _LogAtomHandler = Callable[["GunicornSafeAtoms"], Optional[str]]
+    HANDLERS: Dict[str, _LogAtomHandler] = {}
 
-    HANDLERS = {}
+    # mypy does not understand class-member decorators:
+    #
+    # https://github.com/python/mypy/issues/7778
+    def _register_handler(  # type: ignore[misc]
+        key: str, handlers: Dict[str, _LogAtomHandler] = HANDLERS
+    ) -> Callable[[_LogAtomHandler], _LogAtomHandler]:
+        _LogAtomHandler = Callable[["GunicornSafeAtoms"], Optional[str]]
 
-    def _register_handler(key, handlers=HANDLERS):
-        def decorator(fn):
+        def decorator(fn: _LogAtomHandler) -> _LogAtomHandler:
             handlers[key] = fn
             return fn
 
         return decorator
 
     @_register_handler("h")
-    def _remote_address(self, *args, **kwargs):
+    def _remote_address(self) -> Optional[str]:
         return self.scope["client"][0]
 
     @_register_handler("l")
-    def _dash(self, *args, **kwargs):
+    def _dash(self) -> str:
         return "-"
 
     @_register_handler("u")
-    def _user_name(self, *args, **kwargs):
+    def _user_name(self) -> Optional[str]:
         pass
 
     @_register_handler("t")
-    def date_of_the_request(self, *args, **kwargs):
+    def date_of_the_request(self) -> Optional[str]:
         """Date and time in Apache Common Log Format"""
         return time.strftime("[%d/%b/%Y:%H:%M:%S %z]")
 
     @_register_handler("r")
-    def status_line(self, *args, **kwargs):
+    def status_line(self) -> Optional[str]:
         full_raw_path = self.scope["raw_path"] + self.scope["query_string"]
         full_path = full_raw_path.decode("ascii")
         return "{method} {full_path} HTTP/{http_version}".format(
@@ -227,64 +246,58 @@ class GunicornSafeAtoms(abc.Mapping):
         )
 
     @_register_handler("m")
-    def request_method(self, *args, **kwargs):
+    def request_method(self) -> Optional[str]:
         return self.scope["method"]
 
     @_register_handler("U")
-    def url_path(self, *args, **kwargs):
+    def url_path(self) -> Optional[str]:
         return self.scope["raw_path"].decode("ascii")
 
     @_register_handler("q")
-    def query_string(self, *args, **kwargs):
+    def query_string(self) -> Optional[str]:
         return self.scope["query_string"].decode("ascii")
 
     @_register_handler("H")
-    def protocol(self, *args, **kwargs):
+    def protocol(self) -> Optional[str]:
         return "HTTP/%s" % self.scope["http_version"]
 
     @_register_handler("s")
-    def status(self, *args, **kwargs):
+    def status(self) -> Optional[str]:
         return self.status_code or "-"
 
     @_register_handler("B")
-    def response_length(self, *args, **kwargs):
-        return self.response_length
+    def response_length(self) -> Optional[str]:
+        return str(self._response_length)
 
     @_register_handler("b")
-    def response_length_or_dash(self, *args, **kwargs):
-        return self.response_length or "-"
+    def response_length_or_dash(self) -> Optional[str]:
+        return str(self._response_length or "-")
 
     @_register_handler("f")
-    def referer(self, *args, **kwargs):
-        val = self.request_headers.get(b"referer")
-        if val is None:
-            return None
-        return val.decode("ascii")
+    def referer(self) -> Optional[str]:
+        return self.request_headers.get("referer")
 
     @_register_handler("a")
-    def user_agent(self, *args, **kwargs):
-        val = self.request_headers.get(b"user-agent")
-        if val is None:
-            return None
-        return val.decode("ascii")
+    def user_agent(self) -> Optional[str]:
+        return self.request_headers.get("user-agent")
 
     @_register_handler("T")
-    def request_time_seconds(self, *args, **kwargs):
-        return int(self.duration)
+    def request_time_seconds(self) -> Optional[str]:
+        return str(int(self.duration))
 
     @_register_handler("D")
-    def request_time_microseconds(self, *args, **kwargs):
-        return int(self.duration * 1_000_000)
+    def request_time_microseconds(self) -> str:
+        return str(int(self.duration * 1_000_000))
 
     @_register_handler("L")
-    def request_time_decimal_seconds(self, *args, **kwargs):
+    def request_time_decimal_seconds(self) -> str:
         return "%.6f" % self.duration
 
     @_register_handler("p")
-    def process_id(self, *args, **kwargs):
+    def process_id(self) -> str:
         return "<%s>" % getpid()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         # FIXME: add WSGI environ
         yield from self.HANDLERS
         for k, _ in self.scope["headers"]:
@@ -292,7 +305,7 @@ class GunicornSafeAtoms(abc.Mapping):
         for k in self.response_headers:
             yield "{%s}o" % k.lower()
 
-    def __len__(self):
+    def __len__(self) -> int:
         # FIXME: add WSGI environ
         return (
             len(self.HANDLERS)

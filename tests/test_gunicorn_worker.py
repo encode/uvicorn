@@ -72,7 +72,8 @@ def test_gunicorn_worker_stdout_access_log_format(worker_class):
         pytest.fail("Access log line not found, stderr:\n" + stderr.decode())
 
     assert re.match(
-        r'hellotest 127\.0\.0\.1 - - \[[^]]+\] "GET / HTTP/1\.1" 204 - "-" "-"'
-        r' [0-9.]+ "request-header-val" "response-header-val"',
+        r'hellotest 127\.0\.0\.1 - - \[[^]]+\] "GET / HTTP/1\.1" 204 - "-"'
+        r' "python-requests/2.25.1" [0-9.]+ "request-header-val" '
+        '"response-header-val"',
         stdout_lines[0],
     )

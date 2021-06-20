@@ -58,29 +58,53 @@ def get_path_with_query_string(scope: WWWScope) -> str:
 
 
 class RequestResponseTiming:
-    def __init__(self):
-        self.request_start_time: Optional[int] = None
-        self.request_end_time: Optional[int] = None
-        self.response_start_time: Optional[int] = None
-        self.response_end_time: Optional[int] = None
+    def __init__(self) -> None:
+        self._request_start_time: Optional[float] = None
+        self._request_end_time: Optional[float] = None
+        self._response_start_time: Optional[float] = None
+        self._response_end_time: Optional[float] = None
 
-    def request_started(self):
-        self.request_start_time = time.monotonic()
+    def request_started(self) -> None:
+        self._request_start_time = time.monotonic()
 
-    def request_ended(self):
-        self.request_end_time = time.monotonic()
+    @property
+    def request_start_time(self) -> float:
+        if self._request_start_time is None:
+            raise ValueError("request_started() was not called")
+        return self._request_start_time
 
-    def response_started(self):
-        self.response_start_time = time.monotonic()
+    def request_ended(self) -> None:
+        self._request_end_time = time.monotonic()
 
-    def response_ended(self):
-        self.response_end_time = time.monotonic()
+    @property
+    def request_end_time(self) -> float:
+        if self._request_end_time is None:
+            raise ValueError("request_ended() was not called")
+        return self._request_end_time
 
-    def request_duration_seconds(self):
+    def response_started(self) -> None:
+        self._response_start_time = time.monotonic()
+
+    @property
+    def response_start_time(self) -> float:
+        if self._response_start_time is None:
+            raise ValueError("response_started() was not called")
+        return self._response_start_time
+
+    def response_ended(self) -> None:
+        self._response_end_time = time.monotonic()
+
+    @property
+    def response_end_time(self) -> float:
+        if self._response_end_time is None:
+            raise ValueError("response_ended() was not called")
+        return self._response_end_time
+
+    def request_duration_seconds(self) -> float:
         return self.request_end_time - self.request_start_time
 
-    def response_duration_seconds(self):
+    def response_duration_seconds(self) -> float:
         return self.response_end_time - self.response_start_time
 
-    def total_duration_seconds(self):
+    def total_duration_seconds(self) -> float:
         return self.response_end_time - self.request_start_time
