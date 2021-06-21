@@ -59,4 +59,5 @@ async def test_gunicorn_default(uvicorn_e2e_gunicorn, app, expected_exit_code):
                 response = await client.get("http://127.0.0.1:8000")
             assert response.status_code == 204
     finally:
+        print(container.logs())
         container.stop()
