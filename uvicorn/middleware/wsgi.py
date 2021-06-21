@@ -2,7 +2,7 @@ import asyncio
 import concurrent.futures
 import io
 import sys
-from typing import Awaitable, Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 from asgiref.typing import (
     ASGI3Application,
@@ -16,7 +16,7 @@ from asgiref.typing import (
     HTTPScope,
 )
 
-from uvicorn._types import Environ, ExcInfo
+from uvicorn._types import Environ, ExcInfo, StartResponse
 
 
 def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> Environ:
@@ -160,7 +160,7 @@ class WSGIResponder:
             self.send_queue.append(http_response_start_event)
             self.loop.call_soon_threadsafe(self.send_event.set)
 
-    def wsgi(self, environ: Environ, start_response: Awaitable[None]) -> None:
+    def wsgi(self, environ: Environ, start_response: StartResponse) -> None:
         for chunk in self.app(environ, start_response):  # type: ignore
             response_body: HTTPResponseBodyEvent = {
                 "type": "http.response.body",
