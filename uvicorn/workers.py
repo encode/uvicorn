@@ -30,7 +30,7 @@ class UvicornWorker(Worker):
         logger.setLevel(self.log.access_log.level)
         logger.propagate = False
 
-        config_kwargs = {
+        config_kwargs: dict = {
             "app": None,
             "log_config": None,
             "timeout_keep_alive": self.cfg.keepalive,

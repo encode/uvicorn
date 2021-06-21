@@ -72,11 +72,7 @@ class Server:
 
         message = "Finished server process [%d]"
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
-        logger.info(
-            "Finished server process [%d]",
-            process_id,
-            extra={"color_message": color_message},
-        )
+        logger.info(message, process_id, extra={"color_message": color_message})
 
     async def startup(self, sockets: list = None) -> None:
         await self.lifespan.startup()
@@ -221,9 +217,15 @@ class Server:
         if counter % 10 == 0:
             current_time = time.time()
             current_date = formatdate(current_time, usegmt=True).encode()
-            self.server_state.default_headers = [
-                (b"date", current_date)
-            ] + self.config.encoded_headers
+
+            if self.config.date_header:
+                date_header = [(b"date", current_date)]
+            else:
+                date_header = []
+
+            self.server_state.default_headers = (
+                date_header + self.config.encoded_headers
+            )
 
             # Callback to `callback_notify` once every `timeout_notify` seconds.
             if self.config.callback_notify is not None:

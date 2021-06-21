@@ -50,7 +50,10 @@ This will install uvicorn with "Cython-based" dependencies (where possible) and 
 In this context, "Cython-based" means the following:
 
 - the event loop `uvloop` will be installed and used if possible.
+  - `uvloop` is a fast, drop-in replacement of the built-in asyncio event loop. It is implemented in Cython. Read more [here][uvloop_docs].
+  - The built-in asyncio event loop serves as an easy-to-read reference implementation and is there for easy debugging as it's pure-python based.
 - the http protocol will be handled by `httptools` if possible.
+  - Read more about comparison with `h11` [here][httptools_vs_h11].
 
 Moreover, "optional extras" means that:
 
@@ -105,7 +108,7 @@ Options:
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
   --reload                        Enable auto-reload.
-  --reload-dir TEXT               Set reload directories explicitly, instead
+  --reload-dir PATH               Set reload directories explicitly, instead
                                   of using the current working directory.
   --reload-delay FLOAT            Delay between previous and next check if
                                   application needs to be. Defaults to 0.25s.
@@ -121,6 +124,8 @@ Options:
                                   [default: auto]
   --ws-max-size INTEGER           WebSocket max size message in bytes
                                   [default: 16777216]
+  --ws-ping-interval FLOAT        WebSocket ping interval  [default: 20.0]
+  --ws-ping-timeout FLOAT         WebSocket ping timeout  [default: 20.0]
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --interface [auto|asgi3|asgi2|wsgi]
                                   Select ASGI3, ASGI2, or WSGI as the
@@ -136,6 +141,10 @@ Options:
                                   Enable/Disable X-Forwarded-Proto,
                                   X-Forwarded-For, X-Forwarded-Port to
                                   populate remote address info.
+  --server-header / --no-server-header
+                                  Enable/Disable default Server header.
+  --date-header / --no-date-header
+                                  Enable/Disable default Date header.
   --forwarded-allow-ips TEXT      Comma seperated list of IPs to trust with
                                   proxy headers. Defaults to the
                                   $FORWARDED_ALLOW_IPS environment variable if
@@ -477,3 +486,5 @@ Its most distinctive features are built-in support for dependency injection, aut
 [asgi-http]: https://asgi.readthedocs.io/en/latest/specs/www.html
 [daphne]: https://github.com/django/daphne
 [hypercorn]: https://gitlab.com/pgjones/hypercorn
+[uvloop_docs]: https://uvloop.readthedocs.io/
+[httptools_vs_h11]: https://github.com/python-hyper/h11/issues/9
