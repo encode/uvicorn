@@ -124,14 +124,14 @@ class AccessFormatter(ColourizedFormatter):
         return super().formatMessage(recordcopy)
 
 
-class GunicornSafeAtoms(abc.Mapping):  # pragma: no cover
-    """Implement atoms necessary for gunicorn log.
+class AccessLogFields(abc.Mapping):  # pragma: no cover
+    """Container to provide fields for access logging.
 
     This class does a few things:
-    - provide all atoms necessary for gunicorn log formatter
-    - collect response body size for reporting from ASGI messages
-    - provide mapping interface that returns '-' for missing atoms
-    - escapes double quotes found in atom strings
+    - provide all fields necessary for access log formatter
+    - collect info from ASGI messages (status_code/headers/response body size)
+    - provide mapping interface that returns '-' for missing fields
+    - escape double quotes found in fields strings
     """
 
     def __init__(
@@ -161,7 +161,8 @@ class GunicornSafeAtoms(abc.Mapping):  # pragma: no cover
         if message["type"] == "http.response.start":
             self.status_code = message["status"]
             self.response_headers = {
-                k.decode("ascii"): v.decode("ascii") for k, v in message["headers"]
+                k.decode("ascii"): v.decode("ascii")
+                for k, v in message.get("headers") or {}
             }
         elif message["type"] == "http.response.body":
             self._response_length += len(message.get("body", ""))
@@ -203,7 +204,7 @@ class GunicornSafeAtoms(abc.Mapping):  # pragma: no cover
             retval = None
         return self._log_format_atom(retval)
 
-    _LogAtomHandler = Callable[["GunicornSafeAtoms"], Optional[str]]
+    _LogAtomHandler = Callable[["AccessLogFields"], Optional[str]]
     HANDLERS: Dict[str, _LogAtomHandler] = {}
 
     # mypy does not understand class-member decorators:
@@ -212,7 +213,7 @@ class GunicornSafeAtoms(abc.Mapping):  # pragma: no cover
     def _register_handler(  # type: ignore[misc]
         key: str, handlers: Dict[str, _LogAtomHandler] = HANDLERS
     ) -> Callable[[_LogAtomHandler], _LogAtomHandler]:
-        _LogAtomHandler = Callable[["GunicornSafeAtoms"], Optional[str]]
+        _LogAtomHandler = Callable[["AccessLogFields"], Optional[str]]
 
         def decorator(fn: _LogAtomHandler) -> _LogAtomHandler:
             handlers[key] = fn
