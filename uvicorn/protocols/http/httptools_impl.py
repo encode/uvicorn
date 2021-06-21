@@ -9,7 +9,7 @@ from typing import Callable
 
 import httptools
 
-from uvicorn.logging import TRACE_LOG_LEVEL, GunicornSafeAtoms
+from uvicorn.logging import TRACE_LOG_LEVEL, AccessLogFields
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
     HIGH_WATER_LIMIT,
@@ -56,7 +56,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.logger = logging.getLogger("uvicorn.error")
         self.access_logger = logging.getLogger("uvicorn.access")
         self.access_log = self.access_logger.hasHandlers()
-        self.gunicorn_log = config.gunicorn_log
+        self.access_log_format = config.access_log_format
         self.parser = httptools.HttpRequestParser(self)
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
@@ -253,7 +253,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             logger=self.logger,
             access_logger=self.access_logger,
             access_log=self.access_log,
-            gunicorn_log=self.gunicorn_log,
+            access_log_format=self.access_log_format,
             default_headers=self.default_headers,
             message_event=asyncio.Event(),
             expect_100_continue=self.expect_100_continue,
@@ -349,7 +349,7 @@ class RequestResponseCycle:
         logger,
         access_logger,
         access_log,
-        gunicorn_log,
+        access_log_format,
         default_headers,
         message_event,
         expect_100_continue,
@@ -362,7 +362,7 @@ class RequestResponseCycle:
         self.logger = logger
         self.access_logger = access_logger
         self.access_log = access_log
-        self.gunicorn_log = gunicorn_log
+        self.access_log_format = access_log_format
         self.default_headers = default_headers
         self.message_event = message_event
         self.on_response = on_response
@@ -384,10 +384,7 @@ class RequestResponseCycle:
         self.timing = RequestResponseTiming()
 
         # For logging.
-        if self.gunicorn_log:
-            self.gunicorn_atoms = GunicornSafeAtoms(self.scope, self.timing)
-        else:
-            self.gunicorn_atoms = None
+        self.access_log_fields = AccessLogFields(self.scope, self.timing)
 
     # ASGI exception wrapper
     async def run_asgi(self, app):
@@ -441,8 +438,7 @@ class RequestResponseCycle:
         if self.disconnected:
             return
 
-        if self.gunicorn_atoms is not None:
-            self.gunicorn_atoms.on_asgi_message(message)
+        self.access_log_fields.on_asgi_message(message)
 
         if not self.response_started:
             # Sending response status line and headers
@@ -459,16 +455,6 @@ class RequestResponseCycle:
 
             if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
                 headers = headers + [CLOSE_HEADER]
-
-            if self.access_log and self.gunicorn_log is None:
-                self.access_logger.info(
-                    '%s - "%s %s HTTP/%s" %d',
-                    get_client_addr(self.scope),
-                    self.scope["method"],
-                    get_path_with_query_string(self.scope),
-                    self.scope["http_version"],
-                    status_code,
-                )
 
             # Write response status line and headers
             content = [STATUS_LINE[status_code]]
@@ -537,16 +523,27 @@ class RequestResponseCycle:
                 self.response_complete = True
                 self.timing.response_ended()
 
-                if self.gunicorn_log is not None:
-                    try:
-                        self.gunicorn_log.access_log.info(
-                            self.gunicorn_log.cfg.access_log_format,
-                            self.gunicorn_atoms,
-                        )
-                    except:  # noqa
-                        self.gunicorn_log.error(traceback.format_exc())
-
                 self.message_event.set()
+
+                if self.access_log:
+                    if self.access_log_format is None:
+                        self.access_logger.info(
+                            '%s - "%s %s HTTP/%s" %d',
+                            get_client_addr(self.scope),
+                            self.scope["method"],
+                            get_path_with_query_string(self.scope),
+                            self.scope["http_version"],
+                            self.access_log_fields.status_code,
+                        )
+                    else:
+                        try:
+                            self.access_logger.info(
+                                self.access_log_format,
+                                self.access_log_fields,
+                            )
+                        except:  # noqa
+                            self.logger.error(traceback.format_exc())
+
                 if not self.keep_alive:
                     self.transport.close()
                 self.on_response()

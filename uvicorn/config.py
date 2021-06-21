@@ -152,6 +152,7 @@ class Config:
         log_config: Optional[Union[dict, str]] = LOGGING_CONFIG,
         log_level: Optional[Union[str, int]] = None,
         access_log: bool = True,
+        access_log_format: Optional[str] = None,
         use_colors: Optional[bool] = None,
         interface: InterfaceType = "auto",
         debug: bool = False,
@@ -179,7 +180,6 @@ class Config:
         ssl_ciphers: str = "TLSv1",
         headers: Optional[List[List[str]]] = None,
         factory: bool = False,
-        gunicorn_log=None,
     ):
         self.app = app
         self.host = host
@@ -223,7 +223,7 @@ class Config:
         self.encoded_headers: Optional[List[Tuple[bytes, bytes]]] = None
         self.factory = factory
 
-        self.gunicorn_log = gunicorn_log
+        self.access_log_format = access_log_format
 
         self.loaded = False
         self.configure_logging()
