@@ -90,7 +90,6 @@ async def test_trace_logging_on_ws_protocol(ws_protocol, caplog):
             for record in caplog.records
             if record.name == "uvicorn.error"
         ]
-        print(messages)
         assert any(" - Upgrading to WebSocket" in message for message in messages)
         assert any(" - WebSocket connection made" in message for message in messages)
         assert any(" - WebSocket connection lost" in message for message in messages)
