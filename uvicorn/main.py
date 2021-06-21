@@ -77,6 +77,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     multiple=True,
     help="Set reload directories explicitly, instead of using the current working"
     " directory.",
+    type=click.Path(exists=True),
 )
 @click.option(
     "--reload-delay",

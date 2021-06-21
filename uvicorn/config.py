@@ -9,6 +9,8 @@ import ssl
 import sys
 from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 
+from uvicorn.logging import TRACE_LOG_LEVEL
+
 if sys.version_info < (3, 8):
     from typing_extensions import Literal
 else:
@@ -37,8 +39,6 @@ WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
 LifespanType = Literal["auto", "on", "off"]
 LoopSetupType = Literal["none", "auto", "asyncio", "uvloop"]
 InterfaceType = Literal["auto", "asgi3", "asgi2", "wsgi"]
-
-TRACE_LOG_LEVEL: int = 5
 
 LOG_LEVELS: Dict[str, int] = {
     "critical": logging.CRITICAL,
