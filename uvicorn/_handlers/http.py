@@ -42,7 +42,7 @@ async def handle_http(
             config.http_protocol_class = config.h2_protocol_class
 
     # Switch the protocol from the stream reader to our own HTTP protocol class.
-    protocol = config.http_protocol_class(
+    protocol = config.http_protocol_class(  # type: ignore[call-arg, operator]
         config=config,
         server_state=server_state,
         on_connection_lost=lambda: connection_lost.set_result(True),

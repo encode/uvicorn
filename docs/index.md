@@ -108,7 +108,7 @@ Options:
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
   --reload                        Enable auto-reload.
-  --reload-dir TEXT               Set reload directories explicitly, instead
+  --reload-dir PATH               Set reload directories explicitly, instead
                                   of using the current working directory.
   --reload-delay FLOAT            Delay between previous and next check if
                                   application needs to be. Defaults to 0.25s.
@@ -141,6 +141,10 @@ Options:
                                   Enable/Disable X-Forwarded-Proto,
                                   X-Forwarded-For, X-Forwarded-Port to
                                   populate remote address info.
+  --server-header / --no-server-header
+                                  Enable/Disable default Server header.
+  --date-header / --no-date-header
+                                  Enable/Disable default Date header.
   --forwarded-allow-ips TEXT      Comma seperated list of IPs to trust with
                                   proxy headers. Defaults to the
                                   $FORWARDED_ALLOW_IPS environment variable if
