@@ -7,7 +7,7 @@ import os
 import socket
 import ssl
 import sys
-from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 
 if sys.version_info < (3, 8):
     from typing_extensions import Literal
@@ -136,7 +136,7 @@ def create_ssl_context(
 class Config:
     def __init__(
         self,
-        app: Union[ASGIApplication, Awaitable, Callable, str],
+        app: Union[ASGIApplication, Callable, str],
         host: str = "127.0.0.1",
         port: int = 8000,
         uds: Optional[str] = None,
