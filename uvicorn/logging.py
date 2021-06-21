@@ -102,6 +102,8 @@ class AccessFormatter(ColourizedFormatter):
         return status_and_phrase
 
     def formatMessage(self, record: logging.LogRecord) -> str:
+        if len(record.args) != 5:
+            return super().formatMessage(record)
         recordcopy = copy(record)
         (
             client_addr,
