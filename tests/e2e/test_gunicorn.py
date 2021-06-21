@@ -19,7 +19,7 @@ def uvicorn_e2e_gunicorn():
     guncicorn_dockerfile_path = E2E_BASE / "gunicorn" / "Dockerfile"
     try:
         image = docker_client.images.get("uvicorn_e2e_gunicorn")
-    except ImageNotFound as e:
+    except ImageNotFound:
         image, build_stream = docker_client.images.build(
             path=UVICORN_BASE.as_posix(),
             dockerfile=guncicorn_dockerfile_path.as_posix(),
