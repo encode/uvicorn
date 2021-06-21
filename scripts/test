@@ -11,7 +11,14 @@ if [ -z $GITHUB_ACTIONS ]; then
     scripts/check
 fi
 
-${PREFIX}coverage run --debug config -m pytest
+if [ -z "$1" ]
+  then
+    E2E_FLAG="not e2e"
+  else
+    E2E_FLAG="e2e"
+fi
+
+${PREFIX}coverage run --debug config -m pytest -m "$E2E_FLAG"
 
 if [ -z $GITHUB_ACTIONS ]; then
     scripts/coverage

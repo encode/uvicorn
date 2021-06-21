@@ -34,6 +34,7 @@ def uvicorn_e2e_gunicorn():
 
 
 @pytest.mark.asyncio
+@pytest.mark.e2e
 @pytest.mark.skipif(
     sys.platform == "win32", reason="Github actions can't run this on windows"
 )

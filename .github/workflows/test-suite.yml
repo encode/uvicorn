@@ -8,6 +8,18 @@ on:
     branches: ["master"]
 
 jobs:
+  e2e:
+    name: "E2E"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: "actions/checkout@v2"
+      - uses: "actions/setup-python@v2"
+      - name: "Install dependencies"
+        run: "scripts/install"
+        shell: bash
+      - name: "Run tests"
+        run: "scripts/test e2e"
+        shell: bash
   tests:
     name: "Python ${{ matrix.python-version }} ${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
