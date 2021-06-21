@@ -28,8 +28,8 @@ class ProxyHeadersMiddleware:
 
         for host in reversed(x_forwarded_for_hosts):
             # https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
-            # returns the next ip in list after the last trusted or the last trusted in case it was the last host in the
-            # x-forwarded-for list
+            # returns the next ip in list after the last trusted or the last trusted
+            # in case it was the last host in the x-forwarded-for list
             if host not in self.trusted_hosts or host == x_forwarded_for_hosts[-1]:
                 return host
 
