@@ -4,6 +4,7 @@ import sys
 import httpx
 import pytest
 from docker import DockerClient
+from docker.errors import ImageNotFound
 
 E2E_BASE = pathlib.Path(__file__).parent
 TEST_BASE = E2E_BASE.parent
@@ -16,15 +17,19 @@ docker_client = DockerClient.from_env()
 @pytest.fixture
 def uvicorn_e2e_gunicorn():
     guncicorn_dockerfile_path = E2E_BASE / "gunicorn" / "Dockerfile"
-    image, build_stream = docker_client.images.build(
-        path=UVICORN_BASE.as_posix(),
-        dockerfile=guncicorn_dockerfile_path.as_posix(),
-        tag="uvicorn_e2e_gunicorn",
-    )
-    for chunk in build_stream:
-        if "stream" in chunk:
-            for line in chunk["stream"].splitlines():
-                print(line)
+    try:
+        image = docker_client.images.get("uvicorn_e2e_gunicorn")
+    except ImageNotFound as e:
+        image, build_stream = docker_client.images.build(
+            path=UVICORN_BASE.as_posix(),
+            dockerfile=guncicorn_dockerfile_path.as_posix(),
+            tag="uvicorn_e2e_gunicorn",
+            cache_from=["uvicorn_e2e_gunicorn"],
+        )
+        for chunk in build_stream:
+            if "stream" in chunk:
+                for line in chunk["stream"].splitlines():
+                    print(line)
     yield image
 
 
