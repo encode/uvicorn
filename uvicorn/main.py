@@ -196,7 +196,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--access-log-format",
     type=str,
     default=None,
-    help="Access log format (supports same fields as gunicorn).",
+    help="Log format for access logger, check documentation for details",
 )
 @click.option(
     "--use-colors/--no-use-colors",
