@@ -16,6 +16,7 @@ pytest
 pytest-mock
 mypy
 types-click
+types-pyyaml
 trustme
 cryptography
 coverage
