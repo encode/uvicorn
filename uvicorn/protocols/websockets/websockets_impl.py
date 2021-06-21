@@ -7,6 +7,7 @@ from urllib.parse import unquote
 import websockets
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 
@@ -62,8 +63,10 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         super().__init__(
             ws_handler=self.ws_handler,
             ws_server=self.ws_server,
-            extensions=[ServerPerMessageDeflateFactory()],
             max_size=self.config.ws_max_size,
+            ping_interval=self.config.ws_ping_interval,
+            ping_timeout=self.config.ws_ping_timeout,
+            extensions=[ServerPerMessageDeflateFactory()],
         )
 
     def connection_made(self, transport):
@@ -72,10 +75,20 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
         self.scheme = "wss" if is_ssl(transport) else "ws"
+
+        if self.logger.level <= TRACE_LOG_LEVEL:
+            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection made", prefix)
+
         super().connection_made(transport)
 
     def connection_lost(self, exc):
         self.connections.remove(self)
+
+        if self.logger.level <= TRACE_LOG_LEVEL:
+            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection lost", prefix)
+
         self.handshake_completed_event.set()
         super().connection_lost(exc)
         if self.on_connection_lost is not None:
