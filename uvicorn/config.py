@@ -395,6 +395,7 @@ class Config:
             loop_setup()
 
     def bind_socket(self) -> socket.socket:
+        logger_args: List[Union[str, int]]
         if self.uds:
             path = self.uds
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)

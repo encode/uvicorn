@@ -65,6 +65,7 @@ class Multiprocess:
     def shutdown(self) -> None:
         for process in self.processes:
             process.join()
+
         message = "Stopping parent process [{}]".format(str(self.pid))
         color_message = "Stopping parent process [{}]".format(
             click.style(str(self.pid), fg="cyan", bold=True)
