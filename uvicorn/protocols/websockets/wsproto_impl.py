@@ -10,6 +10,7 @@ from wsproto.connection import ConnectionState
 from wsproto.extensions import PerMessageDeflate
 from wsproto.utilities import RemoteProtocolError
 
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 # Check wsproto version. We've build against 0.13. We don't know about 0.14 yet.
@@ -65,10 +66,19 @@ class WSProtocol(asyncio.Protocol):
         self.client = get_remote_addr(transport)
         self.scheme = "wss" if is_ssl(transport) else "ws"
 
+        if self.logger.level <= TRACE_LOG_LEVEL:
+            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection made", prefix)
+
     def connection_lost(self, exc):
         if exc is not None:
             self.queue.put_nowait({"type": "websocket.disconnect"})
         self.connections.remove(self)
+
+        if self.logger.level <= TRACE_LOG_LEVEL:
+            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection lost", prefix)
+
         if self.on_connection_lost is not None:
             self.on_connection_lost()
         if exc is None:

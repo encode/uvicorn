@@ -6,10 +6,10 @@ from urllib.parse import unquote
 
 import h11
 
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
     HIGH_WATER_LIMIT,
-    TRACE_LOG_LEVEL,
     FlowControl,
     service_unavailable,
 )
@@ -87,14 +87,14 @@ class H11Protocol(asyncio.Protocol):
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
-            self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
+            self.logger.log(TRACE_LOG_LEVEL, "%sHTTP connection made", prefix)
 
     def connection_lost(self, exc):
         self.connections.discard(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
-            self.logger.log(TRACE_LOG_LEVEL, "%sConnection lost", prefix)
+            self.logger.log(TRACE_LOG_LEVEL, "%sHTTP connection lost", prefix)
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
@@ -282,6 +282,9 @@ class H11Protocol(asyncio.Protocol):
                 protocol.data_received(request_data)
 
         elif upgrade_value == b"websocket" and self.ws_protocol_class is not None:
+            if self.logger.level <= TRACE_LOG_LEVEL:
+                prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+                self.logger.log(TRACE_LOG_LEVEL, "%sUpgrading to WebSocket", prefix)
             self.connections.discard(self)
             output = [event.method, b" ", event.target, b" HTTP/1.1\r\n"]
             for name, value in self.headers:
