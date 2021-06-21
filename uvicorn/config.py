@@ -388,6 +388,10 @@ class Config:
                     self.log_config["formatters"]["access"][
                         "use_colors"
                     ] = self.use_colors
+                if self.access_log_format:
+                    self.log_config["formatters"]["access"][
+                        "fmt"
+                    ] = "%(levelprefix)s %(message)s"
                 logging.config.dictConfig(self.log_config)
             elif self.log_config.endswith(".json"):
                 with open(self.log_config) as file:

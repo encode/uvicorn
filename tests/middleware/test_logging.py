@@ -154,3 +154,43 @@ async def test_unknown_status_code(caplog):
             if record.name == "uvicorn.access"
         ]
         assert '"GET / HTTP/1.1" 599' in messages.pop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "access_log_format,expected_output",
+    [
+        # TODO: add more tests
+        ("access: %(h)s", "access: 127.0.0.1"),
+        ('access: "%({test-request-header}i)s"', 'access: "request-header-val"'),
+        ('access: "%({test-response-header}o)s"', 'access: "response-header-val"'),
+    ],
+)
+async def test_access_log_format(access_log_format, expected_output, caplog):
+    async def app(scope, receive, send):  # pragma: no cover
+        assert scope["type"] == "http"
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 204,
+                "headers": [(b"test-response-header", b"response-header-val")],
+            }
+        )
+        await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+    config = Config(app=app, access_log_format=access_log_format)
+    with caplog_for_logger(caplog, "uvicorn.access"):
+        async with run_server(config):
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    "http://127.0.0.1:8000",
+                    headers={"test-request-header": "request-header-val"},
+                )
+        assert response.status_code == 204
+
+    access_log_messages = [
+        record.message for record in caplog.records if "uvicorn.access" in record.name
+    ]
+
+    assert len(access_log_messages) == 1
+    assert access_log_messages[0] == expected_output
