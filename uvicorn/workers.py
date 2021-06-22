@@ -4,6 +4,7 @@ import signal
 import sys
 from typing import Any
 
+from gunicorn.arbiter import Arbiter
 from gunicorn.workers.base import Worker
 
 from uvicorn.config import Config
@@ -80,7 +81,7 @@ class UvicornWorker(Worker):
         # can shut it down to avoid infinite start/stop cycles.
         # See: https://github.com/encode/uvicorn/issues/1066
         if not server.started:
-            sys.exit(3)
+            sys.exit(Arbiter.WORKER_BOOT_ERROR)
 
     async def callback_notify(self) -> None:
         self.notify()
