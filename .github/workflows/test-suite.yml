@@ -21,7 +21,7 @@ jobs:
           path: ~/.cache/pip
           key: pip-lint
       - name: Install dependencies
-        run: pip install black flake8 isort mypy
+        run: pip install black flake8 isort mypy types-click types-PyYAML
       - name: Run black
         run: black --check --diff uvicorn tests
       - name: Run isort

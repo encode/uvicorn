@@ -60,7 +60,17 @@ extra_requirements = [
     "python-dotenv>=0.13",
     "PyYAML>=5.1",
 ]
-
+dev_requirements = extra_requirements + [
+    "async_generator; python_version < '3.7'",
+    "coverage",
+    "cryptography",
+    "httpx",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-mock",
+    "trustme",
+    "wsproto",
+]
 
 setup(
     name="uvicorn",
@@ -74,7 +84,7 @@ setup(
     author_email="tom@tomchristie.com",
     packages=get_packages("uvicorn"),
     install_requires=minimal_requirements,
-    extras_require={"standard": extra_requirements},
+    extras_require={"standard": extra_requirements, "dev": dev_requirements},
     include_package_data=True,
     classifiers=[
         "Development Status :: 4 - Beta",
