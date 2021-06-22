@@ -366,7 +366,9 @@ def test_ws_max_size() -> None:
     ids=["--reload=True --workers=1", "--reload=False --workers=2"],
 )
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
-def test_bind_unix_socket_works_with_reload_or_workers(tmp_path_factory, reload, workers):
+def test_bind_unix_socket_works_with_reload_or_workers(
+    tmp_path_factory, reload, workers
+):
     uds_file = tmp_path_factory.mktemp("uvicorn") / "uvicorn.sock"
     config = Config(
         app=asgi_app, uds=uds_file.as_posix(), reload=reload, workers=workers
