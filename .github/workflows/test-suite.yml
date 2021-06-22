@@ -49,7 +49,7 @@ jobs:
 #        run: "scripts/build"
 #        shell: bash
       - name: "Run tests"
-        run: coverage run -m pytest -s tests/test_config.py
+        run: coverage run -m pytest
         shell: bash
       - name: "Enforce coverage"
         run: coverage report --show-missing --skip-covered --fail-under=90
