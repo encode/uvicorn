@@ -12,7 +12,7 @@ local_scheme = "dirty-tag"
 
 
 [tool.pytest.ini_options]
-addopts = "-rxXs --strict-config --strict-markers --basetemp=/tmp/pytest"
+addopts = "-rxXs --strict-config --strict-markers"
 xfail_strict = true
 testpaths = ["tests"]
 filterwarnings = "error"
