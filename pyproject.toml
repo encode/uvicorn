@@ -12,11 +12,10 @@ local_scheme = "dirty-tag"
 
 
 [tool.pytest.ini_options]
-addopts = "-rxXs --strict-config --strict-markers"
+addopts = "-rxXs --strict-config --strict-markers --basetemp=/tmp/pytest"
 xfail_strict = true
 testpaths = ["tests"]
 filterwarnings = "error"
-basetemp = "/tmp"
 
 [tool.coverage.run]
 source_pkgs = ["uvicorn"]
