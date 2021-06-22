@@ -91,8 +91,4 @@ setup(
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
-    entry_points="""
-    [console_scripts]
-    uvicorn=uvicorn.main:main
-    """,
 )

@@ -1,0 +1,64 @@
+[tool.pytest.ini_options]
+addopts = "-rxXs --strict-config --strict-markers"
+xfail_strict = true
+testpaths = ["tests"]
+filterwarnings = "error"
+
+[tool.coverage.run]
+source_pkgs = ["uvicorn"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 90
+#exclude_lines = ["pragma: no cover", "if __name__ == .__main__.:"]
+
+[tool.isort]
+profile = "black"
+combine_as_imports = true
+known_first_party = ["uvicorn", "tests"]
+
+[tool.mypy]
+disallow_untyped_defs = true
+ignore_missing_imports = true
+show_error_codes = true
+pretty = true
+follow_imports = "silent"
+files =[
+    "tests/importer/test_importer.py",
+    "tests/test_config.py",
+    "tests/test_lifespan.py",
+    "uvicorn/__init__.py",
+    "uvicorn/__main__.py",
+    "uvicorn/_handlers",
+    "uvicorn/config.py",
+    "uvicorn/importer.py",
+    "uvicorn/lifespan",
+    "uvicorn/logging.py",
+    "uvicorn/loops",
+    "uvicorn/main.py",
+    "uvicorn/middleware/__init__.py",
+    "uvicorn/middleware/asgi2.py",
+    "uvicorn/middleware/debug.py",
+    "uvicorn/middleware/message_logger.py",
+    "uvicorn/protocols/__init__.py",
+    "uvicorn/protocols/http/__init__.py",
+    "uvicorn/protocols/http/auto.py",
+    "uvicorn/protocols/http/flow_control.py",
+    "uvicorn/protocols/utils.py",
+    "uvicorn/protocols/websockets/__init__.py",
+    "uvicorn/protocols/websockets/auto.py",
+    "uvicorn/subprocess.py",
+    "uvicorn/supervisors/__init__.py",
+    "uvicorn/supervisors/basereload.py",
+    "uvicorn/supervisors/multiprocess.py",
+    "uvicorn/supervisors/statreload.py",
+    "uvicorn/supervisors/watchgodreload.py",
+    "uvicorn/workers.py",
+]
+
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = true

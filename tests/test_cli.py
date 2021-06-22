@@ -1,4 +1,5 @@
 import importlib
+import runpy
 from unittest import mock
 
 from click.testing import CliRunner
@@ -28,3 +29,8 @@ def test_cli_headers():
 
 class App:
     pass
+
+
+def test_run_module():
+    # tests the python -m uvicorn usage...for coverage only
+    runpy.run_module("uvicorn")

@@ -8,6 +8,29 @@ on:
     branches: ["master"]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: pip-lint
+      - name: Install dependencies
+        run: pip install black flake8 isort mypy
+      - name: Run black
+        run: black --check --diff uvicorn tests
+      - name: Run isort
+        run: isort --check --diff uvicorn tests
+      - name: Run flake
+        run: flake8 uvicorn tests
+      - name: Check types with mypy
+        run: mypy uvicorn tests
+
   tests:
     name: "Python ${{ matrix.python-version }} ${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
@@ -20,18 +43,12 @@ jobs:
       - uses: "actions/setup-python@v2"
         with:
           python-version: "${{ matrix.python-version }}"
-      - name: "Install dependencies"
-        run: "scripts/install"
-        shell: bash
-      - name: "Run linting checks"
-        run: "scripts/check"
-        shell: bash
       - name: "Build package & docs"
         run: "scripts/build"
         shell: bash
       - name: "Run tests"
-        run: "scripts/test"
+        run: coverage run -m pytest
         shell: bash
       - name: "Enforce coverage"
-        run: "scripts/coverage"
+        run: coverage report --show-missing --skip-covered --fail-under=90
         shell: bash
