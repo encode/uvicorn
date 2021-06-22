@@ -43,6 +43,8 @@ jobs:
       - uses: "actions/setup-python@v2"
         with:
           python-version: "${{ matrix.python-version }}"
+      - name: Install dependencies
+        run: pip install .[dev]
 #      - name: "Build package & docs"
 #        run: "scripts/build"
 #        shell: bash
