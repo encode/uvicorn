@@ -16,6 +16,7 @@ addopts = "-rxXs --strict-config --strict-markers"
 xfail_strict = true
 testpaths = ["tests"]
 filterwarnings = "error"
+basetemp = "/tmp"
 
 [tool.coverage.run]
 source_pkgs = ["uvicorn"]
