@@ -5,7 +5,6 @@ import sys
 from typing import Iterable, List, Optional, Tuple
 
 from asgiref.typing import (
-    ASGI3Application,
     ASGIReceiveCallable,
     ASGIReceiveEvent,
     ASGISendCallable,
@@ -16,7 +15,7 @@ from asgiref.typing import (
     HTTPScope,
 )
 
-from uvicorn._types import Environ, ExcInfo, StartResponse
+from uvicorn._types import Environ, ExcInfo, StartResponse, WSGIApp
 
 
 def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> Environ:
@@ -71,7 +70,7 @@ def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> E
 
 
 class WSGIMiddleware:
-    def __init__(self, app: ASGI3Application, workers: int = 10):
+    def __init__(self, app: WSGIApp, workers: int = 10):
         self.app = app
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
@@ -86,8 +85,8 @@ class WSGIMiddleware:
 class WSGIResponder:
     def __init__(
         self,
-        app: ASGI3Application,
-        executor: concurrent.futures.Executor,
+        app: WSGIApp,
+        executor: concurrent.futures.ThreadPoolExecutor,
         scope: HTTPScope,
     ):
         self.app = app
@@ -97,18 +96,18 @@ class WSGIResponder:
         self.response_headers = None
         self.send_event = asyncio.Event()
         self.send_queue: List[Optional[ASGISendEvent]] = []
-        self.loop: asyncio.AbstractEventLoop = None  # type: ignore
+        self.loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
         self.response_started = False
         self.exc_info: Optional[ExcInfo] = None
 
     async def __call__(
         self, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
-        message: HTTPRequestEvent = await receive()  # type: ignore
+        message: HTTPRequestEvent = await receive()  # type: ignore[assignment]
         body = message.get("body", b"")
         more_body = message.get("more_body", False)
         while more_body:
-            body_message: HTTPRequestEvent = await receive()  # type: ignore
+            body_message: HTTPRequestEvent = await receive()  # type: ignore[assignment]
             body += body_message.get("body", b"")
             more_body = body_message.get("more_body", False)
         environ = build_environ(self.scope, message, body)
@@ -147,7 +146,7 @@ class WSGIResponder:
         if not self.response_started:
             self.response_started = True
             status_code_str, _ = status.split(" ", 1)
-            status_code: int = int(status_code_str)
+            status_code = int(status_code_str)
             headers = [
                 (name.encode("ascii"), value.encode("ascii"))
                 for name, value in response_headers

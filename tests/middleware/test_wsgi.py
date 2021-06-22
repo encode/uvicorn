@@ -1,12 +1,15 @@
 import sys
+from typing import List
 
 import httpx
 import pytest
+from asgiref.typing import HTTPScope
 
+from uvicorn._types import Environ, StartResponse
 from uvicorn.middleware.wsgi import WSGIMiddleware, build_environ
 
 
-def hello_world(environ, start_response):
+def hello_world(environ: Environ, start_response: StartResponse) -> List[bytes]:
     status = "200 OK"
     output = b"Hello World!\n"
     headers = [
@@ -17,7 +20,7 @@ def hello_world(environ, start_response):
     return [output]
 
 
-def echo_body(environ, start_response):
+def echo_body(environ: Environ, start_response: StartResponse) -> List[bytes]:
     status = "200 OK"
     output = environ["wsgi.input"].read()
     headers = [
@@ -28,11 +31,11 @@ def echo_body(environ, start_response):
     return [output]
 
 
-def raise_exception(environ, start_response):
+def raise_exception(environ: Environ, start_response: StartResponse) -> RuntimeError:
     raise RuntimeError("Something went wrong")
 
 
-def return_exc_info(environ, start_response):
+def return_exc_info(environ: Environ, start_response: StartResponse) -> List[bytes]:
     try:
         raise RuntimeError("Something went wrong")
     except RuntimeError:
@@ -47,7 +50,7 @@ def return_exc_info(environ, start_response):
 
 
 @pytest.mark.asyncio
-async def test_wsgi_get():
+async def test_wsgi_get() -> None:
     app = WSGIMiddleware(hello_world)
     async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
         response = await client.get("/")
@@ -56,7 +59,7 @@ async def test_wsgi_get():
 
 
 @pytest.mark.asyncio
-async def test_wsgi_post():
+async def test_wsgi_post() -> None:
     app = WSGIMiddleware(echo_body)
     async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
         response = await client.post("/", json={"example": 123})
@@ -65,7 +68,7 @@ async def test_wsgi_post():
 
 
 @pytest.mark.asyncio
-async def test_wsgi_exception():
+async def test_wsgi_exception() -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
     app = WSGIMiddleware(raise_exception)
@@ -75,7 +78,7 @@ async def test_wsgi_exception():
 
 
 @pytest.mark.asyncio
-async def test_wsgi_exc_info():
+async def test_wsgi_exc_info() -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
     app = WSGIMiddleware(return_exc_info)
@@ -96,8 +99,8 @@ async def test_wsgi_exc_info():
     assert response.text == "Internal Server Error"
 
 
-def test_build_environ_encoding():
-    scope = {
+def test_build_environ_encoding() -> None:
+    scope: HTTPScope = {
         "type": "http",
         "http_version": "1.1",
         "method": "GET",
