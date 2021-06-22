@@ -370,6 +370,8 @@ def test_bind_unix_socket_works_with_reload_or_workers(
     tmp_path_factory, reload, workers
 ):
     uds_file = tmp_path_factory.mktemp("uvicorn") / "uvicorn.sock"
+    print(uds_file.as_posix())
+    print(len(uds_file.as_posix()))
     config = Config(
         app=asgi_app, uds=uds_file.as_posix(), reload=reload, workers=workers
     )
