@@ -369,6 +369,8 @@ def test_ws_max_size() -> None:
 def test_bind_unix_socket_works_with_reload_or_workers(
     tmp_path_factory, reload, workers
 ):
+    # weak in CI especially on macos where the dir name can be long and yield to a socket
+    # path > 104 chars
     uds_file = tmp_path_factory.mktemp("u") / "u.sock"
     config = Config(
         app=asgi_app, uds=uds_file.as_posix(), reload=reload, workers=workers
