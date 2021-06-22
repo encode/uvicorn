@@ -43,9 +43,9 @@ jobs:
       - uses: "actions/setup-python@v2"
         with:
           python-version: "${{ matrix.python-version }}"
-      - name: "Build package & docs"
-        run: "scripts/build"
-        shell: bash
+#      - name: "Build package & docs"
+#        run: "scripts/build"
+#        shell: bash
       - name: "Run tests"
         run: coverage run -m pytest
         shell: bash
