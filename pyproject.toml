@@ -1,3 +1,16 @@
+[build-system]
+requires = [
+    "setuptools >= 42",
+    "wheel >= 0.29.0",
+    "setuptools_scm[toml] >= 3.4"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "dirty-tag"
+
+
 [tool.pytest.ini_options]
 addopts = "-rxXs --strict-config --strict-markers"
 xfail_strict = true
