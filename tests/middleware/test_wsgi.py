@@ -101,14 +101,20 @@ async def test_wsgi_exc_info() -> None:
 
 def test_build_environ_encoding() -> None:
     scope: HTTPScope = {
+        "asgi": {"version": "3.0", "spec_version": "2.0"},
+        "scheme": "http",
+        "raw_path": b"/\xe6\x96\x87",
         "type": "http",
         "http_version": "1.1",
         "method": "GET",
         "path": "/文",
         "root_path": "/文",
+        "client": None,
+        "server": None,
         "query_string": b"a=123&b=456",
         "headers": [(b"key", b"value1"), (b"key", b"value2")],
-    }  # type: ignore[typeddict-item]
+        "extensions": {},
+    }
     message: HTTPRequestEvent = {
         "type": "http.request",
         "body": b"",
