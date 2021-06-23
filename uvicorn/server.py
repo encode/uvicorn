@@ -43,6 +43,8 @@ class Server:
         self.should_exit = False
         self.force_exit = False
         self.last_notified = 0
+        self.shutdown_connections_timeout = 5
+        self.shutdown_background_tasks_timeout = 5
 
     def run(self, sockets=None):
         self.config.setup_event_loop()
@@ -258,17 +260,27 @@ class Server:
 
         # Wait for existing connections to finish sending responses.
         if self.server_state.connections and not self.force_exit:
-            msg = "Waiting for connections to close. (CTRL+C to force quit)"
+            msg = f"Waiting for {self.shutdown_connections_timeout}s for connections to close. (CTRL+C to force quit)"  # noqa: E501
             logger.info(msg)
-            while self.server_state.connections and not self.force_exit:
+            while (
+                self.server_state.connections
+                and not self.force_exit
+                and self.shutdown_connections_timeout > 0
+            ):
                 await asyncio.sleep(0.1)
+                self.shutdown_connections_timeout -= 0.1
 
         # Wait for existing tasks to complete.
         if self.server_state.tasks and not self.force_exit:
-            msg = "Waiting for background tasks to complete. (CTRL+C to force quit)"
+            msg = f"Waiting for {self.shutdown_background_tasks_timeout}s for background tasks to complete. (CTRL+C to force quit)"  # noqa: E501
             logger.info(msg)
-            while self.server_state.tasks and not self.force_exit:
+            while (
+                self.server_state.tasks
+                and not self.force_exit
+                and self.shutdown_background_tasks_timeout > 0
+            ):
                 await asyncio.sleep(0.1)
+                self.shutdown_background_tasks_timeout -= 0.1
 
         # Send the lifespan shutdown event, and wait for application shutdown.
         if not self.force_exit:
