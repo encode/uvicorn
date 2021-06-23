@@ -52,5 +52,5 @@ jobs:
         run: coverage run -m pytest
         shell: bash
       - name: "Enforce coverage"
-        run: coverage report --show-missing --skip-covered --fail-under=90
+        run: coverage report
         shell: bash
