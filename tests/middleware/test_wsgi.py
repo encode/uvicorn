@@ -3,7 +3,7 @@ from typing import List
 
 import httpx
 import pytest
-from asgiref.typing import HTTPScope
+from asgiref.typing import HTTPRequestEvent, HTTPScope
 
 from uvicorn._types import Environ, StartResponse
 from uvicorn.middleware.wsgi import WSGIMiddleware, build_environ
@@ -16,7 +16,7 @@ def hello_world(environ: Environ, start_response: StartResponse) -> List[bytes]:
         ("Content-Type", "text/plain; charset=utf-8"),
         ("Content-Length", str(len(output))),
     ]
-    start_response(status, headers)
+    start_response(status, headers, None)
     return [output]
 
 
@@ -27,7 +27,7 @@ def echo_body(environ: Environ, start_response: StartResponse) -> List[bytes]:
         ("Content-Type", "text/plain; charset=utf-8"),
         ("Content-Length", str(len(output))),
     ]
-    start_response(status, headers)
+    start_response(status, headers, None)
     return [output]
 
 
@@ -45,7 +45,7 @@ def return_exc_info(environ: Environ, start_response: StartResponse) -> List[byt
             ("Content-Type", "text/plain; charset=utf-8"),
             ("Content-Length", str(len(output))),
         ]
-        start_response(status, headers, exc_info=sys.exc_info())
+        start_response(status, headers, sys.exc_info())  # type: ignore[arg-type]
         return [output]
 
 
@@ -108,7 +108,12 @@ def test_build_environ_encoding() -> None:
         "root_path": "/文",
         "query_string": b"a=123&b=456",
         "headers": [(b"key", b"value1"), (b"key", b"value2")],
+    }  # type: ignore[typeddict-item]
+    message: HTTPRequestEvent = {
+        "type": "http.request",
+        "body": b"",
+        "more_body": False,
     }
-    environ = build_environ(scope, b"", b"")
+    environ = build_environ(scope, message, b"")
     assert environ["PATH_INFO"] == "/文".encode("utf8").decode("latin-1")
     assert environ["HTTP_KEY"] == "value1,value2"
