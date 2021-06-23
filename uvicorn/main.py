@@ -404,12 +404,17 @@ def main(
         "use_colors": use_colors,
         "factory": factory,
     }
-    run(app, **kwargs)
+    run(app, server_class=Server, **kwargs)
 
 
-def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
+def run(
+    app: typing.Union[ASGIApplication, str],
+    *,
+    server_class: typing.Type[Server] = Server,
+    **kwargs: typing.Any,
+) -> None:
     config = Config(app, **kwargs)
-    server = Server(config=config)
+    server = server_class(config=config)
 
     if (config.reload or config.workers > 1) and not isinstance(app, str):
         logger = logging.getLogger("uvicorn.error")
