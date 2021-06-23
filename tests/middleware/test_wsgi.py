@@ -108,7 +108,7 @@ def test_build_environ_encoding() -> None:
         "root_path": "/文",
         "query_string": b"a=123&b=456",
         "headers": [(b"key", b"value1"), (b"key", b"value2")],
-    }  # type: ignore[typeddict-item]
+    }  # type: ignore
     message: HTTPRequestEvent = {
         "type": "http.request",
         "body": b"",
