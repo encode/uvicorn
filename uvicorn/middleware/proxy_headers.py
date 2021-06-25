@@ -55,7 +55,7 @@ class ProxyHeadersMiddleware:
                     # Determine if the incoming request was http or https based on
                     # the X-Forwarded-Proto header.
                     x_forwarded_proto = headers[b"x-forwarded-proto"].decode("latin1")
-                    scope["scheme"] = x_forwarded_proto.strip()  # type: ignore
+                    scope["scheme"] = x_forwarded_proto.strip()  # type: ignore[index]
 
                 if b"x-forwarded-for" in headers:
                     # Determine the client address from the last trusted IP in the
@@ -67,6 +67,6 @@ class ProxyHeadersMiddleware:
                     ]
                     host = self.get_trusted_client_host(x_forwarded_for_hosts)
                     port = 0
-                    scope["client"] = (host, port)  # type: ignore
+                    scope["client"] = (host, port)  # type: ignore[index]
 
         return await self.app(scope, receive, send)
