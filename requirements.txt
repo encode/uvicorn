@@ -1,27 +1,27 @@
 -e .[standard]
 
 # Explicit optionals
-wsproto==1.0.*
+wsproto
 
 # Packaging
-twine
-wheel
+twine==3.4.1
+wheel==0.36.2
 
 # Testing
-autoflake
-black
-flake8
-isort
-pytest
-pytest-mock
-mypy
-types-click
-types-pyyaml
-trustme
-cryptography
-coverage
-httpx==0.16.*
-pytest-asyncio==0.14.*
+autoflake==1.4
+black==21.6b0
+flake8==3.9.2
+isort==5.9.1
+pytest==6.2.4
+pytest-mock==3.6.1
+mypy==0.910
+types-click==7.1.2
+types-pyyaml==5.4.3
+trustme==0.8.0
+cryptography==3.4.7
+coverage==5.5
+httpx==0.18.2
+pytest-asyncio==0.15.1
 async_generator; python_version < '3.7'
 
 

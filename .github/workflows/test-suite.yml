@@ -11,27 +11,36 @@ jobs:
   tests:
     name: "Python ${{ matrix.python-version }} ${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
+
     strategy:
       matrix:
         python-version: ["3.6", "3.7", "3.8", "3.9"]
         os: [windows-latest, ubuntu-latest]
+
     steps:
       - uses: "actions/checkout@v2"
       - uses: "actions/setup-python@v2"
         with:
           python-version: "${{ matrix.python-version }}"
+
+      - uses: actions/cache@v2.1.6
+        id: cache-requirements
+        with:
+          path: ${{ env.pythonLocation }}
+          key: ${{ env.pythonLocation }}-${{ matrix.python-version }}-${{ hashFiles('requirements.txt', 'setup.py') }}
+
       - name: "Install dependencies"
         run: "scripts/install"
-        shell: bash
+        if: steps.cache-requirements.outputs.cache-hit != 'true'
+
       - name: "Run linting checks"
         run: "scripts/check"
-        shell: bash
+
       - name: "Build package & docs"
         run: "scripts/build"
-        shell: bash
+
       - name: "Run tests"
         run: "scripts/test"
-        shell: bash
+
       - name: "Enforce coverage"
         run: "scripts/coverage"
-        shell: bash
