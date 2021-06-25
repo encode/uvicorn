@@ -73,6 +73,7 @@ setup(
     author="Tom Christie",
     author_email="tom@tomchristie.com",
     packages=get_packages("uvicorn"),
+    package_data={"uvicorn": ["py.typed"]},
     install_requires=minimal_requirements,
     extras_require={"standard": extra_requirements},
     include_package_data=True,
