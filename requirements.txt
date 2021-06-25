@@ -1,7 +1,7 @@
 -e .[standard]
 
 # Explicit optionals
-wsproto
+wsproto==1.0.0
 
 # Packaging
 twine==3.4.1
@@ -26,6 +26,6 @@ async_generator; python_version < '3.7'
 
 
 # Documentation
-mkdocs
-mkdocs-material
+mkdocs==1.2.1
+mkdocs-material==7.1.9
 
