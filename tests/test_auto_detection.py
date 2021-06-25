@@ -37,6 +37,8 @@ def test_loop_auto():
     assert isinstance(policy, asyncio.events.BaseDefaultEventLoopPolicy)
     expected_loop = "asyncio" if uvloop is None else "uvloop"
     assert type(policy).__module__.startswith(expected_loop)
+    loop = asyncio.get_event_loop()
+    loop.close()
 
 
 def test_http_auto():
