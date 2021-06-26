@@ -8,13 +8,15 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, cast
 
 from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
+    HTTPScope,
     Scope,
+    WebsocketScope,
 )
 
 
