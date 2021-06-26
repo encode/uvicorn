@@ -15,7 +15,7 @@ async def app(
 ) -> None:
     scheme = scope["scheme"]  # type: ignore
     host, port = scope["client"]  # type: ignore
-    addr = "%s://%s:%d" % (scheme, host, port)  # type: ignore
+    addr = "%s://%s:%d" % (scheme, host, port)
     response = Response("Remote: " + addr, media_type="text/plain")
     await response(scope, receive, send)
 

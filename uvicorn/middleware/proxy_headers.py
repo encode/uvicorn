@@ -45,11 +45,12 @@ class ProxyHeadersMiddleware:
         self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] in ("http", "websocket"):
-            client_addr: Optional[Tuple[str, int]] = scope.get("client")  # type: ignore
+            scope = cast(Union[HTTPScope, WebsocketScope], scope)
+            client_addr: Optional[Tuple[str, int]] = scope.get("client")
             client_host = client_addr[0] if client_addr else None
 
             if self.always_trust or client_host in self.trusted_hosts:
-                headers = dict(scope["headers"])  # type: ignore
+                headers = dict(scope["headers"])
 
                 if b"x-forwarded-proto" in headers:
                     # Determine if the incoming request was http or https based on
