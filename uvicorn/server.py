@@ -9,17 +9,24 @@ import threading
 import time
 from email.utils import formatdate
 from types import FrameType
-from typing import List, Optional, Set, Tuple, Union
+from typing import Any, List, Optional, Set, Tuple, Union
 
 import click
 
+from uvicorn._handlers.http import handle_http
 from uvicorn.config import Config
 from uvicorn.protocols.http.h11_impl import H11Protocol
 from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
-from ._handlers.http import handle_http
+if sys.platform != "win32":
+    from asyncio import start_unix_server as _start_unix_server
+else:
+
+    async def _start_unix_server(*args: Any, **kwargs: Any) -> Any:
+        raise NotImplementedError("Cannot start a unix server on win32")
+
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -135,8 +142,7 @@ class Server:
             uds_perms = 0o666
             if os.path.exists(config.uds):
                 uds_perms = os.stat(config.uds).st_mode
-            assert hasattr(asyncio, "start_unix_server")  # mypy
-            server = await asyncio.start_unix_server(
+            server = await _start_unix_server(
                 handler, path=config.uds, ssl=config.ssl, backlog=config.backlog
             )
             os.chmod(config.uds, uds_perms)
