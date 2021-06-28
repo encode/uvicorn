@@ -1,6 +1,7 @@
 import asyncio
 import http
 import logging
+from asyncio.events import TimerHandle
 from typing import Callable, List, Optional, Tuple, Union
 from urllib.parse import unquote
 
@@ -81,7 +82,7 @@ class H11Protocol(asyncio.Protocol):
         self.limit_concurrency = config.limit_concurrency
 
         # Timeouts
-        self.timeout_keep_alive_task = None
+        self.timeout_keep_alive_task: Optional[TimerHandle] = None
         self.timeout_keep_alive = config.timeout_keep_alive
 
         # Shared server state
@@ -421,7 +422,8 @@ class RequestResponseCycle:
                 self.logger.error(msg)
                 self.transport.close()
         finally:
-            self.on_response = None
+            # NOTE: Is this alright?
+            self.on_response = lambda: None
 
     async def send_500_response(self) -> None:
         response_start: HTTPResponseStartEvent = {
