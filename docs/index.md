@@ -50,12 +50,15 @@ This will install uvicorn with "Cython-based" dependencies (where possible) and 
 In this context, "Cython-based" means the following:
 
 - the event loop `uvloop` will be installed and used if possible.
+  - `uvloop` is a fast, drop-in replacement of the built-in asyncio event loop. It is implemented in Cython. Read more [here][uvloop_docs].
+  - The built-in asyncio event loop serves as an easy-to-read reference implementation and is there for easy debugging as it's pure-python based.
 - the http protocol will be handled by `httptools` if possible.
+  - Read more about comparison with `h11` [here][httptools_vs_h11].
 
 Moreover, "optional extras" means that:
 
 - the websocket protocol will be handled by `websockets` (should you want to use `wsproto` you'd need to install it manually) if possible.
-- the `--reloader` flag in development mode will use `watchgod`.
+- the `--reload` flag in development mode will use `watchgod`.
 - windows users will have `colorama` installed for the colored logs.
 - `python-dotenv` will be installed should you want to use the `--env-file` option.
 - `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
@@ -101,39 +104,35 @@ Usage: uvicorn [OPTIONS] APP
 Options:
   --host TEXT                     Bind socket to this host.  [default:
                                   127.0.0.1]
-
   --port INTEGER                  Bind socket to this port.  [default: 8000]
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
   --reload                        Enable auto-reload.
-  --reload-dir TEXT               Set reload directories explicitly, instead
+  --reload-dir PATH               Set reload directories explicitly, instead
                                   of using the current working directory.
-
   --reload-delay FLOAT            Delay between previous and next check if
                                   application needs to be. Defaults to 0.25s.
                                   [default: 0.25]
-
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
                                   available, or 1. Not valid with --reload.
-
   --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
                                   auto]
-
   --ws [auto|none|websockets|wsproto]
                                   WebSocket protocol implementation.
                                   [default: auto]
-
+  --ws-max-size INTEGER           WebSocket max size message in bytes
+                                  [default: 16777216]
+  --ws-ping-interval FLOAT        WebSocket ping interval  [default: 20.0]
+  --ws-ping-timeout FLOAT         WebSocket ping timeout  [default: 20.0]
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --interface [auto|asgi3|asgi2|wsgi]
                                   Select ASGI3, ASGI2, or WSGI as the
                                   application interface.  [default: auto]
-
   --env-file PATH                 Environment configuration file.
   --log-config PATH               Logging configuration file. Supported
                                   formats: .ini, .json, .yaml.
-
   --log-level [critical|error|warning|info|debug|trace]
                                   Log level. [default: info]
   --access-log / --no-access-log  Enable/Disable access log.
@@ -142,53 +141,44 @@ Options:
                                   Enable/Disable X-Forwarded-Proto,
                                   X-Forwarded-For, X-Forwarded-Port to
                                   populate remote address info.
-
+  --server-header / --no-server-header
+                                  Enable/Disable default Server header.
+  --date-header / --no-date-header
+                                  Enable/Disable default Date header.
   --forwarded-allow-ips TEXT      Comma seperated list of IPs to trust with
                                   proxy headers. Defaults to the
                                   $FORWARDED_ALLOW_IPS environment variable if
                                   available, or '127.0.0.1'.
-
   --root-path TEXT                Set the ASGI 'root_path' for applications
                                   submounted below a given URL path.
-
   --limit-concurrency INTEGER     Maximum number of concurrent connections or
                                   tasks to allow, before issuing HTTP 503
                                   responses.
-
   --backlog INTEGER               Maximum number of connections to hold in
                                   backlog
-
   --limit-max-requests INTEGER    Maximum number of requests to service before
                                   terminating the process.
-
   --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
                                   is received within this timeout.  [default:
                                   5]
-
   --ssl-keyfile TEXT              SSL key file
   --ssl-certfile TEXT             SSL certificate file
   --ssl-keyfile-password TEXT     SSL keyfile password
   --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
                                   [default: 2]
-
   --ssl-cert-reqs INTEGER         Whether client certificate is required (see
                                   stdlib ssl module's)  [default: 0]
-
   --ssl-ca-certs TEXT             CA certificates file
   --ssl-ciphers TEXT              Ciphers to use (see stdlib ssl module's)
                                   [default: TLSv1]
-
   --header TEXT                   Specify custom default HTTP response headers
                                   as a Name:Value pair
-
   --version                       Display the uvicorn version and exit.
   --app-dir TEXT                  Look for APP in the specified directory, by
                                   adding this to the PYTHONPATH. Defaults to
                                   the current working directory.  [default: .]
-
   --factory                       Treat APP as an application factory, i.e. a
                                   () -> <ASGI app> callable.  [default: False]
-
   --help                          Show this message and exit.
 ```
 
@@ -496,3 +486,5 @@ Its most distinctive features are built-in support for dependency injection, aut
 [asgi-http]: https://asgi.readthedocs.io/en/latest/specs/www.html
 [daphne]: https://github.com/django/daphne
 [hypercorn]: https://gitlab.com/pgjones/hypercorn
+[uvloop_docs]: https://uvloop.readthedocs.io/
+[httptools_vs_h11]: https://github.com/python-hyper/h11/issues/9
