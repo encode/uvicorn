@@ -10,6 +10,8 @@ import httptools
 from asgiref.typing import ASGI3Application, ASGIReceiveEvent, ASGISendEvent, HTTPScope
 
 from uvicorn.config import Config
+
+
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
@@ -101,14 +103,14 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.client = get_remote_addr(transport)
         self.scheme = "https" if is_ssl(transport) else "http"
 
-        if self.logger.level <= TRACE_LOG_LEVEL:
+        if self.logger.level <= TRACE_LOG_LEVEL and self.client is not None:
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
 
     def connection_lost(self, exc: Any) -> None:
         self.connections.discard(self)
 
-        if self.logger.level <= TRACE_LOG_LEVEL:
+        if self.logger.level <= TRACE_LOG_LEVEL and self.client is not None:
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sConnection lost", prefix)
 
