@@ -7,7 +7,7 @@ import os
 import socket
 import ssl
 import sys
-from typing import Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from uvicorn.logging import TRACE_LOG_LEVEL
 
@@ -169,7 +169,7 @@ class Config:
         backlog: int = 2048,
         timeout_keep_alive: int = 5,
         timeout_notify: int = 30,
-        callback_notify: Callable[..., None] = None,
+        callback_notify: Callable[..., Awaitable[None]] = None,
         ssl_keyfile: Optional[str] = None,
         ssl_certfile: Optional[Union[str, os.PathLike]] = None,
         ssl_keyfile_password: Optional[str] = None,
@@ -219,7 +219,7 @@ class Config:
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
         self.headers: List[List[str]] = headers or []
-        self.encoded_headers: Optional[List[Tuple[bytes, bytes]]] = None
+        self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
 
         self.loaded = False
