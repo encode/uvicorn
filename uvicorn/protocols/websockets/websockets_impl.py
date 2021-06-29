@@ -1,16 +1,8 @@
 import asyncio
 import http
 import logging
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Literal,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    cast,
-)
+import sys
+from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple, Union, cast
 from urllib.parse import unquote
 
 import websockets
@@ -31,6 +23,11 @@ from websockets.typing import Subprotocol
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+
+if sys.version_info < (3, 8):
+    from typing_extensions import Literal
+else:
+    from typing import Literal
 
 if TYPE_CHECKING:
     from uvicorn.server import ServerState
