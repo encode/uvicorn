@@ -13,8 +13,6 @@
 
 **Documentation**: [https://www.uvicorn.org](https://www.uvicorn.org)
 
-**Community**: [https://discuss.encode.io/c/uvicorn](https://discuss.encode.io/c/uvicorn)
-
 **Requirements**: Python 3.6+ (For Python 3.5 support, install version 0.8.6.)
 
 Uvicorn is a lightning-fast ASGI server implementation, using [uvloop][uvloop] and [httptools][httptools].
