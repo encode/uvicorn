@@ -8,11 +8,25 @@ import sys
 import threading
 import time
 from email.utils import formatdate
-from typing import List
+from types import FrameType
+from typing import Any, List, Optional, Set, Tuple, Union
 
 import click
 
-from ._handlers.http import handle_http
+from uvicorn._handlers.http import handle_http
+from uvicorn.config import Config
+from uvicorn.protocols.http.h11_impl import H11Protocol
+from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
+from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
+
+if sys.platform != "win32":
+    from asyncio import start_unix_server as _start_unix_server
+else:
+
+    async def _start_unix_server(*args: Any, **kwargs: Any) -> Any:
+        raise NotImplementedError("Cannot start a unix server on win32")
+
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -21,36 +35,38 @@ HANDLED_SIGNALS = (
 
 logger = logging.getLogger("uvicorn.error")
 
+Protocols = Union[H11Protocol, HttpToolsProtocol, WSProtocol, WebSocketProtocol]
+
 
 class ServerState:
     """
     Shared servers state that is available between all protocol instances.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.total_requests = 0
-        self.connections = set()
-        self.tasks = set()
-        self.default_headers = []
+        self.connections: Set[Protocols] = set()
+        self.tasks: Set[asyncio.Task] = set()
+        self.default_headers: List[Tuple[bytes, bytes]] = []
 
 
 class Server:
-    def __init__(self, config):
+    def __init__(self, config: Config) -> None:
         self.config = config
         self.server_state = ServerState()
 
         self.started = False
         self.should_exit = False
         self.force_exit = False
-        self.last_notified = 0
+        self.last_notified = 0.0
 
-    def run(self, sockets=None):
+    def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
         if sys.version_info >= (3, 7):
             return asyncio.run(self.serve(sockets=sockets))
         return asyncio.get_event_loop().run_until_complete(self.serve(sockets=sockets))
 
-    async def serve(self, sockets=None):
+    async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
         process_id = os.getpid()
 
         config = self.config
@@ -73,11 +89,7 @@ class Server:
 
         message = "Finished server process [%d]"
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
-        logger.info(
-            "Finished server process [%d]",
-            process_id,
-            extra={"color_message": color_message},
-        )
+        logger.info(message, process_id, extra={"color_message": color_message})
 
     async def startup(self, sockets: list = None) -> None:
         await self.lifespan.startup()
@@ -131,7 +143,7 @@ class Server:
             uds_perms = 0o666
             if os.path.exists(config.uds):
                 uds_perms = os.stat(config.uds).st_mode
-            server = await asyncio.start_unix_server(
+            server = await _start_unix_server(
                 handler, path=config.uds, ssl=config.ssl, backlog=config.backlog
             )
             os.chmod(config.uds, uds_perms)
@@ -208,7 +220,7 @@ class Server:
                 extra={"color_message": color_message},
             )
 
-    async def main_loop(self):
+    async def main_loop(self) -> None:
         counter = 0
         should_exit = await self.on_tick(counter)
         while not should_exit:
@@ -217,14 +229,20 @@ class Server:
             await asyncio.sleep(0.1)
             should_exit = await self.on_tick(counter)
 
-    async def on_tick(self, counter) -> bool:
+    async def on_tick(self, counter: int) -> bool:
         # Update the default headers, once per second.
         if counter % 10 == 0:
             current_time = time.time()
             current_date = formatdate(current_time, usegmt=True).encode()
-            self.server_state.default_headers = [
-                (b"date", current_date)
-            ] + self.config.encoded_headers
+
+            if self.config.date_header:
+                date_header = [(b"date", current_date)]
+            else:
+                date_header = []
+
+            self.server_state.default_headers = (
+                date_header + self.config.encoded_headers
+            )
 
             # Callback to `callback_notify` once every `timeout_notify` seconds.
             if self.config.callback_notify is not None:
@@ -239,7 +257,7 @@ class Server:
             return self.server_state.total_requests >= self.config.limit_max_requests
         return False
 
-    async def shutdown(self, sockets=None):
+    async def shutdown(self, sockets: Optional[List[socket.socket]] = None) -> None:
         logger.info("Shutting down")
 
         # Stop accepting new connections.
@@ -288,7 +306,8 @@ class Server:
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)
 
-    def handle_exit(self, sig, frame):
+    def handle_exit(self, sig: signal.Signals, frame: FrameType) -> None:
+
         if self.should_exit:
             self.force_exit = True
         else:

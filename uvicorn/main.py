@@ -1,4 +1,5 @@
 import logging
+import os
 import platform
 import ssl
 import sys
@@ -77,6 +78,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     multiple=True,
     help="Set reload directories explicitly, instead of using the current working"
     " directory.",
+    type=click.Path(exists=True),
 )
 @click.option(
     "--reload-delay",
@@ -119,6 +121,20 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     type=int,
     default=16777216,
     help="WebSocket max size message in bytes",
+    show_default=True,
+)
+@click.option(
+    "--ws-ping-interval",
+    type=float,
+    default=20,
+    help="WebSocket ping interval",
+    show_default=True,
+)
+@click.option(
+    "--ws-ping-timeout",
+    type=float,
+    default=20,
+    help="WebSocket ping timeout",
     show_default=True,
 )
 @click.option(
@@ -174,6 +190,18 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     default=True,
     help="Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to "
     "populate remote address info.",
+)
+@click.option(
+    "--server-header/--no-server-header",
+    is_flag=True,
+    default=True,
+    help="Enable/Disable default Server header.",
+)
+@click.option(
+    "--date-header/--no-date-header",
+    is_flag=True,
+    default=True,
+    help="Enable/Disable default Date header.",
 )
 @click.option(
     "--forwarded-allow-ips",
@@ -298,6 +326,8 @@ def main(
     http: str,
     ws: str,
     ws_max_size: int,
+    ws_ping_interval: float,
+    ws_ping_timeout: float,
     lifespan: str,
     interface: str,
     debug: bool,
@@ -310,6 +340,8 @@ def main(
     log_level: str,
     access_log: bool,
     proxy_headers: bool,
+    server_header: bool,
+    date_header: bool,
     forwarded_allow_ips: str,
     root_path: str,
     limit_concurrency: int,
@@ -339,6 +371,8 @@ def main(
         "http": http,
         "ws": ws,
         "ws_max_size": ws_max_size,
+        "ws_ping_interval": ws_ping_interval,
+        "ws_ping_timeout": ws_ping_timeout,
         "lifespan": lifespan,
         "env_file": env_file,
         "log_config": LOGGING_CONFIG if log_config is None else log_config,
@@ -351,6 +385,8 @@ def main(
         "reload_delay": reload_delay,
         "workers": workers,
         "proxy_headers": proxy_headers,
+        "server_header": server_header,
+        "date_header": date_header,
         "forwarded_allow_ips": forwarded_allow_ips,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
@@ -391,6 +427,8 @@ def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
         Multiprocess(config, target=server.run, sockets=[sock]).run()
     else:
         server.run()
+    if config.uds:
+        os.remove(config.uds)
 
 
 if __name__ == "__main__":
