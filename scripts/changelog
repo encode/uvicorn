@@ -1,0 +1,9 @@
+#!/bin/sh -e
+
+## Usage: ./scripts/changelog <regex>
+## Example: ./scripts/changelog 0.14
+
+last_release_commit=$(git log --max-count 1 --grep="$1" --pretty="%H" --no-decorate | cat)
+commit_subjects=$(git log --date=format:'%d/%m/%y' --pretty="%s %cd \n" ${last_release_commit}..HEAD)
+
+echo ${commit_subjects}
