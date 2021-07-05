@@ -31,4 +31,4 @@ https://github.com/mkdocs/mkdocs/archive/b221df94fa7f29a2e63edfaeda56e3285b183f9
 mkdocs-material
 
 # py3.10 workarounds
-https://github.com/aaugustin/websockets/archive/0bfa9f2ea86dbc12f24e4a2756cb339efafe76d8.tar.gz#egg=websockets; python_version > '3.6'
+https://github.com/aaugustin/websockets/archive/d5cf1efb737a943583b1e5b4ceca5376bdc3995f.tar.gz#egg=websockets; python_version > '3.6'
