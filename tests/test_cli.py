@@ -1,11 +1,8 @@
 import importlib
-import os
-import sys
 import textwrap
 from pathlib import Path
 from unittest import mock
 
-import pytest
 from click.testing import CliRunner
 
 from uvicorn.main import main as cli
