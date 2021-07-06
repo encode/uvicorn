@@ -1,8 +1,10 @@
 import importlib
+import sys
 import textwrap
 from pathlib import Path
 from unittest import mock
 
+import pytest
 from click.testing import CliRunner
 
 from uvicorn.main import main as cli
@@ -32,6 +34,7 @@ def test_cli_headers():
     ]
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
 def test_load_app_before_event_loop(tmp_path: Path):
     runner = CliRunner()
     fp = tmp_path / "main.py"
