@@ -32,7 +32,7 @@ def test_cli_headers():
     ]
 
 
-def test_event_loop_load(tmp_path: Path):
+def test_load_app_before_event_loop(tmp_path: Path):
     runner = CliRunner()
     fp = tmp_path / "main.py"
     content = textwrap.dedent(
@@ -46,6 +46,6 @@ def test_event_loop_load(tmp_path: Path):
         """
     )
     fp.write_text(content)
-    with mock.patch("uvicorn.server.Server.main_loop"):
+    with mock.patch("uvicorn.server.Server.serve"):
         result = runner.invoke(cli, ["main:app", "--app-dir", tmp_path])
         assert "Event loop running: False" in result.stdout
