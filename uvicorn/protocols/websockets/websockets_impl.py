@@ -1,10 +1,13 @@
 import asyncio
 import http
 import logging
+from typing import Callable
 from urllib.parse import unquote
 
 import websockets
+from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 
@@ -22,12 +25,15 @@ class Server:
 
 
 class WebSocketProtocol(websockets.WebSocketServerProtocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(
+        self, config, server_state, on_connection_lost: Callable = None, _loop=None
+    ):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
+        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.root_path = config.root_path
@@ -54,7 +60,14 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         self.ws_server = Server()
 
-        super().__init__(ws_handler=self.ws_handler, ws_server=self.ws_server)
+        super().__init__(
+            ws_handler=self.ws_handler,
+            ws_server=self.ws_server,
+            max_size=self.config.ws_max_size,
+            ping_interval=self.config.ws_ping_interval,
+            ping_timeout=self.config.ws_ping_timeout,
+            extensions=[ServerPerMessageDeflateFactory()],
+        )
 
     def connection_made(self, transport):
         self.connections.add(self)
@@ -62,12 +75,26 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
         self.scheme = "wss" if is_ssl(transport) else "ws"
+
+        if self.logger.level <= TRACE_LOG_LEVEL:
+            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection made", prefix)
+
         super().connection_made(transport)
 
     def connection_lost(self, exc):
         self.connections.remove(self)
+
+        if self.logger.level <= TRACE_LOG_LEVEL:
+            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection lost", prefix)
+
         self.handshake_completed_event.set()
         super().connection_lost(exc)
+        if self.on_connection_lost is not None:
+            self.on_connection_lost()
+        if exc is None:
+            self.transport.close()
 
     def shutdown(self):
         self.ws_server.closing = True
@@ -87,7 +114,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         """
         path_portion, _, query_string = path.partition("?")
 
-        websockets.handshake.check_request(headers)
+        websockets.legacy.handshake.check_request(headers)
 
         subprotocols = []
         for header in headers.get_all("Sec-WebSocket-Protocol"):
@@ -135,6 +162,9 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             msg,
         ]
         self.transport.write(b"".join(content))
+        # Allow handler task to terminate cleanly, as websockets doesn't cancel it by
+        # itself (see https://github.com/encode/uvicorn/issues/920)
+        self.handshake_started_event.set()
 
     async def ws_handler(self, protocol, path):
         """
@@ -216,7 +246,8 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
             elif message_type == "websocket.close":
                 code = message.get("code", 1000)
-                await self.close(code)
+                reason = message.get("reason", "")
+                await self.close(code, reason)
                 self.closed_event.set()
 
             else:
@@ -237,6 +268,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         await self.handshake_completed_event.wait()
         try:
+            await self.ensure_open()
             data = await self.recv()
         except websockets.ConnectionClosed as exc:
             return {"type": "websocket.disconnect", "code": exc.code}

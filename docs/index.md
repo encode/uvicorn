@@ -19,11 +19,11 @@
 
 # Introduction
 
-Uvicorn is a lightning-fast ASGI server, built on [uvloop][uvloop] and [httptools][httptools].
+Uvicorn is a lightning-fast ASGI server implementation, using [uvloop][uvloop] and [httptools][httptools].
 
 Until recently Python has lacked a minimal low-level server/application interface for
-asyncio frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to start building
-a common set of tooling usable across all asyncio frameworks.
+asyncio frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
+start building a common set of tooling usable across all asyncio frameworks.
 
 ASGI should help enable an ecosystem of Python web frameworks that are highly competitive against Node
 and Go in terms of achieving high throughput in IO-bound contexts. It also provides support for HTTP/2 and
@@ -31,29 +31,50 @@ WebSockets, which cannot be handled by WSGI.
 
 Uvicorn currently supports HTTP/1.1 and WebSockets. Support for HTTP/2 is planned.
 
----
-
 ## Quickstart
-
-Requirements: Python 3.5, 3.6, 3.7, 3.8
 
 Install using `pip`:
 
-```
+```shell
 $ pip install uvicorn
 ```
+
+This will install uvicorn with minimal (pure Python) dependencies.
+
+```shell
+$ pip install uvicorn[standard]
+```
+
+This will install uvicorn with "Cython-based" dependencies (where possible) and other "optional extras".
+
+In this context, "Cython-based" means the following:
+
+- the event loop `uvloop` will be installed and used if possible.
+  - `uvloop` is a fast, drop-in replacement of the built-in asyncio event loop. It is implemented in Cython. Read more [here][uvloop_docs].
+  - The built-in asyncio event loop serves as an easy-to-read reference implementation and is there for easy debugging as it's pure-python based.
+- the http protocol will be handled by `httptools` if possible.
+  - Read more about comparison with `h11` [here][httptools_vs_h11].
+
+Moreover, "optional extras" means that:
+
+- the websocket protocol will be handled by `websockets` (should you want to use `wsproto` you'd need to install it manually) if possible.
+- the `--reload` flag in development mode will use `watchgod`.
+- windows users will have `colorama` installed for the colored logs.
+- `python-dotenv` will be installed should you want to use the `--env-file` option.
+- `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
 
 Create an application, in `example.py`:
 
 ```python
 async def app(scope, receive, send):
     assert scope['type'] == 'http'
+
     await send({
         'type': 'http.response.start',
         'status': 200,
         'headers': [
             [b'content-type', b'text/plain'],
-        ]
+        ],
     })
     await send({
         'type': 'http.response.body',
@@ -63,7 +84,7 @@ async def app(scope, receive, send):
 
 Run the server:
 
-```
+```shell
 $ uvicorn example:app
 ```
 
@@ -75,7 +96,9 @@ The uvicorn command line tool is the easiest way to run your application...
 
 ### Command line options
 
+<!-- :cli_usage: -->
 ```
+$ uvicorn --help
 Usage: uvicorn [OPTIONS] APP
 
 Options:
@@ -85,25 +108,31 @@ Options:
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
   --reload                        Enable auto-reload.
-  --reload-dir TEXT               Set reload directories explicitly, instead
+  --reload-dir PATH               Set reload directories explicitly, instead
                                   of using the current working directory.
+  --reload-delay FLOAT            Delay between previous and next check if
+                                  application needs to be. Defaults to 0.25s.
+                                  [default: 0.25]
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
-                                  available. Not valid with --reload.
-  --loop [auto|asyncio|uvloop]
-                                  Event loop implementation.  [default: auto]
+                                  available, or 1. Not valid with --reload.
+  --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
                                   auto]
   --ws [auto|none|websockets|wsproto]
                                   WebSocket protocol implementation.
                                   [default: auto]
+  --ws-max-size INTEGER           WebSocket max size message in bytes
+                                  [default: 16777216]
+  --ws-ping-interval FLOAT        WebSocket ping interval  [default: 20.0]
+  --ws-ping-timeout FLOAT         WebSocket ping timeout  [default: 20.0]
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --interface [auto|asgi3|asgi2|wsgi]
                                   Select ASGI3, ASGI2, or WSGI as the
                                   application interface.  [default: auto]
   --env-file PATH                 Environment configuration file.
-  --log-config PATH               Logging configuration file.
-                                  Supported formats (.ini, .json, .yaml)
+  --log-config PATH               Logging configuration file. Supported
+                                  formats: .ini, .json, .yaml.
   --log-level [critical|error|warning|info|debug|trace]
                                   Log level. [default: info]
   --access-log / --no-access-log  Enable/Disable access log.
@@ -112,7 +141,11 @@ Options:
                                   Enable/Disable X-Forwarded-Proto,
                                   X-Forwarded-For, X-Forwarded-Port to
                                   populate remote address info.
-  --forwarded-allow-ips TEXT      Comma separated list of IPs to trust with
+  --server-header / --no-server-header
+                                  Enable/Disable default Server header.
+  --date-header / --no-date-header
+                                  Enable/Disable default Date header.
+  --forwarded-allow-ips TEXT      Comma seperated list of IPs to trust with
                                   proxy headers. Defaults to the
                                   $FORWARDED_ALLOW_IPS environment variable if
                                   available, or '127.0.0.1'.
@@ -130,6 +163,7 @@ Options:
                                   5]
   --ssl-keyfile TEXT              SSL key file
   --ssl-certfile TEXT             SSL certificate file
+  --ssl-keyfile-password TEXT     SSL keyfile password
   --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
                                   [default: 2]
   --ssl-cert-reqs INTEGER         Whether client certificate is required (see
@@ -139,6 +173,12 @@ Options:
                                   [default: TLSv1]
   --header TEXT                   Specify custom default HTTP response headers
                                   as a Name:Value pair
+  --version                       Display the uvicorn version and exit.
+  --app-dir TEXT                  Look for APP in the specified directory, by
+                                  adding this to the PYTHONPATH. Defaults to
+                                  the current working directory.  [default: .]
+  --factory                       Treat APP as an application factory, i.e. a
+                                  () -> <ASGI app> callable.  [default: False]
   --help                          Show this message and exit.
 ```
 
@@ -180,6 +220,22 @@ gunicorn example:app -w 4 -k uvicorn.workers.UvicornWorker
 For a [PyPy][pypy] compatible configuration use `uvicorn.workers.UvicornH11Worker`.
 
 For more information, see the [deployment documentation](deployment.md).
+
+### Application factories
+
+The `--factory` flag allows loading the application from a factory function, rather than an application instance directly. The factory will be called with no arguments and should return an ASGI application.
+
+**example.py**:
+
+```python
+def create_app():
+    app = ...
+    return app
+```
+
+```shell
+$ uvicorn --factory example:create_app
+```
 
 ## The ASGI interface
 
@@ -415,6 +471,12 @@ with application code still running in a standard threaded context.
 
 You write your API function parameters with Python 3.6+ type declarations and get automatic data conversion, data validation, OpenAPI schemas (with JSON Schemas) and interactive API documentation UIs.
 
+### BlackSheep
+
+[BlackSheep](https://www.neoteroi.dev/blacksheep/) is a web framework based on ASGI, inspired by Flask and ASP.NET Core.
+
+Its most distinctive features are built-in support for dependency injection, automatic binding of parameters by request handler's type annotations, and automatic generation of OpenAPI documentation and Swagger UI.
+
 
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
@@ -424,3 +486,5 @@ You write your API function parameters with Python 3.6+ type declarations and ge
 [asgi-http]: https://asgi.readthedocs.io/en/latest/specs/www.html
 [daphne]: https://github.com/django/daphne
 [hypercorn]: https://gitlab.com/pgjones/hypercorn
+[uvloop_docs]: https://uvloop.readthedocs.io/
+[httptools_vs_h11]: https://github.com/python-hyper/h11/issues/9

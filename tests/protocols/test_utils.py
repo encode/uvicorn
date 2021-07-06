@@ -1,6 +1,8 @@
 import socket
 
-from uvicorn.protocols.utils import get_local_addr, get_remote_addr
+import pytest
+
+from uvicorn.protocols.utils import get_client_addr, get_local_addr, get_remote_addr
 
 
 class MockSocket:
@@ -38,7 +40,7 @@ def test_get_local_addr_with_socket():
     )
     assert get_local_addr(transport) == ("123.45.6.7", 123)
 
-    if hasattr(socket, "AF_UNIX"):
+    if hasattr(socket, "AF_UNIX"):  # pragma: no cover
         transport = MockTransport(
             {"socket": MockSocket(family=socket.AF_UNIX, sockname=("127.0.0.1", 8000))}
         )
@@ -59,7 +61,7 @@ def test_get_remote_addr_with_socket():
     )
     assert get_remote_addr(transport) == ("123.45.6.7", 123)
 
-    if hasattr(socket, "AF_UNIX"):
+    if hasattr(socket, "AF_UNIX"):  # pragma: no cover
         transport = MockTransport(
             {"socket": MockSocket(family=socket.AF_UNIX, peername=("127.0.0.1", 8000))}
         )
@@ -80,3 +82,12 @@ def test_get_remote_addr():
 
     transport = MockTransport({"peername": ("123.45.6.7", 123)})
     assert get_remote_addr(transport) == ("123.45.6.7", 123)
+
+
+@pytest.mark.parametrize(
+    "scope, expected_client",
+    [({"client": ("127.0.0.1", 36000)}, "127.0.0.1:36000"), ({"client": None}, "")],
+    ids=["ip:port client", "None client"],
+)
+def test_get_client_addr(scope, expected_client):
+    assert get_client_addr(scope) == expected_client

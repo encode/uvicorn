@@ -9,6 +9,6 @@ export SOURCE_FILES="uvicorn tests"
 set -x
 
 ${PREFIX}autoflake --in-place --recursive $SOURCE_FILES
-${PREFIX}seed-isort-config --application-directories=uvicorn
 ${PREFIX}isort --project=uvicorn $SOURCE_FILES
 ${PREFIX}black --target-version=py36 $SOURCE_FILES
+${PREFIX}python -m tools.cli_usage

@@ -1,15 +1,7 @@
-# Minimal
-click
-h11
+-e .[standard]
 
-# Optional
-httptools; sys_platform != 'win32'
-uvloop>=0.14.0; sys_platform != 'win32'
-websockets==8.*
-wsproto==0.15.*
-watchgod>=0.6,<0.7
-python_dotenv==0.13.*
-PyYAML>=5.1
+# Explicit optionals
+wsproto==1.0.*
 
 # Packaging
 twine
@@ -18,15 +10,20 @@ wheel
 # Testing
 autoflake
 black
-codecov
 flake8
 isort
 pytest
-pytest-cov
 pytest-mock
-requests
-seed-isort-config
 mypy
+types-click
+types-pyyaml
+trustme
+cryptography
+coverage
+httpx==0.16.*
+pytest-asyncio==0.14.*
+async_generator; python_version < '3.7'
+
 
 # Documentation
 mkdocs

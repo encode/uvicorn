@@ -1,17 +1,12 @@
-import asyncio
-import functools
 import logging
 import os
 import platform
-import signal
-import socket
 import ssl
 import sys
-import time
 import typing
-from email.utils import formatdate
 
 import click
+from asgiref.typing import ASGIApplication
 
 import uvicorn
 from uvicorn.config import (
@@ -25,24 +20,20 @@ from uvicorn.config import (
     WS_PROTOCOLS,
     Config,
 )
+from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
-LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
-HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
-WS_CHOICES = click.Choice(WS_PROTOCOLS.keys())
-LIFESPAN_CHOICES = click.Choice(LIFESPAN.keys())
+LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
+HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
+WS_CHOICES = click.Choice(list(WS_PROTOCOLS.keys()))
+LIFESPAN_CHOICES = click.Choice(list(LIFESPAN.keys()))
 LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
-
-HANDLED_SIGNALS = (
-    signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
-    signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
-)
 
 logger = logging.getLogger("uvicorn.error")
 
 
-def print_version(ctx, param, value):
+def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> None:
     if not value or ctx.resilient_parsing:
         return
     click.echo(
@@ -87,13 +78,22 @@ def print_version(ctx, param, value):
     multiple=True,
     help="Set reload directories explicitly, instead of using the current working"
     " directory.",
+    type=click.Path(exists=True),
+)
+@click.option(
+    "--reload-delay",
+    type=float,
+    default=0.25,
+    show_default=True,
+    help="Delay between previous and next check if application needs to be."
+    " Defaults to 0.25s.",
 )
 @click.option(
     "--workers",
     default=None,
     type=int,
     help="Number of worker processes. Defaults to the $WEB_CONCURRENCY environment"
-    " variable if available. Not valid with --reload.",
+    " variable if available, or 1. Not valid with --reload.",
 )
 @click.option(
     "--loop",
@@ -114,6 +114,27 @@ def print_version(ctx, param, value):
     type=WS_CHOICES,
     default="auto",
     help="WebSocket protocol implementation.",
+    show_default=True,
+)
+@click.option(
+    "--ws-max-size",
+    type=int,
+    default=16777216,
+    help="WebSocket max size message in bytes",
+    show_default=True,
+)
+@click.option(
+    "--ws-ping-interval",
+    type=float,
+    default=20,
+    help="WebSocket ping interval",
+    show_default=True,
+)
+@click.option(
+    "--ws-ping-timeout",
+    type=float,
+    default=20,
+    help="WebSocket ping timeout",
     show_default=True,
 )
 @click.option(
@@ -141,7 +162,7 @@ def print_version(ctx, param, value):
     "--log-config",
     type=click.Path(exists=True),
     default=None,
-    help="Logging configuration file.",
+    help="Logging configuration file. Supported formats: .ini, .json, .yaml.",
     show_default=True,
 )
 @click.option(
@@ -169,6 +190,18 @@ def print_version(ctx, param, value):
     default=True,
     help="Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to "
     "populate remote address info.",
+)
+@click.option(
+    "--server-header/--no-server-header",
+    is_flag=True,
+    default=True,
+    help="Enable/Disable default Server header.",
+)
+@click.option(
+    "--date-header/--no-date-header",
+    is_flag=True,
+    default=True,
+    help="Enable/Disable default Date header.",
 )
 @click.option(
     "--forwarded-allow-ips",
@@ -217,6 +250,13 @@ def print_version(ctx, param, value):
     type=str,
     default=None,
     help="SSL certificate file",
+    show_default=True,
+)
+@click.option(
+    "--ssl-keyfile-password",
+    type=str,
+    default=None,
+    help="SSL keyfile password",
     show_default=True,
 )
 @click.option(
@@ -269,8 +309,15 @@ def print_version(ctx, param, value):
     help="Look for APP in the specified directory, by adding this to the PYTHONPATH."
     " Defaults to the current working directory.",
 )
+@click.option(
+    "--factory",
+    is_flag=True,
+    default=False,
+    help="Treat APP as an application factory, i.e. a () -> <ASGI app> callable.",
+    show_default=True,
+)
 def main(
-    app,
+    app: str,
     host: str,
     port: int,
     uds: str,
@@ -278,17 +325,23 @@ def main(
     loop: str,
     http: str,
     ws: str,
+    ws_max_size: int,
+    ws_ping_interval: float,
+    ws_ping_timeout: float,
     lifespan: str,
     interface: str,
     debug: bool,
     reload: bool,
     reload_dirs: typing.List[str],
+    reload_delay: float,
     workers: int,
     env_file: str,
     log_config: str,
     log_level: str,
     access_log: bool,
     proxy_headers: bool,
+    server_header: bool,
+    date_header: bool,
     forwarded_allow_ips: str,
     root_path: str,
     limit_concurrency: int,
@@ -297,6 +350,7 @@ def main(
     timeout_keep_alive: int,
     ssl_keyfile: str,
     ssl_certfile: str,
+    ssl_keyfile_password: str,
     ssl_version: int,
     ssl_cert_reqs: int,
     ssl_ca_certs: str,
@@ -304,11 +358,11 @@ def main(
     headers: typing.List[str],
     use_colors: bool,
     app_dir: str,
-):
+    factory: bool,
+) -> None:
     sys.path.insert(0, app_dir)
 
     kwargs = {
-        "app": app,
         "host": host,
         "port": port,
         "uds": uds,
@@ -316,6 +370,9 @@ def main(
         "loop": loop,
         "http": http,
         "ws": ws,
+        "ws_max_size": ws_max_size,
+        "ws_ping_interval": ws_ping_interval,
+        "ws_ping_timeout": ws_ping_timeout,
         "lifespan": lifespan,
         "env_file": env_file,
         "log_config": LOGGING_CONFIG if log_config is None else log_config,
@@ -325,8 +382,11 @@ def main(
         "debug": debug,
         "reload": reload,
         "reload_dirs": reload_dirs if reload_dirs else None,
+        "reload_delay": reload_delay,
         "workers": workers,
         "proxy_headers": proxy_headers,
+        "server_header": server_header,
+        "date_header": date_header,
         "forwarded_allow_ips": forwarded_allow_ips,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
@@ -335,17 +395,19 @@ def main(
         "timeout_keep_alive": timeout_keep_alive,
         "ssl_keyfile": ssl_keyfile,
         "ssl_certfile": ssl_certfile,
+        "ssl_keyfile_password": ssl_keyfile_password,
         "ssl_version": ssl_version,
         "ssl_cert_reqs": ssl_cert_reqs,
         "ssl_ca_certs": ssl_ca_certs,
         "ssl_ciphers": ssl_ciphers,
-        "headers": list([header.split(":") for header in headers]),
+        "headers": [header.split(":", 1) for header in headers],
         "use_colors": use_colors,
+        "factory": factory,
     }
-    run(**kwargs)
+    run(app, **kwargs)
 
 
-def run(app, **kwargs):
+def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
     config = Config(app, **kwargs)
     server = Server(config=config)
 
@@ -359,235 +421,14 @@ def run(app, **kwargs):
 
     if config.should_reload:
         sock = config.bind_socket()
-        supervisor = ChangeReload(config, target=server.run, sockets=[sock])
-        supervisor.run()
+        ChangeReload(config, target=server.run, sockets=[sock]).run()
     elif config.workers > 1:
         sock = config.bind_socket()
-        supervisor = Multiprocess(config, target=server.run, sockets=[sock])
-        supervisor.run()
+        Multiprocess(config, target=server.run, sockets=[sock]).run()
     else:
         server.run()
-
-
-class ServerState:
-    """
-    Shared servers state that is available between all protocol instances.
-    """
-
-    def __init__(self):
-        self.total_requests = 0
-        self.connections = set()
-        self.tasks = set()
-        self.default_headers = []
-
-
-class Server:
-    def __init__(self, config):
-        self.config = config
-        self.server_state = ServerState()
-
-        self.started = False
-        self.should_exit = False
-        self.force_exit = False
-        self.last_notified = 0
-
-    def run(self, sockets=None):
-        self.config.setup_event_loop()
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.serve(sockets=sockets))
-
-    async def serve(self, sockets=None):
-        process_id = os.getpid()
-
-        config = self.config
-        if not config.loaded:
-            config.load()
-
-        self.lifespan = config.lifespan_class(config)
-
-        self.install_signal_handlers()
-
-        message = "Started server process [%d]"
-        color_message = "Started server process [" + click.style("%d", fg="cyan") + "]"
-        logger.info(message, process_id, extra={"color_message": color_message})
-
-        await self.startup(sockets=sockets)
-        if self.should_exit:
-            return
-        await self.main_loop()
-        await self.shutdown(sockets=sockets)
-
-        message = "Finished server process [%d]"
-        color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
-        logger.info(
-            "Finished server process [%d]",
-            process_id,
-            extra={"color_message": color_message},
-        )
-
-    async def startup(self, sockets=None):
-        await self.lifespan.startup()
-        if self.lifespan.should_exit:
-            self.should_exit = True
-            return
-
-        config = self.config
-
-        create_protocol = functools.partial(
-            config.http_protocol_class, config=config, server_state=self.server_state
-        )
-
-        loop = asyncio.get_event_loop()
-
-        if sockets is not None:
-            # Explicitly passed a list of open sockets.
-            # We use this when the server is run from a Gunicorn worker.
-            self.servers = []
-            for sock in sockets:
-                server = await loop.create_server(
-                    create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
-                )
-                self.servers.append(server)
-
-        elif config.fd is not None:
-            # Use an existing socket, from a file descriptor.
-            sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
-            server = await loop.create_server(
-                create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
-            )
-            message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
-            logger.info(message % str(sock.getsockname()))
-            self.servers = [server]
-
-        elif config.uds is not None:
-            # Create a socket using UNIX domain socket.
-            uds_perms = 0o666
-            if os.path.exists(config.uds):
-                uds_perms = os.stat(config.uds).st_mode
-            server = await loop.create_unix_server(
-                create_protocol, path=config.uds, ssl=config.ssl, backlog=config.backlog
-            )
-            os.chmod(config.uds, uds_perms)
-            message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
-            logger.info(message % config.uds)
-            self.servers = [server]
-
-        else:
-            # Standard case. Create a socket from a host/port pair.
-            try:
-                server = await loop.create_server(
-                    create_protocol,
-                    host=config.host,
-                    port=config.port,
-                    ssl=config.ssl,
-                    backlog=config.backlog,
-                )
-            except OSError as exc:
-                logger.error(exc)
-                await self.lifespan.shutdown()
-                sys.exit(1)
-            port = config.port
-            if port == 0:
-                port = server.sockets[0].getsockname()[1]
-            protocol_name = "https" if config.ssl else "http"
-            message = "Uvicorn running on %s://%s:%d (Press CTRL+C to quit)"
-            color_message = (
-                "Uvicorn running on "
-                + click.style("%s://%s:%d", bold=True)
-                + " (Press CTRL+C to quit)"
-            )
-            logger.info(
-                message,
-                protocol_name,
-                config.host,
-                port,
-                extra={"color_message": color_message},
-            )
-            self.servers = [server]
-
-        self.started = True
-
-    async def main_loop(self):
-        counter = 0
-        should_exit = await self.on_tick(counter)
-        while not should_exit:
-            counter += 1
-            counter = counter % 864000
-            await asyncio.sleep(0.1)
-            should_exit = await self.on_tick(counter)
-
-    async def on_tick(self, counter) -> bool:
-        # Update the default headers, once per second.
-        if counter % 10 == 0:
-            current_time = time.time()
-            current_date = formatdate(current_time, usegmt=True).encode()
-            self.server_state.default_headers = [
-                (b"date", current_date)
-            ] + self.config.encoded_headers
-
-            # Callback to `callback_notify` once every `timeout_notify` seconds.
-            if self.config.callback_notify is not None:
-                if current_time - self.last_notified > self.config.timeout_notify:
-                    self.last_notified = current_time
-                    await self.config.callback_notify()
-
-        # Determine if we should exit.
-        if self.should_exit:
-            return True
-        if self.config.limit_max_requests is not None:
-            return self.server_state.total_requests >= self.config.limit_max_requests
-        return False
-
-    async def shutdown(self, sockets=None):
-        logger.info("Shutting down")
-
-        # Stop accepting new connections.
-        for server in self.servers:
-            server.close()
-        for sock in sockets or []:
-            sock.close()
-        for server in self.servers:
-            await server.wait_closed()
-
-        # Request shutdown on all existing connections.
-        for connection in list(self.server_state.connections):
-            connection.shutdown()
-        await asyncio.sleep(0.1)
-
-        # Wait for existing connections to finish sending responses.
-        if self.server_state.connections and not self.force_exit:
-            msg = "Waiting for connections to close. (CTRL+C to force quit)"
-            logger.info(msg)
-            while self.server_state.connections and not self.force_exit:
-                await asyncio.sleep(0.1)
-
-        # Wait for existing tasks to complete.
-        if self.server_state.tasks and not self.force_exit:
-            msg = "Waiting for background tasks to complete. (CTRL+C to force quit)"
-            logger.info(msg)
-            while self.server_state.tasks and not self.force_exit:
-                await asyncio.sleep(0.1)
-
-        # Send the lifespan shutdown event, and wait for application shutdown.
-        if not self.force_exit:
-            await self.lifespan.shutdown()
-
-    def install_signal_handlers(self):
-        loop = asyncio.get_event_loop()
-
-        try:
-            for sig in HANDLED_SIGNALS:
-                loop.add_signal_handler(sig, self.handle_exit, sig, None)
-        except NotImplementedError:
-            # Windows
-            for sig in HANDLED_SIGNALS:
-                signal.signal(sig, self.handle_exit)
-
-    def handle_exit(self, sig, frame):
-        if self.should_exit:
-            self.force_exit = True
-        else:
-            self.should_exit = True
+    if config.uds:
+        os.remove(config.uds)
 
 
 if __name__ == "__main__":

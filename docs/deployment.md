@@ -23,6 +23,7 @@ When running locally, use `--reload` to turn on auto-reloading.
 
 To see the complete set of available options, use `uvicorn --help`:
 
+<!-- :cli_usage: -->
 ```
 $ uvicorn --help
 Usage: uvicorn [OPTIONS] APP
@@ -34,25 +35,31 @@ Options:
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
   --reload                        Enable auto-reload.
-  --reload-dir TEXT               Set reload directories explicitly, instead
+  --reload-dir PATH               Set reload directories explicitly, instead
                                   of using the current working directory.
+  --reload-delay FLOAT            Delay between previous and next check if
+                                  application needs to be. Defaults to 0.25s.
+                                  [default: 0.25]
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
-                                  available. Not valid with --reload.
-  --loop [auto|asyncio|uvloop]
-                                  Event loop implementation.  [default: auto]
+                                  available, or 1. Not valid with --reload.
+  --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
                                   auto]
   --ws [auto|none|websockets|wsproto]
                                   WebSocket protocol implementation.
                                   [default: auto]
+  --ws-max-size INTEGER           WebSocket max size message in bytes
+                                  [default: 16777216]
+  --ws-ping-interval FLOAT        WebSocket ping interval  [default: 20.0]
+  --ws-ping-timeout FLOAT         WebSocket ping timeout  [default: 20.0]
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --interface [auto|asgi3|asgi2|wsgi]
                                   Select ASGI3, ASGI2, or WSGI as the
                                   application interface.  [default: auto]
   --env-file PATH                 Environment configuration file.
-  --log-config PATH               Logging configuration file.
-                                  Supported formats (.ini, .json, .yaml)
+  --log-config PATH               Logging configuration file. Supported
+                                  formats: .ini, .json, .yaml.
   --log-level [critical|error|warning|info|debug|trace]
                                   Log level. [default: info]
   --access-log / --no-access-log  Enable/Disable access log.
@@ -61,6 +68,10 @@ Options:
                                   Enable/Disable X-Forwarded-Proto,
                                   X-Forwarded-For, X-Forwarded-Port to
                                   populate remote address info.
+  --server-header / --no-server-header
+                                  Enable/Disable default Server header.
+  --date-header / --no-date-header
+                                  Enable/Disable default Date header.
   --forwarded-allow-ips TEXT      Comma seperated list of IPs to trust with
                                   proxy headers. Defaults to the
                                   $FORWARDED_ALLOW_IPS environment variable if
@@ -79,6 +90,7 @@ Options:
                                   5]
   --ssl-keyfile TEXT              SSL key file
   --ssl-certfile TEXT             SSL certificate file
+  --ssl-keyfile-password TEXT     SSL keyfile password
   --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
                                   [default: 2]
   --ssl-cert-reqs INTEGER         Whether client certificate is required (see
@@ -88,11 +100,15 @@ Options:
                                   [default: TLSv1]
   --header TEXT                   Specify custom default HTTP response headers
                                   as a Name:Value pair
+  --version                       Display the uvicorn version and exit.
   --app-dir TEXT                  Look for APP in the specified directory, by
                                   adding this to the PYTHONPATH. Defaults to
-                                  the current working directory.
+                                  the current working directory.  [default: .]
+  --factory                       Treat APP as an application factory, i.e. a
+                                  () -> <ASGI app> callable.  [default: False]
   --help                          Show this message and exit.
 ```
+
 
 See the [settings documentation](settings.md) for more details on the supported options for running uvicorn.
 
@@ -126,6 +142,8 @@ uvicorn.run(app, host="127.0.0.1", port=5000, log_level="info")
 However, this style only works if you are not using multiprocessing (`workers=NUM`)
 or reloading (`reload=True`), so we recommend using the import string style.
 
+Also note that in this case, you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main module.
+
 ## Using a process manager
 
 Running Uvicorn using a process manager ensures that you can run multiple processes in a resilient manner, and allows you to perform server upgrades without dropping requests.
@@ -147,6 +165,13 @@ The `UvicornWorker` implementation uses the `uvloop` and `httptools` implementat
 `gunicorn -w 4 -k uvicorn.workers.UvicornH11Worker`
 
 Gunicorn provides a different set of configuration options to Uvicorn, so  some options such as `--limit-concurrency` are not yet supported when running with Gunicorn.
+
+If you need to pass uvicorn's config arguments to gunicorn workers then you'll have to subclass `UvicornWorker`:
+
+```python
+class MyUvicornWorker(UvicornWorker):
+    CONFIG_KWARGS = {"loop": "asyncio", "http": "h11", "lifespan": "off"}
+```
 
 ### Supervisor
 
@@ -204,12 +229,15 @@ Using Nginx as a proxy in front of your Uvicorn processes may not be neccessary,
 In managed environments such as `Heroku`, you wont typically need to configure Nginx, as your server processes will already be running behind load balancing proxies.
 
 The recommended configuration for proxying from Nginx is to use a UNIX domain socket between Nginx and whatever the process manager that is being used to run Uvicorn.
+Note that when doing this you will need run Uvicorn with `--forwarded-allow-ips='*'` to ensure that the domain socket is trusted as a source from which to proxy headers.
 
 When fronting the application with a proxy server you want to make sure that the proxy sets headers to ensure that application can properly determine the client address of the incoming connection, and if the connection was over `http` or `https`.
 
 You should ensure that the `X-Forwarded-For` and `X-Forwarded-Proto` headers are set by the proxy, and that Uvicorn is run using the `--proxy-headers` setting. This ensure that the ASGI scope includes correct `client` and `scheme` information.
 
 Here's how a simple Nginx configuration might look. This example includes setting proxy headers, and using a UNIX domain socket to communicate with the application server.
+
+It also includes some basic configuration to forward websocket connections. For more info on this, check [Nginx recommendations][nginx_websocket].
 
 ```conf
 http {
@@ -223,6 +251,8 @@ http {
       proxy_set_header Host $http_host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
       proxy_redirect off;
       proxy_buffering off;
       proxy_pass http://uvicorn;
@@ -232,6 +262,11 @@ http {
       # path for static files
       root /path/to/app/static;
     }
+  }
+  
+  map $http_upgrade $connection_upgrade {
+    default upgrade;
+    '' close;
   }
 
   upstream uvicorn {
@@ -273,5 +308,6 @@ It also possible to use certificates with uvicorn's worker for gunicorn
 $ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornWorker example:app
 ```
 
+[nginx_websocket]: https://nginx.org/en/docs/http/websocket.html
 [letsencrypt]: https://letsencrypt.org/
 [mkcert]: https://github.com/FiloSottile/mkcert

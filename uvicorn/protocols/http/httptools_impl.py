@@ -3,9 +3,17 @@ import http
 import logging
 import re
 import urllib
+from typing import Callable
 
 import httptools
 
+from uvicorn.logging import TRACE_LOG_LEVEL
+from uvicorn.protocols.http.flow_control import (
+    CLOSE_HEADER,
+    HIGH_WATER_LIMIT,
+    FlowControl,
+    service_unavailable,
+)
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -30,64 +38,17 @@ STATUS_LINE = {
     status_code: _get_status_line(status_code) for status_code in range(100, 600)
 }
 
-HIGH_WATER_LIMIT = 65536
-
-TRACE_LOG_LEVEL = 5
-
-
-class FlowControl:
-    def __init__(self, transport):
-        self._transport = transport
-        self.read_paused = False
-        self.write_paused = False
-        self._is_writable_event = asyncio.Event()
-        self._is_writable_event.set()
-
-    async def drain(self):
-        await self._is_writable_event.wait()
-
-    def pause_reading(self):
-        if not self.read_paused:
-            self.read_paused = True
-            self._transport.pause_reading()
-
-    def resume_reading(self):
-        if self.read_paused:
-            self.read_paused = False
-            self._transport.resume_reading()
-
-    def pause_writing(self):
-        if not self.write_paused:
-            self.write_paused = True
-            self._is_writable_event.clear()
-
-    def resume_writing(self):
-        if self.write_paused:
-            self.write_paused = False
-            self._is_writable_event.set()
-
-
-async def service_unavailable(scope, receive, send):
-    await send(
-        {
-            "type": "http.response.start",
-            "status": 503,
-            "headers": [
-                (b"content-type", b"text/plain; charset=utf-8"),
-                (b"connection", b"close"),
-            ],
-        }
-    )
-    await send({"type": "http.response.body", "body": b"Service Unavailable"})
-
 
 class HttpToolsProtocol(asyncio.Protocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(
+        self, config, server_state, on_connection_lost: Callable = None, _loop=None
+    ):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
+        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.access_logger = logging.getLogger("uvicorn.access")
@@ -121,7 +82,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.headers = None
         self.expect_100_continue = False
         self.cycle = None
-        self.message_event = asyncio.Event()
 
     # Protocol interface
     def connection_made(self, transport):
@@ -135,34 +95,43 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
-            self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
+            self.logger.log(TRACE_LOG_LEVEL, "%sHTTP connection made", prefix)
 
     def connection_lost(self, exc):
         self.connections.discard(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
-            self.logger.log(TRACE_LOG_LEVEL, "%sConnection lost", prefix)
+            self.logger.log(TRACE_LOG_LEVEL, "%sHTTP connection lost", prefix)
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
-        self.message_event.set()
+        if self.cycle is not None:
+            self.cycle.message_event.set()
         if self.flow is not None:
             self.flow.resume_writing()
+        if exc is None:
+            self.transport.close()
+
+        if self.on_connection_lost is not None:
+            self.on_connection_lost()
 
     def eof_received(self):
         pass
 
-    def data_received(self, data):
+    def _unset_keepalive_if_required(self):
         if self.timeout_keep_alive_task is not None:
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
 
+    def data_received(self, data):
+        self._unset_keepalive_if_required()
+
         try:
             self.parser.feed_data(data)
-        except httptools.HttpParserError:
+        except httptools.HttpParserError as exc:
             msg = "Invalid HTTP request received."
-            self.logger.warning(msg)
+            self.logger.warning(msg, exc_info=exc)
             self.transport.close()
         except httptools.HttpParserUpgrade:
             self.handle_upgrade()
@@ -176,6 +145,13 @@ class HttpToolsProtocol(asyncio.Protocol):
         if upgrade_value != b"websocket" or self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
+
+            from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
+
+            if AutoWebSocketsProtocol is None:
+                msg = "No supported WebSocket library detected. Please use 'pip install uvicorn[standard]', or install 'websockets' or 'wsproto' manually."  # noqa: E501
+                self.logger.warning(msg)
+
             content = [STATUS_LINE[400]]
             for name, value in self.default_headers:
                 content.extend([name, b": ", value, b"\r\n"])
@@ -192,6 +168,10 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.transport.close()
             return
 
+        if self.logger.level <= TRACE_LOG_LEVEL:
+            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            self.logger.log(TRACE_LOG_LEVEL, "%sUpgrading to WebSocket", prefix)
+
         self.connections.discard(self)
         method = self.scope["method"].encode()
         output = [method, b" ", self.url, b" HTTP/1.1\r\n"]
@@ -199,7 +179,9 @@ class HttpToolsProtocol(asyncio.Protocol):
             output += [name, b": ", value, b"\r\n"]
         output.append(b"\r\n")
         protocol = self.ws_protocol_class(
-            config=self.config, server_state=self.server_state
+            config=self.config,
+            server_state=self.server_state,
+            on_connection_lost=self.on_connection_lost,
         )
         protocol.connection_made(self.transport)
         protocol.data_received(b"".join(output))
@@ -264,7 +246,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             access_logger=self.access_logger,
             access_log=self.access_log,
             default_headers=self.default_headers,
-            message_event=self.message_event,
+            message_event=asyncio.Event(),
             expect_100_continue=self.expect_100_continue,
             keep_alive=http_version != "1.0",
             on_response=self.on_response_complete,
@@ -285,13 +267,13 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.cycle.body += body
         if len(self.cycle.body) > HIGH_WATER_LIMIT:
             self.flow.pause_reading()
-        self.message_event.set()
+        self.cycle.message_event.set()
 
     def on_message_complete(self):
         if self.parser.should_upgrade() or self.cycle.response_complete:
             return
         self.cycle.more_body = False
-        self.message_event.set()
+        self.cycle.message_event.set()
 
     def on_response_complete(self):
         # Callback for pipelined HTTP requests to be started.
@@ -301,6 +283,8 @@ class HttpToolsProtocol(asyncio.Protocol):
             return
 
         # Set a short Keep-Alive timeout.
+        self._unset_keepalive_if_required()
+
         self.timeout_keep_alive_task = self.loop.call_later(
             self.timeout_keep_alive, self.timeout_keep_alive_handler
         )
@@ -449,6 +433,9 @@ class RequestResponseCycle:
             status_code = message["status"]
             headers = self.default_headers + list(message.get("headers", []))
 
+            if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
+                headers = headers + [CLOSE_HEADER]
+
             if self.access_log:
                 self.access_logger.info(
                     '%s - "%s %s HTTP/%s" %d',
@@ -457,7 +444,6 @@ class RequestResponseCycle:
                     get_path_with_query_string(self.scope),
                     self.scope["http_version"],
                     status_code,
-                    extra={"status_code": status_code, "scope": self.scope},
                 )
 
             # Write response status line and headers
@@ -525,6 +511,7 @@ class RequestResponseCycle:
                 if self.expected_content_length != 0:
                     raise RuntimeError("Response content shorter than Content-Length")
                 self.response_complete = True
+                self.message_event.set()
                 if not self.keep_alive:
                     self.transport.close()
                 self.on_response()

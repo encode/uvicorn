@@ -23,6 +23,10 @@ except ImportError:  # pragma: no cover
     websockets = None
 
 
+async def app(scope, receive, send):
+    pass  # pragma: no cover
+
+
 # TODO: Add pypy to our testing matrix, and assert we get the correct classes
 #       dependent on the platform we're running the tests under.
 
@@ -33,10 +37,12 @@ def test_loop_auto():
     assert isinstance(policy, asyncio.events.BaseDefaultEventLoopPolicy)
     expected_loop = "asyncio" if uvloop is None else "uvloop"
     assert type(policy).__module__.startswith(expected_loop)
+    loop = asyncio.get_event_loop()
+    loop.close()
 
 
 def test_http_auto():
-    config = Config(app=None)
+    config = Config(app=app)
     server_state = ServerState()
     protocol = AutoHTTPProtocol(config=config, server_state=server_state)
     expected_http = "H11Protocol" if httptools is None else "HttpToolsProtocol"
@@ -44,7 +50,7 @@ def test_http_auto():
 
 
 def test_websocket_auto():
-    config = Config(app=None)
+    config = Config(app=app)
     server_state = ServerState()
     protocol = AutoWebSocketsProtocol(config=config, server_state=server_state)
     expected_websockets = "WSProtocol" if websockets is None else "WebSocketProtocol"

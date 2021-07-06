@@ -1,99 +1,99 @@
-import threading
-import time
+import httpx
+import pytest
 
-import requests
-
-from uvicorn import Config, Server
-
-
-class App:
-    def __init__(self, scope):
-        if scope["type"] != "http":
-            raise Exception()
-
-    async def __call__(self, receive, send):
-        await send({"type": "http.response.start", "status": 200, "headers": []})
-        await send({"type": "http.response.body", "body": b"", "more_body": False})
+from tests.utils import run_server
+from uvicorn import Config
 
 
-class CustomServer(Server):
-    def install_signal_handlers(self):
-        pass
+async def app(scope, receive, send):
+    assert scope["type"] == "http"
+    await send({"type": "http.response.start", "status": 200, "headers": []})
+    await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
-def test_default_default_headers():
-    config = Config(app=App, loop="asyncio", limit_max_requests=1)
-    server = CustomServer(config=config)
-    thread = threading.Thread(target=server.run)
-    thread.start()
-    while not server.started:
-        time.sleep(0.01)
-    response = requests.get("http://127.0.0.1:8000")
-
-    assert response.headers["server"] == "uvicorn" and response.headers["date"]
-
-    thread.join()
+@pytest.mark.asyncio
+async def test_default_default_headers():
+    config = Config(app=app, loop="asyncio", limit_max_requests=1)
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://127.0.0.1:8000")
+            assert response.headers["server"] == "uvicorn" and response.headers["date"]
 
 
-def test_override_server_header():
+@pytest.mark.asyncio
+async def test_override_server_header():
     config = Config(
-        app=App,
+        app=app,
         loop="asyncio",
         limit_max_requests=1,
         headers=[("Server", "over-ridden")],
     )
-    server = CustomServer(config=config)
-    thread = threading.Thread(target=server.run)
-    thread.start()
-    while not server.started:
-        time.sleep(0.01)
-    response = requests.get("http://127.0.0.1:8000")
-
-    assert response.headers["server"] == "over-ridden" and response.headers["date"]
-
-    thread.join()
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://127.0.0.1:8000")
+            assert (
+                response.headers["server"] == "over-ridden" and response.headers["date"]
+            )
 
 
-def test_override_server_header_multiple_times():
+@pytest.mark.asyncio
+async def test_disable_default_server_header():
     config = Config(
-        app=App,
+        app=app,
+        loop="asyncio",
+        limit_max_requests=1,
+        server_header=False,
+    )
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://127.0.0.1:8000")
+            assert "server" not in response.headers
+
+
+@pytest.mark.asyncio
+async def test_override_server_header_multiple_times():
+    config = Config(
+        app=app,
         loop="asyncio",
         limit_max_requests=1,
         headers=[("Server", "over-ridden"), ("Server", "another-value")],
     )
-    server = CustomServer(config=config)
-    thread = threading.Thread(target=server.run)
-    thread.start()
-    while not server.started:
-        time.sleep(0.01)
-    response = requests.get("http://127.0.0.1:8000")
-
-    assert (
-        response.headers["server"] == "over-ridden, another-value"
-        and response.headers["date"]
-    )
-
-    thread.join()
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://127.0.0.1:8000")
+            assert (
+                response.headers["server"] == "over-ridden, another-value"
+                and response.headers["date"]
+            )
 
 
-def test_add_additional_header():
+@pytest.mark.asyncio
+async def test_add_additional_header():
     config = Config(
-        app=App,
+        app=app,
         loop="asyncio",
         limit_max_requests=1,
         headers=[("X-Additional", "new-value")],
     )
-    server = CustomServer(config=config)
-    thread = threading.Thread(target=server.run)
-    thread.start()
-    while not server.started:
-        time.sleep(0.01)
-    response = requests.get("http://127.0.0.1:8000")
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://127.0.0.1:8000")
+            assert (
+                response.headers["x-additional"] == "new-value"
+                and response.headers["server"] == "uvicorn"
+                and response.headers["date"]
+            )
 
-    assert (
-        response.headers["x-additional"] == "new-value"
-        and response.headers["server"] == "uvicorn"
-        and response.headers["date"]
+
+@pytest.mark.asyncio
+async def test_disable_default_date_header():
+    config = Config(
+        app=app,
+        loop="asyncio",
+        limit_max_requests=1,
+        date_header=False,
     )
-
-    thread.join()
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://127.0.0.1:8000")
+            assert "date" not in response.headers

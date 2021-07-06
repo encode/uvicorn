@@ -1,7 +1,7 @@
 #!/bin/sh
 
 export PREFIX=""
-if [ -d 'venv' ] ; then
+if [ -d 'venv' ]; then
     export PREFIX="venv/bin/"
 fi
 
@@ -11,7 +11,7 @@ if [ -z $GITHUB_ACTIONS ]; then
     scripts/check
 fi
 
-${PREFIX}pytest $@
+${PREFIX}coverage run --debug config -m pytest
 
 if [ -z $GITHUB_ACTIONS ]; then
     scripts/coverage
