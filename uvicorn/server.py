@@ -62,6 +62,8 @@ class Server:
 
     def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
+        if not self.config.loaded:
+            self.config.load()
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.serve(sockets=sockets))
 

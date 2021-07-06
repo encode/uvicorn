@@ -1,12 +1,21 @@
 import importlib
+import os
+import sys
+import textwrap
+from pathlib import Path
 from unittest import mock
 
+import pytest
 from click.testing import CliRunner
 
 from uvicorn.main import main as cli
 
 HEADERS = "Content-Security-Policy:default-src 'self'; script-src https://example.com"
 main = importlib.import_module("uvicorn.main")
+
+
+class App:
+    pass
 
 
 def test_cli_headers():
@@ -26,5 +35,20 @@ def test_cli_headers():
     ]
 
 
-class App:
-    pass
+def test_event_loop_load(tmp_path: Path):
+    runner = CliRunner()
+    fp = tmp_path / "main.py"
+    content = textwrap.dedent(
+        """
+        import asyncio
+
+        print("Event loop running:", asyncio.get_event_loop().is_running(), end="")
+
+        async def app(scope, receive, send):
+            pass
+        """
+    )
+    fp.write_text(content)
+    with mock.patch("uvicorn.server.Server.main_loop"):
+        result = runner.invoke(cli, ["main:app", "--app-dir", tmp_path])
+        assert "Event loop running: False" in result.stdout
