@@ -10,8 +10,6 @@ import httptools
 from asgiref.typing import ASGI3Application, ASGIReceiveEvent, ASGISendEvent, HTTPScope
 
 from uvicorn.config import Config
-
-
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
@@ -195,7 +193,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         )
         protocol.connection_made(self.transport)
         protocol.data_received(b"".join(output))
-        self.transport.set_protocol(protocol)
+        self.transport.set_protocol(protocol)  # type: ignore[arg-type]
 
     # Parser callbacks
     def on_url(self, url: bytes) -> None:
@@ -500,7 +498,7 @@ class RequestResponseCycle:
                 msg = "Expected ASGI message 'http.response.body', but got '%s'."
                 raise RuntimeError(msg % message_type)
 
-            body = message.get("body", b"")  # type: ignore
+            body: bytes = message.get("body", b"")  # type: ignore
             more_body = message.get("more_body", False)  # type: ignore
 
             # Write response body

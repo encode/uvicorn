@@ -1,14 +1,44 @@
+import asyncio
 import types
-import typing
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Iterable,
+    MutableMapping,
+    Optional,
+    Protocol,
+    Tuple,
+    Type,
+    Union,
+)
+
+if TYPE_CHECKING:
+    from uvicorn.config import Config
+    from uvicorn.server_state import ServerState
 
 # WSGI
-Environ = typing.MutableMapping[str, typing.Any]
-ExcInfo = typing.Tuple[
-    typing.Type[BaseException], BaseException, typing.Optional[types.TracebackType]
-]
-StartResponse = typing.Callable[
-    [str, typing.Iterable[typing.Tuple[str, str]], typing.Optional[ExcInfo]], None
-]
-WSGIApp = typing.Callable[
-    [Environ, StartResponse], typing.Union[typing.Iterable[bytes], BaseException]
-]
+Environ = MutableMapping[str, Any]
+ExcInfo = Tuple[Type[BaseException], BaseException, Optional[types.TracebackType]]
+StartResponse = Callable[[str, Iterable[Tuple[str, str]], Optional[ExcInfo]], None]
+WSGIApp = Callable[[Environ, StartResponse], Union[Iterable[bytes], BaseException]]
+
+
+class WebProtocol(Protocol):
+    def __init__(
+        self,
+        config: "Config",
+        server_state: "ServerState",
+        on_connection_lost: Optional[Callable[..., Any]],
+        _loop: Optional[asyncio.AbstractEventLoop] = None,
+    ) -> None:
+        ...
+
+    def connection_made(self, transport) -> None:
+        ...
+
+    def data_received(self, data: bytes) -> None:
+        ...
+
+    def shutdown(self) -> None:
+        ...

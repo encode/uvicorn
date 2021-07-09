@@ -9,6 +9,7 @@ import ssl
 import sys
 from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
 
+from uvicorn._types import WebProtocol
 from uvicorn.logging import TRACE_LOG_LEVEL
 
 if sys.version_info < (3, 8):
@@ -134,6 +135,8 @@ def create_ssl_context(
 
 
 class Config:
+    ws_protocol_class: Type[WebProtocol]
+
     def __init__(
         self,
         app: Union[ASGIApplication, Callable, str],
@@ -143,7 +146,7 @@ class Config:
         fd: Optional[int] = None,
         loop: LoopSetupType = "auto",
         http: Union[Type[asyncio.Protocol], HTTPProtocolType] = "auto",
-        ws: Union[Type[asyncio.Protocol], WSProtocolType] = "auto",
+        ws: Union[Type[WebProtocol], WSProtocolType] = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
         ws_ping_interval: int = 20,
         ws_ping_timeout: int = 20,
@@ -337,7 +340,7 @@ class Config:
 
         if isinstance(self.ws, str):
             ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
-            self.ws_protocol_class: Optional[Type[asyncio.Protocol]] = ws_protocol_class
+            self.ws_protocol_class = ws_protocol_class
         else:
             self.ws_protocol_class = self.ws
 
@@ -374,7 +377,7 @@ class Config:
 
         if self.interface == "wsgi":
             self.loaded_app = WSGIMiddleware(self.loaded_app)
-            self.ws_protocol_class = None
+            self.ws_protocol_class = None  # type: ignore[assignment]
         elif self.interface == "asgi2":
             self.loaded_app = ASGI2Middleware(self.loaded_app)
 
