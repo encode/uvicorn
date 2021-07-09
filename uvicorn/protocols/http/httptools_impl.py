@@ -4,7 +4,7 @@ import logging
 import re
 import urllib
 from asyncio.events import TimerHandle
-from typing import Any, ByteString, Callable, Optional, Tuple
+from typing import Any, ByteString, Callable, Optional, Tuple, cast
 
 import httptools
 from asgiref.typing import ASGI3Application, ASGIReceiveEvent, ASGISendEvent, HTTPScope
@@ -443,9 +443,8 @@ class RequestResponseCycle:
             self.waiting_for_100_continue = False
 
             status_code = message["status"]  # type: ignore
-            headers = self.default_headers + list(
-                message.get("headers", [])  # type: ignore
-            )
+            headers = list(cast(list, message.get("headers", [])))
+            headers += self.default_headers
 
             if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
                 headers = headers + [CLOSE_HEADER]
