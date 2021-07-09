@@ -103,14 +103,14 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         if self.logger.level <= TRACE_LOG_LEVEL and self.client is not None:
             prefix = "%s:%d - " % self.client if self.client else ""
-            self.logger.log(TRACE_LOG_LEVEL, "%sConnection made", prefix)
+            self.logger.log(TRACE_LOG_LEVEL, "%sHTTP connection made", prefix)
 
     def connection_lost(self, exc: Any) -> None:
         self.connections.discard(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL and self.client is not None:
             prefix = "%s:%d - " % self.client if self.client else ""
-            self.logger.log(TRACE_LOG_LEVEL, "%sConnection lost", prefix)
+            self.logger.log(TRACE_LOG_LEVEL, "%sHTTP connection lost", prefix)
 
         if self.cycle and not self.cycle.response_complete:
             self.cycle.disconnected = True
