@@ -1,4 +1,5 @@
 import asyncio
+import sys
 import types
 from typing import (
     TYPE_CHECKING,
@@ -7,11 +8,15 @@ from typing import (
     Iterable,
     MutableMapping,
     Optional,
-    Protocol,
     Tuple,
     Type,
     Union,
 )
+
+if sys.version_info >= (3, 8):
+    from typing import Protocol
+else:
+    from typing_extensions import Protocol
 
 if TYPE_CHECKING:
     from uvicorn.config import Config
