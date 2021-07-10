@@ -1,8 +1,9 @@
 import asyncio
 import http
 import logging
+import sys
 from asyncio.events import TimerHandle
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union, cast
 from urllib.parse import unquote
 
 import h11
@@ -15,9 +16,7 @@ from asgiref.typing import (
     HTTPResponseBodyEvent,
     HTTPResponseStartEvent,
     HTTPScope,
-    cast,
 )
-from typing_extensions import Literal
 
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
@@ -35,6 +34,11 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
+
+if sys.version_info >= (3, 7):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 H11Event = Union[
     h11.Request,
@@ -457,6 +461,7 @@ class RequestResponseCycle:
             if message_type != "http.response.start":
                 msg = "Expected ASGI message 'http.response.start', but got '%s'."
                 raise RuntimeError(msg % message_type)
+            message = cast(HTTPResponseStartEvent, message)
 
             self.response_started = True
             self.waiting_for_100_continue = False
