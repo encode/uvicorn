@@ -45,13 +45,13 @@ def test_env_variables(load_env_h11_protocol: None):
     runner = CliRunner(env=os.environ)
     with mock.patch.object(main, "run") as mock_run:
         runner.invoke(cli, ["tests.test_cli:App"])
-        mock_run.assert_called_once()
-        assert mock_run.call_args.kwargs["http"] == "h11"
+        _, kwargs = mock_run.call_args
+        assert kwargs["http"] == "h11"
 
 
 def test_mistmatch_env_variables(load_env_h11_protocol: None):
     runner = CliRunner(env=os.environ)
     with mock.patch.object(main, "run") as mock_run:
         runner.invoke(cli, ["tests.test_cli:App", "--http=httptools"])
-        mock_run.assert_called_once()
-        assert mock_run.call_args.kwargs["http"] == "httptools"
+        _, kwargs = mock_run.call_args
+        assert kwargs["http"] == "httptools"
