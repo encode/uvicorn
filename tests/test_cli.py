@@ -1,6 +1,8 @@
 import importlib
+import os
 from unittest import mock
 
+import pytest
 from click.testing import CliRunner
 
 from uvicorn.main import main as cli
@@ -28,3 +30,28 @@ def test_cli_headers():
 
 class App:
     pass
+
+
+@pytest.fixture()
+def load_env_h11_protocol():
+    old_environ = dict(os.environ)
+    os.environ["UVICORN_HTTP"] = "h11"
+    yield
+    os.environ.clear()
+    os.environ.update(old_environ)
+
+
+def test_env_variables(load_env_h11_protocol: None):
+    runner = CliRunner(env=os.environ)
+    with mock.patch.object(main, "run") as mock_run:
+        runner.invoke(cli, ["tests.test_cli:App"])
+        mock_run.assert_called_once()
+        assert mock_run.call_args.kwargs["http"] == "h11"
+
+
+def test_mistmatch_env_variables(load_env_h11_protocol: None):
+    runner = CliRunner(env=os.environ)
+    with mock.patch.object(main, "run") as mock_run:
+        runner.invoke(cli, ["tests.test_cli:App", "--http=httptools"])
+        mock_run.assert_called_once()
+        assert mock_run.call_args.kwargs["http"] == "httptools"
