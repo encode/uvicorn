@@ -105,7 +105,7 @@ class WSProtocol(asyncio.Protocol):
     def eof_received(self) -> None:
         pass
 
-    def data_received(self, data) -> None:
+    def data_received(self, data: bytes) -> None:
         try:
             self.conn.receive_data(data)
         except RemoteProtocolError as err:
