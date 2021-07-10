@@ -15,10 +15,12 @@ nav:
     - Server Behavior: 'server-behavior.md'
 
 markdown_extensions:
+  - admonition
   - codehilite:
       css_class: highlight
   - toc:
       permalink: true
+
 
 extra_javascript:
   - 'js/chat.js'
