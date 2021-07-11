@@ -2,7 +2,18 @@ import asyncio
 import http
 import logging
 import sys
-from typing import TYPE_CHECKING, Callable, List, Optional, Tuple, Union, cast
+
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 from urllib.parse import unquote
 
 import h11
@@ -20,9 +31,11 @@ from uvicorn.protocols.utils import (
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
+    get_tls_info,
     is_ssl,
 )
 from uvicorn.server import ServerState
+
 
 if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
@@ -99,6 +112,7 @@ class H11Protocol(asyncio.Protocol):
         self.server: Optional[Tuple[str, int]] = None
         self.client: Optional[Tuple[str, int]] = None
         self.scheme: Optional[Literal["http", "https"]] = None
+        self.tls: Optional[Dict[str, Any]] = None
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
@@ -116,6 +130,11 @@ class H11Protocol(asyncio.Protocol):
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
         self.scheme = "https" if is_ssl(transport) else "http"
+
+        if self.config.is_ssl:
+            self.tls = get_tls_info(transport)
+            if self.tls:
+                self.tls["server_cert"] = self.config.ssl_cert_pem
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
@@ -223,6 +242,9 @@ class H11Protocol(asyncio.Protocol):
                     "raw_path": raw_path,
                     "query_string": query_string,
                     "headers": self.headers,
+                    "extensions": {
+                        "tls": self.tls,
+                    },
                 }
 
                 upgrade = self._get_upgrade()

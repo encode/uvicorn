@@ -2,6 +2,7 @@ import contextlib
 import os
 import socket
 import ssl
+
 from copy import deepcopy
 from hashlib import md5
 from pathlib import Path
@@ -12,10 +13,12 @@ from uuid import uuid4
 
 import pytest
 import trustme
+
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
 from uvicorn.config import LOGGING_CONFIG
+
 
 # Note: We explicitly turn the propagate on just for tests, because pytest
 # caplog not able to capture no-propagate loggers.
@@ -40,6 +43,13 @@ def tls_certificate(tls_certificate_authority: trustme.CA) -> trustme.LeafCert:
         "localhost",
         "127.0.0.1",
         "::1",
+    )
+
+
+@pytest.fixture
+def tls_client_certificate(tls_certificate_authority: trustme.CA) -> trustme.LeafCert:
+    return tls_certificate_authority.issue_cert(
+        "client@example.com", common_name="uvicorn client"
     )
 
 
@@ -94,6 +104,13 @@ def tls_ca_ssl_context(tls_certificate_authority: trustme.CA) -> ssl.SSLContext:
     ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
     tls_certificate_authority.configure_trust(ssl_ctx)
     return ssl_ctx
+
+
+@pytest.fixture
+def tls_client_certificate_pem_path(tls_client_certificate: trustme.LeafCert):
+    private_key_and_cert_chain = tls_client_certificate.private_key_and_cert_chain_pem
+    with private_key_and_cert_chain.tempfile() as client_cert_pem:
+        yield client_cert_pem
 
 
 @pytest.fixture(scope="package")
