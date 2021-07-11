@@ -55,6 +55,13 @@ def tls_certificate(tls_certificate_authority: trustme.CA) -> trustme.LeafCert:
 
 
 @pytest.fixture
+def tls_client_certificate(tls_certificate_authority: trustme.CA) -> trustme.LeafCert:
+    return tls_certificate_authority.issue_cert(
+        "client@example.com", common_name="uvicorn client"
+    )
+
+
+@pytest.fixture
 def tls_ca_certificate_pem_path(tls_certificate_authority: trustme.CA):
     with tls_certificate_authority.cert_pem.tempfile() as ca_cert_pem:
         yield ca_cert_pem
@@ -258,3 +265,8 @@ def ws_protocol_cls(request: pytest.FixtureRequest):
 )
 def http_protocol_cls(request: pytest.FixtureRequest):
     return import_from_string(request.param)
+@pytest.fixture
+def tls_client_certificate_pem_path(tls_client_certificate: trustme.LeafCert):
+    private_key_and_cert_chain = tls_client_certificate.private_key_and_cert_chain_pem
+    with private_key_and_cert_chain.tempfile() as client_cert_pem:
+        yield client_cert_pem
