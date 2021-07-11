@@ -18,6 +18,7 @@ from uvicorn.protocols.utils import (
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
+    get_tls_info,
     is_ssl,
 )
 
@@ -69,6 +70,7 @@ class H11Protocol(asyncio.Protocol):
         self.server = None
         self.client = None
         self.scheme = None
+        self.tls = None
 
         # Per-request state
         self.scope = None
@@ -84,6 +86,11 @@ class H11Protocol(asyncio.Protocol):
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
         self.scheme = "https" if is_ssl(transport) else "http"
+
+        if self.config.is_ssl:
+            self.tls = get_tls_info(transport)
+            if self.tls:
+                self.tls["server_cert"] = self.config.ssl_cert_pem
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
@@ -171,6 +178,7 @@ class H11Protocol(asyncio.Protocol):
                     "raw_path": raw_path,
                     "query_string": query_string,
                     "headers": self.headers,
+                    "extensions": {"tls": self.tls},
                 }
 
                 for name, value in self.headers:
