@@ -7,7 +7,7 @@ import os
 import socket
 import ssl
 import sys
-from typing import Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from uvicorn.logging import TRACE_LOG_LEVEL
 
@@ -170,7 +170,7 @@ class Config:
         backlog: int = 2048,
         timeout_keep_alive: int = 5,
         timeout_notify: int = 30,
-        callback_notify: Callable[..., None] = None,
+        callback_notify: Callable[..., Awaitable[None]] = None,
         ssl_keyfile: Optional[str] = None,
         ssl_certfile: Optional[Union[str, os.PathLike]] = None,
         ssl_keyfile_password: Optional[str] = None,
@@ -220,7 +220,7 @@ class Config:
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
         self.headers: List[List[str]] = headers or []
-        self.encoded_headers: Optional[List[Tuple[bytes, bytes]]] = None
+        self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
 
         self.access_log_format = access_log_format
@@ -402,37 +402,63 @@ class Config:
             loop_setup()
 
     def bind_socket(self) -> socket.socket:
-        family = socket.AF_INET
-        addr_format = "%s://%s:%d"
+        logger_args: List[Union[str, int]]
+        if self.uds:
+            path = self.uds
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+                sock.bind(path)
+                uds_perms = 0o666
+                os.chmod(self.uds, uds_perms)
+            except OSError as exc:
+                logger.error(exc)
+                sys.exit(1)
 
-        if self.host and ":" in self.host:
-            # It's an IPv6 address.
-            family = socket.AF_INET6
-            addr_format = "%s://[%s]:%d"
+            message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
+            sock_name_format = "%s"
+            color_message = (
+                "Uvicorn running on "
+                + click.style(sock_name_format, bold=True)
+                + " (Press CTRL+C to quit)"
+            )
+            logger_args = [self.uds]
+        elif self.fd:
+            sock = socket.fromfd(self.fd, socket.AF_UNIX, socket.SOCK_STREAM)
+            message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
+            fd_name_format = "%s"
+            color_message = (
+                "Uvicorn running on "
+                + click.style(fd_name_format, bold=True)
+                + " (Press CTRL+C to quit)"
+            )
+            logger_args = [sock.getsockname()]
+        else:
+            family = socket.AF_INET
+            addr_format = "%s://%s:%d"
 
-        sock = socket.socket(family=family)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        try:
-            sock.bind((self.host, self.port))
-        except OSError as exc:
-            logger.error(exc)
-            sys.exit(1)
+            if self.host and ":" in self.host:
+                # It's an IPv6 address.
+                family = socket.AF_INET6
+                addr_format = "%s://[%s]:%d"
+
+            sock = socket.socket(family=family)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                sock.bind((self.host, self.port))
+            except OSError as exc:
+                logger.error(exc)
+                sys.exit(1)
+
+            message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
+            color_message = (
+                "Uvicorn running on "
+                + click.style(addr_format, bold=True)
+                + " (Press CTRL+C to quit)"
+            )
+            protocol_name = "https" if self.is_ssl else "http"
+            logger_args = [protocol_name, self.host, self.port]
+        logger.info(message, *logger_args, extra={"color_message": color_message})
         sock.set_inheritable(True)
-
-        message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
-        color_message = (
-            "Uvicorn running on "
-            + click.style(addr_format, bold=True)
-            + " (Press CTRL+C to quit)"
-        )
-        protocol_name = "https" if self.is_ssl else "http"
-        logger.info(
-            message,
-            protocol_name,
-            self.host,
-            self.port,
-            extra={"color_message": color_message},
-        )
         return sock
 
     @property
