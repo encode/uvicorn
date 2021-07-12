@@ -1,12 +1,13 @@
 import asyncio
 import urllib.parse
+from socket import socket
 from typing import Optional, Tuple
 
 from asgiref.typing import WWWScope
 
 
 def get_remote_addr(transport: asyncio.Transport) -> Optional[Tuple[str, int]]:
-    socket_info = transport.get_extra_info("socket")
+    socket_info: socket = transport.get_extra_info("socket")
     if socket_info is not None:
         try:
             info = socket_info.getpeername()
@@ -23,7 +24,7 @@ def get_remote_addr(transport: asyncio.Transport) -> Optional[Tuple[str, int]]:
 
 
 def get_local_addr(transport: asyncio.Transport) -> Optional[Tuple[str, int]]:
-    socket_info = transport.get_extra_info("socket")
+    socket_info: socket = transport.get_extra_info("socket")
     if socket_info is not None:
         info = socket_info.getsockname()
 
