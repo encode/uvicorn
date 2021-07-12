@@ -4,13 +4,17 @@ from typing import List
 from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
 from uvicorn.config import Config
-from uvicorn.subprocess import subprocess_started
+from uvicorn.subprocess import get_subprocess, subprocess_started
 
 
 async def app(
     scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
 ) -> None:
     pass
+
+
+def test_get_subprocess() -> None:
+    ...
 
 
 def test_subprocess_started() -> None:
