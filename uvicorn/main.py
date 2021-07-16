@@ -409,6 +409,7 @@ def main(
 
 def run(
     app: typing.Union[ASGIApplication, str],
+    *,
     host: str = "127.0.0.1",
     port: int = 8000,
     uds: str = None,
