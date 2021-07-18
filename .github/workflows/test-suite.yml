@@ -20,18 +20,19 @@ jobs:
       - uses: "actions/setup-python@v2"
         with:
           python-version: "${{ matrix.python-version }}"
+
       - name: "Install dependencies"
         run: "scripts/install"
-        shell: bash
+
       - name: "Run linting checks"
         run: "scripts/check"
-        shell: bash
+        if: ${{ startsWith("pypy", matrix.python-version) }}
+
       - name: "Build package & docs"
         run: "scripts/build"
-        shell: bash
+
       - name: "Run tests"
         run: "scripts/test"
-        shell: bash
+
       - name: "Enforce coverage"
         run: "scripts/coverage"
-        shell: bash

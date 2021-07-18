@@ -9,7 +9,7 @@ wheel
 
 # Testing
 autoflake
-black
+black; platform_python_implementation != 'PyPy'
 flake8
 isort
 pytest
