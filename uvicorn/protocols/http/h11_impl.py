@@ -218,8 +218,12 @@ class H11Protocol(asyncio.Protocol):
                     "query_string": query_string,
                     "headers": self.headers,
                     "state": self.app_state.copy(),
-                    "extensions": {"tls": self.tls},
+                    "extensions": {"tls": self.tls},"extensions": {},
                 }
+
+                if self.config.is_ssl:
+                    self.scope["extensions"]["tls"] = self.tls
+                    
                 if self._should_upgrade():
                     self.handle_websocket_upgrade(event)
                     return

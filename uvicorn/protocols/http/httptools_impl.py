@@ -236,10 +236,11 @@ class HttpToolsProtocol(asyncio.Protocol):
             "root_path": self.root_path,
             "headers": self.headers,
             "state": self.app_state.copy(),
-            "extensions": {
-                "tls": self.tls,
-            },
+                "extensions": {},
         }
+
+        if self.config.is_ssl:
+            self.scope["extensions"]["tls"] = self.tls
 
     # Parser callbacks
     def on_url(self, url: bytes) -> None:
