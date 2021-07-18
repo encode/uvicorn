@@ -18,12 +18,9 @@ def test_cli_headers():
     assert result.output == ""
     assert result.exit_code == 0
     mock_run.assert_called_once()
-    assert mock_run.call_args[1]["headers"] == [
-        [
-            "Content-Security-Policy",
-            "default-src 'self'; script-src https://example.com",
-        ]
-    ]
+    assert mock_run.call_args[1]["headers"] == (
+        "Content-Security-Policy:default-src 'self'; script-src https://example.com",
+    ), mock_run.call_args[1]["headers"]
 
 
 class App:

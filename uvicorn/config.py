@@ -9,15 +9,11 @@ import ssl
 import sys
 from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
 
-from uvicorn.logging import TRACE_LOG_LEVEL
-
 if sys.version_info < (3, 8):
     from typing_extensions import Literal
 else:
     from typing import Literal
 
-import click
-from asgiref.typing import ASGIApplication
 
 try:
     import yaml
@@ -27,18 +23,23 @@ except ImportError:
     # enable this functionality.
     pass
 
+import click
+from asgiref.typing import ASGIApplication
+
+from uvicorn._types import (
+    HTTPProtocolType,
+    InterfaceType,
+    LifespanType,
+    LoopSetupType,
+    WSProtocolType,
+)
 from uvicorn.importer import ImportFromStringError, import_from_string
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
-
-HTTPProtocolType = Literal["auto", "h11", "httptools"]
-WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
-LifespanType = Literal["auto", "on", "off"]
-LoopSetupType = Literal["none", "auto", "asyncio", "uvloop"]
-InterfaceType = Literal["auto", "asgi3", "asgi2", "wsgi"]
 
 LOG_LEVELS: Dict[str, int] = {
     "critical": logging.CRITICAL,
@@ -145,8 +146,8 @@ class Config:
         http: Union[Type[asyncio.Protocol], HTTPProtocolType] = "auto",
         ws: Union[Type[asyncio.Protocol], WSProtocolType] = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
-        ws_ping_interval: int = 20,
-        ws_ping_timeout: int = 20,
+        ws_ping_interval: float = 20,
+        ws_ping_timeout: float = 20,
         lifespan: LifespanType = "auto",
         env_file: Optional[Union[str, os.PathLike]] = None,
         log_config: Optional[Union[dict, str]] = LOGGING_CONFIG,
