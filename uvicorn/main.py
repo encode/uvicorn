@@ -324,6 +324,12 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 def main(**kwargs: typing.Any) -> None:
+    kwargs["log_config"] = (
+        LOGGING_CONFIG if kwargs["log_config"] is None else kwargs["log_config"]
+    )
+    kwargs["headers"] = [header.split(":", 1) for header in kwargs["headers"]]
+    kwargs["reload_dirs"] = kwargs["reload_dirs"] if kwargs["reload_dirs"] else None
+
     run(**kwargs)
 
 
@@ -367,12 +373,11 @@ def run(
     ssl_cert_reqs: int = ssl.CERT_NONE,
     ssl_ca_certs: str = None,
     ssl_ciphers: str = "TLSv1",
-    headers: typing.List[str] = None,
+    headers: typing.List[typing.List[str]] = None,
     use_colors: bool = None,
     app_dir: str = ".",
     factory: bool = False,
 ) -> None:
-    headers = headers or []
     sys.path.insert(0, app_dir)
     config = Config(
         app=app,
@@ -394,7 +399,7 @@ def run(
         reload_delay=reload_delay,
         workers=workers,
         env_file=env_file,
-        log_config=LOGGING_CONFIG if log_config is None else log_config,
+        log_config=log_config,
         log_level=log_level,
         access_log=access_log,
         proxy_headers=proxy_headers,
@@ -413,7 +418,7 @@ def run(
         ssl_cert_reqs=ssl_cert_reqs,
         ssl_ciphers=ssl_ciphers,
         ssl_ca_certs=ssl_ca_certs,
-        headers=[header.split(":", 1) for header in headers],
+        headers=headers,
         use_colors=use_colors,
         factory=factory,
     )
