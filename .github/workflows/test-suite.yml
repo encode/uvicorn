@@ -26,7 +26,7 @@ jobs:
 
       - name: "Run linting checks"
         run: "scripts/check"
-        if: ${{ startsWith("pypy", matrix.python-version) }}
+        if: ${{ startsWith('pypy', matrix.python-version) }}
 
       - name: "Build package & docs"
         run: "scripts/build"
