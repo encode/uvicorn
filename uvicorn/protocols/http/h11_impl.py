@@ -178,8 +178,11 @@ class H11Protocol(asyncio.Protocol):
                     "raw_path": raw_path,
                     "query_string": query_string,
                     "headers": self.headers,
-                    "extensions": {"tls": self.tls},
+                    "extensions": {},
                 }
+
+                if self.config.is_ssl:
+                    self.scope["extensions"]["tls"] = self.tls
 
                 for name, value in self.headers:
                     if name == b"connection":

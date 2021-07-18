@@ -218,10 +218,11 @@ class HttpToolsProtocol(asyncio.Protocol):
             "raw_path": raw_path,
             "query_string": parsed_url.query if parsed_url.query else b"",
             "headers": self.headers,
-            "extensions": {
-                "tls": self.tls,
-            },
+            "extensions": {},
         }
+
+        if self.config.is_ssl:
+            self.scope["extensions"]["tls"] = self.tls
 
     def on_header(self, name: bytes, value: bytes):
         name = name.lower()
