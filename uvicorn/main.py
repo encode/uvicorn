@@ -406,7 +406,7 @@ def main(
 
 
 def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
-    sys.path.insert(0, kwargs.pop("app_dir"))
+    sys.path.insert(0, kwargs.pop("app_dir", "."))
     config = Config(app, **kwargs)
     server = Server(config=config)
 
