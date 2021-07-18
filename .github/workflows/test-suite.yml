@@ -30,6 +30,7 @@ jobs:
 
       - name: "Build package & docs"
         run: "scripts/build"
+        if: ${{ startsWith('pypy', matrix.python-version) }}
 
       - name: "Run tests"
         run: "scripts/test"

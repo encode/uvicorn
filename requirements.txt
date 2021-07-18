@@ -27,4 +27,3 @@ async_generator; python_version < '3.7'
 # Documentation
 mkdocs
 mkdocs-material; platform_python_implementation != 'PyPy'
-
