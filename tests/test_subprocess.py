@@ -8,14 +8,14 @@ from uvicorn.config import Config
 from uvicorn.subprocess import subprocess_started
 
 
-def server_run(sockets: List[socket]):
+def server_run(sockets: List[socket]):  # pragma: no cover
     ...
 
 
 async def app(
     scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
-) -> None:
-    pass
+) -> None:  # pragma: no cover
+    ...
 
 
 def test_get_subprocess() -> None:
