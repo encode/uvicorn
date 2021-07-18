@@ -8,13 +8,13 @@ twine
 wheel
 
 # Testing
-autoflake
+autoflake; platform_python_implementation != 'PyPy'
 black; platform_python_implementation != 'PyPy'
 flake8
 isort
 pytest
 pytest-mock
-mypy
+mypy; platform_python_implementation != 'PyPy'
 types-click
 types-pyyaml
 trustme
@@ -24,8 +24,7 @@ httpx==0.16.*
 pytest-asyncio==0.14.*
 async_generator; python_version < '3.7'
 
-
 # Documentation
 mkdocs
-mkdocs-material
+mkdocs-material; platform_python_implementation != 'PyPy'
 
