@@ -303,7 +303,6 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 )
 @click.option(
     "--app-dir",
-    "app_dir",
     default=".",
     show_default=True,
     help="Look for APP in the specified directory, by adding this to the PYTHONPATH."
@@ -360,8 +359,6 @@ def main(
     app_dir: str,
     factory: bool,
 ) -> None:
-    sys.path.insert(0, app_dir)
-
     kwargs = {
         "host": host,
         "port": port,
@@ -403,11 +400,13 @@ def main(
         "headers": [header.split(":", 1) for header in headers],
         "use_colors": use_colors,
         "factory": factory,
+        "app_dir": app_dir,
     }
     run(app, **kwargs)
 
 
 def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
+    sys.path.insert(0, kwargs.pop("app_dir"))
     config = Config(app, **kwargs)
     server = Server(config=config)
 
