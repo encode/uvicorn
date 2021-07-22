@@ -1,5 +1,3 @@
-# Change Log
-
 ## 0.14.0 - 2021-06-01
 
 ### Added
@@ -36,7 +34,7 @@
 
 ### Added:
 
-- Docs: Nginx + websockets (#948) 2/10/21 
+- Docs: Nginx + websockets (#948) 2/10/21
 - Document the default value of 1 for workers (#940) (#943) 1/25/21
 - Enabled permessage-deflate extension in websockets (#764) 1/1/21
 
