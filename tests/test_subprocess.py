@@ -27,7 +27,6 @@ def test_get_subprocess() -> None:
     process = get_subprocess(config, server_run, [fdsock])
     assert isinstance(process, SpawnProcess)
 
-    process.close()
     fdsock.close()
 
 
