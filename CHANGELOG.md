@@ -7,7 +7,6 @@
 * Add existence check to the reload directory(ies) (#1089) 21/06/21
 * Add missing trace log for websocket protocols (#1083) 19/06/21
 * Add option to set websocket ping interval and timeout (#1048) 09/06/21
-* Docs: Add uvloop and httptools related info (#1071) 09/06/21
 * Support disabling default Server and Date headers (#818) 11/06/21
 
 ### Changed
