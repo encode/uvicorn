@@ -13,7 +13,7 @@
 
 - Upgraded websockets requirements (#1065)  6/1/21
 - Switch to asyncio streams API (#869) 5/29/21
-- Update httptools from 0.1.- to 0.2.- (#1024) 5/28/21
+- Update httptools from 0.1.* to 0.2.* (#1024) 5/28/21
 - Allow Click 8.0, refs #1016 (#1042) 5/23/21
 - Add search for a trusted host in ProxyHeadersMiddleware (#591) 3/13/21
 - Up wsproto to 1.0.0 (#892) 2/25/21
@@ -72,7 +72,7 @@
 
 ### Fixed
 - Fix race condition that leads Quart to hang with uvicorn (#848) 11/18/20 de213614
-- Use latin1 when decoding X-Forwarded-- headers (#701) 11/12/20 45e6e831
+- Use latin1 when decoding X-Forwarded-* headers (#701) 11/12/20 45e6e831
 - Rework IPv6 support (#837) 11/8/20 bdab488e
 - Cancel old keepalive-trigger before setting new one. (#832) 10/26/20 d5dcf80c
 
@@ -157,7 +157,7 @@
 
 ## 0.11.1
 
-- Use a more liberal `h11` dependency. Either `0.8.-` or `0.9.-``.
+- Use a more liberal `h11` dependency. Either `0.8.*` or `0.9.*`.
 
 ## 0.11.0
 
@@ -165,7 +165,7 @@
 - Drop IOCP support. (Required for fix above.)
 - Add `uvicorn --version` flag.
 - Add `--use-colors` and `--no-use-colors` flags.
-- Display port correctly, when auto port selection isused with `--port=0`.
+- Display port correctly, when auto port selection is used with `--port=0`.
 
 ## 0.10.8
 
