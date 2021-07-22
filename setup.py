@@ -95,4 +95,5 @@ setup(
     [console_scripts]
     uvicorn=uvicorn.main:main
     """,
+    project_urls={"Changelog": "https://www.uvicorn.org/release-notes/"},
 )
