@@ -1,7 +1,9 @@
 import socket
+import sys
 from typing import List
 from unittest.mock import patch
 
+import pytest
 from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
 from uvicorn.config import Config
@@ -18,6 +20,7 @@ async def app(
     ...
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
 def test_get_subprocess() -> None:
     fdsock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     fd = fdsock.fileno()
@@ -30,6 +33,7 @@ def test_get_subprocess() -> None:
     fdsock.close()
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
 def test_subprocess_started() -> None:
     fdsock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     fd = fdsock.fileno()
