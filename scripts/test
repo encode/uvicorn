@@ -7,7 +7,7 @@ fi
 
 set -ex
 
-if [ -z $GITHUB_ACTIONS ]; then
+if [ -z $GITHUB_ACTIONS ] && [ -z $(python -c 'import platform; print(platform.python_implementation())') != 'PyPy' ]; then
     scripts/check
 fi
 
