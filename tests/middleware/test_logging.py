@@ -1,5 +1,6 @@
 import contextlib
 import logging
+import platform
 
 import httpx
 import pytest
@@ -48,6 +49,7 @@ async def test_trace_logging(caplog):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
+@pytest.mark.skipif(platform.python_implementation != "PyPy", reason="CPython required")
 async def test_trace_logging_on_http_protocol(http_protocol, caplog):
     config = Config(app=app, log_level="trace", http=http_protocol)
     with caplog_for_logger(caplog, "uvicorn.error"):
