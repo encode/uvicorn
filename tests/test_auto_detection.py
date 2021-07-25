@@ -1,5 +1,6 @@
 import asyncio
 
+import anyio
 import pytest
 
 from uvicorn.config import Config
@@ -39,8 +40,12 @@ def test_loop_auto():
     assert isinstance(policy, asyncio.events.BaseDefaultEventLoopPolicy)
     expected_loop = "asyncio" if uvloop is None else "uvloop"
     assert type(policy).__module__.startswith(expected_loop)
-    loop = asyncio.get_event_loop()
-    loop.close()
+
+    async def get_loop():
+        return asyncio.get_event_loop()
+
+    loop = anyio.run(get_loop)
+    assert loop.__module__.startswith(expected_loop)
 
 
 @pytest.mark.asyncio
