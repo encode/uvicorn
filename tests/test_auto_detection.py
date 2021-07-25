@@ -42,7 +42,7 @@ def test_loop_auto():
     assert type(policy).__module__.startswith(expected_loop)
 
     async def get_loop():
-        return asyncio.get_event_loop()
+        return anyio.lowlevel.current_token()
 
     loop = anyio.run(get_loop)
     assert loop.__module__.startswith(expected_loop)
