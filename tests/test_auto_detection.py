@@ -41,12 +41,6 @@ def test_loop_auto():
     expected_loop = "asyncio" if uvloop is None else "uvloop"
     assert type(policy).__module__.startswith(expected_loop)
 
-    async def get_loop():
-        return anyio.lowlevel.current_token()
-
-    loop = anyio.run(get_loop)
-    assert loop.__module__.startswith(expected_loop)
-
 
 @pytest.mark.asyncio
 async def test_http_auto():
