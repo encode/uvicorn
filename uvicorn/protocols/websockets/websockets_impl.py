@@ -98,7 +98,6 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
     def shutdown(self):
         self.ws_server.closing = True
-        self.transport.close()
 
     def on_task_complete(self, task):
         self.tasks.discard(task)

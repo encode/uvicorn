@@ -129,10 +129,9 @@ class WSProtocol(asyncio.Protocol):
         self.writable.set()
 
     def shutdown(self):
-        self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
-        output = self.conn.send(wsproto.events.CloseConnection(code=1012))
-        self.transport.write(output)
-        self.transport.close()
+        """
+        Don't do anything - `run_asgi ` closes all resources after answering a request
+        """
 
     def on_task_complete(self, task):
         self.tasks.discard(task)
