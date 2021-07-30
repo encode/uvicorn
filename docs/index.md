@@ -165,7 +165,7 @@ Options:
   --ssl-certfile TEXT             SSL certificate file
   --ssl-keyfile-password TEXT     SSL keyfile password
   --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
-                                  [default: 2]
+                                  [default: 17]
   --ssl-cert-reqs INTEGER         Whether client certificate is required (see
                                   stdlib ssl module's)  [default: 0]
   --ssl-ca-certs TEXT             CA certificates file

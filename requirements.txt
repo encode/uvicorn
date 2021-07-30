@@ -20,12 +20,14 @@ types-pyyaml
 trustme
 cryptography
 coverage
-httpx==0.16.*
+httpx>=0.18.2
 pytest-asyncio==0.14.*
 async_generator; python_version < '3.7'
 
 
 # Documentation
-mkdocs
+mkdocs>=1.2.2
 mkdocs-material
 
+# py3.10 workarounds
+https://github.com/aaugustin/websockets/archive/4e1dac362a3639b9cf0e5bcf382601e6e32cfede.tar.gz#egg=websockets; python_version >= '3.10'

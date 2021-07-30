@@ -1,3 +1,4 @@
+import asyncio
 import contextlib
 import logging
 
@@ -123,11 +124,14 @@ class MockTransport:
         pass
 
 
-class MockLoop:
+class MockLoop(asyncio.AbstractEventLoop):
     def __init__(self, event_loop):
         self.tasks = []
         self.later = []
         self.loop = event_loop
+
+    def is_running(self):
+        return True
 
     def create_task(self, coroutine):
         self.tasks.insert(0, coroutine)
@@ -138,7 +142,14 @@ class MockLoop:
 
     def run_one(self):
         coroutine = self.tasks.pop()
-        self.loop.run_until_complete(coroutine)
+        self.run_until_complete(coroutine)
+
+    def run_until_complete(self, coroutine):
+        asyncio._set_running_loop(None)
+        try:
+            return self.loop.run_until_complete(coroutine)
+        finally:
+            asyncio._set_running_loop(self)
 
     def close(self):
         self.loop.close()
@@ -161,13 +172,17 @@ class MockTask:
 @contextlib.contextmanager
 def get_connected_protocol(app, protocol_cls, event_loop, **kwargs):
     loop = MockLoop(event_loop)
+    asyncio._set_running_loop(loop)
     transport = MockTransport()
     config = Config(app=app, **kwargs)
     server_state = ServerState()
     protocol = protocol_cls(config=config, server_state=server_state, _loop=loop)
     protocol.connection_made(transport)
-    yield protocol
-    protocol.loop.close()
+    try:
+        yield protocol
+    finally:
+        protocol.loop.close()
+        asyncio._set_running_loop(None)
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)

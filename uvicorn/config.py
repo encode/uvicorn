@@ -73,8 +73,7 @@ LOOP_SETUPS: Dict[LoopSetupType, Optional[str]] = {
 INTERFACES: List[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
 
 
-# Fallback to 'ssl.PROTOCOL_SSLv23' in order to support Python < 3.5.3.
-SSL_PROTOCOL_VERSION: int = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
+SSL_PROTOCOL_VERSION: int = ssl.PROTOCOL_TLS_SERVER
 
 
 LOGGING_CONFIG: dict = {

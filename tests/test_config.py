@@ -175,10 +175,10 @@ def test_ssl_config(
     assert config.is_ssl is True
 
 
-def test_ssl_config_combined(tls_certificate_pem_path: str) -> None:
+def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
     config = Config(
         app=asgi_app,
-        ssl_certfile=tls_certificate_pem_path,
+        ssl_certfile=tls_certificate_key_and_chain_path,
     )
     config.load()
 
