@@ -64,6 +64,7 @@ class Multiprocess:
 
     def shutdown(self) -> None:
         for process in self.processes:
+            process.terminate()
             process.join()
 
         message = "Stopping parent process [{}]".format(str(self.pid))
