@@ -1,6 +1,5 @@
 import asyncio
 
-import anyio
 import pytest
 
 from uvicorn.config import Config
