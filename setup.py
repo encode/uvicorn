@@ -98,5 +98,6 @@ setup(
     project_urls={
         "Funding": "https://github.com/sponsors/encode",
         "Source": "https://github.com/encode/uvicorn",
+        "Changelog": "https://github.com/encode/uvicorn/blob/master/CHANGELOG.md",
     },
 )
