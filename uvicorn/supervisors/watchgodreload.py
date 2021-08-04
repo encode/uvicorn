@@ -10,7 +10,7 @@ from uvicorn.supervisors.basereload import BaseReload
 
 logger = logging.getLogger("uvicorn.error")
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     import os
 
     DirEntry = os.DirEntry[str]
