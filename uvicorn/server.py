@@ -132,7 +132,10 @@ class Server:
 
         elif config.fd is not None:
             # Use an existing socket, from a file descriptor.
-            sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+                sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
+            except AttributeError:
+                sock = socket.fromfd(config.fd, socket.AF_INET, socket.SOCK_STREAM)
             server = await asyncio.start_server(
                 handler, sock=sock, ssl=config.ssl, backlog=config.backlog
             )
