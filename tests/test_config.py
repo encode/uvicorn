@@ -85,7 +85,9 @@ def test_reload_dir_is_set(tmp_path) -> None:
     assert config.reload_dirs == [tmp_path]
 
 
-def test_non_existant_reload_dir_is_not_set(tmpdir, caplog) -> None:
+def test_non_existant_reload_dir_is_not_set(
+    tmpdir, caplog: pytest.LogCaptureFixture
+) -> None:
     with tmpdir.as_cwd():
         print(Path.cwd())
         config = Config(app=asgi_app, reload=True, reload_dirs=["reload"])

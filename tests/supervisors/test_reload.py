@@ -14,7 +14,7 @@ class TestBaseReload:
     tmp_path: Path
 
     @pytest.fixture(autouse=True)
-    def setup(self, tmpdir, reloader_class):
+    def setup(self, tmpdir, reloader_class: BaseReload):
         self.tmpdir = tmpdir
         self.tmp_path = Path(tmpdir)
         self.reloader_class = reloader_class
@@ -36,7 +36,7 @@ class TestBaseReload:
         return reloader.should_restart()
 
     @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
-    def test_reloader_should_initialize(self):
+    def test_reloader_should_initialize(self) -> None:
         """
         A basic sanity check.
 
@@ -50,7 +50,7 @@ class TestBaseReload:
     @pytest.mark.parametrize(
         "reloader_class, result", [(StatReload, True), (WatchGodReload, True)]
     )
-    def test_reload_when_python_file_is_changed(self, result):
+    def test_reload_when_python_file_is_changed(self, result: bool) -> None:
         file = "example.py"
         update_file = self.tmp_path.joinpath(file)
         update_file.touch()
@@ -64,7 +64,7 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
-    def test_should_reload_when_python_file_in_subdir_is_changed(self):
+    def test_should_reload_when_python_file_in_subdir_is_changed(self) -> None:
         file = "example.py"
         sub_dir = self.tmp_path.joinpath("app", "subdir")
         update_file = sub_dir.joinpath(file)
@@ -80,7 +80,7 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [WatchGodReload])
-    def test_should_not_reload_when_python_file_in_subdir_is_changed(self):
+    def test_should_not_reload_when_python_file_in_subdir_is_changed(self) -> None:
         file = "example.py"
         sub_dir = self.tmp_path.joinpath("app", "subdir")
         update_file = sub_dir.joinpath(file)
@@ -102,7 +102,7 @@ class TestBaseReload:
     @pytest.mark.parametrize(
         "reloader_class, result", [(StatReload, False), (WatchGodReload, True)]
     )
-    def test_reload_when_javascript_file_is_changed(self, result):
+    def test_reload_when_javascript_file_is_changed(self, result: bool) -> None:
         file = "example.js"
         update_file = self.tmp_path.joinpath(file)
         update_file.touch()
@@ -116,7 +116,9 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class, result", [(WatchGodReload, False)])
-    def test_should_not_reload_when_javascript_file_is_changed(self, result):
+    def test_should_not_reload_when_javascript_file_is_changed(
+        self, result: bool
+    ) -> None:
         file = "example.js"
 
         update_file = self.tmp_path.joinpath(file)
@@ -133,7 +135,7 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
-    def test_should_not_reload_when_dot_file_is_changed(self):
+    def test_should_not_reload_when_dot_file_is_changed(self) -> None:
         file = ".dotted"
 
         update_file = self.tmp_path.joinpath(file)
@@ -148,7 +150,7 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
-    def test_should_reload_when_directories_have_same_prefix(self):
+    def test_should_reload_when_directories_have_same_prefix(self) -> None:
         file = "example.py"
 
         app_dir = self.tmp_path.joinpath("app")
@@ -172,7 +174,7 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
-    def test_should_parse_dir_from_includes(self):
+    def test_should_parse_dir_from_includes(self) -> None:
         file = "example.py"
 
         app_dir = self.tmp_path.joinpath("app")
@@ -194,7 +196,7 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [StatReload])
-    def test_should_not_parse_filetype_from_includes(self):
+    def test_should_not_parse_filetype_from_includes(self) -> None:
         file = "example.js"
         app_dir = self.tmp_path.joinpath("app")
         app_file = app_dir.joinpath(file)
@@ -210,7 +212,7 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [WatchGodReload])
-    def test_override_defaults(self):
+    def test_override_defaults(self) -> None:
         dotted = ".dotted"
         python = "example.py"
 
@@ -231,7 +233,9 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [StatReload])
-    def test_should_print_full_path_for_non_relative(self, caplog):
+    def test_should_print_full_path_for_non_relative(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         file = "example.py"
         app_dir = self.tmpdir.join("app")
         ext_dir = self.tmp_path.joinpath("ext")
