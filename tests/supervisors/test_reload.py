@@ -229,3 +229,27 @@ class TestBaseReload:
             assert not self._reload_tester(reloader, python_file)
 
             reloader.shutdown()
+
+    @pytest.mark.parametrize("reloader_class", [StatReload])
+    def test_should_print_full_path_for_non_relative(self, caplog):
+        file = "example.py"
+        app_dir = self.tmpdir.join("app")
+        ext_dir = self.tmp_path.joinpath("ext")
+        ext_file = ext_dir.joinpath(file)
+
+        app_dir.mkdir()
+        ext_dir.mkdir()
+        ext_file.touch()
+
+        with app_dir.as_cwd():
+            config = Config(app=None, reload=True, reload_dirs=[str(ext_dir)])
+            reloader = self._setup_reloader(config)
+
+            assert self._reload_tester(reloader, ext_file)
+
+            assert (
+                caplog.records[-1].message
+                == f"StatReload detected file change in '{str(ext_file)}'. Reloading..."
+            )
+
+            reloader.shutdown()
