@@ -105,15 +105,23 @@ def test_should_warn_on_invalid_reload_configuration(
     )
 
 
-def test_reload_dir_is_set(tmp_path: Path) -> None:
-    config = Config(app="tests.test_config:asgi_app", reload=True, reload_dirs=[str(tmp_path)])
-    assert config.reload_dirs == [tmp_path]
+def test_reload_dir_is_set(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.INFO):
+        config = Config(
+            app="tests.test_config:asgi_app", reload=True, reload_dirs=[str(tmp_path)]
+        )
+        assert len(caplog.records) == 1
+        assert (
+            caplog.records[-1].message
+            == f"Will watch for changes in these directories: ['{tmp_path}']"
+        )
+        assert config.reload_dirs == [tmp_path]
 
 
 def test_non_existant_reload_dir_is_not_set(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    with as_cwd(tmp_path):
+    with as_cwd(tmp_path), caplog.at_level(logging.WARNING):
         config = Config(
             app="tests.test_config:asgi_app", reload=True, reload_dirs=["reload"]
         )

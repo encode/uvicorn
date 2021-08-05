@@ -295,6 +295,11 @@ class Config:
 
             self.reload_dirs = list(set(reload_paths).difference(set(children)))
 
+            logger.info(
+                "Will watch for changes in these directories: %s",
+                list(map(str, self.reload_dirs)),
+            )
+
         if env_file is not None:
             from dotenv import load_dotenv
 
