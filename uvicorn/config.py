@@ -238,7 +238,6 @@ class Config:
             try:
                 if Path(pattern).is_dir():
                     reload_dirs_list.append(pattern)
-                    reload_includes.remove(pattern)
                 else:
                     self.reload_includes.append(pattern)
             except OSError:
