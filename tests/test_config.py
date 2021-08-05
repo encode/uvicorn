@@ -105,27 +105,30 @@ def test_should_warn_on_invalid_reload_configuration(
     )
 
 
-def test_reload_dir_is_set(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+def test_reload_dir_is_set(
+    reload_directory_structure: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    app_dir = reload_directory_structure / "app"
     with caplog.at_level(logging.INFO):
         config = Config(
-            app="tests.test_config:asgi_app", reload=True, reload_dirs=[str(tmp_path)]
+            app="tests.test_config:asgi_app", reload=True, reload_dirs=[str(app_dir)]
         )
         assert len(caplog.records) == 1
         assert (
             caplog.records[-1].message
-            == f"Will watch for changes in these directories: ['{tmp_path}']"
+            == f"Will watch for changes in these directories: ['{app_dir}']"
         )
-        assert config.reload_dirs == [tmp_path]
+        assert config.reload_dirs == [app_dir]
 
 
 def test_non_existant_reload_dir_is_not_set(
-    tmp_path: Path, caplog: pytest.LogCaptureFixture
+    reload_directory_structure: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    with as_cwd(tmp_path), caplog.at_level(logging.WARNING):
+    with as_cwd(reload_directory_structure), caplog.at_level(logging.WARNING):
         config = Config(
             app="tests.test_config:asgi_app", reload=True, reload_dirs=["reload"]
         )
-        assert config.reload_dirs == [tmp_path]
+        assert config.reload_dirs == [reload_directory_structure]
         assert (
             caplog.records[-1].message
             == "Provided reload directories ['reload'] did not contain valid "
@@ -133,28 +136,25 @@ def test_non_existant_reload_dir_is_not_set(
         )
 
 
-def test_reload_subdir_removal(tmp_path: Path) -> None:
-    app_dir = tmp_path / "app"
+def test_reload_subdir_removal(reload_directory_structure: Path) -> None:
+    app_dir = reload_directory_structure / "app"
 
-    app_dir.mkdir()
+    reload_dirs = [str(reload_directory_structure), "app", str(app_dir)]
 
-    reload_dirs = [str(tmp_path), "app", str(app_dir)]
-
-    with as_cwd(tmp_path):
+    with as_cwd(reload_directory_structure):
         config = Config(
             app="tests.test_config:asgi_app", reload=True, reload_dirs=reload_dirs
         )
-        assert config.reload_dirs == [tmp_path]
+        assert config.reload_dirs == [reload_directory_structure]
 
 
-def test_reload_included_dir_is_added_to_reload_dirs(tmp_path: Path) -> None:
-    app_dir = tmp_path / "app"
-    ext_dir = tmp_path / "ext"
+def test_reload_included_dir_is_added_to_reload_dirs(
+    reload_directory_structure: Path,
+) -> None:
+    app_dir = reload_directory_structure / "app"
+    ext_dir = reload_directory_structure / "ext"
 
-    app_dir.mkdir()
-    ext_dir.mkdir()
-
-    with as_cwd(tmp_path):
+    with as_cwd(reload_directory_structure):
         config = Config(
             app="tests.test_config:asgi_app",
             reload=True,
@@ -165,16 +165,15 @@ def test_reload_included_dir_is_added_to_reload_dirs(tmp_path: Path) -> None:
         assert config.reload_includes == ["*.js"]
 
 
-def test_reload_dir_subdirectories_are_removed(tmp_path: Path) -> None:
-    app_dir = tmp_path / "app"
+def test_reload_dir_subdirectories_are_removed(
+    reload_directory_structure: Path,
+) -> None:
+    app_dir = reload_directory_structure / "app"
     app_sub_dir = app_dir / "sub"
-    ext_dir = tmp_path / "ext"
+    ext_dir = reload_directory_structure / "ext"
     ext_sub_dir = ext_dir / "sub"
 
-    for dir in [app_dir, app_sub_dir, ext_dir, ext_sub_dir]:
-        dir.mkdir()
-
-    with as_cwd(tmp_path):
+    with as_cwd(reload_directory_structure):
         config = Config(
             app="tests.test_config:asgi_app",
             reload=True,

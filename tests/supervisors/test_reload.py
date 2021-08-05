@@ -13,8 +13,12 @@ from uvicorn.supervisors.watchgodreload import WatchGodReload
 
 class TestBaseReload:
     @pytest.fixture(autouse=True)
-    def setup(self, tmp_path, reloader_class: BaseReload):
-        self.tmp_path = tmp_path
+    def setup(
+        self,
+        reload_directory_structure: Path,
+        reloader_class: BaseReload,
+    ):
+        self.reload_path = reload_directory_structure
         self.reloader_class = reloader_class
 
     def run(self, sockets):
@@ -46,47 +50,36 @@ class TestBaseReload:
         reloader = self._setup_reloader(config)
         reloader.shutdown()
 
-    @pytest.mark.parametrize(
-        "reloader_class, result", [(StatReload, True), (WatchGodReload, True)]
-    )
-    def test_reload_when_python_file_is_changed(self, result: bool) -> None:
-        file = "example.py"
-        update_file = self.tmp_path.joinpath(file)
-        update_file.touch()
+    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
+    def test_reload_when_python_file_is_changed(self) -> None:
+        file = self.reload_path / "main.py"
 
-        with as_cwd(self.tmp_path):
+        with as_cwd(self.reload_path):
             config = Config(app="tests.test_config:asgi_app", reload=True)
             reloader = self._setup_reloader(config)
 
-            assert self._reload_tester(reloader, update_file) == result
+            assert self._reload_tester(reloader, file)
 
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
     def test_should_reload_when_python_file_in_subdir_is_changed(self) -> None:
-        file = "example.py"
-        sub_dir = self.tmp_path.joinpath("app", "subdir")
-        update_file = sub_dir.joinpath(file)
-        sub_dir.mkdir(parents=True)
-        update_file.touch()
+        file = self.reload_path / "app" / "sub" / "sub.py"
 
-        with as_cwd(self.tmp_path):
+        with as_cwd(self.reload_path):
             config = Config(app="tests.test_config:asgi_app", reload=True)
             reloader = self._setup_reloader(config)
 
-            assert self._reload_tester(reloader, update_file)
+            assert self._reload_tester(reloader, file)
 
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [WatchGodReload])
     def test_should_not_reload_when_python_file_in_subdir_is_changed(self) -> None:
-        file = "example.py"
-        sub_dir = self.tmp_path.joinpath("app", "subdir")
-        update_file = sub_dir.joinpath(file)
-        sub_dir.mkdir(parents=True)
-        update_file.touch()
+        sub_dir = self.reload_path / "app" / "sub"
+        sub_file = sub_dir / "sub.py"
 
-        with as_cwd(self.tmp_path):
+        with as_cwd(self.reload_path):
             config = Config(
                 app="tests.test_config:asgi_app",
                 reload=True,
@@ -94,38 +87,33 @@ class TestBaseReload:
             )
             reloader = self._setup_reloader(config)
 
-            assert not self._reload_tester(reloader, update_file)
+            assert not self._reload_tester(reloader, sub_file)
 
             reloader.shutdown()
 
     @pytest.mark.parametrize(
         "reloader_class, result", [(StatReload, False), (WatchGodReload, True)]
     )
-    def test_reload_when_javascript_file_is_changed(self, result: bool) -> None:
-        file = "example.js"
-        update_file = self.tmp_path.joinpath(file)
-        update_file.touch()
+    def test_reload_when_pattern_matched_file_is_changed(self, result: bool) -> None:
+        file = self.reload_path / "app" / "js" / "main.js"
 
-        with as_cwd(self.tmp_path):
+        with as_cwd(self.reload_path):
             config = Config(
                 app="tests.test_config:asgi_app", reload=True, reload_includes=["*.js"]
             )
             reloader = self._setup_reloader(config)
 
-            assert self._reload_tester(reloader, update_file) == result
+            assert self._reload_tester(reloader, file) == result
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class, result", [(WatchGodReload, False)])
-    def test_should_not_reload_when_javascript_file_is_changed(
-        self, result: bool
-    ) -> None:
-        file = "example.js"
+    @pytest.mark.parametrize("reloader_class", [WatchGodReload])
+    def test_should_not_reload_when_exclude_pattern_match_file_is_changed(self) -> None:
+        python_file = self.reload_path / "app" / "src" / "main.py"
+        css_file = self.reload_path / "app" / "css" / "main.css"
+        js_file = self.reload_path / "app" / "js" / "main.js"
 
-        update_file = self.tmp_path.joinpath(file)
-        update_file.touch()
-
-        with as_cwd(self.tmp_path):
+        with as_cwd(self.reload_path):
             config = Config(
                 app="tests.test_config:asgi_app",
                 reload=True,
@@ -134,65 +122,52 @@ class TestBaseReload:
             )
             reloader = self._setup_reloader(config)
 
-            assert self._reload_tester(reloader, update_file) == result
+            assert self._reload_tester(reloader, python_file)
+            assert self._reload_tester(reloader, css_file)
+            assert not self._reload_tester(reloader, js_file)
 
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
     def test_should_not_reload_when_dot_file_is_changed(self) -> None:
-        file = ".dotted"
+        file = self.reload_path / ".dotted"
 
-        update_file = self.tmp_path.joinpath(file)
-        update_file.touch()
-
-        with as_cwd(self.tmp_path):
+        with as_cwd(self.reload_path):
             config = Config(app="tests.test_config:asgi_app", reload=True)
             reloader = self._setup_reloader(config)
 
-            assert not self._reload_tester(reloader, update_file)
+            assert not self._reload_tester(reloader, file)
 
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
     def test_should_reload_when_directories_have_same_prefix(self) -> None:
-        file = "example.py"
+        app_dir = self.reload_path / "app"
+        app_file = app_dir / "src" / "main.py"
+        app_first_dir = self.reload_path / "app_first"
+        app_first_file = app_first_dir / "src" / "main.py"
 
-        app_dir = self.tmp_path.joinpath("app")
-        app_ext_dir = self.tmp_path.joinpath("app_extension")
-        app_file = app_dir.joinpath(file)
-        app_ext_file = app_ext_dir.joinpath(file)
-        app_dir.mkdir()
-        app_ext_dir.mkdir()
-        app_file.touch()
-        app_ext_file.touch()
-
-        with as_cwd(self.tmp_path):
+        with as_cwd(self.reload_path):
             config = Config(
                 app="tests.test_config:asgi_app",
                 reload=True,
-                reload_dirs=[str(app_dir), str(app_ext_dir)],
+                reload_dirs=[str(app_dir), str(app_first_dir)],
             )
             reloader = self._setup_reloader(config)
 
             assert self._reload_tester(reloader, app_file)
-            assert self._reload_tester(reloader, app_ext_file)
+            assert self._reload_tester(reloader, app_first_file)
 
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
     def test_should_parse_dir_from_includes(self) -> None:
-        file = "example.py"
+        app_dir = self.reload_path / "app"
+        app_file = app_dir / "src" / "main.py"
+        app_first_dir = self.reload_path / "app_first"
+        app_first_file = app_first_dir / "src" / "main.py"
 
-        app_dir = self.tmp_path.joinpath("app")
-        app_ext_dir = self.tmp_path.joinpath("app_extension")
-        app_file = app_dir.joinpath(file)
-        app_ext_file = app_ext_dir.joinpath(file)
-        app_dir.mkdir()
-        app_ext_dir.mkdir()
-        app_file.touch()
-        app_ext_file.touch()
-
-        with as_cwd(self.tmp_path):
+        with as_cwd(self.reload_path):
             config = Config(
                 app="tests.test_config:asgi_app",
                 reload=True,
@@ -201,48 +176,42 @@ class TestBaseReload:
             reloader = self._setup_reloader(config)
 
             assert self._reload_tester(reloader, app_file)
-            assert not self._reload_tester(reloader, app_ext_file)
+            assert not self._reload_tester(reloader, app_first_file)
 
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [StatReload])
     def test_should_not_parse_filetype_from_includes(self) -> None:
-        file = "example.js"
-        app_dir = self.tmp_path.joinpath("app")
-        app_file = app_dir.joinpath(file)
-        app_dir.mkdir()
-        app_file.touch()
+        file = self.reload_path / "app" / "js" / "main.js"
 
-        with as_cwd(self.tmp_path):
+        with as_cwd(self.reload_path):
             config = Config(
                 app="tests.test_config:asgi_app", reload=True, reload_includes=["*.js"]
             )
             reloader = self._setup_reloader(config)
 
-            assert not self._reload_tester(reloader, app_file)
+            assert not self._reload_tester(reloader, file)
 
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [WatchGodReload])
     def test_override_defaults(self) -> None:
-        dotted = ".dotted"
-        python = "example.py"
+        dotted_file = self.reload_path / ".dotted"
+        dotted_dir_file = self.reload_path / ".dotted_dir" / "file.txt"
+        python_file = self.reload_path / "main.py"
 
-        dotted_file = self.tmp_path.joinpath(dotted)
-        python_file = self.tmp_path.joinpath(python)
-        dotted_file.touch()
-        python_file.touch()
-
-        with as_cwd(self.tmp_path):
+        with as_cwd(self.reload_path):
             config = Config(
                 app="tests.test_config:asgi_app",
                 reload=True,
-                reload_includes=[".*"],
+                # We need to add *.txt otherwise no regular files will match
+                reload_includes=[".*", "*.txt"],
                 reload_excludes=["*.py"],
             )
             reloader = self._setup_reloader(config)
 
             assert self._reload_tester(reloader, dotted_file)
+            assert self._reload_tester(reloader, dotted_dir_file)
             assert not self._reload_tester(reloader, python_file)
 
             reloader.shutdown()
@@ -251,28 +220,24 @@ class TestBaseReload:
     def test_should_print_full_path_for_non_relative(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
-        file = "example.py"
-        app_dir = self.tmp_path / "app"
-        ext_dir = self.tmp_path.joinpath("ext")
-        ext_file = ext_dir.joinpath(file)
-
-        app_dir.mkdir()
-        ext_dir.mkdir()
-        ext_file.touch()
+        app_dir = self.reload_path / "app"
+        app_first_dir = self.reload_path / "app_first"
+        app_first_file = app_first_dir / "src" / "main.py"
 
         with as_cwd(app_dir):
             config = Config(
                 app="tests.test_config:asgi_app",
                 reload=True,
-                reload_dirs=[str(ext_dir)],
+                reload_dirs=[str(app_first_dir)],
             )
             reloader = self._setup_reloader(config)
 
-            assert self._reload_tester(reloader, ext_file)
+            assert self._reload_tester(reloader, app_first_file)
 
             assert (
                 caplog.records[-1].message
-                == f"StatReload detected file change in '{str(ext_file)}'. Reloading..."
+                == f"StatReload detected file change in '{str(app_first_file)}'."
+                " Reloading..."
             )
 
             reloader.shutdown()
