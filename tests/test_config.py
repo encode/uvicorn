@@ -108,7 +108,6 @@ def test_reload_subdir_removal(tmp_path: Path) -> None:
 
     with as_cwd(tmp_path):
         config = Config(app=asgi_app, reload=True, reload_dirs=reload_dirs)
-        print(config.reload_dirs, Path.cwd())
         assert config.reload_dirs == [tmp_path]
 
 
