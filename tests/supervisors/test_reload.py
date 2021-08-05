@@ -1,11 +1,10 @@
-import os
 import signal
-from contextlib import contextmanager
 from pathlib import Path
 from time import sleep
 
 import pytest
 
+from tests.utils import as_cwd
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
 from uvicorn.supervisors.statreload import StatReload
@@ -13,7 +12,6 @@ from uvicorn.supervisors.watchgodreload import WatchGodReload
 
 
 class TestBaseReload:
-
     @pytest.fixture(autouse=True)
     def setup(self, tmp_path, reloader_class: BaseReload):
         self.tmp_path = tmp_path
@@ -21,16 +19,6 @@ class TestBaseReload:
 
     def run(self, sockets):
         pass  # pragma: no cover
-    
-    @contextmanager
-    def as_cwd(self, path: Path):
-        """Changes working directory and returns to previous on exit."""
-        prev_cwd = Path.cwd()
-        os.chdir(path)
-        try:
-            yield
-        finally:
-            os.chdir(prev_cwd)
 
     def _setup_reloader(self, config: Config) -> BaseReload:
         reloader = self.reloader_class(config, target=self.run, sockets=[])
@@ -65,7 +53,7 @@ class TestBaseReload:
         update_file = self.tmp_path.joinpath(file)
         update_file.touch()
 
-        with self.as_cwd(self.tmp_path):
+        with as_cwd(self.tmp_path):
             config = Config(app=None, reload=True)
             reloader = self._setup_reloader(config)
 
@@ -81,7 +69,7 @@ class TestBaseReload:
         sub_dir.mkdir(parents=True)
         update_file.touch()
 
-        with self.as_cwd(self.tmp_path):
+        with as_cwd(self.tmp_path):
             config = Config(app=None, reload=True)
             reloader = self._setup_reloader(config)
 
@@ -97,7 +85,7 @@ class TestBaseReload:
         sub_dir.mkdir(parents=True)
         update_file.touch()
 
-        with self.as_cwd(self.tmp_path):
+        with as_cwd(self.tmp_path):
             config = Config(
                 app=None,
                 reload=True,
@@ -117,7 +105,7 @@ class TestBaseReload:
         update_file = self.tmp_path.joinpath(file)
         update_file.touch()
 
-        with self.as_cwd(self.tmp_path):
+        with as_cwd(self.tmp_path):
             config = Config(app=None, reload=True, reload_includes=["*.js"])
             reloader = self._setup_reloader(config)
 
@@ -134,7 +122,7 @@ class TestBaseReload:
         update_file = self.tmp_path.joinpath(file)
         update_file.touch()
 
-        with self.as_cwd(self.tmp_path):
+        with as_cwd(self.tmp_path):
             config = Config(
                 app=None, reload=True, reload_includes=["*"], reload_excludes=["*.js"]
             )
@@ -151,7 +139,7 @@ class TestBaseReload:
         update_file = self.tmp_path.joinpath(file)
         update_file.touch()
 
-        with self.as_cwd(self.tmp_path):
+        with as_cwd(self.tmp_path):
             config = Config(app=None, reload=True)
             reloader = self._setup_reloader(config)
 
@@ -172,7 +160,7 @@ class TestBaseReload:
         app_file.touch()
         app_ext_file.touch()
 
-        with self.as_cwd(self.tmp_path):
+        with as_cwd(self.tmp_path):
             config = Config(
                 app=None, reload=True, reload_dirs=[str(app_dir), str(app_ext_dir)]
             )
@@ -196,7 +184,7 @@ class TestBaseReload:
         app_file.touch()
         app_ext_file.touch()
 
-        with self.as_cwd(self.tmp_path):
+        with as_cwd(self.tmp_path):
             config = Config(app=None, reload=True, reload_includes=[str(app_dir)])
             reloader = self._setup_reloader(config)
 
@@ -213,7 +201,7 @@ class TestBaseReload:
         app_dir.mkdir()
         app_file.touch()
 
-        with self.as_cwd(self.tmp_path):
+        with as_cwd(self.tmp_path):
             config = Config(app=None, reload=True, reload_includes=["*.js"])
             reloader = self._setup_reloader(config)
 
@@ -231,7 +219,7 @@ class TestBaseReload:
         dotted_file.touch()
         python_file.touch()
 
-        with self.as_cwd(self.tmp_path):
+        with as_cwd(self.tmp_path):
             config = Config(
                 app=None, reload=True, reload_includes=[".*"], reload_excludes=["*.py"]
             )
@@ -255,7 +243,7 @@ class TestBaseReload:
         ext_dir.mkdir()
         ext_file.touch()
 
-        with self.as_cwd(app_dir):
+        with as_cwd(app_dir):
             config = Config(app=None, reload=True, reload_dirs=[str(ext_dir)])
             reloader = self._setup_reloader(config)
 

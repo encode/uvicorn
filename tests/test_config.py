@@ -18,6 +18,7 @@ import yaml
 from asgiref.typing import ASGIApplication, ASGIReceiveCallable, ASGISendCallable, Scope
 from pytest_mock import MockerFixture
 
+from tests.utils import as_cwd
 from uvicorn._types import Environ, StartResponse
 from uvicorn.config import LOGGING_CONFIG, Config
 from uvicorn.middleware.debug import DebugMiddleware
@@ -80,18 +81,17 @@ def test_config_should_reload_is_set(
     assert config_reload.should_reload is expected_should_reload
 
 
-def test_reload_dir_is_set(tmp_path) -> None:
+def test_reload_dir_is_set(tmp_path: Path) -> None:
     config = Config(app=asgi_app, reload=True, reload_dirs=[str(tmp_path)])
     assert config.reload_dirs == [tmp_path]
 
 
 def test_non_existant_reload_dir_is_not_set(
-    tmpdir, caplog: pytest.LogCaptureFixture
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    with tmpdir.as_cwd():
-        print(Path.cwd())
+    with as_cwd(tmp_path):
         config = Config(app=asgi_app, reload=True, reload_dirs=["reload"])
-        assert config.reload_dirs == [Path(tmpdir)]
+        assert config.reload_dirs == [tmp_path]
         assert (
             caplog.records[-1].message
             == "Provided reload directories ['reload'] did not contain valid "
@@ -99,17 +99,17 @@ def test_non_existant_reload_dir_is_not_set(
         )
 
 
-def test_reload_subdir_removal(tmpdir) -> None:
-    app_dir = tmpdir.join("app")
+def test_reload_subdir_removal(tmp_path: Path) -> None:
+    app_dir = tmp_path / "app"
 
     app_dir.mkdir()
 
-    reload_dirs = [str(tmpdir), "app", str(app_dir)]
+    reload_dirs = [str(tmp_path), "app", str(app_dir)]
 
-    with tmpdir.as_cwd():
+    with as_cwd(tmp_path):
         config = Config(app=asgi_app, reload=True, reload_dirs=reload_dirs)
         print(config.reload_dirs, Path.cwd())
-        assert config.reload_dirs == [Path(tmpdir)]
+        assert config.reload_dirs == [tmp_path]
 
 
 def test_wsgi_app() -> None:
