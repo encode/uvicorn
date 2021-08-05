@@ -84,13 +84,15 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--reload-include",
     "reload_includes",
     multiple=True,
-    help="Set glob patterns to include while watching for files.",
+    help="Set glob patterns to include while watching for files. Includes '*.py' "
+    "by default, which can be overridden in reload-excludes.",
 )
 @click.option(
     "--reload-exclude",
     "reload_excludes",
     multiple=True,
-    help="Set glob patterns to exclude while watching for files.",
+    help="Set glob patterns to exclude while watching for files. Includes "
+    "'.*, .py[cod], .sw.*, ~*' by default, which can be overridden in reload-excludes.",
 )
 @click.option(
     "--reload-delay",
