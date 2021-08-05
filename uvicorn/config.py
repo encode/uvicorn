@@ -133,6 +133,50 @@ def create_ssl_context(
     return ctx
 
 
+def resolve_reload_patterns(
+    patterns_list: List[str], directories_list: List[str]
+) -> Tuple[List[str], List[Path]]:
+
+    directories: List[Path] = list(set(map(Path, directories_list.copy())))
+    patterns: List[str] = patterns_list.copy()
+
+    current_working_directory = Path.cwd()
+    for pattern in patterns_list:
+        # Special case for the .* pattern, otherwise this would only match
+        # hidden directories which is probably undesired
+        if pattern == ".*":
+            continue
+        patterns.append(pattern)
+        try:
+            if Path(pattern).resolve().is_dir():
+                directories.append(Path(pattern))
+            else:
+                for match in current_working_directory.glob(pattern):
+                    if match.is_dir():
+                        directories.append(match)
+        except OSError:
+            pass
+
+    directories = list(set(directories))
+    directories = list(map(Path, directories))
+    directories = list(map(lambda x: x.resolve(), directories))
+    directories = list(
+        set([reload_path for reload_path in directories if reload_path.is_dir()])
+    )
+
+    children = []
+    for j in range(len(directories)):
+        for k in range(j + 1, len(directories)):
+            if directories[j] in directories[k].parents:
+                children.append(directories[k])
+            elif directories[k] in directories[j].parents:
+                children.append(directories[j])
+
+    directories = list(set(directories).difference(set(children)))
+
+    return (list(set(patterns)), directories)
+
+
 class Config:
     def __init__(
         self,
@@ -241,59 +285,43 @@ class Config:
             )
 
         if self.should_reload:
-            reload_dirs_list = list(set(reload_dirs)) if reload_dirs else []
-            reload_includes = list(set(reload_includes if reload_includes else []))
-            reload_excludes = list(set(reload_excludes if reload_excludes else []))
+            reload_dirs = list(set(reload_dirs)) if reload_dirs else []
+            reload_includes = list(set(reload_includes)) if reload_includes else []
+            reload_excludes = list(set(reload_excludes)) if reload_excludes else []
 
-            for pattern in reload_includes:
-                try:
-                    if Path(pattern).is_dir():
-                        reload_dirs_list.append(pattern)
-                    else:
-                        self.reload_includes.append(pattern)
-                except OSError:
-                    self.reload_includes.append(pattern)
-
-            for pattern in reload_excludes:
-                try:
-                    if Path(pattern).is_dir():
-                        self.reload_dirs_excludes.append(Path(pattern))
-                    else:
-                        self.reload_excludes.append(pattern)
-                except OSError:
-                    self.reload_excludes.append(pattern)
-
-            reload_dirs_list = list(set(reload_dirs_list))
-            reload_paths = list(map(Path, reload_dirs_list))
-            reload_paths = list(map(lambda x: x.resolve(), reload_paths))
-            reload_paths = list(
-                set(
-                    [
-                        reload_path
-                        for reload_path in reload_paths
-                        if reload_path.is_dir()
-                    ]
-                )
+            self.reload_includes, self.reload_dirs = resolve_reload_patterns(
+                reload_includes, reload_dirs
             )
 
-            if not reload_paths:
+            self.reload_excludes, self.reload_dirs_excludes = resolve_reload_patterns(
+                reload_excludes, []
+            )
+
+            reload_dirs_tmp = self.reload_dirs.copy()
+
+            for directory in self.reload_dirs_excludes:
+                for reload_directory in reload_dirs_tmp:
+                    if (
+                        directory == reload_directory
+                        or directory in reload_directory.parents
+                    ):
+                        try:
+                            self.reload_dirs.remove(reload_directory)
+                        except ValueError:
+                            pass
+
+            for pattern in self.reload_excludes:
+                if pattern in self.reload_includes:
+                    self.reload_includes.remove(pattern)
+
+            if not self.reload_dirs:
                 if reload_dirs:
                     logger.warning(
                         "Provided reload directories %s did not contain valid "
                         + "directories, watching current working directory.",
                         reload_dirs,
                     )
-                reload_paths = [Path(os.getcwd())]
-
-            children = []
-            for j in range(len(reload_paths)):
-                for k in range(j + 1, len(reload_paths)):
-                    if reload_paths[j] in reload_paths[k].parents:
-                        children.append(reload_paths[k])
-                    elif reload_paths[k] in reload_paths[j].parents:
-                        children.append(reload_paths[j])
-
-            self.reload_dirs = list(set(reload_paths).difference(set(children)))
+                self.reload_dirs = [Path(os.getcwd())]
 
             logger.info(
                 "Will watch for changes in these directories: %s",

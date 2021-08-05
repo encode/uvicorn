@@ -162,7 +162,7 @@ def test_reload_included_dir_is_added_to_reload_dirs(
             reload_includes=["*.js", str(ext_dir)],
         )
         assert frozenset(config.reload_dirs), frozenset([app_dir, ext_dir])
-        assert config.reload_includes == ["*.js"]
+        assert frozenset(config.reload_includes) == frozenset(["*.js", str(ext_dir)])
 
 
 def test_reload_dir_subdirectories_are_removed(
@@ -185,6 +185,52 @@ def test_reload_dir_subdirectories_are_removed(
             ],
         )
         assert frozenset(config.reload_dirs) == frozenset([app_dir, ext_dir])
+
+
+def test_reload_excluded_subdirectories_are_removed(
+    reload_directory_structure: Path,
+) -> None:
+    app_dir = reload_directory_structure / "app"
+    app_sub_dir = app_dir / "sub"
+
+    with as_cwd(reload_directory_structure):
+        config = Config(
+            app="tests.test_config:asgi_app",
+            reload=True,
+            reload_excludes=[str(app_dir), str(app_sub_dir)],
+        )
+        assert frozenset(config.reload_dirs) == frozenset([reload_directory_structure])
+        assert frozenset(config.reload_dirs_excludes) == frozenset([app_dir])
+        assert frozenset(config.reload_excludes) == frozenset(
+            [str(app_dir), str(app_sub_dir)]
+        )
+
+
+def test_reload_includes_exclude_dir_patterns_are_matched(
+    reload_directory_structure: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.INFO):
+        first_app_dir = reload_directory_structure / "app_first" / "src"
+        second_app_dir = reload_directory_structure / "app_second" / "src"
+
+        with as_cwd(reload_directory_structure):
+            config = Config(
+                app="tests.test_config:asgi_app",
+                reload=True,
+                reload_includes=["*/src"],
+                reload_excludes=["app", "*third*"],
+            )
+            assert len(caplog.records) == 1
+            assert (
+                "Will watch for changes in these directories: "
+                in caplog.records[-1].message
+            )
+            assert str(first_app_dir) in caplog.records[-1].message
+            assert str(second_app_dir) in caplog.records[-1].message
+            assert frozenset(config.reload_dirs) == frozenset(
+                [first_app_dir, second_app_dir]
+            )
+            assert config.reload_includes == ["*/src"]
 
 
 def test_wsgi_app() -> None:
