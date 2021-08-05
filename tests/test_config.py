@@ -135,7 +135,8 @@ def test_reload_dir_subdirectories_are_removed(tmp_path: Path) -> None:
     ext_dir = tmp_path / "ext"
     ext_sub_dir = ext_dir / "sub"
 
-    [x.mkdir() for x in [app_dir, app_sub_dir, ext_dir, ext_sub_dir]]
+    for dir in [app_dir, app_sub_dir, ext_dir, ext_sub_dir]:
+        dir.mkdir()
 
     with as_cwd(tmp_path):
         config = Config(
