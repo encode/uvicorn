@@ -1,4 +1,6 @@
+import os
 import signal
+from contextlib import contextmanager
 from pathlib import Path
 from time import sleep
 
@@ -11,16 +13,24 @@ from uvicorn.supervisors.watchgodreload import WatchGodReload
 
 
 class TestBaseReload:
-    tmp_path: Path
 
     @pytest.fixture(autouse=True)
-    def setup(self, tmpdir, reloader_class: BaseReload):
-        self.tmpdir = tmpdir
-        self.tmp_path = Path(tmpdir)
+    def setup(self, tmp_path, reloader_class: BaseReload):
+        self.tmp_path = tmp_path
         self.reloader_class = reloader_class
 
     def run(self, sockets):
         pass  # pragma: no cover
+    
+    @contextmanager
+    def as_cwd(self):
+        """Changes working directory and returns to previous on exit."""
+        prev_cwd = Path.cwd()
+        os.chdir(self.tmp_path)
+        try:
+            yield
+        finally:
+            os.chdir(prev_cwd)
 
     def _setup_reloader(self, config: Config) -> BaseReload:
         reloader = self.reloader_class(config, target=self.run, sockets=[])
@@ -55,7 +65,7 @@ class TestBaseReload:
         update_file = self.tmp_path.joinpath(file)
         update_file.touch()
 
-        with self.tmpdir.as_cwd():
+        with self.as_cwd():
             config = Config(app=None, reload=True)
             reloader = self._setup_reloader(config)
 
@@ -71,7 +81,7 @@ class TestBaseReload:
         sub_dir.mkdir(parents=True)
         update_file.touch()
 
-        with self.tmpdir.as_cwd():
+        with self.as_cwd():
             config = Config(app=None, reload=True)
             reloader = self._setup_reloader(config)
 
@@ -87,7 +97,7 @@ class TestBaseReload:
         sub_dir.mkdir(parents=True)
         update_file.touch()
 
-        with self.tmpdir.as_cwd():
+        with self.as_cwd():
             config = Config(
                 app=None,
                 reload=True,
@@ -107,7 +117,7 @@ class TestBaseReload:
         update_file = self.tmp_path.joinpath(file)
         update_file.touch()
 
-        with self.tmpdir.as_cwd():
+        with self.as_cwd():
             config = Config(app=None, reload=True, reload_includes=["*.js"])
             reloader = self._setup_reloader(config)
 
@@ -124,7 +134,7 @@ class TestBaseReload:
         update_file = self.tmp_path.joinpath(file)
         update_file.touch()
 
-        with self.tmpdir.as_cwd():
+        with self.as_cwd():
             config = Config(
                 app=None, reload=True, reload_includes=["*"], reload_excludes=["*.js"]
             )
@@ -141,7 +151,7 @@ class TestBaseReload:
         update_file = self.tmp_path.joinpath(file)
         update_file.touch()
 
-        with self.tmpdir.as_cwd():
+        with self.as_cwd():
             config = Config(app=None, reload=True)
             reloader = self._setup_reloader(config)
 
@@ -162,7 +172,7 @@ class TestBaseReload:
         app_file.touch()
         app_ext_file.touch()
 
-        with self.tmpdir.as_cwd():
+        with self.as_cwd():
             config = Config(
                 app=None, reload=True, reload_dirs=[str(app_dir), str(app_ext_dir)]
             )
@@ -186,7 +196,7 @@ class TestBaseReload:
         app_file.touch()
         app_ext_file.touch()
 
-        with self.tmpdir.as_cwd():
+        with self.as_cwd():
             config = Config(app=None, reload=True, reload_includes=[str(app_dir)])
             reloader = self._setup_reloader(config)
 
@@ -203,7 +213,7 @@ class TestBaseReload:
         app_dir.mkdir()
         app_file.touch()
 
-        with self.tmpdir.as_cwd():
+        with self.as_cwd():
             config = Config(app=None, reload=True, reload_includes=["*.js"])
             reloader = self._setup_reloader(config)
 
@@ -221,7 +231,7 @@ class TestBaseReload:
         dotted_file.touch()
         python_file.touch()
 
-        with self.tmpdir.as_cwd():
+        with self.as_cwd():
             config = Config(
                 app=None, reload=True, reload_includes=[".*"], reload_excludes=["*.py"]
             )
@@ -237,7 +247,7 @@ class TestBaseReload:
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
         file = "example.py"
-        app_dir = self.tmpdir.join("app")
+        app_dir = self.tmp_path / "app"
         ext_dir = self.tmp_path.joinpath("ext")
         ext_file = ext_dir.joinpath(file)
 
@@ -245,7 +255,7 @@ class TestBaseReload:
         ext_dir.mkdir()
         ext_file.touch()
 
-        with app_dir.as_cwd():
+        with app_dir.cwd():
             config = Config(app=None, reload=True, reload_dirs=[str(ext_dir)])
             reloader = self._setup_reloader(config)
 
