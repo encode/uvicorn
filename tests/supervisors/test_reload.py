@@ -22,6 +22,7 @@ class TestBaseReload:
 
     def _setup_reloader(self, config: Config) -> BaseReload:
         reloader = self.reloader_class(config, target=self.run, sockets=[])
+        assert config.should_reload
         reloader.signal_handler(sig=signal.SIGINT, frame=None)
         reloader.startup()
         return reloader
@@ -41,7 +42,7 @@ class TestBaseReload:
         Simply run the reloader against a no-op server, and signal for it to
         quit immediately.
         """
-        config = Config(app=None, reload=True)
+        config = Config(app="tests.test_config:asgi_app", reload=True)
         reloader = self._setup_reloader(config)
         reloader.shutdown()
 
@@ -54,7 +55,7 @@ class TestBaseReload:
         update_file.touch()
 
         with as_cwd(self.tmp_path):
-            config = Config(app=None, reload=True)
+            config = Config(app="tests.test_config:asgi_app", reload=True)
             reloader = self._setup_reloader(config)
 
             assert self._reload_tester(reloader, update_file) == result
@@ -70,7 +71,7 @@ class TestBaseReload:
         update_file.touch()
 
         with as_cwd(self.tmp_path):
-            config = Config(app=None, reload=True)
+            config = Config(app="tests.test_config:asgi_app", reload=True)
             reloader = self._setup_reloader(config)
 
             assert self._reload_tester(reloader, update_file)
@@ -87,7 +88,7 @@ class TestBaseReload:
 
         with as_cwd(self.tmp_path):
             config = Config(
-                app=None,
+                app="tests.test_config:asgi_app",
                 reload=True,
                 reload_excludes=[str(sub_dir)],
             )
@@ -106,7 +107,9 @@ class TestBaseReload:
         update_file.touch()
 
         with as_cwd(self.tmp_path):
-            config = Config(app=None, reload=True, reload_includes=["*.js"])
+            config = Config(
+                app="tests.test_config:asgi_app", reload=True, reload_includes=["*.js"]
+            )
             reloader = self._setup_reloader(config)
 
             assert self._reload_tester(reloader, update_file) == result
@@ -124,7 +127,10 @@ class TestBaseReload:
 
         with as_cwd(self.tmp_path):
             config = Config(
-                app=None, reload=True, reload_includes=["*"], reload_excludes=["*.js"]
+                app="tests.test_config:asgi_app",
+                reload=True,
+                reload_includes=["*"],
+                reload_excludes=["*.js"],
             )
             reloader = self._setup_reloader(config)
 
@@ -140,7 +146,7 @@ class TestBaseReload:
         update_file.touch()
 
         with as_cwd(self.tmp_path):
-            config = Config(app=None, reload=True)
+            config = Config(app="tests.test_config:asgi_app", reload=True)
             reloader = self._setup_reloader(config)
 
             assert not self._reload_tester(reloader, update_file)
@@ -162,7 +168,9 @@ class TestBaseReload:
 
         with as_cwd(self.tmp_path):
             config = Config(
-                app=None, reload=True, reload_dirs=[str(app_dir), str(app_ext_dir)]
+                app="tests.test_config:asgi_app",
+                reload=True,
+                reload_dirs=[str(app_dir), str(app_ext_dir)],
             )
             reloader = self._setup_reloader(config)
 
@@ -185,7 +193,11 @@ class TestBaseReload:
         app_ext_file.touch()
 
         with as_cwd(self.tmp_path):
-            config = Config(app=None, reload=True, reload_includes=[str(app_dir)])
+            config = Config(
+                app="tests.test_config:asgi_app",
+                reload=True,
+                reload_includes=[str(app_dir)],
+            )
             reloader = self._setup_reloader(config)
 
             assert self._reload_tester(reloader, app_file)
@@ -202,7 +214,9 @@ class TestBaseReload:
         app_file.touch()
 
         with as_cwd(self.tmp_path):
-            config = Config(app=None, reload=True, reload_includes=["*.js"])
+            config = Config(
+                app="tests.test_config:asgi_app", reload=True, reload_includes=["*.js"]
+            )
             reloader = self._setup_reloader(config)
 
             assert not self._reload_tester(reloader, app_file)
@@ -221,7 +235,10 @@ class TestBaseReload:
 
         with as_cwd(self.tmp_path):
             config = Config(
-                app=None, reload=True, reload_includes=[".*"], reload_excludes=["*.py"]
+                app="tests.test_config:asgi_app",
+                reload=True,
+                reload_includes=[".*"],
+                reload_excludes=["*.py"],
             )
             reloader = self._setup_reloader(config)
 
@@ -244,7 +261,11 @@ class TestBaseReload:
         ext_file.touch()
 
         with as_cwd(app_dir):
-            config = Config(app=None, reload=True, reload_dirs=[str(ext_dir)])
+            config = Config(
+                app="tests.test_config:asgi_app",
+                reload=True,
+                reload_dirs=[str(ext_dir)],
+            )
             reloader = self._setup_reloader(config)
 
             assert self._reload_tester(reloader, ext_file)
