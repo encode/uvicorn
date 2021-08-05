@@ -2,10 +2,9 @@ import logging
 import os
 import signal
 import threading
-from pathlib import Path
 from socket import socket
 from types import FrameType
-from typing import Callable, Dict, List, Optional
+from typing import Callable, List, Optional
 
 import click
 
@@ -65,7 +64,6 @@ class BaseReload:
         self.process.start()
 
     def restart(self) -> None:
-        self.mtimes: Dict[Path, float] = {}
 
         self.process.terminate()
         self.process.join()
