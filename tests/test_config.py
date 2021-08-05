@@ -111,6 +111,46 @@ def test_reload_subdir_removal(tmp_path: Path) -> None:
         assert config.reload_dirs == [tmp_path]
 
 
+def test_reload_included_dir_is_added_to_reload_dirs(tmp_path: Path) -> None:
+    app_dir = tmp_path / "app"
+    ext_dir = tmp_path / "ext"
+
+    app_dir.mkdir()
+    ext_dir.mkdir()
+
+    with as_cwd(tmp_path):
+        config = Config(
+            app=asgi_app,
+            reload=True,
+            reload_dirs=[str(app_dir)],
+            reload_includes=["*.js", str(ext_dir)],
+        )
+        assert frozenset(config.reload_dirs), frozenset([app_dir, ext_dir])
+        assert config.reload_includes == ["*.js"]
+
+
+def test_reload_dir_subdirectories_are_removed(tmp_path: Path) -> None:
+    app_dir = tmp_path / "app"
+    app_sub_dir = app_dir / "sub"
+    ext_dir = tmp_path / "ext"
+    ext_sub_dir = ext_dir / "sub"
+
+    [x.mkdir() for x in [app_dir, app_sub_dir, ext_dir, ext_sub_dir]]
+
+    with as_cwd(tmp_path):
+        config = Config(
+            app=asgi_app,
+            reload=True,
+            reload_dirs=[
+                str(app_dir),
+                str(app_sub_dir),
+                str(ext_sub_dir),
+                str(ext_dir),
+            ],
+        )
+        assert frozenset(config.reload_dirs) == frozenset([app_dir, ext_dir])
+
+
 def test_wsgi_app() -> None:
     config = Config(app=wsgi_app, interface="wsgi", proxy_headers=False)
     config.load()
