@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from socket import socket
-from typing import TYPE_CHECKING, Callable, List, Optional
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional
 
 from watchgod import DefaultWatcher
 
@@ -36,32 +36,67 @@ class CustomWatcher(DefaultWatcher):
         self.excludes.extend(config.reload_excludes)
         self.excludes = list(set(self.excludes))
 
-        self.dirs = config.reload_dirs
+        self.dirs: Dict[Path, bool] = {}
+        self.dirs_includes = config.reload_dirs
         self.dirs_excludes = config.reload_dirs_excludes
+        self.resolved_root = root_path
         super().__init__(str(root_path))
 
     def should_watch_file(self, entry: "DirEntry") -> bool:
         entry_path = Path(entry)
+        # cwd is not verified through should_watch_dir, so we need to verify here
+        if entry_path.parent == Path.cwd() and not Path.cwd() in self.dirs_includes:
+            return False
         for include_pattern in self.includes:
             if entry_path.match(include_pattern):
                 for exclude_pattern in self.excludes:
                     if entry_path.match(exclude_pattern):
                         return False
                 return True
-
         return False
 
     def should_watch_dir(self, entry: "DirEntry") -> bool:
         entry_path = Path(entry)
-        for directory in self.dirs:
+
+        cached_result = self.dirs.get(entry_path)
+
+        if cached_result is not None:
+            return cached_result
+
+        for directory in self.dirs_excludes:
             if entry_path == directory or directory in entry_path.parents:
-                for excl_directory in self.dirs_excludes:
-                    if (
-                        entry_path == excl_directory
-                        or excl_directory in entry_path.parents
-                    ):
-                        return False
+                self.dirs[entry_path] = False
+                return False
+        for exclude_pattern in self.excludes:
+            if entry_path.match(exclude_pattern):
+                logger.debug(
+                    "WatchGodReload detected a new excluded dir '%s' in '%s'; "
+                    "Adding to exclude list.",
+                    entry_path.relative_to(self.resolved_root),
+                    str(self.resolved_root),
+                )
+                self.dirs[entry_path] = False
+                self.dirs_excludes.append(entry_path)
+                return False
+
+        for directory in self.dirs_includes:
+            if entry_path == directory or directory in entry_path.parents:
+                self.dirs[entry_path] = True
                 return True
+
+        for include_pattern in self.includes:
+            if entry_path.match(include_pattern):
+                logger.info(
+                    "WatchGodReload detected a new reload dir '%s' in '%s'; "
+                    "Adding to watch list.",
+                    str(entry_path.relative_to(self.resolved_root)),
+                    str(self.resolved_root),
+                )
+                self.dirs_includes.append(entry_path)
+                self.dirs[entry_path] = True
+                return True
+
+        self.dirs[entry_path] = False
         return False
 
 
@@ -75,7 +110,13 @@ class WatchGodReload(BaseReload):
         super().__init__(config, target, sockets)
         self.reloader_name = "watchgod"
         self.watchers = []
-        for w in config.reload_dirs:
+        reload_dirs = []
+        for directory in config.reload_dirs:
+            if Path.cwd() not in directory.parents:
+                reload_dirs.append(directory)
+        if Path.cwd() not in reload_dirs:
+            reload_dirs.append(Path.cwd())
+        for w in reload_dirs:
             self.watchers.append(CustomWatcher(w.resolve(), self.config))
 
     def should_restart(self) -> bool:

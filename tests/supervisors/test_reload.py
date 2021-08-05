@@ -1,4 +1,5 @@
 import signal
+from logging import DEBUG, INFO, WARNING
 from pathlib import Path
 from time import sleep
 
@@ -161,6 +162,25 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
+    def test_should_not_reload_when_only_subdirectory_is_watched(self) -> None:
+        app_dir = self.reload_path / "app"
+        app_dir_file = self.reload_path / "app" / "src" / "main.py"
+        root_file = self.reload_path / "main.py"
+
+        with as_cwd(self.reload_path):
+            config = Config(
+                app="tests.test_config:asgi_app",
+                reload=True,
+                reload_dirs=[str(app_dir)],
+            )
+            reloader = self._setup_reloader(config)
+
+            assert self._reload_tester(reloader, app_dir_file)
+            assert not self._reload_tester(reloader, root_file)
+
+            reloader.shutdown()
+
+    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
     def test_should_parse_dir_from_includes(self) -> None:
         app_dir = self.reload_path / "app"
         app_file = app_dir / "src" / "main.py"
@@ -216,6 +236,74 @@ class TestBaseReload:
 
             reloader.shutdown()
 
+    @pytest.mark.parametrize("reloader_class", [WatchGodReload])
+    def test_should_start_one_watcher_for_dirs_inside_cwd(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        app_file = self.reload_path / "app" / "src" / "main.py"
+        app_first_file = self.reload_path / "app_first" / "src" / "main.py"
+
+        with as_cwd(self.reload_path):
+            config = Config(
+                app="tests.test_config:asgi_app", reload=True, reload_includes=["app*"]
+            )
+            reloader = self._setup_reloader(config)
+            assert len(reloader.watchers) == 1
+
+            assert self.reload_path == reloader.watchers[0].resolved_root
+
+            assert self._reload_tester(reloader, app_file)
+            assert (
+                caplog.records[-1].message
+                == f"WatchGodReload detected file change in '['{str(app_file)}']'."
+                " Reloading..."
+            )
+            assert self._reload_tester(reloader, app_first_file)
+            assert (
+                caplog.records[-1].message == "WatchGodReload detected file change in "
+                f"'['{str(app_first_file)}']'. Reloading..."
+            )
+
+            reloader.shutdown()
+
+    @pytest.mark.parametrize("reloader_class", [WatchGodReload])
+    def test_should_start_separate_watchers_for_dirs_outside_cwd(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        app_dir = self.reload_path / "app"
+        app_file = self.reload_path / "app" / "src" / "main.py"
+        app_first_dir = self.reload_path / "app_first"
+        app_first_file = app_first_dir / "src" / "main.py"
+
+        with as_cwd(app_dir):
+            config = Config(
+                app="tests.test_config:asgi_app",
+                reload=True,
+                reload_dirs=[str(app_dir), str(app_first_dir)],
+            )
+            reloader = self._setup_reloader(config)
+            assert len(reloader.watchers) == 2
+
+            assert frozenset([app_dir, app_first_dir]) == frozenset(
+                [x.resolved_root for x in reloader.watchers]
+            )
+
+            assert self._reload_tester(reloader, app_file)
+            assert caplog.records[-1].levelno == WARNING
+            assert (
+                caplog.records[-1].message
+                == f"WatchGodReload detected file change in '['{str(app_file)}']'."
+                " Reloading..."
+            )
+            assert self._reload_tester(reloader, app_first_file)
+            assert caplog.records[-1].levelno == WARNING
+            assert (
+                caplog.records[-1].message == "WatchGodReload detected file change in "
+                f"'['{str(app_first_file)}']'. Reloading..."
+            )
+
+            reloader.shutdown()
+
     @pytest.mark.parametrize("reloader_class", [StatReload])
     def test_should_print_full_path_for_non_relative(
         self, caplog: pytest.LogCaptureFixture
@@ -238,6 +326,64 @@ class TestBaseReload:
                 caplog.records[-1].message
                 == f"StatReload detected file change in '{str(app_first_file)}'."
                 " Reloading..."
+            )
+
+            reloader.shutdown()
+
+    @pytest.mark.parametrize("reloader_class", [WatchGodReload])
+    def test_should_detect_new_reload_dirs(
+        self, caplog: pytest.LogCaptureFixture, tmp_path: Path
+    ) -> None:
+        app_dir = tmp_path / "app"
+        app_file = app_dir / "file.py"
+        app_dir.mkdir()
+        app_file.touch()
+        app_first_dir = tmp_path / "app_first"
+        app_first_file = app_first_dir / "file.py"
+
+        with as_cwd(tmp_path), caplog.at_level(INFO):
+            config = Config(
+                app="tests.test_config:asgi_app", reload=True, reload_includes=["app*"]
+            )
+            reloader = self._setup_reloader(config)
+            assert self._reload_tester(reloader, app_file)
+
+            app_first_dir.mkdir()
+            assert self._reload_tester(reloader, app_first_file)
+            assert caplog.records[-2].levelno == INFO
+            assert (
+                caplog.records[-2].message == "WatchGodReload detected a new reload "
+                f"dir '{app_first_dir.name}' in '{tmp_path}'; Adding to watch list."
+            )
+
+            reloader.shutdown()
+
+    @pytest.mark.parametrize("reloader_class", [WatchGodReload])
+    def test_should_detect_new_exclude_dirs(
+        self, caplog: pytest.LogCaptureFixture, tmp_path: Path
+    ) -> None:
+        app_dir = tmp_path / "app"
+        app_file = app_dir / "file.py"
+        app_dir.mkdir()
+        app_file.touch()
+        app_first_dir = tmp_path / "app_first"
+        app_first_file = app_first_dir / "file.py"
+
+        with as_cwd(tmp_path), caplog.at_level(DEBUG):
+            config = Config(
+                app="tests.test_config:asgi_app", reload=True, reload_excludes=["app*"]
+            )
+            reloader = self._setup_reloader(config)
+            caplog.set_level(DEBUG, logger="uvicorn.error")
+
+            assert not self._reload_tester(reloader, app_file)
+
+            app_first_dir.mkdir()
+            assert not self._reload_tester(reloader, app_first_file)
+            assert caplog.records[-1].levelno == DEBUG
+            assert (
+                caplog.records[-1].message == "WatchGodReload detected a new excluded "
+                f"dir '{app_first_dir.name}' in '{tmp_path}'; Adding to exclude list."
             )
 
             reloader.shutdown()
