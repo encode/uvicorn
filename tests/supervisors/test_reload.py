@@ -256,14 +256,17 @@ class TestBaseReload:
             assert self._reload_tester(reloader, app_file)
             assert (
                 caplog.records[-1].message
-                == f"WatchGodReload detected file change in '['{str(app_file)}']'."
+                == f"WatchGodReload detected file change in '{[str(app_file)]}'."
                 " Reloading..."
             )
+            assert caplog.records[-1].levelno == WARNING
             assert self._reload_tester(reloader, app_first_file)
+            assert "WatchGodReload detected file change" in caplog.records[-1].message
             assert (
                 caplog.records[-1].message == "WatchGodReload detected file change in "
-                f"'['{str(app_first_file)}']'. Reloading..."
+                f"'{[str(app_first_file)]}'. Reloading..."
             )
+            assert caplog.records[-1].levelno == WARNING
 
             reloader.shutdown()
 
@@ -292,15 +295,14 @@ class TestBaseReload:
             assert self._reload_tester(reloader, app_file)
             assert caplog.records[-1].levelno == WARNING
             assert (
-                caplog.records[-1].message
-                == f"WatchGodReload detected file change in '['{str(app_file)}']'."
-                " Reloading..."
+                caplog.records[-1].message == "WatchGodReload detected file change in "
+                f"'{[str(app_file)]}'. Reloading..."
             )
             assert self._reload_tester(reloader, app_first_file)
             assert caplog.records[-1].levelno == WARNING
             assert (
                 caplog.records[-1].message == "WatchGodReload detected file change in "
-                f"'['{str(app_first_file)}']'. Reloading..."
+                f"'{[str(app_first_file)]}'. Reloading..."
             )
 
             reloader.shutdown()
