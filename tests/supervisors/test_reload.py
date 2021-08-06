@@ -47,9 +47,10 @@ class TestBaseReload:
         Simply run the reloader against a no-op server, and signal for it to
         quit immediately.
         """
-        config = Config(app="tests.test_config:asgi_app", reload=True)
-        reloader = self._setup_reloader(config)
-        reloader.shutdown()
+        with as_cwd(self.reload_path):
+            config = Config(app="tests.test_config:asgi_app", reload=True)
+            reloader = self._setup_reloader(config)
+            reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload])
     def test_reload_when_python_file_is_changed(self) -> None:
