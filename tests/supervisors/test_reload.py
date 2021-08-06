@@ -77,7 +77,7 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [WatchGodReload])
-    def test_should_not_reload_when_python_file_in_subdir_is_changed(self) -> None:
+    def test_should_not_reload_when_python_file_in_excluded_subdir_is_changed(self) -> None:
         sub_dir = self.reload_path / "app" / "sub"
         sub_file = sub_dir / "sub.py"
 
