@@ -159,7 +159,6 @@ def resolve_reload_patterns(
         if is_dir(Path(pattern)):
             directories.append(Path(pattern))
         else:
-            print("here")
             for match in current_working_directory.glob(pattern):
                 if is_dir(match):
                     directories.append(match)
