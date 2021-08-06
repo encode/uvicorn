@@ -116,7 +116,7 @@ def test_reload_dir_is_set(
         assert len(caplog.records) == 1
         assert (
             caplog.records[-1].message
-            == f"Will watch for changes in these directories: ['{app_dir}']"
+            == f"Will watch for changes in these directories: {[app_dir]}"
         )
         assert config.reload_dirs == [app_dir]
 
