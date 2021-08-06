@@ -133,6 +133,15 @@ def create_ssl_context(
     return ctx
 
 
+def is_dir(path: Path) -> bool:
+    try:
+        if not path.is_absolute():
+            path = path.resolve()
+        return path.is_dir()
+    except OSError:
+        return False
+
+
 def resolve_reload_patterns(
     patterns_list: List[str], directories_list: List[str]
 ) -> Tuple[List[str], List[Path]]:
@@ -147,21 +156,19 @@ def resolve_reload_patterns(
         if pattern == ".*":
             continue
         patterns.append(pattern)
-        try:
-            if Path(pattern).resolve().is_dir():
-                directories.append(Path(pattern))
-            else:
-                for match in current_working_directory.glob(pattern):
-                    if match.is_dir():
-                        directories.append(match)
-        except OSError:
-            pass
+        if is_dir(Path(pattern)):
+            directories.append(Path(pattern))
+        else:
+            print("here")
+            for match in current_working_directory.glob(pattern):
+                if is_dir(match):
+                    directories.append(match)
 
     directories = list(set(directories))
     directories = list(map(Path, directories))
     directories = list(map(lambda x: x.resolve(), directories))
     directories = list(
-        set([reload_path for reload_path in directories if reload_path.is_dir()])
+        set([reload_path for reload_path in directories if is_dir(reload_path)])
     )
 
     children = []
