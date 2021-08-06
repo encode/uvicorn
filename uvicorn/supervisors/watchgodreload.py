@@ -36,37 +36,46 @@ class CustomWatcher(DefaultWatcher):
         self.excludes.extend(config.reload_excludes)
         self.excludes = list(set(self.excludes))
 
-        self.dirs: Dict[Path, bool] = {}
-        self.dirs_includes = config.reload_dirs
-        self.dirs_excludes = config.reload_dirs_excludes
+        self.watched_dirs: Dict[str, bool] = {}
+        self.watched_files: Dict[str, bool] = {}
+        self.dirs_includes = set(config.reload_dirs)
+        self.dirs_excludes = set(config.reload_dirs_excludes)
         self.resolved_root = root_path
         super().__init__(str(root_path))
 
     def should_watch_file(self, entry: "DirEntry") -> bool:
+        cached_result = self.watched_files.get(entry.path)
+        if cached_result is not None:
+            return cached_result
+
         entry_path = Path(entry)
+
         # cwd is not verified through should_watch_dir, so we need to verify here
         if entry_path.parent == Path.cwd() and not Path.cwd() in self.dirs_includes:
+            self.watched_files[entry.path] = False
             return False
         for include_pattern in self.includes:
             if entry_path.match(include_pattern):
                 for exclude_pattern in self.excludes:
                     if entry_path.match(exclude_pattern):
+                        self.watched_files[entry.path] = False
                         return False
+                self.watched_files[entry.path] = True
                 return True
+        self.watched_files[entry.path] = False
         return False
 
     def should_watch_dir(self, entry: "DirEntry") -> bool:
-        entry_path = Path(entry)
-
-        cached_result = self.dirs.get(entry_path)
-
+        cached_result = self.watched_dirs.get(entry.path)
         if cached_result is not None:
             return cached_result
 
-        for directory in self.dirs_excludes:
-            if entry_path == directory or directory in entry_path.parents:
-                self.dirs[entry_path] = False
-                return False
+        entry_path = Path(entry)
+
+        if entry_path in self.dirs_excludes:
+            self.watched_dirs[entry.path] = False
+            return False
+
         for exclude_pattern in self.excludes:
             if entry_path.match(exclude_pattern):
                 logger.debug(
@@ -75,13 +84,17 @@ class CustomWatcher(DefaultWatcher):
                     entry_path.relative_to(self.resolved_root),
                     str(self.resolved_root),
                 )
-                self.dirs[entry_path] = False
-                self.dirs_excludes.append(entry_path)
+                self.watched_dirs[entry.path] = False
+                self.dirs_excludes.add(entry_path)
                 return False
 
+        if entry_path in self.dirs_includes:
+            self.watched_dirs[entry.path] = True
+            return True
+
         for directory in self.dirs_includes:
-            if entry_path == directory or directory in entry_path.parents:
-                self.dirs[entry_path] = True
+            if directory in entry_path.parents:
+                self.watched_dirs[entry.path] = True
                 return True
 
         for include_pattern in self.includes:
@@ -92,11 +105,11 @@ class CustomWatcher(DefaultWatcher):
                     str(entry_path.relative_to(self.resolved_root)),
                     str(self.resolved_root),
                 )
-                self.dirs_includes.append(entry_path)
-                self.dirs[entry_path] = True
+                self.dirs_includes.add(entry_path)
+                self.watched_dirs[entry.path] = True
                 return True
 
-        self.dirs[entry_path] = False
+        self.watched_dirs[entry.path] = False
         return False
 
 
