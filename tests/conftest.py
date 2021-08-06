@@ -75,7 +75,24 @@ def tls_ca_ssl_context(tls_certificate_authority: trustme.CA) -> ssl.SSLContext:
 
 @pytest.fixture(scope="package")
 def reload_directory_structure(tmp_path_factory: pytest.TempPathFactory):
-    """This fixture creates a directory structure to enable reload parameter tests"""
+    """
+    This fixture creates a directory structure to enable reload parameter tests
+
+    The fixture has the following structure:
+    root
+    ├── [app, app_first, app_second, app_third]
+    │   ├── css
+    │   │   └── main.css
+    │   ├── js
+    │   │   └── main.js
+    │   ├── src
+    │   │   └── main.py
+    │   └── sub
+    │       └── sub.py
+    ├── ext
+    │   └── ext.jpg
+    └── main.py
+    """
     root = tmp_path_factory.mktemp("reload_directory")
     apps = ["app", "app_first", "app_second", "app_third"]
 
