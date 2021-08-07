@@ -203,20 +203,6 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [StatReload])
-    def test_should_not_parse_filetype_from_includes(self) -> None:
-        file = self.reload_path / "app" / "js" / "main.js"
-
-        with as_cwd(self.reload_path):
-            config = Config(
-                app="tests.test_config:asgi_app", reload=True, reload_includes=["*.js"]
-            )
-            reloader = self._setup_reloader(config)
-
-            assert not self._reload_tester(reloader, file)
-
-            reloader.shutdown()
-
     @pytest.mark.parametrize("reloader_class", [WatchGodReload])
     def test_override_defaults(self) -> None:
         dotted_file = self.reload_path / ".dotted"
