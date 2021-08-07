@@ -78,12 +78,21 @@ class CustomWatcher(DefaultWatcher):
 
         for exclude_pattern in self.excludes:
             if entry_path.match(exclude_pattern):
-                logger.debug(
-                    "WatchGodReload detected a new excluded dir '%s' in '%s'; "
-                    "Adding to exclude list.",
-                    entry_path.relative_to(self.resolved_root),
-                    str(self.resolved_root),
-                )
+                is_watched = False
+                if entry_path in self.dirs_includes:
+                    is_watched = True
+
+                for directory in self.dirs_includes:
+                    if directory in entry_path.parents:
+                        is_watched = True
+
+                if is_watched:
+                    logger.debug(
+                        "WatchGodReload detected a new excluded dir '%s' in '%s'; "
+                        "Adding to exclude list.",
+                        entry_path.relative_to(self.resolved_root),
+                        str(self.resolved_root),
+                    )
                 self.watched_dirs[entry.path] = False
                 self.dirs_excludes.add(entry_path)
                 return False
