@@ -331,7 +331,7 @@ class Config:
 
             logger.info(
                 "Will watch for changes in these directories: %s",
-                list(map(str, self.reload_dirs)),
+                sorted(list(map(str, self.reload_dirs))),
             )
 
         if env_file is not None:

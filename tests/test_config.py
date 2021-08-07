@@ -222,11 +222,10 @@ def test_reload_includes_exclude_dir_patterns_are_matched(
             )
             assert len(caplog.records) == 1
             assert (
-                "Will watch for changes in these directories: "
-                in caplog.records[-1].message
+                caplog.records[-1].message
+                == "Will watch for changes in these directories: "
+                f"{sorted([str(first_app_dir), str(second_app_dir)])}"
             )
-            assert str(first_app_dir) in caplog.records[-1].message
-            assert str(second_app_dir) in caplog.records[-1].message
             assert frozenset(config.reload_dirs) == frozenset(
                 [first_app_dir, second_app_dir]
             )
