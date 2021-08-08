@@ -4,7 +4,7 @@ import signal
 import threading
 from socket import socket
 from types import FrameType
-from typing import Callable, Dict, List, Optional
+from typing import Callable, List, Optional
 
 import click
 
@@ -64,7 +64,6 @@ class BaseReload:
         self.process.start()
 
     def restart(self) -> None:
-        self.mtimes: Dict[str, float] = {}
 
         self.process.terminate()
         self.process.join()
