@@ -4,7 +4,10 @@
 
 ### Added
 
+- Change reload to be configurable with glob patterns (#820) 08/08/21
+- Exit with status 3 when worker starts failed (#1077) 22/06/21
 - Add option to set websocket ping interval and timeout (#1048) 09/06/21
+- Add Python 3.10 to the CI (#1070) 30/07/21
 - Adapt bind_socket to make it usable with multiple processes (#1009) 21/06/21
 - Add existence check to the reload directory(ies) (#1089) 21/06/21
 - Add missing trace log for websocket protocols (#1083) 19/06/21
@@ -17,8 +20,10 @@
 
 ### Fixed
 
-- Exit with status 3 when worker starts failed (#1077) 22/06/21
+- When receiving a `SIGTERM` supervisors now terminate their processes before joining them (#1069) 30/07/21
+- Fix the need of `httptools` on minimal installation (#1135) 30/07/21
 - Revert propagate status after exiting context caplog_for_logger() (#1086) 19/06/21
+- Fix ping parameters annotation in Config class (#1127) 19/07/21
 
 ## 0.14.0 - 2021-06-01
 
