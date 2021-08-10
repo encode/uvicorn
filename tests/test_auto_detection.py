@@ -1,5 +1,7 @@
 import asyncio
 
+import pytest
+
 from uvicorn.config import Config
 from uvicorn.loops.auto import auto_loop_setup
 from uvicorn.main import ServerState
@@ -37,11 +39,10 @@ def test_loop_auto():
     assert isinstance(policy, asyncio.events.BaseDefaultEventLoopPolicy)
     expected_loop = "asyncio" if uvloop is None else "uvloop"
     assert type(policy).__module__.startswith(expected_loop)
-    loop = asyncio.get_event_loop()
-    loop.close()
 
 
-def test_http_auto():
+@pytest.mark.asyncio
+async def test_http_auto():
     config = Config(app=app)
     server_state = ServerState()
     protocol = AutoHTTPProtocol(config=config, server_state=server_state)
@@ -49,7 +50,8 @@ def test_http_auto():
     assert type(protocol).__name__ == expected_http
 
 
-def test_websocket_auto():
+@pytest.mark.asyncio
+async def test_websocket_auto():
     config = Config(app=app)
     server_state = ServerState()
     protocol = AutoWebSocketsProtocol(config=config, server_state=server_state)

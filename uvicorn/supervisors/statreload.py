@@ -1,8 +1,7 @@
 import logging
-import os
 from pathlib import Path
 from socket import socket
-from typing import Callable, Iterator, List, Optional
+from typing import Callable, Dict, Iterator, List, Optional
 
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
@@ -19,31 +18,35 @@ class StatReload(BaseReload):
     ) -> None:
         super().__init__(config, target, sockets)
         self.reloader_name = "statreload"
-        self.mtimes = {}
+        self.mtimes: Dict[Path, float] = {}
 
     def should_restart(self) -> bool:
-        for filename in self.iter_py_files():
+        for file in self.iter_py_files():
             try:
-                mtime = os.path.getmtime(filename)
+                mtime = file.stat().st_mtime
             except OSError:  # pragma: nocover
                 continue
 
-            old_time = self.mtimes.get(filename)
+            old_time = self.mtimes.get(file)
             if old_time is None:
-                self.mtimes[filename] = mtime
+                self.mtimes[file] = mtime
                 continue
             elif mtime > old_time:
-                display_path = os.path.normpath(filename)
-                if Path.cwd() in Path(filename).parents:
-                    display_path = os.path.normpath(os.path.relpath(filename))
+                display_path = str(file)
+                try:
+                    display_path = str(file.relative_to(Path.cwd()))
+                except ValueError:
+                    pass
                 message = "StatReload detected file change in '%s'. Reloading..."
                 logger.warning(message, display_path)
                 return True
         return False
 
-    def iter_py_files(self) -> Iterator[str]:
+    def restart(self) -> None:
+        self.mtimes = {}
+        return super().restart()
+
+    def iter_py_files(self) -> Iterator[Path]:
         for reload_dir in self.config.reload_dirs:
-            for subdir, dirs, files in os.walk(reload_dir):
-                for file in files:
-                    if file.endswith(".py"):
-                        yield subdir + os.sep + file
+            for path in list(reload_dir.rglob("*.py")):
+                yield path.resolve()
