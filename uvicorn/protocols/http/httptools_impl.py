@@ -2,12 +2,13 @@ import asyncio
 import http
 import logging
 import re
-import time
+from time import time
 import traceback
 import urllib
 from typing import Callable
 
 import httptools
+from asgiref.typing import HTTPResponseStartEvent
 
 from uvicorn.logging import TRACE_LOG_LEVEL, AccessLogFields
 from uvicorn.protocols.http.flow_control import (
@@ -17,7 +18,6 @@ from uvicorn.protocols.http.flow_control import (
     service_unavailable,
 )
 from uvicorn.protocols.utils import (
-    RequestResponseTiming,
     get_client_addr,
     get_local_addr,
     get_path_with_query_string,
@@ -218,9 +218,6 @@ class HttpToolsProtocol(asyncio.Protocol):
             "headers": self.headers,
         }
 
-    def on_message_begin(self):
-        self.request_start_time = time.monotonic()
-
     def on_header(self, name: bytes, value: bytes):
         name = name.lower()
         if name == b"expect" and value.lower() == b"100-continue":
@@ -260,7 +257,6 @@ class HttpToolsProtocol(asyncio.Protocol):
             keep_alive=http_version != "1.0",
             on_response=self.on_response_complete,
         )
-        self.cycle.timing._request_start_time = self.request_start_time
         if existing_cycle is None or existing_cycle.response_complete:
             # Standard case - start processing the request.
             task = self.loop.create_task(self.cycle.run_asgi(app))
@@ -284,7 +280,6 @@ class HttpToolsProtocol(asyncio.Protocol):
             return
         self.cycle.more_body = False
         self.cycle.message_event.set()
-        self.cycle.timing.request_ended()
 
     def on_response_complete(self):
         # Callback for pipelined HTTP requests to be started.
@@ -381,10 +376,8 @@ class RequestResponseCycle:
         self.response_complete = False
         self.chunked_encoding = None
         self.expected_content_length = 0
-        self.timing = RequestResponseTiming()
-
-        # For logging.
-        self.access_log_fields = AccessLogFields(self.scope, self.timing)
+        self.start_time = time()
+        self.response: HTTPResponseStartEvent
 
     # ASGI exception wrapper
     async def run_asgi(self, app):
@@ -438,16 +431,14 @@ class RequestResponseCycle:
         if self.disconnected:
             return
 
-        self.access_log_fields.on_asgi_message(message)
-
         if not self.response_started:
             # Sending response status line and headers
             if message_type != "http.response.start":
                 msg = "Expected ASGI message 'http.response.start', but got '%s'."
                 raise RuntimeError(msg % message_type)
 
+            self.response = message
             self.response_started = True
-            self.timing.response_started()
             self.waiting_for_100_continue = False
 
             status_code = message["status"]
@@ -521,28 +512,19 @@ class RequestResponseCycle:
                 if self.expected_content_length != 0:
                     raise RuntimeError("Response content shorter than Content-Length")
                 self.response_complete = True
-                self.timing.response_ended()
 
                 self.message_event.set()
 
                 if self.access_log:
-                    if self.access_log_format is None:
+                    try:
                         self.access_logger.info(
-                            '%s - "%s %s HTTP/%s" %d',
-                            get_client_addr(self.scope),
-                            self.scope["method"],
-                            get_path_with_query_string(self.scope),
-                            self.scope["http_version"],
-                            self.access_log_fields.status_code,
+                            self.access_log_format,
+                            AccessLogFields(
+                                self.scope, self.response, time() - self.start_time
+                            ),
                         )
-                    else:
-                        try:
-                            self.access_logger.info(
-                                self.access_log_format,
-                                self.access_log_fields,
-                            )
-                        except:  # noqa
-                            self.logger.error(traceback.format_exc())
+                    except:  # noqa
+                        self.logger.error(traceback.format_exc())
 
                 if not self.keep_alive:
                     self.transport.close()

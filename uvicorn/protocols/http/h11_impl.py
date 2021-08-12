@@ -1,4 +1,5 @@
 import asyncio
+from time import time
 import http
 import logging
 import traceback
@@ -7,6 +8,7 @@ from urllib.parse import unquote
 
 import h11
 
+from asgiref.typing import HTTPResponseStartEvent
 from uvicorn.logging import TRACE_LOG_LEVEL, AccessLogFields
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
@@ -15,7 +17,6 @@ from uvicorn.protocols.http.flow_control import (
     service_unavailable,
 )
 from uvicorn.protocols.utils import (
-    RequestResponseTiming,
     get_client_addr,
     get_local_addr,
     get_path_with_query_string,
@@ -206,7 +207,6 @@ class H11Protocol(asyncio.Protocol):
                     message_event=asyncio.Event(),
                     on_response=self.on_response_complete,
                 )
-                self.cycle.timing.request_started()
                 task = self.loop.create_task(self.cycle.run_asgi(app))
                 task.add_done_callback(self.tasks.discard)
                 self.tasks.add(task)
@@ -224,7 +224,6 @@ class H11Protocol(asyncio.Protocol):
                     self.transport.resume_reading()
                     self.conn.start_next_cycle()
                     continue
-                self.cycle.timing.request_ended()
                 self.cycle.more_body = False
                 self.cycle.message_event.set()
 
@@ -373,10 +372,8 @@ class RequestResponseCycle:
         # Response state
         self.response_started = False
         self.response_complete = False
-        self.timing = RequestResponseTiming()
-
-        # For logging
-        self.access_log_fields = AccessLogFields(self.scope, self.timing)
+        self.start_time = time()
+        self.response: HTTPResponseStartEvent
 
     # ASGI exception wrapper
     async def run_asgi(self, app):
@@ -430,18 +427,15 @@ class RequestResponseCycle:
         if self.disconnected:
             return
 
-        if self.access_log_fields is not None:
-            self.access_log_fields.on_asgi_message(message)
-
         if not self.response_started:
             # Sending response status line and headers
             if message_type != "http.response.start":
                 msg = "Expected ASGI message 'http.response.start', but got '%s'."
                 raise RuntimeError(msg % message_type)
 
+            self.response = message
             self.response_started = True
             self.waiting_for_100_continue = False
-            self.timing.response_started()
 
             status_code = message["status"]
             headers = self.default_headers + message.get("headers", [])
@@ -482,26 +476,16 @@ class RequestResponseCycle:
                 output = self.conn.send(event)
                 self.transport.write(output)
 
-                self.timing.response_ended()
-
                 if self.access_log:
-                    if self.access_log_format is None:
+                    try:
                         self.access_logger.info(
-                            '%s - "%s %s HTTP/%s" %d',
-                            get_client_addr(self.scope),
-                            self.scope["method"],
-                            get_path_with_query_string(self.scope),
-                            self.scope["http_version"],
-                            self.access_log_fields.status_code,
+                            self.access_log_format,
+                            AccessLogFields(
+                                self.scope, self.response, time() - self.start_time
+                            ),
                         )
-                    else:
-                        try:
-                            self.access_logger.info(
-                                self.access_log_format,
-                                self.access_log_fields,
-                            )
-                        except:  # noqa
-                            self.logger.error(traceback.format_exc())
+                    except:  # noqa
+                        self.logger.error(traceback.format_exc())
 
         else:
             # Response already sent

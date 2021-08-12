@@ -1,17 +1,15 @@
 import http
 import logging
+import os
 import sys
 import time
-import typing
-from collections import abc
 from copy import copy
-from os import getpid
-from typing import Any, Callable, Dict, Iterator, Optional
+from typing import Optional
 
 import click
+from asgiref.typing import HTTPResponseStartEvent, WWWScope
 
-if typing.TYPE_CHECKING:
-    import uvicorn.protocols.utils
+from uvicorn.protocols.utils import get_client_addr, get_path_with_query_string
 
 TRACE_LOG_LEVEL = 5
 
@@ -102,216 +100,79 @@ class AccessFormatter(ColourizedFormatter):
         return status_and_phrase
 
     def formatMessage(self, record: logging.LogRecord) -> str:
-        if len(record.args) != 5:
-            return super().formatMessage(record)
         recordcopy = copy(record)
-        (
-            client_addr,
-            method,
-            full_path,
-            http_version,
-            status_code,
-        ) = recordcopy.args
+        client_addr = record.args["client_addr"]
+        request_line = record.args["request_line"]
+        status_code = record.args["s"]
+
         status_code = self.get_status_code(int(status_code))
-        request_line = "%s %s HTTP/%s" % (method, full_path, http_version)
         if self.use_colors:
             request_line = click.style(request_line, bold=True)
-        recordcopy.__dict__.update(
-            {
-                "client_addr": client_addr,
-                "request_line": request_line,
-                "status_code": status_code,
-            }
-        )
+        recordcopy.args["client_addr"] = client_addr
+        recordcopy.args["request_line"] = request_line
+        recordcopy.args["status_code"] = status_code
         return super().formatMessage(recordcopy)
 
 
-class AccessLogFields(abc.Mapping):  # pragma: no cover
-    """Container to provide fields for access logging.
-
-    This class does a few things:
-    - provide all fields necessary for access log formatter
-    - collect info from ASGI messages (status_code/headers/response body size)
-    - provide mapping interface that returns '-' for missing fields
-    - escape double quotes found in fields strings
-    """
-
+class AccessLogFields(dict):
     def __init__(
-        self, scope: dict, timing: "uvicorn.protocols.utils.RequestResponseTiming"
-    ):
-        self.scope = scope
-        self.timing = timing
-        self.status_code = None
-        self.response_headers: Dict[str, str] = {}
-        self._response_length = 0
+        self,
+        scope: WWWScope,
+        response: HTTPResponseStartEvent,
+        request_time: float,
+    ) -> None:
+        for name, value in scope["headers"]:
+            self[f"{{{name.decode('latin1').lower()}}}i"] = value.decode("latin1")
+        for name, value in response.get("headers", []):
+            self[f"{{{name.decode('latin1').lower()}}}o"] = value.decode("latin1")
+        for name, value in os.environ.items():
+            self[f"{{{name.lower()}}}e"] = value
+        protocol = f"HTTP/{scope['http_version']}"
+        path = scope["root_path"] + scope["path"]
+        full_path = get_path_with_query_string(scope)
+        request_line = f"{scope['method']} {path} {protocol}"
+        full_request_line = f"{scope['method']} {full_path} {protocol}"
+        client_addr = get_client_addr(scope) or "-"
 
-        self._request_headers: Optional[Dict[str, str]] = None
+        try:
+            status_phrase = http.HTTPStatus(response["status"]).phrase
+        except ValueError:
+            status_phrase = "-"
 
-    @property
-    def request_headers(self) -> Dict[str, str]:
-        if self._request_headers is None:
-            self._request_headers = {
-                k.decode("ascii"): v.decode("ascii") for k, v in self.scope["headers"]
+        self.update(
+            {
+                "h": client_addr,
+                "client_addr": client_addr,
+                "l": "-",
+                "u": "-",  # Not available on ASGI.
+                "t": time.strftime("[%d/%b/%Y:%H:%M:%S %z]"),
+                "r": request_line,
+                "request_line": full_request_line,
+                "R": full_request_line,
+                "m": scope["method"],
+                "U": scope["path"],
+                "q": scope["query_string"].decode(),
+                "H": protocol,
+                "s": response["status"],
+                "st": status_phrase,
+                "status_code": f"{response['status']} {status_phrase}",
+                "B": self["{Content-Length}o"],
+                "b": self.get("{Content-Length}o", "-"),
+                "f": self["{Referer}i"],
+                "a": self["{User-Agent}i"],
+                "T": int(request_time),
+                "M": int(request_time * 1_000),
+                "D": int(request_time * 1_000_000),
+                "L": f"{request_time:.6f}",
+                "p": f"<{os.getpid()}>",
             }
-        return self._request_headers
-
-    @property
-    def duration(self) -> float:
-        return self.timing.total_duration_seconds()
-
-    def on_asgi_message(self, message: Dict[str, Any]) -> None:
-        if message["type"] == "http.response.start":
-            self.status_code = message["status"]
-            self.response_headers = {
-                k.decode("ascii"): v.decode("ascii")
-                for k, v in message.get("headers") or {}
-            }
-        elif message["type"] == "http.response.body":
-            self._response_length += len(message.get("body", ""))
-
-    def _request_header(self, key: str) -> Optional[str]:
-        return self.request_headers.get(key.lower())
-
-    def _response_header(self, key: str) -> Optional[str]:
-        return self.response_headers.get(key.lower())
-
-    def _wsgi_environ_variable(self, key: str) -> None:
-        # FIXME: provide fallbacks to access WSGI environ (at least the
-        # required variables).
-        raise NotImplementedError
-
-    @classmethod
-    def _log_format_atom(cls, val: Optional[str]) -> str:
-        if val is None:
-            return "-"
-        if isinstance(val, str):
-            return val.replace('"', '\\"')
-        return val
+        )
 
     def __getitem__(self, key: str) -> str:
-        retval: Optional[str]
-        if key in self.HANDLERS:
-            retval = self.HANDLERS[key](self)
-        elif key.startswith("{"):
-            if key.endswith("}i"):
-                retval = self._request_header(key[1:-2])
-            elif key.endswith("}o"):
-                retval = self._response_header(key[1:-2])
-            elif key.endswith("}e"):
-                # retval = self._wsgi_environ_variable(key[1:-2])
-                raise NotImplementedError("WSGI environ not supported")
+        try:
+            if key.startswith("{"):
+                return super().__getitem__(key.lower())
             else:
-                retval = None
-        else:
-            retval = None
-        return self._log_format_atom(retval)
-
-    _LogAtomHandler = Callable[["AccessLogFields"], Optional[str]]
-    HANDLERS: Dict[str, _LogAtomHandler] = {}
-
-    # mypy does not understand class-member decorators:
-    #
-    # https://github.com/python/mypy/issues/7778
-    def _register_handler(  # type: ignore[misc]
-        key: str, handlers: Dict[str, _LogAtomHandler] = HANDLERS
-    ) -> Callable[[_LogAtomHandler], _LogAtomHandler]:
-        _LogAtomHandler = Callable[["AccessLogFields"], Optional[str]]
-
-        def decorator(fn: _LogAtomHandler) -> _LogAtomHandler:
-            handlers[key] = fn
-            return fn
-
-        return decorator
-
-    @_register_handler("h")
-    def _remote_address(self) -> Optional[str]:
-        return self.scope["client"][0]
-
-    @_register_handler("l")
-    def _dash(self) -> str:
-        return "-"
-
-    @_register_handler("u")
-    def _user_name(self) -> Optional[str]:
-        pass
-
-    @_register_handler("t")
-    def date_of_the_request(self) -> Optional[str]:
-        """Date and time in Apache Common Log Format"""
-        return time.strftime("[%d/%b/%Y:%H:%M:%S %z]")
-
-    @_register_handler("r")
-    def status_line(self) -> Optional[str]:
-        full_raw_path = self.scope["raw_path"] + self.scope["query_string"]
-        full_path = full_raw_path.decode("ascii")
-        return "{method} {full_path} HTTP/{http_version}".format(
-            full_path=full_path, **self.scope
-        )
-
-    @_register_handler("m")
-    def request_method(self) -> Optional[str]:
-        return self.scope["method"]
-
-    @_register_handler("U")
-    def url_path(self) -> Optional[str]:
-        return self.scope["raw_path"].decode("ascii")
-
-    @_register_handler("q")
-    def query_string(self) -> Optional[str]:
-        return self.scope["query_string"].decode("ascii")
-
-    @_register_handler("H")
-    def protocol(self) -> Optional[str]:
-        return "HTTP/%s" % self.scope["http_version"]
-
-    @_register_handler("s")
-    def status(self) -> Optional[str]:
-        return self.status_code or "-"
-
-    @_register_handler("B")
-    def response_length(self) -> Optional[str]:
-        return str(self._response_length)
-
-    @_register_handler("b")
-    def response_length_or_dash(self) -> Optional[str]:
-        return str(self._response_length or "-")
-
-    @_register_handler("f")
-    def referer(self) -> Optional[str]:
-        return self.request_headers.get("referer")
-
-    @_register_handler("a")
-    def user_agent(self) -> Optional[str]:
-        return self.request_headers.get("user-agent")
-
-    @_register_handler("T")
-    def request_time_seconds(self) -> Optional[str]:
-        return str(int(self.duration))
-
-    @_register_handler("D")
-    def request_time_microseconds(self) -> str:
-        return str(int(self.duration * 1_000_000))
-
-    @_register_handler("L")
-    def request_time_decimal_seconds(self) -> str:
-        return "%.6f" % self.duration
-
-    @_register_handler("p")
-    def process_id(self) -> str:
-        return "<%s>" % getpid()
-
-    def __iter__(self) -> Iterator[str]:
-        # FIXME: add WSGI environ
-        yield from self.HANDLERS
-        for k, _ in self.scope["headers"]:
-            yield "{%s}i" % k.lower()
-        for k in self.response_headers:
-            yield "{%s}o" % k.lower()
-
-    def __len__(self) -> int:
-        # FIXME: add WSGI environ
-        return (
-            len(self.HANDLERS)
-            + len(self.scope["headers"] or ())
-            + len(self.response_headers)
-        )
+                return super().__getitem__(key)
+        except KeyError:
+            return "-"
