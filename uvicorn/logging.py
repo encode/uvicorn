@@ -101,16 +101,20 @@ class AccessFormatter(ColourizedFormatter):
 
     def formatMessage(self, record: logging.LogRecord) -> str:
         recordcopy = copy(record)
-        client_addr = record.args["client_addr"]
-        request_line = record.args["request_line"]
-        status_code = record.args["s"]
+        client_addr = recordcopy.args.__dict__["client_addr"]
+        request_line = recordcopy.args.__dict__["request_line"]
+        status_code = recordcopy.args.__dict__["s"]
 
         status_code = self.get_status_code(int(status_code))
         if self.use_colors:
             request_line = click.style(request_line, bold=True)
-        recordcopy.args["client_addr"] = client_addr
-        recordcopy.args["request_line"] = request_line
-        recordcopy.args["status_code"] = status_code
+        recordcopy.__dict__.update(
+            {
+                "client_addr": client_addr,
+                "request_line": request_line,
+                "status_code": status_code,
+            }
+        )
         return super().formatMessage(recordcopy)
 
 
@@ -125,8 +129,8 @@ class AccessLogFields(dict):
             self[f"{{{name.decode('latin1').lower()}}}i"] = value.decode("latin1")
         for name, value in response.get("headers", []):
             self[f"{{{name.decode('latin1').lower()}}}o"] = value.decode("latin1")
-        for name, value in os.environ.items():
-            self[f"{{{name.lower()}}}e"] = value
+        for name, value in os.environ.items():  # type: ignore[assignment]
+            self[f"{{{name.lower()!r}}}e"] = value
         protocol = f"HTTP/{scope['http_version']}"
         path = scope["root_path"] + scope["path"]
         full_path = get_path_with_query_string(scope)
