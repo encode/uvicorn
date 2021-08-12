@@ -1,14 +1,14 @@
 import asyncio
-from time import time
 import http
 import logging
 import traceback
+from time import time
 from typing import Callable
 from urllib.parse import unquote
 
 import h11
-
 from asgiref.typing import HTTPResponseStartEvent
+
 from uvicorn.logging import TRACE_LOG_LEVEL, AccessLogFields
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,

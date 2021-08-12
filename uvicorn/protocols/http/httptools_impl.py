@@ -2,9 +2,9 @@ import asyncio
 import http
 import logging
 import re
-from time import time
 import traceback
 import urllib
+from time import time
 from typing import Callable
 
 import httptools
