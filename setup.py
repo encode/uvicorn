@@ -65,7 +65,7 @@ extra_requirements = [
 setup(
     name="uvicorn",
     version=get_version("uvicorn"),
-    url="https://github.com/encode/uvicorn",
+    url="https://www.uvicorn.org/",
     license="BSD",
     description="The lightning-fast ASGI server.",
     long_description=get_long_description(),
@@ -95,4 +95,9 @@ setup(
     [console_scripts]
     uvicorn=uvicorn.main:main
     """,
+    project_urls={
+        "Funding": "https://github.com/sponsors/encode",
+        "Source": "https://github.com/encode/uvicorn",
+        "Changelog": "https://github.com/encode/uvicorn/blob/master/CHANGELOG.md",
+    },
 )

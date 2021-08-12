@@ -7,6 +7,7 @@ import os
 import socket
 import ssl
 import sys
+from pathlib import Path
 from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from uvicorn.logging import TRACE_LOG_LEVEL
@@ -73,8 +74,7 @@ LOOP_SETUPS: Dict[LoopSetupType, Optional[str]] = {
 INTERFACES: List[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
 
 
-# Fallback to 'ssl.PROTOCOL_SSLv23' in order to support Python < 3.5.3.
-SSL_PROTOCOL_VERSION: int = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
+SSL_PROTOCOL_VERSION: int = ssl.PROTOCOL_TLS_SERVER
 
 
 LOGGING_CONFIG: dict = {
@@ -133,6 +133,56 @@ def create_ssl_context(
     return ctx
 
 
+def is_dir(path: Path) -> bool:
+    try:
+        if not path.is_absolute():
+            path = path.resolve()
+        return path.is_dir()
+    except OSError:
+        return False
+
+
+def resolve_reload_patterns(
+    patterns_list: List[str], directories_list: List[str]
+) -> Tuple[List[str], List[Path]]:
+
+    directories: List[Path] = list(set(map(Path, directories_list.copy())))
+    patterns: List[str] = patterns_list.copy()
+
+    current_working_directory = Path.cwd()
+    for pattern in patterns_list:
+        # Special case for the .* pattern, otherwise this would only match
+        # hidden directories which is probably undesired
+        if pattern == ".*":
+            continue
+        patterns.append(pattern)
+        if is_dir(Path(pattern)):
+            directories.append(Path(pattern))
+        else:
+            for match in current_working_directory.glob(pattern):
+                if is_dir(match):
+                    directories.append(match)
+
+    directories = list(set(directories))
+    directories = list(map(Path, directories))
+    directories = list(map(lambda x: x.resolve(), directories))
+    directories = list(
+        set([reload_path for reload_path in directories if is_dir(reload_path)])
+    )
+
+    children = []
+    for j in range(len(directories)):
+        for k in range(j + 1, len(directories)):
+            if directories[j] in directories[k].parents:
+                children.append(directories[k])
+            elif directories[k] in directories[j].parents:
+                children.append(directories[j])
+
+    directories = list(set(directories).difference(set(children)))
+
+    return (list(set(patterns)), directories)
+
+
 class Config:
     def __init__(
         self,
@@ -145,8 +195,8 @@ class Config:
         http: Union[Type[asyncio.Protocol], HTTPProtocolType] = "auto",
         ws: Union[Type[asyncio.Protocol], WSProtocolType] = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
-        ws_ping_interval: int = 20,
-        ws_ping_timeout: int = 20,
+        ws_ping_interval: Optional[float] = 20,
+        ws_ping_timeout: Optional[float] = 20,
         lifespan: LifespanType = "auto",
         env_file: Optional[Union[str, os.PathLike]] = None,
         log_config: Optional[Union[dict, str]] = LOGGING_CONFIG,
@@ -159,6 +209,8 @@ class Config:
         reload: bool = False,
         reload_dirs: Optional[Union[List[str], str]] = None,
         reload_delay: Optional[float] = None,
+        reload_includes: Optional[Union[List[str], str]] = None,
+        reload_excludes: Optional[Union[List[str], str]] = None,
         workers: Optional[int] = None,
         proxy_headers: bool = True,
         server_header: bool = True,
@@ -228,13 +280,62 @@ class Config:
         self.loaded = False
         self.configure_logging()
 
-        if reload_dirs is None:
-            self.reload_dirs = [os.getcwd()]
-        else:
-            if isinstance(reload_dirs, str):
-                self.reload_dirs = [reload_dirs]
-            else:
-                self.reload_dirs = reload_dirs
+        self.reload_dirs: List[Path] = []
+        self.reload_dirs_excludes: List[Path] = []
+        self.reload_includes: List[str] = []
+        self.reload_excludes: List[str] = []
+
+        if (
+            reload_dirs or reload_includes or reload_excludes
+        ) and not self.should_reload:
+            logger.warning(
+                "Current configuration will not reload as not all conditions are met,"
+                "please refer to documentation."
+            )
+
+        if self.should_reload:
+            reload_dirs = list(set(reload_dirs)) if reload_dirs else []
+            reload_includes = list(set(reload_includes)) if reload_includes else []
+            reload_excludes = list(set(reload_excludes)) if reload_excludes else []
+
+            self.reload_includes, self.reload_dirs = resolve_reload_patterns(
+                reload_includes, reload_dirs
+            )
+
+            self.reload_excludes, self.reload_dirs_excludes = resolve_reload_patterns(
+                reload_excludes, []
+            )
+
+            reload_dirs_tmp = self.reload_dirs.copy()
+
+            for directory in self.reload_dirs_excludes:
+                for reload_directory in reload_dirs_tmp:
+                    if (
+                        directory == reload_directory
+                        or directory in reload_directory.parents
+                    ):
+                        try:
+                            self.reload_dirs.remove(reload_directory)
+                        except ValueError:
+                            pass
+
+            for pattern in self.reload_excludes:
+                if pattern in self.reload_includes:
+                    self.reload_includes.remove(pattern)
+
+            if not self.reload_dirs:
+                if reload_dirs:
+                    logger.warning(
+                        "Provided reload directories %s did not contain valid "
+                        + "directories, watching current working directory.",
+                        reload_dirs,
+                    )
+                self.reload_dirs = [Path(os.getcwd())]
+
+            logger.info(
+                "Will watch for changes in these directories: %s",
+                sorted(list(map(str, self.reload_dirs))),
+            )
 
         if env_file is not None:
             from dotenv import load_dotenv
