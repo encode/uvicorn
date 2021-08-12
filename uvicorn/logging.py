@@ -7,7 +7,7 @@ from copy import copy
 from typing import Optional
 
 import click
-from asgiref.typing import HTTPResponseStartEvent, WWWScope
+from asgiref.typing import HTTPResponseStartEvent, HTTPScope
 
 from uvicorn.protocols.utils import get_client_addr, get_path_with_query_string
 
@@ -117,7 +117,7 @@ class AccessFormatter(ColourizedFormatter):
 class AccessLogFields(dict):
     def __init__(
         self,
-        scope: WWWScope,
+        scope: HTTPScope,
         response: HTTPResponseStartEvent,
         request_time: float,
     ) -> None:
