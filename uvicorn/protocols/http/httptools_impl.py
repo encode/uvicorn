@@ -17,13 +17,7 @@ from uvicorn.protocols.http.flow_control import (
     FlowControl,
     service_unavailable,
 )
-from uvicorn.protocols.utils import (
-    get_client_addr,
-    get_local_addr,
-    get_path_with_query_string,
-    get_remote_addr,
-    is_ssl,
-)
+from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")
