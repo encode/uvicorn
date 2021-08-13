@@ -11,6 +11,7 @@
 - Add existence check to the reload directory(ies) (#1089) 21/06/21
 - Add missing trace log for websocket protocols (#1083) 19/06/21
 - Support disabling default Server and Date headers (#818) 11/06/21
+- Add Python 3.10rc1 support. Now the server uses `asyncio.run` which will: start a fresh asyncio eventloop, on shutdown cancel any background tasks rather than aborting them, `aexit(` any remaining async generators, and shutdown the default `ThreadPoolExecutor`. (#1070) 30/07/21
 
 ### Changed
 
