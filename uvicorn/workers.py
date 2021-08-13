@@ -72,7 +72,7 @@ class UvicornWorker(Worker):
         for s in self.SIGNALS:
             signal.signal(s, signal.SIG_DFL)
 
-    async def _serve():
+    async def _serve(self):
         self.config.app = self.wsgi
         server = Server(config=self.config)
         await server.serve(sockets=self.sockets)
