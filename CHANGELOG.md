@@ -1,17 +1,17 @@
 # Change Log
 
-## 0.15.0 - 2021-08-11
+## 0.15.0 - 2021-08-13
 
 ### Added
 
 - Change reload to be configurable with glob patterns. Currently only `.py` files are watched, which is different from the previous default behavior. (#820) 08/08/21
+- Add Python 3.10-rc.1 support. Now the server uses `asyncio.run` which will: start a fresh asyncio event loop, on shutdown cancel any background tasks rather than aborting them, `aexit` any remaining async generators, and shutdown the default `ThreadPoolExecutor`. (#1070) 30/07/21
 - Exit with status 3 when worker starts failed (#1077) 22/06/21
 - Add option to set websocket ping interval and timeout (#1048) 09/06/21
 - Adapt bind_socket to make it usable with multiple processes (#1009) 21/06/21
 - Add existence check to the reload directory(ies) (#1089) 21/06/21
 - Add missing trace log for websocket protocols (#1083) 19/06/21
 - Support disabling default Server and Date headers (#818) 11/06/21
-- Add Python 3.10rc1 support. Now the server uses `asyncio.run` which will: start a fresh asyncio eventloop, on shutdown cancel any background tasks rather than aborting them, `aexit(` any remaining async generators, and shutdown the default `ThreadPoolExecutor`. (#1070) 30/07/21
 
 ### Changed
 
