@@ -30,4 +30,4 @@ mkdocs>=1.2.2
 mkdocs-material
 
 # py3.10 workarounds
-https://github.com/aaugustin/websockets/archive/4e1dac362a3639b9cf0e5bcf382601e6e32cfede.tar.gz#egg=websockets; python_version >= '3.10'
+https://github.com/aaugustin/websockets/archive/6edb363af07365867b4c372405b6ab3177a57830.tar.gz#egg=websockets; python_version >= '3.10'
