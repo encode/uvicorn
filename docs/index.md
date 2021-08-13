@@ -110,6 +110,13 @@ Options:
   --reload                        Enable auto-reload.
   --reload-dir PATH               Set reload directories explicitly, instead
                                   of using the current working directory.
+  --reload-include TEXT           Set glob patterns to include while watching
+                                  for files. Includes '*.py' by default, which
+                                  can be overridden in reload-excludes.
+  --reload-exclude TEXT           Set glob patterns to exclude while watching
+                                  for files. Includes '.*, .py[cod], .sw.*,
+                                  ~*' by default, which can be overridden in
+                                  reload-excludes.
   --reload-delay FLOAT            Delay between previous and next check if
                                   application needs to be. Defaults to 0.25s.
                                   [default: 0.25]
@@ -165,7 +172,7 @@ Options:
   --ssl-certfile TEXT             SSL certificate file
   --ssl-keyfile-password TEXT     SSL keyfile password
   --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
-                                  [default: 2]
+                                  [default: 17]
   --ssl-cert-reqs INTEGER         Whether client certificate is required (see
                                   stdlib ssl module's)  [default: 0]
   --ssl-ca-certs TEXT             CA certificates file

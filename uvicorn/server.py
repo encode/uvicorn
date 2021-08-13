@@ -9,16 +9,20 @@ import threading
 import time
 from email.utils import formatdate
 from types import FrameType
-from typing import Any, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Set, Tuple, Union
 
 import click
 
 from uvicorn._handlers.http import handle_http
 from uvicorn.config import Config
-from uvicorn.protocols.http.h11_impl import H11Protocol
-from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
-from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
-from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
+
+if TYPE_CHECKING:
+    from uvicorn.protocols.http.h11_impl import H11Protocol
+    from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
+    from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
+
+    Protocols = Union[H11Protocol, HttpToolsProtocol, WSProtocol, WebSocketProtocol]
 
 if sys.platform != "win32":
     from asyncio import start_unix_server as _start_unix_server
@@ -35,8 +39,6 @@ HANDLED_SIGNALS = (
 
 logger = logging.getLogger("uvicorn.error")
 
-Protocols = Union[H11Protocol, HttpToolsProtocol, WSProtocol, WebSocketProtocol]
-
 
 class ServerState:
     """
@@ -45,7 +47,7 @@ class ServerState:
 
     def __init__(self) -> None:
         self.total_requests = 0
-        self.connections: Set[Protocols] = set()
+        self.connections: Set["Protocols"] = set()
         self.tasks: Set[asyncio.Task] = set()
         self.default_headers: List[Tuple[bytes, bytes]] = []
 
@@ -64,8 +66,9 @@ class Server:
         self.config.setup_event_loop()
         if not self.config.loaded:
             self.config.load()
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.serve(sockets=sockets))
+        if sys.version_info >= (3, 7):
+            return asyncio.run(self.serve(sockets=sockets))
+        return asyncio.get_event_loop().run_until_complete(self.serve(sockets=sockets))
 
     async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
         process_id = os.getpid()
