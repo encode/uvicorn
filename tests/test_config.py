@@ -325,18 +325,21 @@ async def test_app_context_factory(caplog: pytest.LogCaptureFixture) -> None:
 
 async def test_app_context(caplog: pytest.LogCaptureFixture) -> None:
     class AsgiApp(typing.AsyncContextManager[ASGIApplication]):
-        async def __call__(self, *args, **kwargs):
-            return asgi_app(*args, **kwargs)
+        async def __call__(
+            self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        ) -> None:
+            pass
 
-        async def __aenter__(self) -> ASGIApplication:
+        async def __aenter__(self) -> "AsgiApp":
             return self
 
         async def __aexit__(self, *exc_info) -> Literal[False]:
             return False
 
-    config = Config(app=AsgiApp(), factory=False, proxy_headers=False)
+    asgi_cmgr_app = AsgiApp()
+    config = Config(app=asgi_cmgr_app, factory=False, proxy_headers=False)
     async with config.app_context():
-        assert config.loaded_app is asgi_app
+        assert config.loaded_app is asgi_cmgr_app
 
 
 async def test_concrete_http_class() -> None:

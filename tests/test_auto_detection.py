@@ -45,15 +45,19 @@ def test_loop_auto():
 async def test_http_auto():
     config = Config(app=app)
     server_state = ServerState()
-    protocol = AutoHTTPProtocol(config=config, server_state=server_state)
-    expected_http = "H11Protocol" if httptools is None else "HttpToolsProtocol"
-    assert type(protocol).__name__ == expected_http
+    async with config.app_context():
+        protocol = AutoHTTPProtocol(config=config, server_state=server_state)
+        expected_http = "H11Protocol" if httptools is None else "HttpToolsProtocol"
+        assert type(protocol).__name__ == expected_http
 
 
 @pytest.mark.asyncio
 async def test_websocket_auto():
     config = Config(app=app)
     server_state = ServerState()
-    protocol = AutoWebSocketsProtocol(config=config, server_state=server_state)
-    expected_websockets = "WSProtocol" if websockets is None else "WebSocketProtocol"
-    assert type(protocol).__name__ == expected_websockets
+    async with config.app_context():
+        protocol = AutoWebSocketsProtocol(config=config, server_state=server_state)
+        expected_websockets = (
+            "WSProtocol" if websockets is None else "WebSocketProtocol"
+        )
+        assert type(protocol).__name__ == expected_websockets

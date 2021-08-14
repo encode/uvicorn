@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import logging
+import sys
 
 import pytest
 
@@ -169,20 +170,57 @@ class MockTask:
         pass
 
 
+def run_non_trapping_async_fn(*async_fn_args, **kwargs):
+    async_fn, *args = async_fn_args
+    with contextlib.closing(async_fn(*args, **kwargs).__await__()) as gen:
+        try:
+            gen.send(None)
+            raise AssertionError(f"{async_fn} did not stop")
+        except StopIteration as e:
+            return e.value
+
+
+@contextlib.contextmanager
+def run_non_trapping_asynccontextmanager(*acmgr_fn_args, **kwargs):
+    # https://www.python.org/dev/peps/pep-0343/#specification-the-with-statement
+    acmgr_fn, *args = acmgr_fn_args
+
+    mgr = acmgr_fn(*args, **kwargs)
+    aexit = type(mgr).__aexit__  # Not calling it yet
+    value = run_non_trapping_async_fn(type(mgr).__aenter__, mgr)
+    exc = True
+    try:
+        try:
+            VAR = value  # Only if "as VAR" is present
+            yield VAR
+        except BaseException:
+            # The exceptional case is handled here
+            exc = False
+            if not run_non_trapping_async_fn(aexit, mgr, *sys.exc_info()):
+                raise
+            # The exception is swallowed if exit() returns true
+    finally:
+        # The normal and non-local-goto cases are handled here
+        if exc:
+            run_non_trapping_async_fn(aexit, mgr, None, None, None)
+
+
 @contextlib.contextmanager
 def get_connected_protocol(app, protocol_cls, event_loop, **kwargs):
     loop = MockLoop(event_loop)
     asyncio._set_running_loop(loop)
     transport = MockTransport()
     config = Config(app=app, **kwargs)
-    server_state = ServerState()
-    protocol = protocol_cls(config=config, server_state=server_state, _loop=loop)
-    protocol.connection_made(transport)
-    try:
-        yield protocol
-    finally:
-        protocol.loop.close()
-        asyncio._set_running_loop(None)
+    with run_non_trapping_asynccontextmanager(config.app_context):
+
+        server_state = ServerState()
+        protocol = protocol_cls(config=config, server_state=server_state, _loop=loop)
+        protocol.connection_made(transport)
+        try:
+            yield protocol
+        finally:
+            protocol.loop.close()
+            asyncio._set_running_loop(None)
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
