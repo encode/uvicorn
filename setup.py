@@ -49,7 +49,8 @@ minimal_requirements = [
     "click>=7.0",
     "h11>=0.8",
     "typing-extensions;" + env_marker_below_38,
-    "contextlib2;" + env_marker_below_310,
+    # contextlib2.nullcontext().__aenter__/__aexit__
+    "contextlib2 >= 21.6.0;" + env_marker_below_310,
 ]
 
 
