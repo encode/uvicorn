@@ -8,6 +8,11 @@ from copy import deepcopy
 from pathlib import Path
 from unittest.mock import MagicMock
 
+if sys.version_info >= (3, 7):
+    from contextlib import asynccontextmanager
+else:
+    from contextlib2 import asynccontextmanager
+
 if sys.version_info < (3, 8):
     from typing_extensions import Literal
 else:
@@ -57,12 +62,14 @@ def wsgi_app(environ: Environ, start_response: StartResponse) -> None:
     pass  # pragma: nocover
 
 
-def test_debug_app() -> None:
-    config = Config(app=asgi_app, debug=True, proxy_headers=False)
-    config.load()
+pytestmark = pytest.mark.asyncio
 
-    assert config.debug is True
-    assert isinstance(config.loaded_app, DebugMiddleware)
+
+async def test_debug_app() -> None:
+    config = Config(app=asgi_app, debug=True, proxy_headers=False)
+    async with config.app_context():
+        assert config.debug is True
+        assert isinstance(config.loaded_app, DebugMiddleware)
 
 
 @pytest.mark.parametrize(
@@ -232,33 +239,34 @@ def test_reload_includes_exclude_dir_patterns_are_matched(
             assert config.reload_includes == ["*/src"]
 
 
-def test_wsgi_app() -> None:
+async def test_wsgi_app() -> None:
     config = Config(app=wsgi_app, interface="wsgi", proxy_headers=False)
-    config.load()
+    async with config.app_context():
+        assert isinstance(config.loaded_app, WSGIMiddleware)
+        assert config.interface == "wsgi"
+        assert config.asgi_version == "3.0"
 
-    assert isinstance(config.loaded_app, WSGIMiddleware)
-    assert config.interface == "wsgi"
-    assert config.asgi_version == "3.0"
 
-
-def test_proxy_headers() -> None:
+async def test_proxy_headers() -> None:
     config = Config(app=asgi_app)
-    config.load()
+    async with config.app_context():
 
-    assert config.proxy_headers is True
-    assert isinstance(config.loaded_app, ProxyHeadersMiddleware)
+        assert config.proxy_headers is True
+        assert isinstance(config.loaded_app, ProxyHeadersMiddleware)
 
 
-def test_app_unimportable_module() -> None:
+async def test_app_unimportable_module() -> None:
     config = Config(app="no.such:app")
     with pytest.raises(ImportError):
-        config.load()
+        async with config.app_context():
+            pass
 
 
-def test_app_unimportable_other(caplog: pytest.LogCaptureFixture) -> None:
+async def test_app_unimportable_other(caplog: pytest.LogCaptureFixture) -> None:
     config = Config(app="tests.test_config:app")
     with pytest.raises(SystemExit):
-        config.load()
+        async with config.app_context():
+            pass
     error_messages = [
         record.message
         for record in caplog.records
@@ -270,45 +278,82 @@ def test_app_unimportable_other(caplog: pytest.LogCaptureFixture) -> None:
     )
 
 
-def test_app_factory(caplog: pytest.LogCaptureFixture) -> None:
+async def test_app_factory(caplog: pytest.LogCaptureFixture) -> None:
     def create_app() -> ASGIApplication:
         return asgi_app
 
     config = Config(app=create_app, factory=True, proxy_headers=False)
-    config.load()
-    assert config.loaded_app is asgi_app
+    async with config.app_context():
+        assert config.loaded_app is asgi_app
 
-    # Flag not passed. In this case, successfully load the app, but issue a warning
-    # to indicate that an explicit flag is preferred.
-    caplog.clear()
-    config = Config(app=create_app, proxy_headers=False)
-    with caplog.at_level(logging.WARNING):
-        config.load()
-    assert config.loaded_app is asgi_app
-    assert len(caplog.records) == 1
-    assert "--factory" in caplog.records[0].message
+        # Flag not passed. In this case, successfully load the app, but issue a warning
+        # to indicate that an explicit flag is preferred.
+        caplog.clear()
+        config = Config(app=create_app, proxy_headers=False)
+        with caplog.at_level(logging.WARNING):
+            async with config.app_context():
+                assert config.loaded_app is asgi_app
+                assert len(caplog.records) == 1
+                assert "--factory" in caplog.records[0].message
 
     # App not a no-arguments callable.
     config = Config(app=asgi_app, factory=True)
     with pytest.raises(SystemExit):
-        config.load()
+        async with config.app_context():
+            pass
 
 
-def test_concrete_http_class() -> None:
+async def test_app_context_factory(caplog: pytest.LogCaptureFixture) -> None:
+    @asynccontextmanager
+    async def create_app() -> typing.AsyncGenerator[ASGIApplication, None]:
+        yield asgi_app
+
+    config = Config(app=create_app, factory=True, proxy_headers=False)
+    async with config.app_context():
+        assert config.loaded_app is asgi_app
+
+        # Flag not passed. In this case, successfully load the app, but issue a warning
+        # to indicate that an explicit flag is preferred.
+        caplog.clear()
+        config = Config(app=create_app, proxy_headers=False)
+        with caplog.at_level(logging.WARNING):
+            async with config.app_context():
+                assert config.loaded_app is asgi_app
+                assert len(caplog.records) == 1
+                assert "--factory" in caplog.records[0].message
+
+
+async def test_app_context(caplog: pytest.LogCaptureFixture) -> None:
+    class AsgiApp(typing.AsyncContextManager[ASGIApplication]):
+        async def __call__(self, *args, **kwargs):
+            return asgi_app(*args, **kwargs)
+
+        async def __aenter__(self) -> ASGIApplication:
+            return self
+
+        async def __aexit__(self, *exc_info) -> Literal[False]:
+            return False
+
+    config = Config(app=AsgiApp(), factory=False, proxy_headers=False)
+    async with config.app_context():
+        assert config.loaded_app is asgi_app
+
+
+async def test_concrete_http_class() -> None:
     config = Config(app=asgi_app, http=H11Protocol)
-    config.load()
-    assert config.http_protocol_class is H11Protocol
+    async with config.app_context():
+        assert config.http_protocol_class is H11Protocol
 
 
-def test_socket_bind() -> None:
+async def test_socket_bind() -> None:
     config = Config(app=asgi_app)
-    config.load()
-    sock = config.bind_socket()
-    assert isinstance(sock, socket.socket)
-    sock.close()
+    async with config.app_context():
+        sock = config.bind_socket()
+        assert isinstance(sock, socket.socket)
+        sock.close()
 
 
-def test_ssl_config(
+async def test_ssl_config(
     tls_ca_certificate_pem_path: str,
     tls_ca_certificate_private_key_path: str,
 ) -> None:
@@ -317,19 +362,19 @@ def test_ssl_config(
         ssl_certfile=tls_ca_certificate_pem_path,
         ssl_keyfile=tls_ca_certificate_private_key_path,
     )
-    config.load()
+    async with config.app_context():
 
-    assert config.is_ssl is True
+        assert config.is_ssl is True
 
 
-def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
+async def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
     config = Config(
         app=asgi_app,
         ssl_certfile=tls_certificate_key_and_chain_path,
     )
-    config.load()
+    async with config.app_context():
 
-    assert config.is_ssl is True
+        assert config.is_ssl is True
 
 
 def asgi2_app(scope: Scope) -> typing.Callable:
@@ -344,12 +389,12 @@ def asgi2_app(scope: Scope) -> typing.Callable:
 @pytest.mark.parametrize(
     "app, expected_interface", [(asgi_app, "3.0"), (asgi2_app, "2.0")]
 )
-def test_asgi_version(
+async def test_asgi_version(
     app: ASGIApplication, expected_interface: Literal["2.0", "3.0"]
 ) -> None:
     config = Config(app=app)
-    config.load()
-    assert config.asgi_version == expected_interface
+    async with config.app_context():
+        assert config.asgi_version == expected_interface
 
 
 @pytest.mark.parametrize(
@@ -361,7 +406,7 @@ def test_asgi_version(
         pytest.param(False, False, id="use_colors_disabled"),
     ],
 )
-def test_log_config_default(
+async def test_log_config_default(
     mocked_logging_config_module: MagicMock,
     use_colors: typing.Optional[bool],
     expected: typing.Optional[bool],
@@ -371,15 +416,15 @@ def test_log_config_default(
     config.
     """
     config = Config(app=asgi_app, use_colors=use_colors)
-    config.load()
+    async with config.app_context():
 
-    mocked_logging_config_module.dictConfig.assert_called_once_with(LOGGING_CONFIG)
+        mocked_logging_config_module.dictConfig.assert_called_once_with(LOGGING_CONFIG)
 
-    (provided_dict_config,), _ = mocked_logging_config_module.dictConfig.call_args
-    assert provided_dict_config["formatters"]["default"]["use_colors"] == expected
+        (provided_dict_config,), _ = mocked_logging_config_module.dictConfig.call_args
+        assert provided_dict_config["formatters"]["default"]["use_colors"] == expected
 
 
-def test_log_config_json(
+async def test_log_config_json(
     mocked_logging_config_module: MagicMock,
     logging_config: dict,
     json_logging_config: str,
@@ -393,14 +438,14 @@ def test_log_config_json(
     )
 
     config = Config(app=asgi_app, log_config="log_config.json")
-    config.load()
+    async with config.app_context():
 
-    mocked_open.assert_called_once_with("log_config.json")
-    mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
+        mocked_open.assert_called_once_with("log_config.json")
+        mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
 
 
 @pytest.mark.parametrize("config_filename", ["log_config.yml", "log_config.yaml"])
-def test_log_config_yaml(
+async def test_log_config_yaml(
     mocked_logging_config_module: MagicMock,
     logging_config: dict,
     yaml_logging_config: str,
@@ -415,22 +460,22 @@ def test_log_config_yaml(
     )
 
     config = Config(app=asgi_app, log_config=config_filename)
-    config.load()
+    async with config.app_context():
 
-    mocked_open.assert_called_once_with(config_filename)
-    mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
+        mocked_open.assert_called_once_with(config_filename)
+        mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
 
 
-def test_log_config_file(mocked_logging_config_module: MagicMock) -> None:
+async def test_log_config_file(mocked_logging_config_module: MagicMock) -> None:
     """
     Test that one can load a configparser config from disk.
     """
     config = Config(app=asgi_app, log_config="log_config")
-    config.load()
 
-    mocked_logging_config_module.fileConfig.assert_called_once_with(
-        "log_config", disable_existing_loggers=False
-    )
+    async with config.app_context():
+        mocked_logging_config_module.fileConfig.assert_called_once_with(
+            "log_config", disable_existing_loggers=False
+        )
 
 
 @pytest.fixture(params=[0, 1])
@@ -447,7 +492,7 @@ def forwarded_allow_ips(request: pytest.FixtureRequest) -> typing.Iterator[str]:
         del os.environ["FORWARDED_ALLOW_IPS"]
 
 
-def test_env_file(
+async def test_env_file(
     web_concurrency: int,
     forwarded_allow_ips: str,
     caplog: pytest.LogCaptureFixture,
@@ -464,12 +509,12 @@ def test_env_file(
     fp.write_text(content)
     with caplog.at_level(logging.INFO):
         config = Config(app=asgi_app, env_file=fp)
-        config.load()
+        async with config.app_context():
 
-    assert config.workers == int(str(os.getenv("WEB_CONCURRENCY")))
-    assert config.forwarded_allow_ips == os.getenv("FORWARDED_ALLOW_IPS")
-    assert len(caplog.records) == 1
-    assert f"Loading environment from '{fp}'" in caplog.records[0].message
+            assert config.workers == int(str(os.getenv("WEB_CONCURRENCY")))
+            assert config.forwarded_allow_ips == os.getenv("FORWARDED_ALLOW_IPS")
+            assert len(caplog.records) == 1
+            assert f"Loading environment from '{fp}'" in caplog.records[0].message
 
 
 @pytest.mark.parametrize(
@@ -479,29 +524,28 @@ def test_env_file(
         pytest.param(False, 0, id="access log disabled shouldn't have handlers"),
     ],
 )
-def test_config_access_log(access_log: bool, handlers: int) -> None:
+async def test_config_access_log(access_log: bool, handlers: int) -> None:
     config = Config(app=asgi_app, access_log=access_log)
-    config.load()
-
-    assert len(logging.getLogger("uvicorn.access").handlers) == handlers
-    assert config.access_log == access_log
+    async with config.app_context():
+        assert len(logging.getLogger("uvicorn.access").handlers) == handlers
+        assert config.access_log == access_log
 
 
 @pytest.mark.parametrize("log_level", [5, 10, 20, 30, 40, 50])
-def test_config_log_level(log_level: int) -> None:
+async def test_config_log_level(log_level: int) -> None:
     config = Config(app=asgi_app, log_level=log_level)
-    config.load()
+    async with config.app_context():
 
-    assert logging.getLogger("uvicorn.error").level == log_level
-    assert logging.getLogger("uvicorn.access").level == log_level
-    assert logging.getLogger("uvicorn.asgi").level == log_level
-    assert config.log_level == log_level
+        assert logging.getLogger("uvicorn.error").level == log_level
+        assert logging.getLogger("uvicorn.access").level == log_level
+        assert logging.getLogger("uvicorn.asgi").level == log_level
+        assert config.log_level == log_level
 
 
-def test_ws_max_size() -> None:
+async def test_ws_max_size() -> None:
     config = Config(app=asgi_app, ws_max_size=1000)
-    config.load()
-    assert config.ws_max_size == 1000
+    async with config.app_context():
+        assert config.ws_max_size == 1000
 
 
 @pytest.mark.parametrize(
@@ -513,17 +557,17 @@ def test_ws_max_size() -> None:
     ids=["--reload=True --workers=1", "--reload=False --workers=2"],
 )
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
-def test_bind_unix_socket_works_with_reload_or_workers(tmp_path, reload, workers):
+async def test_bind_unix_socket_works_with_reload_or_workers(tmp_path, reload, workers):
     uds_file = tmp_path / "uvicorn.sock"
     config = Config(
         app=asgi_app, uds=uds_file.as_posix(), reload=reload, workers=workers
     )
-    config.load()
-    sock = config.bind_socket()
-    assert isinstance(sock, socket.socket)
-    assert sock.family == socket.AF_UNIX
-    assert sock.getsockname() == uds_file.as_posix()
-    sock.close()
+    async with config.app_context():
+        sock = config.bind_socket()
+        assert isinstance(sock, socket.socket)
+        assert sock.family == socket.AF_UNIX
+        assert sock.getsockname() == uds_file.as_posix()
+        sock.close()
 
 
 @pytest.mark.parametrize(
@@ -535,14 +579,14 @@ def test_bind_unix_socket_works_with_reload_or_workers(tmp_path, reload, workers
     ids=["--reload=True --workers=1", "--reload=False --workers=2"],
 )
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
-def test_bind_fd_works_with_reload_or_workers(reload, workers):
+async def test_bind_fd_works_with_reload_or_workers(reload, workers):
     fdsock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     fd = fdsock.fileno()
     config = Config(app=asgi_app, fd=fd, reload=reload, workers=workers)
-    config.load()
-    sock = config.bind_socket()
-    assert isinstance(sock, socket.socket)
-    assert sock.family == socket.AF_UNIX
-    assert sock.getsockname() == ""
-    sock.close()
-    fdsock.close()
+    async with config.app_context():
+        sock = config.bind_socket()
+        assert isinstance(sock, socket.socket)
+        assert sock.family == socket.AF_UNIX
+        assert sock.getsockname() == ""
+        sock.close()
+        fdsock.close()

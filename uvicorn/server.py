@@ -72,26 +72,28 @@ class Server:
         process_id = os.getpid()
 
         config = self.config
-        if not config.loaded:
-            config.load()
+        async with self.config.app_context():
+            self.lifespan = config.lifespan_class(config)
 
-        self.lifespan = config.lifespan_class(config)
+            self.install_signal_handlers()
 
-        self.install_signal_handlers()
+            message = "Started server process [%d]"
+            color_message = (
+                "Started server process [" + click.style("%d", fg="cyan") + "]"
+            )
+            logger.info(message, process_id, extra={"color_message": color_message})
 
-        message = "Started server process [%d]"
-        color_message = "Started server process [" + click.style("%d", fg="cyan") + "]"
-        logger.info(message, process_id, extra={"color_message": color_message})
+            await self.startup(sockets=sockets)
+            if self.should_exit:
+                return
+            await self.main_loop()
+            await self.shutdown(sockets=sockets)
 
-        await self.startup(sockets=sockets)
-        if self.should_exit:
-            return
-        await self.main_loop()
-        await self.shutdown(sockets=sockets)
-
-        message = "Finished server process [%d]"
-        color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
-        logger.info(message, process_id, extra={"color_message": color_message})
+            message = "Finished server process [%d]"
+            color_message = (
+                "Finished server process [" + click.style("%d", fg="cyan") + "]"
+            )
+            logger.info(message, process_id, extra={"color_message": color_message})
 
     async def startup(self, sockets: list = None) -> None:
         await self.lifespan.startup()
