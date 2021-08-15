@@ -175,9 +175,10 @@ def run_non_trapping_async_fn(*async_fn_args, **kwargs):
     with contextlib.closing(async_fn(*args, **kwargs).__await__()) as gen:
         try:
             gen.send(None)
-            raise AssertionError(f"{async_fn} did not stop")
         except StopIteration as e:
             return e.value
+        else:
+            raise AssertionError(f"{async_fn} did not stop")
 
 
 @contextlib.contextmanager
