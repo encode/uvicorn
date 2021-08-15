@@ -1,12 +1,13 @@
 import asyncio
 import os
+import sys
 from contextlib import contextmanager
 from pathlib import Path
 
-try:
+if sys.version_info >= (3, 7):
     from contextlib import asynccontextmanager
-except ImportError:  # pragma: no cover
-    from async_generator import asynccontextmanager
+else:
+    from contextlib2 import asynccontextmanager
 
 from uvicorn import Config, Server
 
