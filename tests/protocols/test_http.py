@@ -185,6 +185,12 @@ def get_connected_protocol(app, protocol_cls, event_loop, **kwargs):
         asyncio._set_running_loop(None)
 
 
+@pytest.fixture
+def event_loop():
+    with contextlib.closing(asyncio.new_event_loop()) as loop:
+        yield loop
+
+
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_get_request(protocol_cls, event_loop):
     app = Response("Hello, world", media_type="text/plain")
