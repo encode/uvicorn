@@ -44,7 +44,7 @@ class WebSocketResponse:
                 break
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_invalid_upgrade(ws_protocol_cls, http_protocol_cls):
@@ -79,7 +79,7 @@ async def test_invalid_upgrade(ws_protocol_cls, http_protocol_cls):
             ]
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_accept_connection(ws_protocol_cls, http_protocol_cls):
@@ -97,7 +97,7 @@ async def test_accept_connection(ws_protocol_cls, http_protocol_cls):
         assert is_open
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_supports_permessage_deflate_extension(
@@ -118,7 +118,7 @@ async def test_supports_permessage_deflate_extension(
         assert "permessage-deflate" in extension_names
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_close_connection(ws_protocol_cls, http_protocol_cls):
@@ -139,7 +139,7 @@ async def test_close_connection(ws_protocol_cls, http_protocol_cls):
         assert not is_open
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_headers(ws_protocol_cls, http_protocol_cls):
@@ -160,7 +160,7 @@ async def test_headers(ws_protocol_cls, http_protocol_cls):
         assert is_open
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_path_and_raw_path(ws_protocol_cls, http_protocol_cls):
@@ -182,7 +182,7 @@ async def test_path_and_raw_path(ws_protocol_cls, http_protocol_cls):
         assert is_open
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_text_data_to_client(ws_protocol_cls, http_protocol_cls):
@@ -201,7 +201,7 @@ async def test_send_text_data_to_client(ws_protocol_cls, http_protocol_cls):
         assert data == "123"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_binary_data_to_client(ws_protocol_cls, http_protocol_cls):
@@ -220,7 +220,7 @@ async def test_send_binary_data_to_client(ws_protocol_cls, http_protocol_cls):
         assert data == b"123"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_and_close_connection(ws_protocol_cls, http_protocol_cls):
@@ -247,7 +247,7 @@ async def test_send_and_close_connection(ws_protocol_cls, http_protocol_cls):
         assert not is_open
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_text_data_to_server(ws_protocol_cls, http_protocol_cls):
@@ -270,7 +270,7 @@ async def test_send_text_data_to_server(ws_protocol_cls, http_protocol_cls):
         assert data == "abc"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_binary_data_to_server(ws_protocol_cls, http_protocol_cls):
@@ -293,7 +293,7 @@ async def test_send_binary_data_to_server(ws_protocol_cls, http_protocol_cls):
         assert data == b"abc"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_after_protocol_close(ws_protocol_cls, http_protocol_cls):
@@ -322,7 +322,7 @@ async def test_send_after_protocol_close(ws_protocol_cls, http_protocol_cls):
         assert not is_open
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_missing_handshake(ws_protocol_cls, http_protocol_cls):
@@ -339,7 +339,7 @@ async def test_missing_handshake(ws_protocol_cls, http_protocol_cls):
         assert exc_info.value.status_code == 500
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_before_handshake(ws_protocol_cls, http_protocol_cls):
@@ -356,7 +356,7 @@ async def test_send_before_handshake(ws_protocol_cls, http_protocol_cls):
         assert exc_info.value.status_code == 500
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_duplicate_handshake(ws_protocol_cls, http_protocol_cls):
@@ -375,7 +375,7 @@ async def test_duplicate_handshake(ws_protocol_cls, http_protocol_cls):
         assert exc_info.value.code == 1006
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_asgi_return_value(ws_protocol_cls, http_protocol_cls):
@@ -399,7 +399,7 @@ async def test_asgi_return_value(ws_protocol_cls, http_protocol_cls):
         assert exc_info.value.code == 1006
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 @pytest.mark.parametrize("code", [None, 1000, 1001])
@@ -437,7 +437,7 @@ async def test_app_close(ws_protocol_cls, http_protocol_cls, code, reason):
         assert exc_info.value.reason == (reason or "")
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_client_close(ws_protocol_cls, http_protocol_cls):
@@ -461,7 +461,7 @@ async def test_client_close(ws_protocol_cls, http_protocol_cls):
         await websocket_session("ws://127.0.0.1:8000")
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 @pytest.mark.parametrize("subprotocol", ["proto1", "proto2"])
@@ -486,7 +486,7 @@ MAX_WS_BYTES = 1024 * 1024 * 16
 MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", ONLY_WEBSOCKETPROTOCOL)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 @pytest.mark.parametrize(

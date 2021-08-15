@@ -1,4 +1,5 @@
 import ssl
+from typing import Dict, Tuple
 
 import pytest
 import trustme
@@ -128,3 +129,8 @@ def reload_directory_structure(tmp_path_factory: pytest.TempPathFactory):
     ext_file.touch()
 
     yield root
+
+
+@pytest.fixture
+def anyio_backend() -> Tuple[str, Dict[str, object]]:
+    return ("asyncio", {})

@@ -11,7 +11,7 @@ async def app(scope, receive, send):
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_return_close_header():
     config = Config(app=app, host="localhost", loop="asyncio", limit_max_requests=1)
     async with run_server(config):
@@ -26,7 +26,7 @@ async def test_return_close_header():
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     "host, url",
     [
@@ -43,7 +43,7 @@ async def test_run(host, url):
     assert response.status_code == 204
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_run_multiprocess():
     config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
     async with run_server(config):
@@ -52,7 +52,7 @@ async def test_run_multiprocess():
     assert response.status_code == 204
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_run_reload():
     config = Config(app=app, loop="asyncio", reload=True, limit_max_requests=1)
     async with run_server(config):

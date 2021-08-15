@@ -27,7 +27,7 @@ async def app(scope, receive, send):
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_trace_logging(caplog):
     config = Config(app=app, log_level="trace")
     with caplog_for_logger(caplog, "uvicorn.asgi"):
@@ -46,7 +46,7 @@ async def test_trace_logging(caplog):
         assert "ASGI [2] Completed" in messages.pop(0)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
 async def test_trace_logging_on_http_protocol(http_protocol, caplog):
     config = Config(app=app, log_level="trace", http=http_protocol)
@@ -64,7 +64,7 @@ async def test_trace_logging_on_http_protocol(http_protocol, caplog):
         assert any(" - HTTP connection lost" in message for message in messages)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol", [("websockets"), ("wsproto")])
 async def test_trace_logging_on_ws_protocol(ws_protocol, caplog):
     async def websocket_app(scope, receive, send):
@@ -95,7 +95,7 @@ async def test_trace_logging_on_ws_protocol(ws_protocol, caplog):
         assert any(" - WebSocket connection lost" in message for message in messages)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("use_colors", [(True), (False), (None)])
 async def test_access_logging(use_colors, caplog):
     config = Config(app=app, use_colors=use_colors)
@@ -113,7 +113,7 @@ async def test_access_logging(use_colors, caplog):
         assert '"GET / HTTP/1.1" 204' in messages.pop()
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("use_colors", [(True), (False)])
 async def test_default_logging(use_colors, caplog):
     config = Config(app=app, use_colors=use_colors)
@@ -134,7 +134,7 @@ async def test_default_logging(use_colors, caplog):
         assert "Shutting down" in messages.pop(0)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_unknown_status_code(caplog):
     async def app(scope, receive, send):
         assert scope["type"] == "http"
