@@ -15,4 +15,5 @@ else
     PIP="pip"
 fi
 
+"$PIP" install -r "requirements-pypa.txt"
 "$PIP" install -r "$REQUIREMENTS"
