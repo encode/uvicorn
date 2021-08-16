@@ -8,9 +8,4 @@ export SOURCE_FILES="uvicorn tests"
 
 set -x
 
-python_version=$(python -c "import platform; print(platform.python_version())")
-system=$(python -c "import platform; print(platform.system())")
-
-if [ ! "$python_version" = "${python_version#3.8}" ] && [ ! "$system" = "${system#Linux}" ]; then
-    ${PREFIX}coverage report --show-missing --skip-covered --fail-under=97
-fi
+${PREFIX}coverage report --show-missing --skip-covered --fail-under=97
