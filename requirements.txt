@@ -31,4 +31,4 @@ mkdocs-material
 # py3.10 workarounds
 https://github.com/aaugustin/websockets/archive/4e1dac362a3639b9cf0e5bcf382601e6e32cfede.tar.gz#egg=websockets; python_version >= '3.10'
 
-anyio @ https://github.com/agronholm/anyio/archive/370dd83d374c406b0cc323e5a863344194c0a354.tar.gz
+anyio @ git+https://github.com/graingert/anyio.git@cancel-all-tasks-exc-group
