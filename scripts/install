@@ -12,8 +12,8 @@ if [ -z "$GITHUB_ACTIONS" ]; then
     "$PYTHON" -m venv "$VENV"
     PIP="$VENV/bin/python -m pip"
 else
-    PIP="python -m pip"
+    PIP="$PYTHON -m pip"
 fi
 
-"$PIP" install -r "requirements-pypa.txt"
-"$PIP" install -r "$REQUIREMENTS"
+$PIP install -r "requirements-pypa.txt"
+$PIP install -r "$REQUIREMENTS"
