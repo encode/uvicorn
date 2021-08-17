@@ -446,7 +446,7 @@ def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
     else:
         server.run()
     if config.uds:
-        os.remove(config.uds)
+        os.remove(config.uds)  # pragma: py-win32
 
 
 if __name__ == "__main__":
