@@ -20,6 +20,7 @@ types-pyyaml
 trustme
 cryptography
 coverage
+coverage-conditional-plugin
 httpx>=0.18.2
 pytest-asyncio==0.14.*
 async_generator; python_version < '3.7'

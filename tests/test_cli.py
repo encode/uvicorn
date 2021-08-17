@@ -86,7 +86,7 @@ def test_cli_call_multiprocess_run() -> None:
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
-def test_cli_uds(tmp_path: Path) -> None:
+def test_cli_uds(tmp_path: Path) -> None:  # pragma: py-win32
     runner = CliRunner()
     uds_file = tmp_path / "uvicorn.sock"
     uds_file.touch(exist_ok=True)
