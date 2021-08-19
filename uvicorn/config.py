@@ -1,5 +1,4 @@
 import asyncio
-import contextlib
 import inspect
 import json
 import logging
@@ -27,6 +26,11 @@ if sys.version_info < (3, 8):
     from typing_extensions import Literal
 else:
     from typing import Literal
+
+if sys.version_info < (3, 7):
+    from contextlib2 import nullcontext
+else:
+    from contextlib import nullcontext
 
 import click
 from asgiref.typing import ASGIApplication
@@ -504,7 +508,7 @@ class Config:
     def setup_event_loop(self) -> ContextManager[None]:
         loop_setup: Optional[Callable] = import_from_string(LOOP_SETUPS[self.loop])
         if loop_setup is None:
-            return contextlib.nullcontext(None)
+            return nullcontext(None)
 
         return loop_setup()
 

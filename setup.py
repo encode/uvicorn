@@ -50,6 +50,7 @@ minimal_requirements = [
     "h11>=0.8",
     "typing-extensions;" + env_marker_below_38,
     "asyncio-backport;" + env_marker_below_37,
+    "contextlib2>=21.6.0;" + env_marker_below_37,
 ]
 
 
