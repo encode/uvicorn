@@ -1,5 +1,5 @@
 """
-This module backports `asyncio.run` to Python 3.6. 
+This module backports `asyncio.run` to Python 3.6.
 You can check the original implementation on:
 https://github.com/python/cpython/blob/3.7/Lib/asyncio/runners.py
 """
