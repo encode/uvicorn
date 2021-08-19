@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import inspect
 import json
 import logging
@@ -8,7 +9,17 @@ import socket
 import ssl
 import sys
 from pathlib import Path
-from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import (
+    Awaitable,
+    Callable,
+    ContextManager,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 from uvicorn.logging import TRACE_LOG_LEVEL
 
@@ -490,10 +501,12 @@ class Config:
 
         self.loaded = True
 
-    def setup_event_loop(self) -> None:
+    def setup_event_loop(self) -> ContextManager[None]:
         loop_setup: Optional[Callable] = import_from_string(LOOP_SETUPS[self.loop])
-        if loop_setup is not None:
-            loop_setup()
+        if loop_setup is None:
+            return contextlib.nullcontext(None)
+
+        return loop_setup()
 
     def bind_socket(self) -> socket.socket:
         logger_args: List[Union[str, int]]

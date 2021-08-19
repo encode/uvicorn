@@ -65,8 +65,8 @@ class Server:
         self.last_notified = 0.0
 
     def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
-        self.config.setup_event_loop()
-        return _compat.run(self.serve(sockets=sockets))
+        with self.config.setup_event_loop():
+            return _compat.run(self.serve(sockets=sockets))
 
     async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
         process_id = os.getpid()

@@ -34,11 +34,13 @@ async def app(scope, receive, send):
 
 
 def test_loop_auto():
-    auto_loop_setup()
-    policy = asyncio.get_event_loop_policy()
-    assert isinstance(policy, asyncio.events.BaseDefaultEventLoopPolicy)
-    expected_loop = "asyncio" if uvloop is None else "uvloop"
-    assert type(policy).__module__.startswith(expected_loop)
+    old_policy = asyncio.get_event_loop_policy()
+    with auto_loop_setup():
+        policy = asyncio.get_event_loop_policy()
+        assert isinstance(policy, asyncio.events.BaseDefaultEventLoopPolicy)
+        expected_loop = "asyncio" if uvloop is None else "uvloop"
+        assert type(policy).__module__.startswith(expected_loop)
+    assert asyncio.get_event_loop_policy() is old_policy
 
 
 @pytest.mark.asyncio

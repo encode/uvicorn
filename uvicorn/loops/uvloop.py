@@ -1,7 +1,9 @@
-import asyncio
+from typing import ContextManager
 
 import uvloop
 
+from ._policy_cmgr import policy_cmgr
 
-def uvloop_setup() -> None:
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
+def uvloop_setup() -> ContextManager[None]:
+    return policy_cmgr(uvloop.EventLoopPolicy)

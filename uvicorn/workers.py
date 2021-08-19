@@ -62,7 +62,6 @@ class UvicornWorker(Worker):
         self.config = Config(**config_kwargs)
 
     def init_process(self) -> None:
-        self.config.setup_event_loop()
         super(UvicornWorker, self).init_process()
 
     def init_signals(self) -> None:
@@ -80,7 +79,8 @@ class UvicornWorker(Worker):
             sys.exit(Arbiter.WORKER_BOOT_ERROR)
 
     def run(self) -> None:
-        return _compat.run(self._serve())
+        with self.config.setup_event_loop():
+            return _compat.run(self._serve())
 
     async def callback_notify(self) -> None:
         self.notify()
