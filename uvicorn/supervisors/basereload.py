@@ -74,7 +74,6 @@ class BaseReload:
         self.process.start()
 
     def shutdown(self) -> None:
-        self.process.terminate()
         self.process.join()
         message = "Stopping reloader process [{}]".format(str(self.pid))
         color_message = "Stopping reloader process [{}]".format(
