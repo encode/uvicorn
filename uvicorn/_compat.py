@@ -10,9 +10,12 @@ __all__ = ("run",)
 if sys.version_info >= (3, 7):
     from asyncio import run
 else:
-    from asyncio import coroutines, events, tasks
+    from asyncio import AbstractEventLoop, coroutines, events, tasks
+    from typing import Any, Coroutine, TypeVar
 
-    def run(main, *, debug=False):
+    _T = TypeVar("_T")
+
+    def run(main: Coroutine[Any, Any, _T], *, debug: bool = False) -> _T:
         """Execute the coroutine and return the result.
         This function runs the passed coroutine, taking care of
         managing the asyncio event loop and finalizing asynchronous
@@ -50,8 +53,8 @@ else:
                 events.set_event_loop(None)
                 loop.close()
 
-    def _cancel_all_tasks(loop):
-        to_cancel = tasks.all_tasks(loop)
+    def _cancel_all_tasks(loop: AbstractEventLoop) -> None:
+        to_cancel = tasks.all_tasks(loop)  # type: ignore[attr-defined]
         if not to_cancel:
             return
 
