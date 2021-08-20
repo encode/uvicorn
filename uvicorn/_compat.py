@@ -5,15 +5,49 @@ https://github.com/python/cpython/blob/3.7/Lib/asyncio/runners.py
 """
 import sys
 
-__all__ = ("run",)
+__all__ = ("run", "get_running_loop", "all_tasks")
 
 if sys.version_info >= (3, 7):
-    from asyncio import run
+    from asyncio import all_tasks, get_running_loop, run
 else:
-    from asyncio import AbstractEventLoop, coroutines, events, tasks
-    from typing import Any, Coroutine, TypeVar
+    from asyncio import AbstractEventLoop, Task, coroutines, events, futures, tasks
+    from typing import Any, Coroutine, Optional, Set, TypeVar
 
     _T = TypeVar("_T")
+
+    def get_running_loop() -> AbstractEventLoop:
+        """Return the running event loop.  Raise a RuntimeError if there is none.
+        This function is thread-specific.
+        """
+        # NOTE: this function is implemented in C (see _asynciomodule.c)
+        loop = events._get_running_loop()
+        if loop is None:
+            raise RuntimeError("no running event loop")
+        return loop
+
+    def _get_loop(fut: futures.Future) -> AbstractEventLoop:
+        return fut._loop
+
+    def all_tasks(loop: Optional[AbstractEventLoop] = None) -> Set[Task]:
+        """Return a set of all tasks for the loop."""
+        if loop is None:
+            loop = get_running_loop()
+        # Looping over a WeakSet (_all_tasks) isn't safe as it can be updated
+        # from another thread while we do so. Therefore we cast it to list
+        # prior to filtering. The list cast itself requires iteration, so we
+        # repeat it several times ignoring RuntimeErrors (which are not very
+        # likely to occur). See issues 34970 and 36607 for details.
+        i = 0
+        while True:
+            try:
+                tasks = list(Task._all_tasks)  # type: ignore[attr-defined]
+            except RuntimeError:
+                i += 1
+                if i >= 1000:
+                    raise
+            else:
+                break
+        return {t for t in tasks if _get_loop(t) is loop and not t.done()}
 
     def run(main: Coroutine[Any, Any, _T], *, debug: bool = False) -> _T:
         """Execute the coroutine and return the result.
@@ -54,7 +88,7 @@ else:
                 loop.close()
 
     def _cancel_all_tasks(loop: AbstractEventLoop) -> None:
-        to_cancel = tasks.all_tasks(loop)  # type: ignore[attr-defined]
+        to_cancel = all_tasks(loop)
         if not to_cancel:
             return
 
