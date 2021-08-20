@@ -8,6 +8,7 @@ from urllib.parse import unquote
 import websockets
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 
+from uvicorn._compat import get_running_loop
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
@@ -54,7 +55,7 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
         self.config = config
         self.app = config.loaded_app
         self.on_connection_lost = on_connection_lost
-        self.loop = _loop or asyncio.get_event_loop()
+        self.loop = _loop or get_running_loop()
         self.root_path = config.root_path
 
         # Shared server state

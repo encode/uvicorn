@@ -15,6 +15,7 @@ from asgiref.typing import (
     HTTPScope,
 )
 
+from uvicorn._compat import get_running_loop
 from uvicorn._types import Environ, ExcInfo, StartResponse, WSGIApp
 
 
@@ -96,7 +97,7 @@ class WSGIResponder:
         self.response_headers = None
         self.send_event = asyncio.Event()
         self.send_queue: List[Optional[ASGISendEvent]] = []
-        self.loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
+        self.loop: asyncio.AbstractEventLoop = get_running_loop()
         self.response_started = False
         self.exc_info: Optional[ExcInfo] = None
 
@@ -111,7 +112,7 @@ class WSGIResponder:
             body += body_message.get("body", b"")
             more_body = body_message.get("more_body", False)
         environ = build_environ(self.scope, message, body)
-        self.loop = asyncio.get_event_loop()
+        self.loop = get_running_loop()
         wsgi = self.loop.run_in_executor(
             self.executor, self.wsgi, environ, self.start_response
         )

@@ -1,6 +1,7 @@
 import asyncio
 from typing import TYPE_CHECKING
 
+from uvicorn._compat import get_running_loop
 from uvicorn.config import Config
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -32,7 +33,7 @@ async def handle_http(
 
     # Use a future to coordinate between the protocol and this handler task.
     # https://docs.python.org/3/library/asyncio-protocol.html#connecting-existing-sockets
-    loop = asyncio.get_event_loop()
+    loop = get_running_loop()
     connection_lost = loop.create_future()
 
     # Switch the protocol from the stream reader to our own HTTP protocol class.

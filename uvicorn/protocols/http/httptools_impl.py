@@ -7,6 +7,7 @@ from typing import Callable
 
 import httptools
 
+from uvicorn._compat import get_running_loop
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
@@ -49,7 +50,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.config = config
         self.app = config.loaded_app
         self.on_connection_lost = on_connection_lost
-        self.loop = _loop or asyncio.get_event_loop()
+        self.loop = _loop or get_running_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.access_logger = logging.getLogger("uvicorn.access")
         self.access_log = self.access_logger.hasHandlers()

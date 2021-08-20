@@ -14,6 +14,7 @@ from asgiref.typing import (
 )
 
 from uvicorn import Config
+from uvicorn._compat import get_running_loop
 
 LifespanReceiveMessage = Union[LifespanStartupEvent, LifespanShutdownEvent]
 LifespanSendMessage = Union[
@@ -44,7 +45,7 @@ class LifespanOn:
     async def startup(self) -> None:
         self.logger.info("Waiting for application startup.")
 
-        loop = asyncio.get_event_loop()
+        loop = get_running_loop()
         main_lifespan_task = loop.create_task(self.main())  # noqa: F841
         # Keep a hard reference to prevent garbage collection
         # See https://github.com/encode/uvicorn/pull/972

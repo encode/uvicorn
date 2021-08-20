@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, List, Optional, Set, Tuple, Union
 import click
 
 from uvicorn import _compat
+from uvicorn._compat import get_running_loop
 from uvicorn._handlers.http import handle_http
 from uvicorn.config import Config
 
@@ -297,7 +298,7 @@ class Server:
             # Signals can only be listened to from the main thread.
             return
 
-        loop = asyncio.get_event_loop()
+        loop = get_running_loop()
 
         try:
             for sig in HANDLED_SIGNALS:
