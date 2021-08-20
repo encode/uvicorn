@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, List, Optional, Set, Tuple, Union
 
 import click
 
+from uvicorn import _compat
 from uvicorn._handlers.http import handle_http
 from uvicorn.config import Config
 
@@ -64,9 +65,7 @@ class Server:
 
     def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
-        if sys.version_info >= (3, 7):
-            return asyncio.run(self.serve(sockets=sockets))
-        return asyncio.get_event_loop().run_until_complete(self.serve(sockets=sockets))
+        return _compat.run(self.serve(sockets=sockets))
 
     async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
         process_id = os.getpid()
