@@ -28,9 +28,6 @@ you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main
 
 By default Uvicorn uses simple changes detection strategy that compares python files modification times few times a second. If this approach doesn't work for your project (eg. because of its complexity), or you need watching of non python files you can install [watchgod](https://pypi.org/project/watchgod/) or install uvicorn with `uvicorn[standard]`, which will include watchgod.
 
-```
-```
-
 ## Production
 
 * `--workers <int>` - Use multiple worker processes. Defaults to the `$WEB_CONCURRENCY` environment variable if available, or 1.
