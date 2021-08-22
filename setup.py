@@ -42,12 +42,14 @@ env_marker_cpython = (
 
 env_marker_win = "sys_platform == 'win32'"
 env_marker_below_38 = "python_version < '3.8'"
+env_marker_below_37 = "python_version < '3.7'"
 
 minimal_requirements = [
     "asgiref>=3.4.0",
     "click>=7.0",
     "h11>=0.8",
     "typing-extensions;" + env_marker_below_38,
+    "asyncio-backport;" + env_marker_below_37,
 ]
 
 
