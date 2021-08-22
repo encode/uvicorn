@@ -504,7 +504,7 @@ def test_ws_max_size() -> None:
     assert config.ws_max_size == 1000
 
 
-@pytest.mark.paramtrize("loop", ["asyncio", "uvloop"])
+@pytest.mark.parametrize("loop", ["asyncio", "uvloop"])
 @pytest.mark.parametrize(
     "reload, workers",
     [
