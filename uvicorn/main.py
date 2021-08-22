@@ -458,4 +458,4 @@ def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main()  # pragma: no cover
