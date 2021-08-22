@@ -56,7 +56,7 @@ def test_cli_headers() -> None:
     ]
 
 
-@pytest.mark.filterwarnings(r"ignore:unclosed .*:ResourceWarning")
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_load_app_before_event_loop(tmp_path: Path):
     runner = CliRunner()
     fp = tmp_path / "main.py"
