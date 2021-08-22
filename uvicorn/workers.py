@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import signal
 import sys
@@ -7,6 +6,7 @@ from typing import Any
 from gunicorn.arbiter import Arbiter
 from gunicorn.workers.base import Worker
 
+from uvicorn import _compat
 from uvicorn.config import Config
 from uvicorn.main import Server
 
@@ -80,9 +80,7 @@ class UvicornWorker(Worker):
             sys.exit(Arbiter.WORKER_BOOT_ERROR)
 
     def run(self) -> None:
-        if sys.version_info >= (3, 7):
-            return asyncio.run(self._serve())
-        return asyncio.get_event_loop().run_until_complete(self._serve())
+        return _compat.run(self._serve())
 
     async def callback_notify(self) -> None:
         self.notify()
