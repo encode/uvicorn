@@ -10,4 +10,4 @@ __all__ = ("run", "get_running_loop")
 if sys.version_info >= (3, 7):
     from asyncio import get_running_loop, run
 else:
-    from asyncio_backport import run, get_running_loop
+    from asyncio_backport import get_running_loop, run
