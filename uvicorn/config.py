@@ -505,6 +505,7 @@ class Config:
                 uds_perms = 0o666
                 os.chmod(self.uds, uds_perms)
             except OSError as exc:
+                print(len(path.encode("utf-8")))
                 logger.error(exc)
                 sys.exit(1)
 
