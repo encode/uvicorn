@@ -2,7 +2,6 @@ import importlib
 import sys
 import textwrap
 import platform
-import sys
 from pathlib import Path
 from unittest import mock
 
