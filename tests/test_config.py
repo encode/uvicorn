@@ -504,6 +504,7 @@ def test_ws_max_size() -> None:
     assert config.ws_max_size == 1000
 
 
+@pytest.mark.paramtrize("loop", ["asyncio", "uvloop"])
 @pytest.mark.parametrize(
     "reload, workers",
     [
@@ -514,11 +515,11 @@ def test_ws_max_size() -> None:
 )
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
 def test_bind_unix_socket_works_with_reload_or_workers(
-    tmp_path_factory, reload, workers
+    tmp_path_factory, reload, workers, loop
 ):
     uds_file = tmp_path_factory.mktemp("tmp") / "uvicorn.sock"
     config = Config(
-        app=asgi_app, uds=uds_file.as_posix(), reload=reload, workers=workers
+        app=asgi_app, uds=uds_file.as_posix(), reload=reload, workers=workers, loop=loop
     )
     config.load()
     sock = config.bind_socket()
