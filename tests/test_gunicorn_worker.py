@@ -59,7 +59,10 @@ def test_gunicorn_worker_stdout_access_log_format(worker_class):
         try:
             resp = requests.get(
                 "http://127.0.0.1:%d" % random_port,
-                headers={"Test-Request-Header": "request-header-val"},
+                headers={
+                    "Test-Request-Header": "request-header-val",
+                    "User-Agent": "request-user-agent",
+                },
             )
         except requests.exceptions.ConnectionError:
             if attempts > 10:
@@ -78,7 +81,7 @@ def test_gunicorn_worker_stdout_access_log_format(worker_class):
 
     assert re.match(
         r'hellotest 127\.0\.0\.1 - - \[[^]]+\] "GET / HTTP/1\.1" 204 - "-"'
-        r' "python-requests/2.25.1" [0-9.]+ "request-header-val" '
+        r' "request-user-agent" [0-9.]+ "request-header-val" '
         '"response-header-val"',
         stdout_lines[0],
     )
