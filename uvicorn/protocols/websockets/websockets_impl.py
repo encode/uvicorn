@@ -1,4 +1,5 @@
 import asyncio
+import concurrent
 import http
 import inspect
 import logging
@@ -200,6 +201,11 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
         """
         try:
             result = await self.app(self.scope, self.asgi_receive, self.asgi_send)
+        except (concurrent.futures.CancelledError, asyncio.CancelledError):
+            self.logger.error("ASGI callable was cancelled while running")
+            if not self.handshake_started_event.is_set():
+                self.send_500_response()
+            self.transport.close()
         except BaseException as exc:
             self.closed_event.set()
             msg = "Exception in ASGI application\n"

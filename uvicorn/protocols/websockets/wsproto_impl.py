@@ -1,4 +1,5 @@
 import asyncio
+import concurrent
 import logging
 from typing import Callable
 from urllib.parse import unquote
@@ -225,6 +226,11 @@ class WSProtocol(asyncio.Protocol):
     async def run_asgi(self):
         try:
             result = await self.app(self.scope, self.receive, self.send)
+        except (concurrent.futures.CancelledError, asyncio.CancelledError):
+            self.logger.error("ASGI callable was cancelled while running")
+            if not self.handshake_complete:
+                self.send_500_response()
+            self.transport.close()
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)

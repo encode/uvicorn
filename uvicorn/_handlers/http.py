@@ -39,7 +39,11 @@ async def handle_http(
     protocol = config.http_protocol_class(  # type: ignore[call-arg, operator]
         config=config,
         server_state=server_state,
-        on_connection_lost=lambda: connection_lost.set_result(True),
+        on_connection_lost=lambda: (
+            connection_lost.set_result(True)
+            if not connection_lost.cancelled()
+            else None
+        ),
     )
     transport = writer.transport
     transport.set_protocol(protocol)
@@ -55,7 +59,7 @@ async def handle_http(
 
     @task.add_done_callback
     def retrieve_exception(task: asyncio.Task) -> None:
-        exc = task.exception()
+        exc = task.exception() if not task.cancelled() else None
 
         if exc is None:
             return
