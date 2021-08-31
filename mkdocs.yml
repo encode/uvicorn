@@ -3,6 +3,7 @@ site_description: The lightning-fast ASGI server.
 
 theme:
     name: 'material'
+    custom_dir: docs/overrides
 
 repo_name: encode/uvicorn
 repo_url: https://github.com/encode/uvicorn
