@@ -45,6 +45,9 @@ class BaseReload:
             if self.should_restart():
                 self.restart()
 
+            if self.process.exitcode is not None:
+                break
+
         self.shutdown()
 
     def startup(self) -> None:
@@ -76,6 +79,10 @@ class BaseReload:
     def shutdown(self) -> None:
         self.process.terminate()
         self.process.join()
+
+        for _socket in self.sockets:
+            _socket.close()
+
         message = "Stopping reloader process [{}]".format(str(self.pid))
         color_message = "Stopping reloader process [{}]".format(
             click.style(str(self.pid), fg="cyan", bold=True)
