@@ -1,8 +1,8 @@
 import asyncio
 import http
-import inspect
 import logging
-from typing import TYPE_CHECKING, Callable
+import sys
+from typing import Callable
 from urllib.parse import unquote
 
 import websockets
@@ -26,11 +26,7 @@ class Server:
 
 
 # special case logger kwarg in websockets >=10
-# https://github.com/aaugustin/websockets/issues/1021#issuecomment-886222136
-if (
-    TYPE_CHECKING
-    or "logger" in inspect.signature(websockets.WebSocketServerProtocol).parameters
-):
+if sys.version_info >= (3, 7):
 
     class _LoggerMixin:
         pass
