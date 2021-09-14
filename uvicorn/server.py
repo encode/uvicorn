@@ -9,12 +9,17 @@ import threading
 import time
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, Any, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, AsyncGenerator, List, Optional, Set, Tuple, Union
 
 import click
 
 from uvicorn._handlers.http import handle_http
 from uvicorn.config import Config
+
+if sys.version_info >= (3, 7):
+    from contextlib import asynccontextmanager
+else:
+    from contextlib2 import asynccontextmanager
 
 if TYPE_CHECKING:
     from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -69,6 +74,13 @@ class Server:
         return asyncio.get_event_loop().run_until_complete(self.serve(sockets=sockets))
 
     async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
+        async with self.serve_acmgr(sockets=sockets):
+            await self.main_loop()
+
+    @asynccontextmanager
+    async def serve_acmgr(
+        self, sockets: Optional[List[socket.socket]] = None
+    ) -> AsyncGenerator[None, None]:
         process_id = os.getpid()
 
         config = self.config
@@ -83,17 +95,17 @@ class Server:
             )
             logger.info(message, process_id, extra={"color_message": color_message})
 
-            await self.startup(sockets=sockets)
-            if self.should_exit:
-                return
-            await self.main_loop()
-            await self.shutdown(sockets=sockets)
+            try:
+                await self.startup(sockets=sockets)
+                yield
+            finally:
+                await self.shutdown(sockets=sockets)
 
-            message = "Finished server process [%d]"
-            color_message = (
-                "Finished server process [" + click.style("%d", fg="cyan") + "]"
-            )
-            logger.info(message, process_id, extra={"color_message": color_message})
+                message = "Finished server process [%d]"
+                color_message = (
+                    "Finished server process [" + click.style("%d", fg="cyan") + "]"
+                )
+                logger.info(message, process_id, extra={"color_message": color_message})
 
     async def startup(self, sockets: list = None) -> None:
         await self.lifespan.startup()
@@ -225,6 +237,9 @@ class Server:
             )
 
     async def main_loop(self) -> None:
+        if self.should_exit:
+            return
+
         counter = 0
         should_exit = await self.on_tick(counter)
         while not should_exit:
