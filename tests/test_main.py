@@ -1,3 +1,4 @@
+import contextvars
 from logging import WARNING
 
 import httpx
@@ -58,6 +59,27 @@ async def test_run_multiprocess():
 @pytest.mark.asyncio
 async def test_run_reload():
     config = Config(app=app, loop="asyncio", reload=True, limit_max_requests=1)
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://127.0.0.1:8000")
+    assert response.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_coroutine_app_factory_context():
+
+    ctx = contextvars.ContextVar[int]("ctx")
+    ctx.set(0)
+
+    async def test_app(scope, receive, send):
+        assert ctx.get() == 1
+        return await app(scope, receive, send)
+
+    async def create_app():
+        ctx.set(1)
+        return test_app
+
+    config = Config(app=create_app, loop="asyncio", factory=True, limit_max_requests=1)
     async with run_server(config):
         async with httpx.AsyncClient() as client:
             response = await client.get("http://127.0.0.1:8000")

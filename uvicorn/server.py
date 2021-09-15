@@ -74,6 +74,7 @@ class Server:
         config = self.config
         if not config.loaded:
             config.load()
+            await config.load_app()
 
         self.lifespan = config.lifespan_class(config)
 

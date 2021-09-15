@@ -294,6 +294,17 @@ def test_app_factory(caplog: pytest.LogCaptureFixture) -> None:
         config.load()
 
 
+@pytest.mark.asyncio
+async def test_coroutine_factory():
+    async def create_app() -> ASGIApplication:
+        return asgi_app
+
+    config = Config(app=create_app, factory=True, proxy_headers=False)
+    config.load()
+    await config.load_app()
+    assert config.loaded_app is asgi_app
+
+
 def test_concrete_http_class() -> None:
     config = Config(app=asgi_app, http=H11Protocol)
     config.load()

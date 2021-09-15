@@ -275,6 +275,7 @@ class Config:
         self.factory = factory
 
         self.loaded = False
+        self._loaded_app: Union[ASGIApplication, None] = None
         self.configure_logging()
 
         self.reload_dirs: List[Path] = []
@@ -445,13 +446,13 @@ class Config:
         self.lifespan_class = import_from_string(LIFESPAN[self.lifespan])
 
         try:
-            self.loaded_app = import_from_string(self.app)
+            self._loaded_app = import_from_string(self.app)
         except ImportFromStringError as exc:
             logger.error("Error loading ASGI app. %s" % exc)
             sys.exit(1)
 
         try:
-            self.loaded_app = self.loaded_app()
+            self._loaded_app = self._loaded_app()
         except TypeError as exc:
             if self.factory:
                 logger.error("Error loading ASGI app factory: %s", exc)
@@ -462,33 +463,55 @@ class Config:
                     "ASGI app factory detected. Using it, "
                     "but please consider setting the --factory flag explicitly."
                 )
+        if not inspect.isawaitable(self._loaded_app):
+            self._wrap_loaded_app()
+        
+        self.loaded = True
 
+    def _wrap_loaded_app(self) -> None:
         if self.interface == "auto":
-            if inspect.isclass(self.loaded_app):
-                use_asgi_3 = hasattr(self.loaded_app, "__await__")
-            elif inspect.isfunction(self.loaded_app):
-                use_asgi_3 = asyncio.iscoroutinefunction(self.loaded_app)
+            if inspect.isclass(self._loaded_app):
+                use_asgi_3 = hasattr(self._loaded_app, "__await__")
+            elif inspect.isfunction(self._loaded_app):
+                use_asgi_3 = asyncio.iscoroutinefunction(self._loaded_app)
             else:
-                call = getattr(self.loaded_app, "__call__", None)
+                call = getattr(self._loaded_app, "__call__", None)
                 use_asgi_3 = asyncio.iscoroutinefunction(call)
             self.interface = "asgi3" if use_asgi_3 else "asgi2"
 
         if self.interface == "wsgi":
-            self.loaded_app = WSGIMiddleware(self.loaded_app)
+            self._loaded_app = WSGIMiddleware(self._loaded_app)
             self.ws_protocol_class = None
         elif self.interface == "asgi2":
-            self.loaded_app = ASGI2Middleware(self.loaded_app)
+            self._loaded_app = ASGI2Middleware(self._loaded_app)
 
         if self.debug:
-            self.loaded_app = DebugMiddleware(self.loaded_app)
+            self._loaded_app = DebugMiddleware(self._loaded_app)
         if logger.level <= TRACE_LOG_LEVEL:
-            self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
+            self._loaded_app = MessageLoggerMiddleware(self._loaded_app)
         if self.proxy_headers:
-            self.loaded_app = ProxyHeadersMiddleware(
-                self.loaded_app, trusted_hosts=self.forwarded_allow_ips
+            self._loaded_app = ProxyHeadersMiddleware(
+                self._loaded_app, trusted_hosts=self.forwarded_allow_ips
             )
 
-        self.loaded = True
+    @property
+    def loaded_app(self) -> ASGIApplication:
+        app = self._loaded_app
+        if app is None:
+            raise AttributeError(f"'{repr(self)}' has no attribute 'loaded_app'")
+        if inspect.isawaitable(app):
+            raise RuntimeError(
+                "Coroutine app factories required that you call `load_app` before accessing `loaded_app`"
+            )
+        return app
+
+    async def load_app(self) -> None:
+        if not self.loaded:
+            self.load()
+        assert self._loaded_app is not None
+        if inspect.isawaitable(self._loaded_app):
+            self._loaded_app = await self._loaded_app
+            self._wrap_loaded_app()
 
     def setup_event_loop(self) -> None:
         loop_setup: Optional[Callable] = import_from_string(LOOP_SETUPS[self.loop])
