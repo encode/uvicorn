@@ -1,4 +1,5 @@
 import contextvars
+import contextlib
 from logging import WARNING
 
 import httpx
@@ -74,10 +75,16 @@ async def test_coroutine_app_factory_context():
     async def test_app(scope, receive, send):
         assert ctx.get() == 1
         return await app(scope, receive, send)
+    
+    @contextlib.contextmanager
+    def cm():
+        ctx.set(1)
+        yield
+        ctx.set(0)
 
     async def create_app():
-        ctx.set(1)
-        return test_app
+        with cm():
+            return test_app
 
     config = Config(app=create_app, loop="asyncio", factory=True, limit_max_requests=1)
     async with run_server(config):
