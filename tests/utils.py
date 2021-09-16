@@ -1,6 +1,5 @@
 import asyncio
 import os
-import warnings
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -16,11 +15,7 @@ from uvicorn import Config, Server
 async def run_server(config: Config, sockets=None):
     server = Server(config=config)
     cancel_handle = asyncio.ensure_future(server.serve(sockets=sockets))
-
-    # Workaround for Python 3.9.7 (see https://bugs.python.org/issue45097)
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        await asyncio.sleep(0.1)
+    await asyncio.sleep(0.1)
     try:
         yield server
     finally:
