@@ -28,6 +28,3 @@ async_generator; python_version < '3.7'
 # Documentation
 mkdocs>=1.2.2
 mkdocs-material
-
-# py3.10 workarounds
-https://github.com/aaugustin/websockets/archive/4e1dac362a3639b9cf0e5bcf382601e6e32cfede.tar.gz#egg=websockets; python_version >= '3.10'
