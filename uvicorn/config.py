@@ -275,7 +275,10 @@ class Config:
         self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
 
-        self.access_log_format = access_log_format
+        if access_log_format is None:
+            self.access_log_format = '%(h)s - "%(request_line)s" %(status_code)s'
+        else:
+            self.access_log_format = access_log_format
 
         self.loaded = False
         self.configure_logging()

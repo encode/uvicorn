@@ -195,7 +195,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 @click.option(
     "--access-log-format",
     type=str,
-    default='%(h)s - "%(request_line)s" %(status_code)s',
+    default=None,
     help="Log format for access logger, check documentation for details.",
 )
 @click.option(
