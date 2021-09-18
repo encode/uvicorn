@@ -68,9 +68,6 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 @click.option(
     "--fd", type=int, default=None, help="Bind to socket from this file descriptor."
 )
-@click.option(
-    "--debug", is_flag=True, default=False, help="Enable debug mode.", hidden=True
-)
 @click.option("--reload", is_flag=True, default=False, help="Enable auto-reload.")
 @click.option(
     "--reload-dir",
@@ -344,7 +341,6 @@ def main(
     ws_ping_timeout: float,
     lifespan: str,
     interface: str,
-    debug: bool,
     reload: bool,
     reload_dirs: typing.List[str],
     reload_includes: typing.List[str],
@@ -395,7 +391,6 @@ def main(
         "log_level": log_level,
         "access_log": access_log,
         "interface": interface,
-        "debug": debug,
         "reload": reload,
         "reload_dirs": reload_dirs if reload_dirs else None,
         "reload_includes": reload_includes if reload_includes else None,

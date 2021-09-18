@@ -1,12 +1,6 @@
-import html
-import traceback
-from typing import Union
-
 from asgiref.typing import (
-    ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
-    ASGISendEvent,
     HTTPResponseBodyEvent,
     HTTPResponseStartEvent,
     WWWScope,
@@ -68,45 +62,3 @@ def get_accept_header(scope: WWWScope) -> str:
             break
 
     return accept
-
-
-class DebugMiddleware:
-    def __init__(self, app: ASGI3Application):
-        self.app = app
-
-    async def __call__(
-        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
-    ) -> None:
-        if scope["type"] != "http":
-            return await self.app(scope, receive, send)
-
-        response_started = False
-
-        async def inner_send(message: ASGISendEvent) -> None:
-            nonlocal response_started, send
-
-            if message["type"] == "http.response.start":
-                response_started = True
-            await send(message)
-
-        try:
-            await self.app(scope, receive, inner_send)
-        except BaseException as exc:
-            if response_started:
-                raise exc from None
-
-            accept = get_accept_header(scope)
-            response: Union[HTMLResponse, PlainTextResponse]
-            if "text/html" in accept:
-                exc_html = html.escape(traceback.format_exc())
-                content = (
-                    "<html><body><h1>500 Server Error</h1><pre>%s</pre></body></html>"
-                    % exc_html
-                )
-                response = HTMLResponse(content, status_code=500)
-            else:
-                content = traceback.format_exc()
-                response = PlainTextResponse(content, status_code=500)
-
-            await response(scope, receive, send)
-            raise exc from None

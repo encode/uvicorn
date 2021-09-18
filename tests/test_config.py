@@ -21,7 +21,6 @@ from pytest_mock import MockerFixture
 from tests.utils import as_cwd
 from uvicorn._types import Environ, StartResponse
 from uvicorn.config import LOGGING_CONFIG, Config
-from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -57,14 +56,6 @@ def wsgi_app(environ: Environ, start_response: StartResponse) -> None:
     pass  # pragma: nocover
 
 
-def test_debug_app() -> None:
-    config = Config(app=asgi_app, debug=True, proxy_headers=False)
-    config.load()
-
-    assert config.debug is True
-    assert isinstance(config.loaded_app, DebugMiddleware)
-
-
 @pytest.mark.parametrize(
     "app, expected_should_reload",
     [(asgi_app, False), ("tests.test_config:asgi_app", True)],
@@ -72,10 +63,6 @@ def test_debug_app() -> None:
 def test_config_should_reload_is_set(
     app: ASGIApplication, expected_should_reload: bool
 ) -> None:
-    config_debug = Config(app=app, debug=True)
-    assert config_debug.debug is True
-    assert config_debug.should_reload is expected_should_reload
-
     config_reload = Config(app=app, reload=True)
     assert config_reload.reload is True
     assert config_reload.should_reload is expected_should_reload
