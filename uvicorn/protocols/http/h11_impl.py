@@ -126,6 +126,11 @@ class H11Protocol(asyncio.Protocol):
 
     def data_received(self, data):
         self._unset_keepalive_if_required()
+        if data == b"":
+            self.timeout_keep_alive_task = self.loop.call_later(
+                self.timeout_keep_alive, self.timeout_keep_alive_handler
+            )
+            return
 
         self.conn.receive_data(data)
         self.handle_events()

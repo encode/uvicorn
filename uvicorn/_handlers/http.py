@@ -79,8 +79,7 @@ async def handle_http(
     # yet: all data that the client might have already sent since the connection has
     # been established is in the `_buffer`.
     data = reader._buffer  # type: ignore
-    if data:
-        protocol.data_received(data)
+    protocol.data_received(data)
 
     # Let the transport run in the background. When closed, this future will complete
     # and we'll exit here.
