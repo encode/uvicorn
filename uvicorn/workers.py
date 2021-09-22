@@ -80,9 +80,7 @@ class UvicornWorker(Worker):
             sys.exit(Arbiter.WORKER_BOOT_ERROR)
 
     def run(self) -> None:
-        if sys.version_info >= (3, 7):
-            return asyncio.run(self._serve())
-        return asyncio.get_event_loop().run_until_complete(self._serve())
+        return asyncio.run(self._serve())
 
     async def callback_notify(self) -> None:
         self.notify()
