@@ -1,7 +1,10 @@
 import asyncio
 import logging
+import os
 import signal
 import sys
+import threading
+import time
 from typing import Any
 
 from gunicorn.arbiter import Arbiter
@@ -9,6 +12,20 @@ from gunicorn.workers.base import Worker
 
 from uvicorn.config import Config
 from uvicorn.main import Server
+
+
+class ReloaderThread(threading.Thread):
+    def __init__(self, worker: "UvicornWorker", sleep_interval: float = 1.0):
+        super().__init__()
+        self.setDaemon(True)
+        self._worker = worker
+        self._interval = sleep_interval
+
+    def run(self) -> None:
+        while True:
+            if not self._worker.alive:
+                os.kill(os.getpid(), signal.SIGINT)
+            time.sleep(self._interval)
 
 
 class UvicornWorker(Worker):
@@ -20,7 +37,8 @@ class UvicornWorker(Worker):
     CONFIG_KWARGS = {"loop": "auto", "http": "auto"}
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super(UvicornWorker, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self._reloader_thread = ReloaderThread(self)
 
         logger = logging.getLogger("uvicorn.error")
         logger.handlers = self.log.error_log.handlers
@@ -80,6 +98,9 @@ class UvicornWorker(Worker):
             sys.exit(Arbiter.WORKER_BOOT_ERROR)
 
     def run(self) -> None:
+        if self.cfg.reload:
+            self._reloader_thread.start()
+
         if sys.version_info >= (3, 7):
             return asyncio.run(self._serve())
         return asyncio.get_event_loop().run_until_complete(self._serve())
