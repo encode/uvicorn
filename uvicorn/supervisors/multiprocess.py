@@ -42,11 +42,7 @@ class Multiprocess:
 
     def run(self) -> None:
         self.startup()
-
-        while not self.should_exit.wait(self.config.reload_delay):
-            if not any(p.exitcode is None for p in self.processes):
-                break
-
+        self.should_exit.wait()
         self.shutdown()
 
     def startup(self) -> None:
@@ -70,9 +66,6 @@ class Multiprocess:
         for process in self.processes:
             process.terminate()
             process.join()
-
-        for _socket in self.sockets:
-            _socket.close()
 
         message = "Stopping parent process [{}]".format(str(self.pid))
         color_message = "Stopping parent process [{}]".format(
