@@ -80,8 +80,8 @@ class BaseReload:
         self.process.terminate()
         self.process.join()
 
-        for _socket in self.sockets:
-            _socket.close()
+        for sock in self.sockets:
+            sock.close()
 
         message = "Stopping reloader process [{}]".format(str(self.pid))
         color_message = "Stopping reloader process [{}]".format(
