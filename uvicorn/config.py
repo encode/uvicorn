@@ -8,17 +8,37 @@ import socket
 import ssl
 import sys
 from pathlib import Path
-from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
+import click
+from asgiref.typing import ASGIApplication
+
+from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.logging import TRACE_LOG_LEVEL
+from uvicorn.middleware.asgi2 import ASGI2Middleware
+from uvicorn.middleware.debug import DebugMiddleware
+from uvicorn.middleware.message_logger import MessageLoggerMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+from uvicorn.middleware.wsgi import WSGIMiddleware
+
+if TYPE_CHECKING:
+    from uvicorn.lifespan.off import LifespanOff
+    from uvicorn.lifespan.on import LifespanOn
 
 if sys.version_info < (3, 8):
     from typing_extensions import Literal
 else:
     from typing import Literal
-
-import click
-from asgiref.typing import ASGIApplication
 
 try:
     import yaml
@@ -28,12 +48,6 @@ except ImportError:
     # enable this functionality.
     pass
 
-from uvicorn.importer import ImportFromStringError, import_from_string
-from uvicorn.middleware.asgi2 import ASGI2Middleware
-from uvicorn.middleware.debug import DebugMiddleware
-from uvicorn.middleware.message_logger import MessageLoggerMiddleware
-from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-from uvicorn.middleware.wsgi import WSGIMiddleware
 
 HTTPProtocolType = Literal["auto", "h11", "httptools"]
 WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
@@ -442,7 +456,9 @@ class Config:
         else:
             self.ws_protocol_class = self.ws
 
-        self.lifespan_class = import_from_string(LIFESPAN[self.lifespan])
+        self.lifespan_class: Type[
+            Union["LifespanOn", "LifespanOff"]
+        ] = import_from_string(LIFESPAN[self.lifespan])
 
         try:
             self.loaded_app = import_from_string(self.app)
