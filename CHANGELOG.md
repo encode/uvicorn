@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.16.0 - <date>
+
+- Bump websockets version to 10.0 on Python 3.7+ (#1180)
+
 ## 0.15.0 - 2021-08-13
 
 ### Added
