@@ -12,8 +12,8 @@ from uvicorn.config import Config
 from uvicorn.main import Server
 
 warnings.warn(
-    "workers module is deprecated and will be removed in a future release. "
-    "See <PR>.",
+    "'workers' module is deprecated since uvicorn 0.16.0, "
+    "and it will be removed in a future release. See <PR>.",
     DeprecationWarning,
 )
 

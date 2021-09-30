@@ -1,6 +1,7 @@
 import typing
 
 from uvicorn.supervisors.basereload import BaseReload
+from uvicorn.supervisors.manager import ProcessManager
 from uvicorn.supervisors.multiprocess import Multiprocess
 
 if typing.TYPE_CHECKING:
@@ -11,4 +12,4 @@ else:
     except ImportError:  # pragma: no cover
         from uvicorn.supervisors.statreload import StatReload as ChangeReload
 
-__all__ = ["Multiprocess", "ChangeReload"]
+__all__ = ["Multiprocess", "ChangeReload", "ProcessManager"]
