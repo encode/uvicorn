@@ -88,7 +88,6 @@ async def handle_http(
 
 
 def _get_current_task() -> asyncio.Task:
-    current_task = asyncio.current_task
-    task = current_task()
+    task = asyncio.current_task()
     assert task is not None
     return task
