@@ -1,7 +1,6 @@
 import asyncio
 import http
 import logging
-import sys
 from typing import Callable
 from urllib.parse import unquote
 
