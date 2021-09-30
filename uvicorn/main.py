@@ -4,6 +4,7 @@ import platform
 import ssl
 import sys
 import typing
+import warnings
 
 import click
 from asgiref.typing import ASGIApplication
@@ -20,7 +21,7 @@ from uvicorn.config import (
     WS_PROTOCOLS,
     Config,
 )
-from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
+from uvicorn.server import Server
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
@@ -451,3 +452,21 @@ def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
 
 if __name__ == "__main__":
     main()  # pragma: no cover
+
+
+if typing.TYPE_CHECKING:
+    from uvicorn.server import ServerState  # pragma: no cover
+
+
+def __getattr__(name: str) -> typing.Type["ServerState"]:
+    if name == "ServerState":
+        warnings.warn(
+            "'ServerState' is deprecated within the 'main' module since uvicorn 0.16.0,"
+            " and it will be removed in a future release."
+            " Import 'ServerState' from 'uvicorn.server' instead.",
+            DeprecationWarning,
+        )
+        from uvicorn.server import ServerState
+
+        return ServerState
+    raise AttributeError(f"module {__name__} has no attribute {name}")
