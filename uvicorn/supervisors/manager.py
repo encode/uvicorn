@@ -24,6 +24,8 @@ class Target(Protocol):
 
 
 class ProcessManager:
+    STARTUP_FAILED = 3
+
     def __init__(self, config: Config, target: Target, sockets: List[socket]) -> None:
         self.config = config
         self.target = target
@@ -34,6 +36,14 @@ class ProcessManager:
     def run(self) -> None:
         self.start()
 
+        try:
+            self.spawn_processes()
+
+            while True:
+                ...
+        except Exception:
+            ...
+
         self.shutdown()
 
     def start(self) -> None:
@@ -41,5 +51,19 @@ class ProcessManager:
         print(self.pid)
 
     def shutdown(self) -> None:
+        for process in self.processes:
+            process.terminate()
+            process.join()
+
         for sock in self.sockets:
             sock.close()
+
+    def spawn_processes(self):
+        for _ in range(self.config.workers - len(self.processes)):
+            self.spawn_process()
+            # NOTE: Random delay is necessary?
+
+    def spawn_process(self):
+        process = get_subprocess(self.config, target=self.target, sockets=self.sockets)
+        process.start()
+        self.processes.append(process)
