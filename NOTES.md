@@ -3,9 +3,9 @@ A.: The manager is notified and then terminate gracefully the workers i.e. it
 will give time to the other workers to perform the shutdown event.
 
 Q.: Should we have an "age" attribute on the manager?
-A.: ?
+A.: Age is used to choose which worker to kill.
 
-Q.: Why is there a random delay on gunicorn spawn_workers function?
+Q.: Why is there a random delay on gunicorn `spawn_workers` function?
 A.: ?
 
 Q.: Should we implement the `maybe_promote_worker` logic? With USR2 signal?
@@ -18,3 +18,8 @@ A.: ?
 
 Q.: Should we accept `--pidfile`?
 A.: Not for now, on the future maybe.
+
+Q.: I'm assuming that we don't need an analogous `PIPE` and `sleep`, as we are using `mp.Queue()` and blocking until an item is available in the queue. Is that correct?
+A.: ?
+
+Q.: Do I need to have a health check? I see that on gunicorn, a temporary file is written from time to time by the workers, so the manager is able to detect if the workers are alive or not.

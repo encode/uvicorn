@@ -1,6 +1,7 @@
 import logging
 import multiprocessing as mp
 import os
+import queue
 import signal
 from multiprocessing.context import SpawnProcess
 from socket import socket
@@ -18,6 +19,25 @@ class Target(Protocol):
         ...
 
 
+# def for_all_methods(decorator, *exclude):
+#     def decorate(cls):
+#         for attr in cls.__dict__:
+#             if callable(getattr(cls, attr)) and attr not in exclude:
+#                 setattr(cls, attr, decorator(getattr(cls, attr)))
+#         return cls
+
+#     return decorate
+
+
+# def step(func):
+#     def wrapper(*args, **kwargs):
+#         print(f"{func.__name__} started")
+#         return func(*args, **kwargs)
+
+#     return wrapper
+
+
+# @for_all_methods(step)
 class ProcessManager:
     STARTUP_FAILED = 3
     SIGNALS = {
@@ -49,27 +69,36 @@ class ProcessManager:
             self.spawn_processes()
 
             while True:
-                sig = self.sig_queue.get()
+                try:
+                    sig = self.sig_queue.get(timeout=0.25)
+                except queue.Empty:
+                    # self.reap_processes()
+                    # self.spawn_processes()
+                    continue
+
+                if sig not in self.SIGNALS.keys():
+                    logger.info("Ignoring unknown signal: %d", sig)
+                    continue
+
                 handler = self.signal_handler(sig)
                 if handler is None:
-                    print("Unhandled signal: %s", self.SIGNALS.get(sig))
-                else:
-                    handler()
+                    logger.info("Unhandled signal: %s", self.SIGNALS.get(sig))
+                    continue
+
+                handler()
         except Exception as exc:
-            print(exc)
+            print(repr(exc))
 
         print("Shutting down manager!")
 
     def start(self) -> None:
         self.pid = os.getpid()
-        print(self.pid)
-
+        logger.info("Started manager process [%d]", self.pid)
         self.init_signals()
 
     def spawn_processes(self) -> None:
         for _ in range(self.config.workers - len(self.processes)):
             self.spawn_process()
-            # NOTE: Random delay is necessary?
 
     def spawn_process(self) -> None:
         process = get_subprocess(self.config, target=self.target, sockets=self.sockets)
@@ -101,8 +130,16 @@ class ProcessManager:
     handle_term = shutdown
 
     def handle_chld(self, sig: signal.Signals, frame: FrameType) -> None:
-        ...
+        print("Master got signal: ", self.SIGNALS.get(sig))
+        self.reap_processes()
 
     def signal_handler(self, sig: signal.Signals) -> Optional[Callable[..., None]]:
         sig_name = self.SIGNALS.get(sig)
         return getattr(self, f"handle_{sig_name}", None)
+
+    def reap_processes(self) -> None:
+        # NOTE: This is probably not reliable.
+        for process in self.processes:
+            if process.is_alive():
+                print(f"Process {process.pid} is not alive!")
+                self.processes.remove(process)
