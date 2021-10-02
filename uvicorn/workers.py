@@ -13,7 +13,8 @@ from uvicorn.main import Server
 
 warnings.warn(
     "'workers' module is deprecated since uvicorn 0.16.0, "
-    "and it will be removed in a future release. See <PR>.",
+    "and it will be removed in a future release. "
+    "See https://github.com/encode/uvicorn/pull/1205.",
     DeprecationWarning,
 )
 
