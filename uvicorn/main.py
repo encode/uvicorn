@@ -442,8 +442,8 @@ def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
         ChangeReload(config, target=server.run, sockets=[sock]).run()
     elif config.workers > 1:
         sock = config.bind_socket()
-        ProcessManager(config, target=server.run, sockets=[sock]).run()
         # Multiprocess(config, target=server.run, sockets=[sock]).run()
+        ProcessManager(config, target=server.run, sockets=[sock]).run()
     else:
         server.run()
     if config.uds:

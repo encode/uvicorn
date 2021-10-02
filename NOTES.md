@@ -7,3 +7,14 @@ A.: ?
 
 Q.: Why is there a random delay on gunicorn spawn_workers function?
 A.: ?
+
+Q.: Should we implement the `maybe_promote_worker` logic? With USR2 signal?
+A.: Yes! References:
+    - https://docs.gunicorn.org/en/stable/signals.html#upgrading-to-a-new-binary-on-the-fly
+    - https://github.com/benoitc/gunicorn/issues/1267
+
+Q.: On the `signal()` method on the `Arbiter`, why is there a limit of 5 signals on the queue?
+A.: ?
+
+Q.: Should we accept `--pidfile`?
+A.: Not for now, on the future maybe.

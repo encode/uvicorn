@@ -58,6 +58,7 @@ class Server:
         self.server_state = ServerState()
 
         self.started = False
+        self.terminate_called = 0
         self.should_exit = False
         self.force_exit = False
         self.last_notified = 0.0
@@ -309,8 +310,9 @@ class Server:
                 signal.signal(sig, self.handle_exit)
 
     def handle_exit(self, sig: signal.Signals, frame: FrameType) -> None:
+        print("PID:", os.getpid(), sig)
 
-        if self.should_exit:
+        self.terminate_called += 1
+        self.should_exit = True
+        if self.terminate_called > 2:
             self.force_exit = True
-        else:
-            self.should_exit = True

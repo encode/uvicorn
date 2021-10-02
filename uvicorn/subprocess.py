@@ -7,7 +7,7 @@ import os
 import sys
 from multiprocessing.context import SpawnProcess
 from socket import socket
-from typing import Callable, List, Optional
+from typing import Any, Callable, List, Optional
 
 from uvicorn.config import Config
 
@@ -74,3 +74,40 @@ def subprocess_started(
 
     # Now we can call into `Server.run(sockets=sockets)`
     target(sockets=sockets)
+
+
+# class Subprocess(spawn.Process):
+#     """
+#     A subclass of `multiprocessing.Process` that overrides the `run()` method
+#     to allow us to pass in `config`, `target` and `sockets` to the child process.
+#     """
+
+#     def __init__(
+#         self,
+#         config: Config,
+#         target: Callable[..., None],
+#         sockets: List[socket],
+#         *args: Any,
+#         **kwargs: Any,
+#     ) -> None:
+#         super().__init__(*args, **kwargs)
+#         self.config = config
+#         self.target = target
+#         self.sockets = sockets
+
+#         # We pass across the stdin fileno, and reopen it in the child process.
+#         # This is required for some debugging environments.
+#         try:
+#             self.stdin_fileno = sys.stdin.fileno()
+#         except OSError:
+#             self.stdin_fileno = None
+
+#     def run(self) -> None:
+#         """
+#         Overrides the `run()` method to call the `target` with the `sockets`.
+#         """
+#         if self.stdin_fileno is not None:
+#             sys.stdin = os.fdopen(self.stdin_fileno)
+
+#         self.config.configure_logging()
+#         self.target(sockets=self.sockets)
