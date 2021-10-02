@@ -21,7 +21,7 @@ from uvicorn.config import (
     Config,
 )
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
-from uvicorn.supervisors import ChangeReload, Multiprocess, ProcessManager
+from uvicorn.supervisors import ChangeReload, ProcessManager
 
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
 HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
