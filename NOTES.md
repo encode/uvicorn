@@ -23,3 +23,7 @@ Q.: I'm assuming that we don't need an analogous `PIPE` and `sleep`, as we are u
 A.: ?
 
 Q.: Do I need to have a health check? I see that on gunicorn, a temporary file is written from time to time by the workers, so the manager is able to detect if the workers are alive or not.
+A.: ?
+
+Q.: Do we need a timeout on the process `join()` method?
+A.: Yes. For now let's add a default behavior and then let's add a `--timeout` or `--worker-timeout` in the future. Similar to `timeout` and `graceful_timeout` on [gunicorn](https://docs.gunicorn.org/en/stable/settings.html#timeout).
