@@ -1,7 +1,7 @@
 import signal
 
 from uvicorn import Config
-from uvicorn.supervisors import Multiprocess
+from uvicorn.supervisors.multiprocess import Multiprocess
 
 
 def run(sockets):
