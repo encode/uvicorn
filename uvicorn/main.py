@@ -1,4 +1,5 @@
 import logging
+import multiprocessing
 import os
 import platform
 import ssl
@@ -21,7 +22,7 @@ from uvicorn.config import (
     Config,
 )
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
-from uvicorn.supervisors import ChangeReload, ProcessManager
+from uvicorn.supervisors import ChangeReload, Multiprocess
 
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
 HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
@@ -442,7 +443,7 @@ def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
         ChangeReload(config, target=server.run, sockets=[sock]).run()
     elif config.workers > 1:
         sock = config.bind_socket()
-        ProcessManager(config, target=server.run, sockets=[sock]).run()
+        Multiprocess(config, target=server.run, sockets=[sock]).run()
     else:
         server.run()
     if config.uds:

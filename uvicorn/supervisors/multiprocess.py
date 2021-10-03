@@ -1,6 +1,7 @@
 import logging
 import os
 import signal
+import sys
 import threading
 from multiprocessing.context import SpawnProcess
 from socket import socket
@@ -11,6 +12,7 @@ import click
 
 from uvicorn.config import Config
 from uvicorn.subprocess import get_subprocess
+from uvicorn.supervisors.manager import ProcessManager
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -21,6 +23,11 @@ logger = logging.getLogger("uvicorn.error")
 
 
 class Multiprocess:
+    def __new__(cls, *args, **kwargs):
+        if sys.platform == "win32":
+            return super(Multiprocess, cls).__new__(cls, *args, **kwargs)
+        return ProcessManager(*args, **kwargs)
+
     def __init__(
         self,
         config: Config,
