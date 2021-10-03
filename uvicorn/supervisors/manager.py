@@ -9,10 +9,15 @@ import time
 from multiprocessing.context import SpawnProcess
 from socket import socket
 from types import FrameType
-from typing import Callable, List, Optional, Protocol
+from typing import Callable, List, Optional
 
 from uvicorn.config import Config
 from uvicorn.subprocess import get_subprocess
+
+if sys.version_info >= (3, 8):
+    from typing import Protocol
+else:
+    from typing_extensions import Protocol
 
 logger = logging.getLogger("uvicorn.error")
 
