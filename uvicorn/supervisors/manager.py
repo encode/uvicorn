@@ -140,7 +140,6 @@ class ProcessManager:
 
     def kill_process(self, process: SpawnProcess, sig: signal.Signals) -> None:
         os.kill(process.pid, sig)
-        self.processes.remove(process)
 
     def wait_timeout(self) -> None:
         limit = time.time() + self.GRACEFUL_TIMEOUT
