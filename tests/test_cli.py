@@ -11,8 +11,7 @@ import uvicorn
 from uvicorn.config import Config
 from uvicorn.main import main as cli
 from uvicorn.server import Server
-from uvicorn.supervisors import ChangeReload
-from uvicorn.supervisors.manager import ProcessManager
+from uvicorn.supervisors import ChangeReload, Multiprocess, ProcessManager
 
 HEADERS = "Content-Security-Policy:default-src 'self'; script-src https://example.com"
 main = importlib.import_module("uvicorn.main")
@@ -75,10 +74,11 @@ def test_cli_call_change_reload_run() -> None:
 
 
 def test_cli_call_multiprocess_run() -> None:
+    manager_class = Multiprocess if sys.platform == "win32" else ProcessManager
     runner = CliRunner()
 
     with mock.patch.object(Config, "bind_socket") as mock_bind_socket:
-        with mock.patch.object(ProcessManager, "run") as mock_run:
+        with mock.patch.object(manager_class, "run") as mock_run:
             result = runner.invoke(cli, ["tests.test_cli:App", "--workers=2"])
 
     assert result.exit_code == 0
