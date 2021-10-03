@@ -5,6 +5,7 @@ import os
 import queue
 import signal
 import sys
+import time
 from multiprocessing.context import SpawnProcess
 from socket import socket
 from types import FrameType
@@ -27,6 +28,8 @@ class ExitCode(enum.IntEnum):
 
 
 class ProcessManager:
+    # Complete list of signals can be found on:
+    # http://manpages.ubuntu.com/manpages/bionic/man7/signal.7.html
     SIGNALS = {
         getattr(signal, f"SIG{sig.upper()}"): sig
         for sig in (
@@ -104,18 +107,13 @@ class ProcessManager:
         self.sig_queue.put(sig)
 
     def handle_int(self) -> None:
-        for process in self.processes:
-            process.terminate()
+        self.stop(signal.SIGINT)
 
-        for process in self.processes:
-            process.join(self.GRACEFUL_TIMEOUT)
+    def handle_term(self) -> None:
+        self.stop(signal.SIGTERM)
 
-        for sock in self.sockets:
-            sock.close()
-
-        raise StopIteration
-
-    handle_term = handle_int
+    def handle_quit(self) -> None:
+        self.stop(signal.SIGQUIT)
 
     def handle_chld(self, sig: signal.Signals, frame: FrameType) -> None:
         print("Master got signal: ", self.SIGNALS.get(sig))
@@ -135,3 +133,26 @@ class ProcessManager:
     def halt(self, exit_code: int = ExitCode.OK) -> None:
         logger.info("Stopping parent process [%d]", self.pid)
         sys.exit(exit_code)
+
+    def kill_processes(self, sig: signal.Signals) -> None:
+        for process in self.processes:
+            self.kill_process(process, sig)
+
+    def kill_process(self, process: SpawnProcess, sig: signal.Signals) -> None:
+        os.kill(process.pid, sig)
+        self.processes.remove(process)
+
+    def wait_timeout(self) -> None:
+        limit = time.time() + self.GRACEFUL_TIMEOUT
+        while self.processes and time.time() < limit:
+            time.sleep(0.1)
+
+    def stop(self, sig: signal.Signals) -> None:
+        self.kill_processes(sig)
+        self.wait_timeout()
+        self.kill_processes(signal.SIGKILL)
+
+        for sock in self.sockets:
+            sock.close()
+
+        raise StopIteration
