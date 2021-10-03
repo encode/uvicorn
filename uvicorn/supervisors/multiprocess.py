@@ -6,7 +6,7 @@ import threading
 from multiprocessing.context import SpawnProcess
 from socket import socket
 from types import FrameType
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Union
 
 import click
 
@@ -23,7 +23,7 @@ logger = logging.getLogger("uvicorn.error")
 
 
 class Multiprocess:
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args, **kwargs) -> Union[ProcessManager, "Multiprocess"]:
         if sys.platform == "win32":
             return super(Multiprocess, cls).__new__(cls, *args, **kwargs)
         return ProcessManager(*args, **kwargs)
