@@ -1,8 +1,7 @@
+import sys
 import typing
 
 from uvicorn.supervisors.basereload import BaseReload
-from uvicorn.supervisors.manager import ProcessManager
-from uvicorn.supervisors.multiprocess import Multiprocess
 
 if typing.TYPE_CHECKING:
     ChangeReload: typing.Type[BaseReload]  # pragma: no cover
@@ -12,4 +11,9 @@ else:
     except ImportError:  # pragma: no cover
         from uvicorn.supervisors.statreload import StatReload as ChangeReload
 
-__all__ = ["Multiprocess", "ChangeReload", "ProcessManager"]
+if sys.platform == "win32":
+    from uvicorn.supervisors.multiprocess import Multiprocess
+else:
+    from uvicorn.supervisors.manager import ProcessManager as Multiprocess
+
+__all__ = ["Multiprocess", "ChangeReload"]
