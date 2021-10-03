@@ -61,7 +61,7 @@ class ProcessManager:
                     sig = self.sig_queue.get(timeout=0.25)
                 except queue.Empty:
                     # self.reap_processes()
-                    # self.spawn_processes()
+                    self.spawn_processes()
                     continue
 
                 if sig not in self.SIGNALS.keys():
