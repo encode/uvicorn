@@ -60,7 +60,7 @@ class ProcessManager:
                 try:
                     sig = self.sig_queue.get(timeout=0.25)
                 except queue.Empty:
-                    # self.reap_processes()
+                    self.reap_processes()
                     self.spawn_processes()
                     continue
 
@@ -128,7 +128,7 @@ class ProcessManager:
     def reap_processes(self) -> None:
         # NOTE: This is probably not reliable.
         for process in self.processes:
-            if process.is_alive():
+            if not process.is_alive():
                 print(f"Process {process.pid} is not alive!")
                 self.processes.remove(process)
 
