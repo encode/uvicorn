@@ -22,6 +22,7 @@ from uvicorn.config import (
 )
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
+from uvicorn.supervisors.manager import ProcessManager
 
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
 HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
@@ -442,7 +443,10 @@ def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
         ChangeReload(config, target=server.run, sockets=[sock]).run()
     elif config.workers > 1:
         sock = config.bind_socket()
-        Multiprocess(config, target=server.run, sockets=[sock]).run()
+        if sys.platform == "win32":
+            Multiprocess(config, target=server.run, sockets=[sock]).run()
+        else:
+            ProcessManager(config, target=server.run, sockets=[sock]).run()
     else:
         server.run()
     if config.uds:
