@@ -39,12 +39,12 @@ Options:
                                   of using the current working directory.
   --reload-include TEXT           Set glob patterns to include while watching
                                   for files. Includes '*.py' by default; these
-                                  defaults can be overridden in --reload-
-                                  exclude.
+                                  defaults can be overridden in `--reload-
+                                  exclude`.
   --reload-exclude TEXT           Set glob patterns to exclude while watching
                                   for files. Includes '.*, .py[cod], .sw.*,
-                                  ~*' by default; the defaults can be
-                                  overridden in --reload-include.
+                                  ~*' by default; these defaults can be
+                                  overridden in `--reload-include`.
   --reload-delay FLOAT            Delay between previous and next check if
                                   application needs to be. Defaults to 0.25s.
                                   [default: 0.25]

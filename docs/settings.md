@@ -23,8 +23,8 @@ you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main
 
 * `--reload` - Enable auto-reload.
 * `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default the whole current directory will be watched. If you are running programmatically use `reload_dirs=[]` and pass a list of strings.
-* `--reload-include <glob-pattern>` - Specify a glob pattern to match files or directories which will be watched. May be used multiple times. By default the following patterns are included: `*.py`. These defaults can be overwritten by including them in --reload-exclude.
-* `--reload-exclude <glob-pattern>` - Specify a glob pattern to match files or directories which will excluded from watching. May be used multiple times. By default the following patterns are excluded: `.*, .py[cod], .sw.*, ~*`. These defaults can be overwritten by including them in --reload-include.
+* `--reload-include <glob-pattern>` - Specify a glob pattern to match files or directories which will be watched. May be used multiple times. By default the following patterns are included: `*.py`. These defaults can be overwritten by including them in `--reload-exclude`.
+* `--reload-exclude <glob-pattern>` - Specify a glob pattern to match files or directories which will excluded from watching. May be used multiple times. By default the following patterns are excluded: `.*, .py[cod], .sw.*, ~*`. These defaults can be overwritten by including them in `--reload-include`.
 
 By default Uvicorn uses simple changes detection strategy that compares python files modification times few times a second. If this approach doesn't work for your project (eg. because of its complexity), or you need watching of non python files you can install [watchgod](https://pypi.org/project/watchgod/) or install uvicorn with `uvicorn[standard]`, which will include watchgod.
 
