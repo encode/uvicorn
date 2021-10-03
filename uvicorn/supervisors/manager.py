@@ -24,7 +24,8 @@ class Target(Protocol):
 
 class ExitCode(enum.IntEnum):
     OK = 0
-    STARTUP_FAILED = 3
+    DEFAULT_FAILURE = 1
+    STARTUP_FAILURE = 3
 
 
 class ProcessManager:
@@ -79,9 +80,10 @@ class ProcessManager:
                 handler()
         except StopIteration:
             self.halt()
-        except Exception as exc:
-            print(repr(exc))
-            print(exc)
+        except Exception:
+            logger.info("Unhandled exception in main loop", exc_info=True)
+            self.stop(signal.SIGTERM)
+            self.halt(ExitCode.DEFAULT_FAILURE)
 
     def start(self) -> None:
         self.pid = os.getpid()
@@ -103,20 +105,17 @@ class ProcessManager:
         signal.signal(signal.SIGCHLD, self.handle_chld)
 
     def _signal(self, sig: signal.Signals, frame: FrameType) -> None:
-        print("Master got signal: ", self.SIGNALS.get(sig))
         self.sig_queue.put(sig)
 
     def handle_int(self) -> None:
         self.stop(signal.SIGINT)
+        raise StopIteration
 
     def handle_term(self) -> None:
         self.stop(signal.SIGTERM)
-
-    def handle_quit(self) -> None:
-        self.stop(signal.SIGQUIT)
+        raise StopIteration
 
     def handle_chld(self, sig: signal.Signals, frame: FrameType) -> None:
-        print("Master got signal: ", self.SIGNALS.get(sig))
         self.reap_processes()
 
     def signal_handler(self, sig: signal.Signals) -> Optional[Callable[..., None]]:
@@ -124,10 +123,8 @@ class ProcessManager:
         return getattr(self, f"handle_{sig_name}", None)
 
     def reap_processes(self) -> None:
-        # NOTE: This is probably not reliable.
         for process in self.processes:
             if not process.is_alive():
-                print(f"Process {process.pid} is not alive!")
                 self.processes.remove(process)
 
     def halt(self, exit_code: int = ExitCode.OK) -> None:
@@ -153,5 +150,3 @@ class ProcessManager:
 
         for sock in self.sockets:
             sock.close()
-
-        raise StopIteration

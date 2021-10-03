@@ -310,8 +310,6 @@ class Server:
                 signal.signal(sig, self.handle_exit)
 
     def handle_exit(self, sig: signal.Signals, frame: FrameType) -> None:
-        print("PID:", os.getpid(), sig)
-
         self.terminate_called += 1
         self.should_exit = True
         if self.terminate_called > 2:
