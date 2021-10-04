@@ -32,11 +32,11 @@ def get_subprocess(
     """
     # We pass across the stdin fileno, and reopen it in the child process.
     # This is required for some debugging environments.
-    stdin_fileno: Optional[int]
+    stdin_fileno: Optional[int] = None
     try:
         stdin_fileno = sys.stdin.fileno()
-    except OSError:
-        stdin_fileno = None
+    except Exception:
+        pass
 
     kwargs = {
         "config": config,
