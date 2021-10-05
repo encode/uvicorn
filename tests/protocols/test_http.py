@@ -763,3 +763,4 @@ def test_sendfile():
         assert response.text == open("./README.md").read()
     finally:
         process.terminate()
+        process.wait()
