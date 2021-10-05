@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import logging
+import os
 import subprocess
 
 import httpx
@@ -748,17 +749,24 @@ def test_invalid_http_request(request_line, protocol_cls, caplog, event_loop):
         assert "Invalid HTTP request received." in caplog.messages
 
 
+@pytest.mark.skipif(
+    not hasattr(os, "sendfile"), reason="Only test in platform that has sendfile"
+)
 def test_sendfile():
     with subprocess.Popen(
         "python -m uvicorn tests.protocols.for_test_sendfile:app".split(" ")
     ) as process:
+        with open("./README.md") as file:
+            file_content = file.read()
+
         while True:
             try:
-                response = httpx.get("http://127.0.0.1:8000")
+                httpx.get("http://127.0.0.1:8000")
                 break
             except httpx.ConnectError:
                 continue
-        with open("./README.md") as file:
-            assert response.text == file.read()
+
+        response = httpx.get("http://127.0.0.1:8000")
+        assert response.text == file_content
 
         process.terminate()
