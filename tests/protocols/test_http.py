@@ -749,18 +749,16 @@ def test_invalid_http_request(request_line, protocol_cls, caplog, event_loop):
 
 
 def test_sendfile():
-    process = subprocess.Popen(
+    with subprocess.Popen(
         "python -m uvicorn tests.protocols.for_test_sendfile:app".split(" ")
-    )
-
-    try:
+    ) as process:
         while True:
             try:
                 response = httpx.get("http://127.0.0.1:8000")
                 break
             except httpx.ConnectError:
                 continue
-        assert response.text == open("./README.md").read()
-    finally:
+        with open("./README.md") as file:
+            assert response.text == file.read()
+
         process.terminate()
-        process.wait()
