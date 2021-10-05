@@ -498,9 +498,11 @@ class RequestResponseCycle:
                 file_fd = message["file"]
                 socket_fd = self.transport.get_extra_info("socket").fileno()
                 sendfile_offset = message.get("offset", None)
+                if sendfile_offset is None:
+                    sendfile_offset = os.lseek(file_fd, 0, os.SEEK_CUR)
                 sendfile_count = message.get("count", None)
                 if sendfile_count is None:
-                    sendfile_count = os.stat(file_fd).st_size
+                    sendfile_count = os.stat(file_fd).st_size - sendfile_offset
                 more_body = message.get("more_body", False)
                 use_sendfile = True
             else:
@@ -527,7 +529,12 @@ class RequestResponseCycle:
                         content.append(b"0\r\n\r\n")
                     self.transport.write(b"".join(content))
                 else:
+                    self.transport.write(b"%x\r\n" % sendfile_count)
                     os.sendfile(socket_fd, file_fd, sendfile_offset, sendfile_count)
+                    if more_body:
+                        self.transport.write(b"\r\n")
+                    else:
+                        self.transport.write(b"\r\n0\r\n\r\n")
             else:
                 if not use_sendfile:
                     num_bytes = len(body)
