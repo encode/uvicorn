@@ -1,6 +1,7 @@
 import asyncio
 import http
 import logging
+import os
 import re
 import urllib
 from typing import Callable
@@ -37,6 +38,12 @@ def _get_status_line(status_code):
 STATUS_LINE = {
     status_code: _get_status_line(status_code) for status_code in range(100, 600)
 }
+
+try:
+    os.sendfile
+    HAS_SENDFILE = True
+except AttributeError:
+    HAS_SENDFILE = False
 
 
 class HttpToolsProtocol(asyncio.Protocol):
@@ -212,6 +219,9 @@ class HttpToolsProtocol(asyncio.Protocol):
             "query_string": parsed_url.query if parsed_url.query else b"",
             "headers": self.headers,
         }
+        if HAS_SENDFILE:
+            extensions = self.scope.setdefault("extensions", {})
+            extensions["http.response.zerocopysend"] = {}
 
     def on_header(self, name: bytes, value: bytes):
         name = name.lower()
@@ -480,31 +490,57 @@ class RequestResponseCycle:
 
         elif not self.response_complete:
             # Sending response body
-            if message_type != "http.response.body":
-                msg = "Expected ASGI message 'http.response.body', but got '%s'."
-                raise RuntimeError(msg % message_type)
-
-            body = message.get("body", b"")
-            more_body = message.get("more_body", False)
+            use_sendfile = False
+            if message_type == "http.response.body":
+                body = message.get("body", b"")
+                more_body = message.get("more_body", False)
+            elif HAS_SENDFILE and message_type == "http.response.zerocopysend":
+                file_fd = message["file"]
+                socket_fd = self.transport.get_extra_info("socket").fileno()
+                sendfile_offset = message.get("offset", None)
+                sendfile_count = message.get("count", None)
+                if sendfile_count is None:
+                    sendfile_count = os.stat(file_fd).st_size
+                more_body = message.get("more_body", False)
+                use_sendfile = True
+            else:
+                if HAS_SENDFILE:
+                    expect_message_types = (
+                        "http.response.body",
+                        "http.response.zerocopysend",
+                    )
+                else:
+                    expect_message_types = ("http.response.body",)
+                msg = "Expected ASGI message %s, but got '%s'."
+                raise RuntimeError(msg % expect_message_types, message_type)
 
             # Write response body
             if self.scope["method"] == "HEAD":
                 self.expected_content_length = 0
             elif self.chunked_encoding:
-                if body:
-                    content = [b"%x\r\n" % len(body), body, b"\r\n"]
+                if not use_sendfile:
+                    if body:
+                        content = [b"%x\r\n" % len(body), body, b"\r\n"]
+                    else:
+                        content = []
+                    if not more_body:
+                        content.append(b"0\r\n\r\n")
+                    self.transport.write(b"".join(content))
                 else:
-                    content = []
-                if not more_body:
-                    content.append(b"0\r\n\r\n")
-                self.transport.write(b"".join(content))
+                    os.sendfile(socket_fd, file_fd, sendfile_offset, sendfile_count)
             else:
-                num_bytes = len(body)
+                if not use_sendfile:
+                    num_bytes = len(body)
+                    self.transport.write(body)
+                else:
+                    num_bytes = os.sendfile(
+                        socket_fd, file_fd, sendfile_offset, sendfile_count
+                    )
+
                 if num_bytes > self.expected_content_length:
                     raise RuntimeError("Response content longer than Content-Length")
                 else:
                     self.expected_content_length -= num_bytes
-                self.transport.write(body)
 
             # Handle response completion
             if not more_body:
