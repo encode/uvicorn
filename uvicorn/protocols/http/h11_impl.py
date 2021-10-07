@@ -14,7 +14,7 @@ from uvicorn.protocols.http.flow_control import (
     FlowControl,
     service_unavailable,
 )
-from uvicorn.protocols.http.sendfile import HAS_SENDFILE, sendfile
+from uvicorn.protocols.http.sendfile import can_sendfile
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -82,6 +82,7 @@ class H11Protocol(asyncio.Protocol):
         self.connections.add(self)
 
         self.transport = transport
+        self.allow_sendfile = can_sendfile(self.loop) and not is_ssl(self.transport)
         self.flow = FlowControl(transport)
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
@@ -174,7 +175,7 @@ class H11Protocol(asyncio.Protocol):
                     "query_string": query_string,
                     "headers": self.headers,
                 }
-                if HAS_SENDFILE and not is_ssl(self.transport):
+                if self.allow_sendfile:
                     extensions = self.scope.setdefault("extensions", {})
                     extensions["http.response.zerocopysend"] = {}
 
@@ -197,6 +198,8 @@ class H11Protocol(asyncio.Protocol):
                     app = self.app
 
                 self.cycle = RequestResponseCycle(
+                    loop=self.loop,
+                    allow_sendfile=self.allow_sendfile,
                     scope=self.scope,
                     conn=self.conn,
                     transport=self.transport,
@@ -337,6 +340,8 @@ class H11Protocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
+        loop,
+        allow_sendfile,
         scope,
         conn,
         transport,
@@ -348,6 +353,8 @@ class RequestResponseCycle:
         message_event,
         on_response,
     ):
+        self.loop = loop
+        self.allow_sendfile = allow_sendfile
         self.scope = scope
         self.conn = conn
         self.transport = transport
@@ -373,7 +380,6 @@ class RequestResponseCycle:
         self.response_complete = False
 
         # Sendfile
-        self.allow_sendfile = HAS_SENDFILE and not is_ssl(transport)
         if self.allow_sendfile:
             # Set the buffer to 0 to avoid the problem of sending file before headers.
             transport.set_write_buffer_limits(0)
@@ -471,7 +477,6 @@ class RequestResponseCycle:
                 more_body = message.get("more_body", False)
             elif self.allow_sendfile and message_type == "http.response.zerocopysend":
                 file_fd = message["file"]
-                socket_fd = self.transport.get_extra_info("socket").fileno()
                 sendfile_offset = message.get("offset", None)
                 if sendfile_offset is None:
                     sendfile_offset = os.lseek(file_fd, 0, os.SEEK_CUR)
@@ -495,17 +500,18 @@ class RequestResponseCycle:
             if self.scope["method"] == "HEAD":
                 event = h11.Data(data=b"")
             elif use_sendfile:
-                event = SendfileData(
-                    socket_fd, file_fd, sendfile_offset, sendfile_count
-                )
-                for data in self.conn.send_with_data_passthrough(h11.Data(data=event)):
-                    if isinstance(data, SendfileData):
-                        await self.flow.drain()
-                        await sendfile(
-                            data.socket_fd, data.file_fd, data.offset, data.count
-                        )
-                    else:
-                        self.transport.write(data)
+                with os.fdopen(os.dup(file_fd), "rb") as file:
+                    event = SendfileData(file, sendfile_offset, sendfile_count)
+                    for data in self.conn.send_with_data_passthrough(
+                        h11.Data(data=event)
+                    ):
+                        if isinstance(data, SendfileData):
+                            await self.flow.drain()
+                            await self.loop.sendfile(
+                                self.transport, data.file, data.offset, data.count
+                            )
+                        else:
+                            self.transport.write(data)
             else:
                 event = h11.Data(data=body)
                 output = self.conn.send(event)
@@ -559,9 +565,8 @@ class RequestResponseCycle:
 
 
 class SendfileData:
-    def __init__(self, socket_fd, file_fd, offset, count):
-        self.socket_fd = socket_fd
-        self.file_fd = file_fd
+    def __init__(self, file, offset, count):
+        self.file = file
         self.offset = offset
         self.count = count
 

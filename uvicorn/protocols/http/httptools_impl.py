@@ -15,7 +15,7 @@ from uvicorn.protocols.http.flow_control import (
     FlowControl,
     service_unavailable,
 )
-from uvicorn.protocols.http.sendfile import HAS_SENDFILE, sendfile
+from uvicorn.protocols.http.sendfile import can_sendfile
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -90,6 +90,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.connections.add(self)
 
         self.transport = transport
+        self.allow_sendfile = can_sendfile(self.loop) and not is_ssl(self.transport)
         self.flow = FlowControl(transport)
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
@@ -214,7 +215,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             "query_string": parsed_url.query if parsed_url.query else b"",
             "headers": self.headers,
         }
-        if HAS_SENDFILE and not is_ssl(self.transport):
+        if self.allow_sendfile:
             extensions = self.scope.setdefault("extensions", {})
             extensions["http.response.zerocopysend"] = {}
 
@@ -244,6 +245,8 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         existing_cycle = self.cycle
         self.cycle = RequestResponseCycle(
+            loop=self.loop,
+            allow_sendfile=self.allow_sendfile,
             scope=self.scope,
             transport=self.transport,
             flow=self.flow,
@@ -337,6 +340,8 @@ class HttpToolsProtocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
+        loop,
+        allow_sendfile,
         scope,
         transport,
         flow,
@@ -349,6 +354,8 @@ class RequestResponseCycle:
         keep_alive,
         on_response,
     ):
+        self.loop = loop
+        self.allow_sendfile = allow_sendfile
         self.scope = scope
         self.transport = transport
         self.flow = flow
@@ -375,7 +382,6 @@ class RequestResponseCycle:
         self.expected_content_length = 0
 
         # Sendfile
-        self.allow_sendfile = HAS_SENDFILE and not is_ssl(transport)
         if self.allow_sendfile:
             # Set the buffer to 0 to avoid the problem of sending file before headers.
             transport.set_write_buffer_limits(0)
@@ -497,7 +503,6 @@ class RequestResponseCycle:
                 more_body = message.get("more_body", False)
             elif self.allow_sendfile and message_type == "http.response.zerocopysend":
                 file_fd = message["file"]
-                socket_fd = self.transport.get_extra_info("socket").fileno()
                 sendfile_offset = message.get("offset", None)
                 if sendfile_offset is None:
                     sendfile_offset = os.lseek(file_fd, 0, os.SEEK_CUR)
@@ -532,7 +537,10 @@ class RequestResponseCycle:
                 else:
                     self.transport.write(b"%x\r\n" % sendfile_count)
                     await self.flow.drain()
-                    await sendfile(socket_fd, file_fd, sendfile_offset, sendfile_count)
+                    with os.fdopen(os.dup(file_fd), "rb") as file:
+                        await self.loop.sendfile(
+                            self.transport, file, sendfile_offset, sendfile_count
+                        )
                     if more_body:
                         self.transport.write(b"\r\n")
                     else:
@@ -544,7 +552,10 @@ class RequestResponseCycle:
                 else:
                     num_bytes = sendfile_count
                     await self.flow.drain()
-                    await sendfile(socket_fd, file_fd, sendfile_offset, sendfile_count)
+                    with os.fdopen(os.dup(file_fd), "rb") as file:
+                        await self.loop.sendfile(
+                            self.transport, file, sendfile_offset, sendfile_count
+                        )
 
                 if num_bytes > self.expected_content_length:
                     raise RuntimeError("Response content longer than Content-Length")

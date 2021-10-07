@@ -1,7 +1,6 @@
 import asyncio
 import contextlib
 import logging
-import os
 
 import httpx
 import pytest
@@ -752,11 +751,8 @@ def test_invalid_http_request(request_line, protocol_cls, caplog, event_loop):
         assert "Invalid HTTP request received." in caplog.messages
 
 
-@pytest.mark.skipif(
-    not hasattr(os, "sendfile"), reason="Only test in platform that has sendfile"
-)
 @pytest.mark.parametrize("http", ["h11", "httptools"])
-@pytest.mark.parametrize("loop", ["asyncio", "uvloop"])
+@pytest.mark.parametrize("loop", ["asyncio"])
 @pytest.mark.asyncio
 async def test_sendfile(http, loop):
     async def app(scope, receive, send):
