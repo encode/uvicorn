@@ -2,12 +2,12 @@ import asyncio
 import contextlib
 import logging
 import os
-import subprocess
 
 import httpx
 import pytest
 
 from tests.response import Response
+from tests.utils import run_server
 from uvicorn.config import Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -755,21 +755,36 @@ def test_invalid_http_request(request_line, protocol_cls, caplog, event_loop):
 @pytest.mark.skipif(
     not hasattr(os, "sendfile"), reason="Only test in platform that has sendfile"
 )
-def test_sendfile():
-    with subprocess.Popen(
-        "python -m uvicorn tests.protocols.for_test_sendfile:app".split(" ")
-    ) as process:
+@pytest.mark.parametrize("http", ["h11", "httptools"])
+@pytest.mark.parametrize("loop", ["asyncio", "uvloop"])
+@pytest.mark.asyncio
+async def test_sendfile(http, loop):
+    async def app(scope, receive, send):
+        with open("./README.md", "rb") as file:
+            content_length = len(file.read())
+            file.seek(0, 0)
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 200,
+                    "headers": [
+                        (b"Content-Length", str(content_length).encode("ascii")),
+                        (b"Content-Type", b"text/plain; charset=utf8"),
+                    ],
+                }
+            )
+            await send(
+                {
+                    "type": "http.response.zerocopysend",
+                    "file": file.fileno(),
+                }
+            )
+
+    config = Config(app=app, http=http, loop=loop, limit_max_requests=1)
+    async with run_server(config):
         with open("./README.md") as file:
             file_content = file.read()
 
-        while True:
-            try:
-                httpx.get("http://127.0.0.1:8000")
-                break
-            except httpx.ConnectError:
-                continue
-
-        response = httpx.get("http://127.0.0.1:8000")
-        assert response.text == file_content
-
-        process.terminate()
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://127.0.0.1:8000")
+            assert response.text == file_content

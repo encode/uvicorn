@@ -15,6 +15,7 @@ from uvicorn.protocols.http.flow_control import (
     FlowControl,
     service_unavailable,
 )
+from uvicorn.protocols.http.sendfile import HAS_SENDFILE, sendfile
 from uvicorn.protocols.utils import (
     get_client_addr,
     get_local_addr,
@@ -38,46 +39,6 @@ def _get_status_line(status_code):
 STATUS_LINE = {
     status_code: _get_status_line(status_code) for status_code in range(100, 600)
 }
-
-try:
-    os.sendfile
-    HAS_SENDFILE = True
-except AttributeError:
-    HAS_SENDFILE = False
-else:
-    # Note: because uvloop don't implements loop.sendfile, so use os.sendfile as here
-    # Related link: https://github.com/MagicStack/uvloop/issues/228
-    async def sendfile(socket_fd: int, file_fd: int, offset: int, count: int) -> None:
-        loop = asyncio.get_event_loop()
-        future = loop.create_future()
-
-        def call_sendfile(
-            socket_fd: int, file_fd: int, offset: int, count: int, registered: bool
-        ) -> None:
-            if registered:
-                loop.remove_writer(socket_fd)
-            try:
-                sent_count = os.sendfile(socket_fd, file_fd, offset, count)
-            except BaseException as exc:
-                future.set_exception(exc)
-            else:
-                if count - sent_count > 0:
-                    new_offset = offset + sent_count
-                    new_count = count - sent_count
-                    loop.add_writer(
-                        socket_fd,
-                        call_sendfile,
-                        socket_fd,
-                        file_fd,
-                        new_offset,
-                        new_count,
-                        True,
-                    )
-                else:
-                    future.set_result(None)
-
-        call_sendfile(socket_fd, file_fd, offset, count, False)
-        return await future
 
 
 class HttpToolsProtocol(asyncio.Protocol):
@@ -283,7 +244,6 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         existing_cycle = self.cycle
         self.cycle = RequestResponseCycle(
-            loop=self.loop,
             scope=self.scope,
             transport=self.transport,
             flow=self.flow,
@@ -377,7 +337,6 @@ class HttpToolsProtocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
-        loop,
         scope,
         transport,
         flow,
@@ -390,7 +349,6 @@ class RequestResponseCycle:
         keep_alive,
         on_response,
     ):
-        self.loop = loop
         self.scope = scope
         self.transport = transport
         self.flow = flow
