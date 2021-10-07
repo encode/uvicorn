@@ -382,7 +382,7 @@ class RequestResponseCycle:
         self.expected_content_length = 0
 
         # Sendfile
-        if self.allow_sendfile:
+        if self.allow_sendfile:  # pragma: no cover
             # Set the buffer to 0 to avoid the problem of sending file before headers.
             transport.set_write_buffer_limits(0)
 
@@ -501,7 +501,9 @@ class RequestResponseCycle:
             if message_type == "http.response.body":
                 body = message.get("body", b"")
                 more_body = message.get("more_body", False)
-            elif self.allow_sendfile and message_type == "http.response.zerocopysend":
+            elif (
+                self.allow_sendfile and message_type == "http.response.zerocopysend"
+            ):  # pragma: no cover
                 file_fd = message["file"]
                 sendfile_offset = message.get("offset", None)
                 if sendfile_offset is None:
@@ -512,7 +514,7 @@ class RequestResponseCycle:
                 more_body = message.get("more_body", False)
                 use_sendfile = True
             else:
-                if self.allow_sendfile:
+                if self.allow_sendfile:  # pragma: no cover
                     expect_message_types = (
                         "http.response.body",
                         "http.response.zerocopysend",
@@ -534,7 +536,7 @@ class RequestResponseCycle:
                     if not more_body:
                         content.append(b"0\r\n\r\n")
                     self.transport.write(b"".join(content))
-                else:
+                else:  # pragma: no cover
                     self.transport.write(b"%x\r\n" % sendfile_count)
                     await self.flow.drain()
                     with os.fdopen(os.dup(file_fd), "rb") as file:
@@ -549,7 +551,7 @@ class RequestResponseCycle:
                 if not use_sendfile:
                     num_bytes = len(body)
                     self.transport.write(body)
-                else:
+                else:  # pragma: no cover
                     num_bytes = sendfile_count
                     await self.flow.drain()
                     with os.fdopen(os.dup(file_fd), "rb") as file:

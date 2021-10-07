@@ -175,7 +175,7 @@ class H11Protocol(asyncio.Protocol):
                     "query_string": query_string,
                     "headers": self.headers,
                 }
-                if self.allow_sendfile:
+                if self.allow_sendfile:  # pragma: no cover
                     extensions = self.scope.setdefault("extensions", {})
                     extensions["http.response.zerocopysend"] = {}
 
@@ -380,7 +380,7 @@ class RequestResponseCycle:
         self.response_complete = False
 
         # Sendfile
-        if self.allow_sendfile:
+        if self.allow_sendfile:  # pragma: no cover
             # Set the buffer to 0 to avoid the problem of sending file before headers.
             transport.set_write_buffer_limits(0)
 
@@ -475,7 +475,9 @@ class RequestResponseCycle:
             if message_type == "http.response.body":
                 body = message.get("body", b"")
                 more_body = message.get("more_body", False)
-            elif self.allow_sendfile and message_type == "http.response.zerocopysend":
+            elif (
+                self.allow_sendfile and message_type == "http.response.zerocopysend"
+            ):  # pragma: no cover
                 file_fd = message["file"]
                 sendfile_offset = message.get("offset", None)
                 if sendfile_offset is None:
@@ -486,7 +488,7 @@ class RequestResponseCycle:
                 more_body = message.get("more_body", False)
                 use_sendfile = True
             else:
-                if self.allow_sendfile:
+                if self.allow_sendfile:  # pragma: no cover
                     expect_message_types = (
                         "http.response.body",
                         "http.response.zerocopysend",
@@ -499,7 +501,7 @@ class RequestResponseCycle:
             # Write response body
             if self.scope["method"] == "HEAD":
                 event = h11.Data(data=b"")
-            elif use_sendfile:
+            elif use_sendfile:  # pragma: no cover
                 with os.fdopen(os.dup(file_fd), "rb") as file:
                     event = SendfileData(file, sendfile_offset, sendfile_count)
                     for data in self.conn.send_with_data_passthrough(
