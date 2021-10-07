@@ -787,4 +787,4 @@ async def test_sendfile(http, loop):
 
         async with httpx.AsyncClient() as client:
             response = await client.get("http://127.0.0.1:8000")
-            assert response.text == file_content
+            assert response.text.splitlines() == file_content.splitlines()
