@@ -126,6 +126,9 @@ class MockTransport:
     def set_protocol(self, protocol):
         pass
 
+    def set_write_buffer_limits(self, high=None, low=None):
+        pass
+
 
 class MockLoop(asyncio.AbstractEventLoop):
     def __init__(self, event_loop):

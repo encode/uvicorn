@@ -44,6 +44,40 @@ try:
     HAS_SENDFILE = True
 except AttributeError:
     HAS_SENDFILE = False
+else:
+    # Note: because uvloop don't implements loop.sendfile, so use os.sendfile as here
+    # Related link: https://github.com/MagicStack/uvloop/issues/228
+    async def sendfile(socket_fd: int, file_fd: int, offset: int, count: int) -> None:
+        loop = asyncio.get_event_loop()
+        future = loop.create_future()
+
+        def call_sendfile(
+            socket_fd: int, file_fd: int, offset: int, count: int, registered: bool
+        ) -> None:
+            if registered:
+                loop.remove_writer(socket_fd)
+            try:
+                sent_count = os.sendfile(socket_fd, file_fd, offset, count)
+            except BaseException as exc:
+                future.set_exception(exc)
+            else:
+                if count - sent_count > 0:
+                    new_offset = offset + sent_count
+                    new_count = count - sent_count
+                    loop.add_writer(
+                        socket_fd,
+                        call_sendfile,
+                        socket_fd,
+                        file_fd,
+                        new_offset,
+                        new_count,
+                        True,
+                    )
+                else:
+                    future.set_result(None)
+
+        call_sendfile(socket_fd, file_fd, offset, count, False)
+        return await future
 
 
 class HttpToolsProtocol(asyncio.Protocol):
@@ -219,7 +253,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             "query_string": parsed_url.query if parsed_url.query else b"",
             "headers": self.headers,
         }
-        if HAS_SENDFILE:
+        if HAS_SENDFILE and not is_ssl(self.transport):
             extensions = self.scope.setdefault("extensions", {})
             extensions["http.response.zerocopysend"] = {}
 
@@ -249,6 +283,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         existing_cycle = self.cycle
         self.cycle = RequestResponseCycle(
+            loop=self.loop,
             scope=self.scope,
             transport=self.transport,
             flow=self.flow,
@@ -342,6 +377,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
+        loop,
         scope,
         transport,
         flow,
@@ -354,6 +390,7 @@ class RequestResponseCycle:
         keep_alive,
         on_response,
     ):
+        self.loop = loop
         self.scope = scope
         self.transport = transport
         self.flow = flow
@@ -378,6 +415,12 @@ class RequestResponseCycle:
         self.response_complete = False
         self.chunked_encoding = None
         self.expected_content_length = 0
+
+        # Sendfile
+        self.allow_sendfile = HAS_SENDFILE and not is_ssl(transport)
+        if self.allow_sendfile:
+            # Set the buffer to 0 to avoid the problem of sending file before headers.
+            transport.set_write_buffer_limits(0)
 
     # ASGI exception wrapper
     async def run_asgi(self, app):
@@ -494,7 +537,7 @@ class RequestResponseCycle:
             if message_type == "http.response.body":
                 body = message.get("body", b"")
                 more_body = message.get("more_body", False)
-            elif HAS_SENDFILE and message_type == "http.response.zerocopysend":
+            elif self.allow_sendfile and message_type == "http.response.zerocopysend":
                 file_fd = message["file"]
                 socket_fd = self.transport.get_extra_info("socket").fileno()
                 sendfile_offset = message.get("offset", None)
@@ -506,7 +549,7 @@ class RequestResponseCycle:
                 more_body = message.get("more_body", False)
                 use_sendfile = True
             else:
-                if HAS_SENDFILE:
+                if self.allow_sendfile:
                     expect_message_types = (
                         "http.response.body",
                         "http.response.zerocopysend",
@@ -530,7 +573,8 @@ class RequestResponseCycle:
                     self.transport.write(b"".join(content))
                 else:
                     self.transport.write(b"%x\r\n" % sendfile_count)
-                    os.sendfile(socket_fd, file_fd, sendfile_offset, sendfile_count)
+                    await self.flow.drain()
+                    await sendfile(socket_fd, file_fd, sendfile_offset, sendfile_count)
                     if more_body:
                         self.transport.write(b"\r\n")
                     else:
@@ -540,9 +584,9 @@ class RequestResponseCycle:
                     num_bytes = len(body)
                     self.transport.write(body)
                 else:
-                    num_bytes = os.sendfile(
-                        socket_fd, file_fd, sendfile_offset, sendfile_count
-                    )
+                    num_bytes = sendfile_count
+                    await self.flow.drain()
+                    await sendfile(socket_fd, file_fd, sendfile_offset, sendfile_count)
 
                 if num_bytes > self.expected_content_length:
                     raise RuntimeError("Response content longer than Content-Length")
