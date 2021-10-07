@@ -500,6 +500,7 @@ class RequestResponseCycle:
                 )
                 for data in self.conn.send_with_data_passthrough(h11.Data(data=event)):
                     if isinstance(data, SendfileData):
+                        await self.flow.drain()
                         await sendfile(
                             data.socket_fd, data.file_fd, data.offset, data.count
                         )
