@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import logging
+import os
 import sys
 
 import httpx
@@ -753,7 +754,9 @@ def test_invalid_http_request(request_line, protocol_cls, caplog, event_loop):
 
 
 @pytest.mark.skipif(
-    sys.version_info[:2] < (3, 7), reason="Sendfile only available in python3.7+"
+    sys.version_info[:2] < (3, 7),
+    not hasattr(os, "sendfile"),
+    reason="Sendfile only available in python3.7+",
 )
 @pytest.mark.parametrize("http", ["h11", "httptools"])
 @pytest.mark.parametrize("loop", ["asyncio"])
