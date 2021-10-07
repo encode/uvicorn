@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import logging
+import sys
 
 import httpx
 import pytest
@@ -10,6 +11,7 @@ from tests.utils import run_server
 from uvicorn.config import Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
+from uvicorn.protocols.http.sendfile import can_sendfile
 
 try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
@@ -751,6 +753,9 @@ def test_invalid_http_request(request_line, protocol_cls, caplog, event_loop):
         assert "Invalid HTTP request received." in caplog.messages
 
 
+@pytest.mark.skipif(
+    sys.version_info[:2] >= (3, 7), "Sendfile only available in python3.7+"
+)
 @pytest.mark.parametrize("http", ["h11", "httptools"])
 @pytest.mark.parametrize("loop", ["asyncio"])
 @pytest.mark.asyncio
