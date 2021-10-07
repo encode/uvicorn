@@ -11,7 +11,6 @@ from tests.utils import run_server
 from uvicorn.config import Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
-from uvicorn.protocols.http.sendfile import can_sendfile
 
 try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
