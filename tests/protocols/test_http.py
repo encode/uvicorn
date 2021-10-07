@@ -782,9 +782,9 @@ async def test_sendfile(http, loop):
 
     config = Config(app=app, http=http, loop=loop, limit_max_requests=1)
     async with run_server(config):
-        with open("./README.md") as file:
+        with open("./README.md", "rb") as file:
             file_content = file.read()
 
         async with httpx.AsyncClient() as client:
             response = await client.get("http://127.0.0.1:8000")
-            assert response.text.splitlines() == file_content.splitlines()
+            assert response.content == file_content
