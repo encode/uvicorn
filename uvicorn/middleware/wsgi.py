@@ -2,7 +2,8 @@ import asyncio
 import concurrent.futures
 import io
 import sys
-from typing import Iterable, List, Optional, Tuple
+from collections import deque
+from typing import Deque, Iterable, Optional, Tuple
 
 from asgiref.typing import (
     ASGIReceiveCallable,
@@ -95,7 +96,7 @@ class WSGIResponder:
         self.status = None
         self.response_headers = None
         self.send_event = asyncio.Event()
-        self.send_queue: List[Optional[ASGISendEvent]] = []
+        self.send_queue: Deque[Optional[ASGISendEvent]] = deque()
         self.loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
         self.response_started = False
         self.exc_info: Optional[ExcInfo] = None
@@ -128,7 +129,7 @@ class WSGIResponder:
     async def sender(self, send: ASGISendCallable) -> None:
         while True:
             if self.send_queue:
-                message = self.send_queue.pop(0)
+                message = self.send_queue.popleft()
                 if message is None:
                     return
                 await send(message)
