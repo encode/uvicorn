@@ -116,5 +116,20 @@ def test_cli_incomplete_app_parameter() -> None:
     assert result.exit_code == 1
 
 
+def test_cli_reloader_incomplete_app_parameter(
+    capfd: pytest.CaptureFixture[str],
+) -> None:
+    runner = CliRunner()
+
+    runner.invoke(cli, ["tests.test_cli", "--reload"])
+
+    captured = capfd.readouterr()
+
+    assert (
+        'Error loading ASGI app. Import string "tests.test_cli" '
+        'must be in format "<module>:<attribute>".'
+    ) in captured.err
+
+
 class App:
     pass
