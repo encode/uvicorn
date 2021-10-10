@@ -141,14 +141,14 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 @click.option(
     "--ws-ping-interval",
     type=float,
-    default=20,
+    default=20.0,
     help="WebSocket ping interval",
     show_default=True,
 )
 @click.option(
     "--ws-ping-timeout",
     type=float,
-    default=20,
+    default=20.0,
     help="WebSocket ping timeout",
     show_default=True,
 )
