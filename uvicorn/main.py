@@ -141,14 +141,14 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 @click.option(
     "--ws-ping-interval",
     type=float,
-    default=20,
+    default=20.0,
     help="WebSocket ping interval",
     show_default=True,
 )
 @click.option(
     "--ws-ping-timeout",
     type=float,
-    default=20,
+    default=20.0,
     help="WebSocket ping timeout",
     show_default=True,
 )
@@ -277,14 +277,14 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 @click.option(
     "--ssl-version",
     type=int,
-    default=SSL_PROTOCOL_VERSION,
+    default=int(SSL_PROTOCOL_VERSION),
     help="SSL version to use (see stdlib ssl module's)",
     show_default=True,
 )
 @click.option(
     "--ssl-cert-reqs",
     type=int,
-    default=ssl.CERT_NONE,
+    default=int(ssl.CERT_NONE),
     help="Whether client certificate is required (see stdlib ssl module's)",
     show_default=True,
 )
