@@ -16,7 +16,7 @@ you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main
 
 * `--host <str>` - Bind socket to this host. Use `--host 0.0.0.0` to make the application available on your local network. IPv6 addresses are supported, for example: `--host '::'`. **Default:** *'127.0.0.1'*.
 * `--port <int>` - Bind to a socket with this port. **Default:** *8000*.
-* `--uds <path>` - Bind to a UNIX domain socket at the given path, for example `--uds /tmp/uvicorn.sock`. Useful if you want to run Uvicorn behind a reverse proxy
+* `--uds <path>` - Bind to a UNIX domain socket, for example `--uds /tmp/uvicorn.sock`. Useful if you want to run Uvicorn behind a reverse proxy.
 * `--fd <int>` - Bind to socket from this file descriptor. Useful if you want to run Uvicorn within a process manager.
 
 ## Development
