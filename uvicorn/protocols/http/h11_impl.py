@@ -38,9 +38,6 @@ class H11Protocol(asyncio.Protocol):
     def __init__(
         self, config, server_state, on_connection_lost: Callable = None, _loop=None
     ):
-        if not config.loaded:
-            config.load()
-
         self.config = config
         self.app = config.loaded_app
         self.on_connection_lost = on_connection_lost

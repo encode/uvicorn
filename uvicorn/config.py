@@ -8,9 +8,32 @@ import socket
 import ssl
 import sys
 from pathlib import Path
-from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import (
+    AsyncContextManager,
+    AsyncGenerator,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 from uvicorn.logging import TRACE_LOG_LEVEL
+
+if sys.version_info >= (3, 7):
+    from contextlib import asynccontextmanager
+else:
+    from contextlib2 import asynccontextmanager
+
+
+if sys.version_info >= (3, 10):
+    from contextlib import nullcontext
+else:
+    from contextlib2 import nullcontext
+
 
 if sys.version_info < (3, 8):
     from typing_extensions import Literal
@@ -184,6 +207,8 @@ def resolve_reload_patterns(
 
 
 class Config:
+    _loading: bool = False
+
     def __init__(
         self,
         app: Union[ASGIApplication, Callable, str],
@@ -403,92 +428,108 @@ class Config:
             logging.getLogger("uvicorn.access").handlers = []
             logging.getLogger("uvicorn.access").propagate = False
 
-    def load(self) -> None:
-        assert not self.loaded
-
-        if self.is_ssl:
-            assert self.ssl_certfile
-            self.ssl: Optional[ssl.SSLContext] = create_ssl_context(
-                keyfile=self.ssl_keyfile,
-                certfile=self.ssl_certfile,
-                password=self.ssl_keyfile_password,
-                ssl_version=self.ssl_version,
-                cert_reqs=self.ssl_cert_reqs,
-                ca_certs=self.ssl_ca_certs,
-                ciphers=self.ssl_ciphers,
-            )
-        else:
-            self.ssl = None
-
-        encoded_headers = [
-            (key.lower().encode("latin1"), value.encode("latin1"))
-            for key, value in self.headers
-        ]
-        self.encoded_headers = (
-            [(b"server", b"uvicorn")] + encoded_headers
-            if b"server" not in dict(encoded_headers) and self.server_header
-            else encoded_headers
-        )
-
-        if isinstance(self.http, str):
-            http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
-            self.http_protocol_class: Type[asyncio.Protocol] = http_protocol_class
-        else:
-            self.http_protocol_class = self.http
-
-        if isinstance(self.ws, str):
-            ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
-            self.ws_protocol_class: Optional[Type[asyncio.Protocol]] = ws_protocol_class
-        else:
-            self.ws_protocol_class = self.ws
-
-        self.lifespan_class = import_from_string(LIFESPAN[self.lifespan])
-
+    @asynccontextmanager
+    async def app_context(self) -> AsyncGenerator[None, None]:
+        assert not self._loading
+        self._loading = True
         try:
-            self.loaded_app = import_from_string(self.app)
-        except ImportFromStringError as exc:
-            logger.error("Error loading ASGI app. %s" % exc)
-            sys.exit(1)
+            assert not self.loaded
 
-        try:
-            self.loaded_app = self.loaded_app()
-        except TypeError as exc:
-            if self.factory:
-                logger.error("Error loading ASGI app factory: %s", exc)
-                sys.exit(1)
-        else:
-            if not self.factory:
-                logger.warning(
-                    "ASGI app factory detected. Using it, "
-                    "but please consider setting the --factory flag explicitly."
+            if self.is_ssl:
+                assert self.ssl_certfile
+                self.ssl: Optional[ssl.SSLContext] = create_ssl_context(
+                    keyfile=self.ssl_keyfile,
+                    certfile=self.ssl_certfile,
+                    password=self.ssl_keyfile_password,
+                    ssl_version=self.ssl_version,
+                    cert_reqs=self.ssl_cert_reqs,
+                    ca_certs=self.ssl_ca_certs,
+                    ciphers=self.ssl_ciphers,
                 )
-
-        if self.interface == "auto":
-            if inspect.isclass(self.loaded_app):
-                use_asgi_3 = hasattr(self.loaded_app, "__await__")
-            elif inspect.isfunction(self.loaded_app):
-                use_asgi_3 = asyncio.iscoroutinefunction(self.loaded_app)
             else:
-                call = getattr(self.loaded_app, "__call__", None)
-                use_asgi_3 = asyncio.iscoroutinefunction(call)
-            self.interface = "asgi3" if use_asgi_3 else "asgi2"
+                self.ssl = None
 
-        if self.interface == "wsgi":
-            self.loaded_app = WSGIMiddleware(self.loaded_app)
-            self.ws_protocol_class = None
-        elif self.interface == "asgi2":
-            self.loaded_app = ASGI2Middleware(self.loaded_app)
-
-        if self.debug:
-            self.loaded_app = DebugMiddleware(self.loaded_app)
-        if logger.level <= TRACE_LOG_LEVEL:
-            self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
-        if self.proxy_headers:
-            self.loaded_app = ProxyHeadersMiddleware(
-                self.loaded_app, trusted_hosts=self.forwarded_allow_ips
+            encoded_headers = [
+                (key.lower().encode("latin1"), value.encode("latin1"))
+                for key, value in self.headers
+            ]
+            self.encoded_headers = (
+                [(b"server", b"uvicorn")] + encoded_headers
+                if b"server" not in dict(encoded_headers) and self.server_header
+                else encoded_headers
             )
 
-        self.loaded = True
+            if isinstance(self.http, str):
+                http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
+                self.http_protocol_class: Type[asyncio.Protocol] = http_protocol_class
+            else:
+                self.http_protocol_class = self.http
+
+            if isinstance(self.ws, str):
+                ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
+                self.ws_protocol_class: Optional[
+                    Type[asyncio.Protocol]
+                ] = ws_protocol_class
+            else:
+                self.ws_protocol_class = self.ws
+
+            self.lifespan_class = import_from_string(LIFESPAN[self.lifespan])
+
+            try:
+                self.loaded_app = import_from_string(self.app)
+            except ImportFromStringError as exc:
+                logger.error("Error loading ASGI app. %s" % exc)
+                sys.exit(1)
+
+            try:
+                self.loaded_app = self.loaded_app()
+            except TypeError as exc:
+                if self.factory:
+                    logger.error("Error loading ASGI app factory: %s", exc)
+                    sys.exit(1)
+            else:
+                if not self.factory:
+                    logger.warning(
+                        "ASGI app factory detected. Using it, "
+                        "but please consider setting the --factory flag explicitly."
+                    )
+
+            if self.interface == "auto":
+                if isinstance(self.loaded_app, AsyncContextManager):
+                    use_asgi_3 = True
+                elif inspect.isclass(self.loaded_app):
+                    use_asgi_3 = hasattr(self.loaded_app, "__await__")
+                elif inspect.isfunction(self.loaded_app):
+                    use_asgi_3 = asyncio.iscoroutinefunction(self.loaded_app)
+                else:
+                    call = getattr(self.loaded_app, "__call__", None)
+                    use_asgi_3 = asyncio.iscoroutinefunction(call)
+                self.interface = "asgi3" if use_asgi_3 else "asgi2"
+
+            async with (
+                self.loaded_app  # type: ignore[attr-defined]
+                if isinstance(self.loaded_app, AsyncContextManager)
+                else nullcontext(self.loaded_app)
+            ) as self.loaded_app:
+                if self.interface == "wsgi":
+                    self.loaded_app = WSGIMiddleware(self.loaded_app)
+                    self.ws_protocol_class = None
+                elif self.interface == "asgi2":
+                    self.loaded_app = ASGI2Middleware(self.loaded_app)
+
+                if self.debug:
+                    self.loaded_app = DebugMiddleware(self.loaded_app)
+                if logger.level <= TRACE_LOG_LEVEL:
+                    self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
+                if self.proxy_headers:
+                    self.loaded_app = ProxyHeadersMiddleware(
+                        self.loaded_app, trusted_hosts=self.forwarded_allow_ips
+                    )
+
+                self.loaded = True
+                yield
+        finally:
+            self._loading = False
 
     def setup_event_loop(self) -> None:
         loop_setup: Optional[Callable] = import_from_string(LOOP_SETUPS[self.loop])
