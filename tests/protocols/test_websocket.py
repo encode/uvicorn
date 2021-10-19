@@ -1,3 +1,5 @@
+import asyncio
+
 import httpx
 import pytest
 
@@ -5,6 +7,7 @@ from tests.protocols.test_http import HTTP_PROTOCOLS
 from tests.utils import run_server
 from uvicorn.config import Config
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
+from uvicorn.server import Server
 
 try:
     import websockets
@@ -539,3 +542,31 @@ async def test_send_binary_data_to_server_bigger_than_default(
             with pytest.raises(websockets.ConnectionClosedError) as e:
                 data = await send_text("ws://127.0.0.1:8000")
             assert e.value.code == expected_result
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_graceful_shutdown(ws_protocol_cls, http_protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+        async def websocket_receive(self, message):
+            _bytes = message.get("bytes")
+            await self.send({"type": "websocket.send", "bytes": _bytes})
+
+    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    server = Server(config=config)
+    cancel_handle = asyncio.ensure_future(server.serve())
+    await asyncio.sleep(0.1)
+
+    async with websockets.connect("ws://127.0.0.1:8000") as websocket:
+        await websocket.ping()
+        shutdown = asyncio.ensure_future(server.shutdown())
+        data = b"abc"
+        await websocket.send(data)
+        resp = await websocket.recv()
+        assert data == resp
+    await shutdown
+    cancel_handle.cancel()
