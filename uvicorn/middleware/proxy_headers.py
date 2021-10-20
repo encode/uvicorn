@@ -8,6 +8,8 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
+import ipaddress
+import logging
 from typing import List, Optional, Tuple, Union, cast
 
 from asgiref.typing import (
@@ -30,6 +32,12 @@ class ProxyHeadersMiddleware:
         else:
             self.trusted_hosts = set(trusted_hosts)
         self.always_trust = "*" in self.trusted_hosts
+
+        try:
+            list(map(ipaddress.ip_address, self.trusted_hosts))
+        except ValueError:
+            logger = logging.getLogger("uvicorn.warning")
+            logger.warning("Incorrect IP in trusted hosts")
 
     def get_trusted_client_host(
         self, x_forwarded_for_hosts: List[str]

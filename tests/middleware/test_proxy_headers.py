@@ -1,3 +1,4 @@
+from logging import WARNING
 from typing import List, Union
 
 import httpx
@@ -5,6 +6,8 @@ import pytest
 from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
 from tests.response import Response
+from tests.utils import run_server
+from uvicorn import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 
@@ -18,6 +21,28 @@ async def app(
     addr = "%s://%s:%d" % (scheme, host, port)
     response = Response("Remote: " + addr, media_type="text/plain")
     await response(scope, receive, send)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("ips"),
+    [
+        ("1.22.333.4444"),
+        ("192.168.0.1,1234"),
+        ("2001:db8::1X"),
+        (""),
+    ],
+)
+async def test_incorrect_ip_in_trusted_hosts(
+    ips: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    config = Config(app=app, forwarded_allow_ips=ips)
+
+    async with run_server(config):
+        pass
+    warnings = [record for record in caplog.records if record.levelno == WARNING]
+
+    assert warnings[0].message == "Incorrect IP in trusted hosts"
 
 
 @pytest.mark.asyncio
