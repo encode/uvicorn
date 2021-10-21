@@ -4,7 +4,7 @@ Thank you for being interested in contributing to Uvicorn.
 There are many ways you can contribute to the project:
 
 - Using Uvicorn on your stack and [reporting bugs/issues you find](https://github.com/encode/uvicorn/issues/new)
-- [Implementing new features and fixing bugs](https://github.com/encode/uvicorn/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+- [Implementing new features and fixing bugs](https://github.com/encode/uvicorn/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
 - [Review Pull Requests of others](https://github.com/encode/uvicorn/pulls)
 - Write documentation
 - Participate in discussions
@@ -39,9 +39,7 @@ that demonstrates the issue.
 Some possibly useful tips for narrowing down potential issues...
 
 - Does the issue exist with a specific supervisor like `Multiprocess` or more than one?
-
 - Does the issue exist on asgi, or wsgi, or both?
-- Does the issue exist with `Client`, `AsyncClient`, or both?
 - Are you running Uvicorn in conjunction with Gunicorn, others, or standalone?
 
 ## Development
@@ -164,7 +162,7 @@ Before releasing a new version, create a pull request that includes:
         - Things that **should not** go in the changelog: changes to documentation, tests or tooling.
         - Try sorting entries in descending order of impact / importance.
         - Keep it concise and to-the-point. 🎯
-- **A version bump**: see `__version__.py`.
+- **A version bump**: see `__init__.py`.
 
 For an example, see [#1006](https://github.com/encode/uvicorn/pull/1107).
 
