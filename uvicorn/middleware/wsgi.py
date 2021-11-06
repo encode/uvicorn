@@ -74,7 +74,8 @@ def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> E
 class WSGIMiddleware:
     def __init__(self, app: WSGIApp, workers: int = 10):
         warnings.warn(
-            "The built-in `WSGIMiddleware` will be deprecated in future versions, please use `a2wsgi.WSGIMiddleware` instead.",
+            "The built-in `WSGIMiddleware` will be deprecated in"
+            " future versions, please use `a2wsgi.WSGIMiddleware` instead.",
             DeprecationWarning,
         )
         self.app = app
