@@ -108,7 +108,7 @@ Options:
                                   [default: TLSv1]
   --header TEXT                   Specify custom default HTTP response headers
                                   as a Name:Value pair
-  --h11_max_incomplete_event_size INTEGER
+  --h11-max-incomplete-event-size INTEGER
                                   For h11, the maximum number of bytes to
                                   buffer of an incomplete event
   --version                       Display the uvicorn version and exit.

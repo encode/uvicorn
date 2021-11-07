@@ -309,7 +309,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     help="Specify custom default HTTP response headers as a Name:Value pair",
 )
 @click.option(
-    "--h11_max_incomplete_event_size",
+    "--h11-max-incomplete-event-size",
     "h11_max_incomplete_event_size",
     type=int,
     default=None,

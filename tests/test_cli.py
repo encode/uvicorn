@@ -56,7 +56,7 @@ def test_cli_event_size() -> None:
 
     with mock.patch.object(main, "run") as mock_run:
         result = runner.invoke(
-            cli, ["tests.test_cli:App", "--h11_max_incomplete_event_size", 32 * 1024]
+            cli, ["tests.test_cli:App", "--h11-max-incomplete-event-size", 32 * 1024]
         )
 
     assert result.output == ""
