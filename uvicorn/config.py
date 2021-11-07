@@ -230,6 +230,7 @@ class Config:
         ssl_ca_certs: Optional[str] = None,
         ssl_ciphers: str = "TLSv1",
         headers: Optional[List[List[str]]] = None,
+        h11_max_incomplete_event_size: Optional[int] = None,
         factory: bool = False,
     ):
         self.app = app
@@ -271,6 +272,7 @@ class Config:
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
         self.headers: List[List[str]] = headers or []
+        self.h11_max_incomplete_event_size = h11_max_incomplete_event_size
         self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
 

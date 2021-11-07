@@ -309,6 +309,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     help="Specify custom default HTTP response headers as a Name:Value pair",
 )
 @click.option(
+    "--h11_max_incomplete_event_size",
+    "h11_max_incomplete_event_size",
+    type=int,
+    default=None,
+    help="For h11, the maximum number of bytes to buffer of an incomplete event",
+)
+@click.option(
     "--version",
     is_flag=True,
     callback=print_version,
@@ -373,6 +380,7 @@ def main(
     ssl_ca_certs: str,
     ssl_ciphers: str,
     headers: typing.List[str],
+    h11_max_incomplete_event_size: int,
     use_colors: bool,
     app_dir: str,
     factory: bool,
@@ -420,6 +428,7 @@ def main(
         "ssl_ca_certs": ssl_ca_certs,
         "ssl_ciphers": ssl_ciphers,
         "headers": [header.split(":", 1) for header in headers],
+        "h11_max_incomplete_event_size": h11_max_incomplete_event_size,
         "use_colors": use_colors,
         "factory": factory,
     }

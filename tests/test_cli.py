@@ -51,6 +51,20 @@ def test_cli_headers() -> None:
     ]
 
 
+def test_cli_event_size() -> None:
+    runner = CliRunner()
+
+    with mock.patch.object(main, "run") as mock_run:
+        result = runner.invoke(
+            cli, ["tests.test_cli:App", "--h11_max_incomplete_event_size", 32 * 1024]
+        )
+
+    assert result.output == ""
+    assert result.exit_code == 0
+    mock_run.assert_called_once()
+    assert mock_run.call_args[1]["h11_max_incomplete_event_size"] == 32768
+
+
 def test_cli_call_server_run() -> None:
     runner = CliRunner()
 

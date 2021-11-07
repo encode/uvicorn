@@ -108,6 +108,9 @@ Options:
                                   [default: TLSv1]
   --header TEXT                   Specify custom default HTTP response headers
                                   as a Name:Value pair
+  --h11_max_incomplete_event_size INTEGER
+                                  For h11, the maximum number of bytes to
+                                  buffer of an incomplete event
   --version                       Display the uvicorn version and exit.
   --app-dir TEXT                  Look for APP in the specified directory, by
                                   adding this to the PYTHONPATH. Defaults to

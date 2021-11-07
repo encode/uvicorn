@@ -48,7 +48,13 @@ class H11Protocol(asyncio.Protocol):
         self.logger = logging.getLogger("uvicorn.error")
         self.access_logger = logging.getLogger("uvicorn.access")
         self.access_log = self.access_logger.hasHandlers()
-        self.conn = h11.Connection(h11.SERVER)
+        if config.h11_max_incomplete_event_size:
+            self.conn = h11.Connection(
+                h11.SERVER,
+                max_incomplete_event_size=config.h11_max_incomplete_event_size,
+            )
+        else:
+            self.conn = h11.Connection(h11.SERVER)
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
         self.limit_concurrency = config.limit_concurrency
