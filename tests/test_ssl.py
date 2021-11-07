@@ -17,9 +17,11 @@ async def test_run(
     tls_certificate_server_cert_path,
     tls_certificate_private_key_path,
     tls_ca_certificate_pem_path,
+    unused_tcp_port,
 ):
     config = Config(
         app=app,
+        port=unused_tcp_port,
         loop="asyncio",
         limit_max_requests=1,
         ssl_keyfile=tls_certificate_private_key_path,
@@ -28,16 +30,20 @@ async def test_run(
     )
     async with run_server(config):
         async with httpx.AsyncClient(verify=tls_ca_ssl_context) as client:
-            response = await client.get("https://127.0.0.1:8000")
+            response = await client.get(f"https://127.0.0.1:{unused_tcp_port}")
     assert response.status_code == 204
 
 
 @pytest.mark.asyncio
 async def test_run_chain(
-    tls_ca_ssl_context, tls_certificate_key_and_chain_path, tls_ca_certificate_pem_path
+    tls_ca_ssl_context,
+    tls_certificate_key_and_chain_path,
+    tls_ca_certificate_pem_path,
+    unused_tcp_port,
 ):
     config = Config(
         app=app,
+        port=unused_tcp_port,
         loop="asyncio",
         limit_max_requests=1,
         ssl_certfile=tls_certificate_key_and_chain_path,
@@ -45,21 +51,24 @@ async def test_run_chain(
     )
     async with run_server(config):
         async with httpx.AsyncClient(verify=tls_ca_ssl_context) as client:
-            response = await client.get("https://127.0.0.1:8000")
+            response = await client.get(f"https://127.0.0.1:{unused_tcp_port}")
     assert response.status_code == 204
 
 
 @pytest.mark.asyncio
-async def test_run_chain_only(tls_ca_ssl_context, tls_certificate_key_and_chain_path):
+async def test_run_chain_only(
+    tls_ca_ssl_context, tls_certificate_key_and_chain_path, unused_tcp_port
+):
     config = Config(
         app=app,
+        port=unused_tcp_port,
         loop="asyncio",
         limit_max_requests=1,
         ssl_certfile=tls_certificate_key_and_chain_path,
     )
     async with run_server(config):
         async with httpx.AsyncClient(verify=tls_ca_ssl_context) as client:
-            response = await client.get("https://127.0.0.1:8000")
+            response = await client.get(f"https://127.0.0.1:{unused_tcp_port}")
     assert response.status_code == 204
 
 
@@ -69,9 +78,11 @@ async def test_run_password(
     tls_certificate_server_cert_path,
     tls_ca_certificate_pem_path,
     tls_certificate_private_key_encrypted_path,
+    unused_tcp_port,
 ):
     config = Config(
         app=app,
+        port=unused_tcp_port,
         loop="asyncio",
         limit_max_requests=1,
         ssl_keyfile=tls_certificate_private_key_encrypted_path,
@@ -81,5 +92,5 @@ async def test_run_password(
     )
     async with run_server(config):
         async with httpx.AsyncClient(verify=tls_ca_ssl_context) as client:
-            response = await client.get("https://127.0.0.1:8000")
+            response = await client.get(f"https://127.0.0.1:{unused_tcp_port}")
     assert response.status_code == 204
