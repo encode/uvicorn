@@ -39,6 +39,8 @@ STATUS_LINE = {
     status_code: _get_status_line(status_code) for status_code in range(100, 600)
 }
 
+A = 0
+
 
 class HttpToolsProtocol(asyncio.Protocol):
     def __init__(
@@ -115,6 +117,9 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.transport.close()
 
         if self.on_connection_lost is not None:
+            global A
+            A += 1
+            print("Called %d times" % A)
             self.on_connection_lost()
 
     def eof_received(self):

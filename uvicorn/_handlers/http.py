@@ -85,6 +85,7 @@ async def handle_http(
     # Let the transport run in the background. When closed, this future will complete
     # and we'll exit here.
     await connection_lost
+    print("complete")
 
 
 def _get_current_task() -> asyncio.Task:

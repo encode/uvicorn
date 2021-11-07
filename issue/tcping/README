@@ -1,0 +1,45 @@
+
+-=[ tcping README
+
+This software may be freely distributed under the terms of
+the MIT license. See LICENSE file for details.
+
+As of 2016, the tcping homepage is:
+	https://github.com/mkirchner/tcping
+
+--=[ How to build
+
+On LiNUX systems:	make tcping.linux
+On OpenBSD:		make tcping.openbsd
+On Solaris 7/8:		make tcping.solaris
+On Solaris 2.6:		make tcping.solaris26
+On AIX:			make tcping.aix
+
+-=[ Return values
+
+Return values to the shell are:
+-1	an error occured
+0	port is open
+1	port is closed
+2	connection establishment timed out
+
+-=[ Notes
+
+1. Non-blocking connetcs are one of the most non-portable areas
+   of network programming. Hope for the best.
+2. I hope AIX support works out fine. The only AIX box I have access
+   to returns "AIX aixterm3 3 4 0006404B4C00" (whatever this means)
+   on a 'uname -a'.
+
+-=[ Acknowledgements
+
+Many thanks to
+    Kai Hambrecht
+    John Smith
+    Vincent Loriot
+
+-=[ Author notes
+
+Originally released in 2003. If you happen to find any bugs or you have
+improved my code, please be so kind to drop me a line. Thank you.
+Marc Kirchner <mail(at)marc(dash)kirchner(dot)de>
