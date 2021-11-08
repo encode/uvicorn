@@ -188,7 +188,7 @@ class Config:
         self,
         app: Union[ASGIApplication, Callable, str],
         host: str = "127.0.0.1",
-        port: int = 8000,
+        port: Union[int, str] = 8000,
         uds: Optional[str] = None,
         fd: Optional[int] = None,
         loop: LoopSetupType = "auto",
@@ -234,7 +234,7 @@ class Config:
     ):
         self.app = app
         self.host = host
-        self.port = port
+        self.port = int(port)
         self.uds = uds
         self.fd = fd
         self.loop = loop
