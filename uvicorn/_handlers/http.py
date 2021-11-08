@@ -81,6 +81,11 @@ async def handle_http(
     data = reader._buffer  # type: ignore
     if data:
         protocol.data_received(data)
+    else:
+        # Client already disconnected.
+        # E.g. they sent a TCP ping health check.
+        # Fine, let's disconnect too.
+        transport.close()
 
     # Let the transport run in the background. When closed, this future will complete
     # and we'll exit here.
