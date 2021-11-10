@@ -223,7 +223,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     type=str,
     default=None,
     help="Comma seperated list of IPs to trust with proxy headers. Defaults to"
-    " the $FORWARDED_ALLOW_IPS environment variable if available, or '127.0.0.1'.",
+    " the $FORWARDED_ALLOW_IPS environment variable if available, or '::1,127.0.0.1'.",
 )
 @click.option(
     "--root-path",

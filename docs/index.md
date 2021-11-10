@@ -156,7 +156,7 @@ Options:
   --forwarded-allow-ips TEXT      Comma seperated list of IPs to trust with
                                   proxy headers. Defaults to the
                                   $FORWARDED_ALLOW_IPS environment variable if
-                                  available, or '127.0.0.1'.
+                                  available, or '::1,127.0.0.1'.
   --root-path TEXT                Set the ASGI 'root_path' for applications
                                   submounted below a given URL path.
   --limit-concurrency INTEGER     Maximum number of concurrent connections or
