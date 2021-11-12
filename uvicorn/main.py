@@ -428,11 +428,7 @@ def main(
 
 def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
     config = Config(app, **kwargs)
-    server = Server(config=config)
-    serve(config, server)
 
-
-def serve(config: Config, server: Server) -> None:
     if (config.reload or config.workers > 1) and not isinstance(app, str):
         logger = logging.getLogger("uvicorn.error")
         logger.warning(
@@ -441,6 +437,11 @@ def serve(config: Config, server: Server) -> None:
         )
         sys.exit(1)
 
+    server = Server(config=config)
+    serve(config, server)
+
+
+def serve(config: Config, server: Server) -> None:
     if config.should_reload:
         sock = config.bind_socket()
         ChangeReload(config, target=server.run, sockets=[sock]).run()
