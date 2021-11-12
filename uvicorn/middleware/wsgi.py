@@ -19,6 +19,12 @@ from asgiref.typing import (
 
 from uvicorn._types import Environ, ExcInfo, StartResponse, WSGIApp
 
+warnings.warn(
+    "The built-in `WSGIMiddleware` will be deprecated in"
+    " future versions, please use `a2wsgi.WSGIMiddleware` instead.",
+    DeprecationWarning,
+)
+
 
 def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> Environ:
     """
@@ -73,11 +79,6 @@ def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> E
 
 class WSGIMiddleware:
     def __init__(self, app: WSGIApp, workers: int = 10):
-        warnings.warn(
-            "The built-in `WSGIMiddleware` will be deprecated in"
-            " future versions, please use `a2wsgi.WSGIMiddleware` instead.",
-            DeprecationWarning,
-        )
         self.app = app
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
