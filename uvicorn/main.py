@@ -429,7 +429,10 @@ def main(
 def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
     config = Config(app, **kwargs)
     server = Server(config=config)
+    serve(config, Server)
 
+
+def serve(config: Config, server: Server) -> None:
     if (config.reload or config.workers > 1) and not isinstance(app, str):
         logger = logging.getLogger("uvicorn.error")
         logger.warning(
