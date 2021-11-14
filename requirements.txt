@@ -26,5 +26,5 @@ async_generator==1.10 ; python_version < '3.7'
 
 
 # Documentation
-mkdocs==1.2.2
+mkdocs==1.2.3
 mkdocs-material==7.2.6
