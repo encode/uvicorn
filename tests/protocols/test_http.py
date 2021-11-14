@@ -83,6 +83,17 @@ INVALID_REQUEST_TEMPLATE = b"\r\n".join(
     ]
 )
 
+GET_REQUEST_HUGE_HEADERS = [
+    b"".join(
+        [
+            b"GET / HTTP/1.1\r\n",
+            b"Host: example.org\r\n",
+            b"Cookie: " + b"x" * 32 * 1024,
+        ]
+    ),
+    b"".join([b"x" * 32 * 1024 + b"\r\n", b"\r\n", b"\r\n"]),
+]
+
 
 class MockTransport:
     def __init__(self, sockname=None, peername=None, sslcontext=False):
@@ -744,3 +755,36 @@ def test_invalid_http_request(request_line, protocol_cls, caplog, event_loop):
         protocol.data_received(request)
         assert not protocol.transport.buffer
         assert "Invalid HTTP request received." in caplog.messages
+
+
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+def test_huge_headers_h11_fail(protocol_cls, event_loop):
+    app = Response("Hello, world", media_type="text/plain")
+
+    with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
+        # Huge headers make h11 fail in it's default config
+        if protocol_cls == H11Protocol:
+            with pytest.raises(AssertionError):
+                protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
+                protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
+                protocol.loop.run_one()
+        else:
+            protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
+            protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
+            protocol.loop.run_one()
+            assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+            assert b"Hello, world" in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+def test_huge_headers_h11_max_incomplete(protocol_cls, event_loop):
+    app = Response("Hello, world", media_type="text/plain")
+
+    with get_connected_protocol(
+        app, protocol_cls, event_loop, h11_max_incomplete_event_size=64 * 1024
+    ) as protocol:
+        protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
+        protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
+        protocol.loop.run_one()
+        assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+        assert b"Hello, world" in protocol.transport.buffer
