@@ -130,7 +130,7 @@ def create_ssl_context(
         if isinstance(ca_certs, str) or isinstance(ca_certs, os.PathLike):
             ca_certs = [ca_certs]
         for ca_cert in ca_certs:
-            ctx.load_verify_locations(ca_cert)
+            ctx.load_verify_locations(ca_file=ca_cert)
     if ciphers:
         ctx.set_ciphers(ciphers)
     return ctx
