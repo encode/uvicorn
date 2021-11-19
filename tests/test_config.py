@@ -341,7 +341,7 @@ def test_ssl_config_cert_reqs(
         app=asgi_app,
         ssl_certfile=tls_ca_certificate_pem_path,
         ssl_keyfile=tls_ca_certificate_private_key_path,
-        ssl_cert_reqs=ssl.VerifyMode.CERT_REQUIRED
+        ssl_cert_reqs=ssl.VerifyMode.CERT_REQUIRED,
     )
     config.load()
 
@@ -358,16 +358,18 @@ def test_ssl_config_cert_req_flags(
         ssl_keyfile=tls_ca_certificate_private_key_path,
         ssl_cert_reqs=(
             ssl.VerifyMode.CERT_REQUIRED,
-            ssl.VerifyFlags.VERIFY_X509_STRICT | \
-                ssl.VerifyFlags.VERIFY_X509_TRUSTED_FIRST
-        )
+            ssl.VerifyFlags.VERIFY_X509_STRICT
+            | ssl.VerifyFlags.VERIFY_X509_TRUSTED_FIRST,
+        ),
     )
     config.load()
 
     assert config.ssl.verify_mode == ssl.VerifyMode.CERT_REQUIRED
-    assert config.ssl.verify_flags == \
-        ssl.VerifyFlags.VERIFY_X509_STRICT | \
-            ssl.VerifyFlags.VERIFY_X509_TRUSTED_FIRST
+    assert (
+        config.ssl.verify_flags
+        == ssl.VerifyFlags.VERIFY_X509_STRICT
+        | ssl.VerifyFlags.VERIFY_X509_TRUSTED_FIRST
+    )
 
 
 def asgi2_app(scope: Scope) -> typing.Callable:
