@@ -118,13 +118,16 @@ def create_ssl_context(
     keyfile: Optional[Union[str, os.PathLike]],
     password: Optional[str],
     ssl_version: int,
-    cert_reqs: int,
+    cert_reqs: Union[int, Tuple[int, int]],
     ca_certs: Optional[Union[str, os.PathLike]],
     ciphers: Optional[str],
 ) -> ssl.SSLContext:
     ctx = ssl.SSLContext(ssl_version)
     get_password = (lambda: password) if password else None
     ctx.load_cert_chain(certfile, keyfile, get_password)
+    if isinstance(cert_reqs, Tuple):
+        (cert_reqs, cert_req_flags) = cert_reqs
+        ctx.verify_flags = cert_req_flags
     ctx.verify_mode = cert_reqs
     if ca_certs:
         ctx.load_verify_locations(ca_certs)
@@ -226,7 +229,7 @@ class Config:
         ssl_certfile: Optional[Union[str, os.PathLike]] = None,
         ssl_keyfile_password: Optional[str] = None,
         ssl_version: int = SSL_PROTOCOL_VERSION,
-        ssl_cert_reqs: int = ssl.CERT_NONE,
+        ssl_cert_reqs: Union[int, Tuple[int, int]] = ssl.CERT_NONE,
         ssl_ca_certs: Optional[str] = None,
         ssl_ciphers: str = "TLSv1",
         headers: Optional[List[List[str]]] = None,
