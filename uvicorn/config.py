@@ -119,7 +119,7 @@ def create_ssl_context(
     password: Optional[str],
     ssl_version: int,
     cert_reqs: int,
-    ca_certs: Optional[Union[str, os.PathLike]],
+    ca_certs: Optional[Union[str, os.PathLike, List[Union[str, os.PathLike]]]],
     ciphers: Optional[str],
 ) -> ssl.SSLContext:
     ctx = ssl.SSLContext(ssl_version)
@@ -127,7 +127,10 @@ def create_ssl_context(
     ctx.load_cert_chain(certfile, keyfile, get_password)
     ctx.verify_mode = cert_reqs
     if ca_certs:
-        ctx.load_verify_locations(ca_certs)
+        if isinstance(ca_certs, str) or isinstance(ca_certs, os.PathLike):
+            ca_certs = [ca_certs]
+        for ca_cert in ca_certs:
+            ctx.load_verify_locations(ca_cert)
     if ciphers:
         ctx.set_ciphers(ciphers)
     return ctx
