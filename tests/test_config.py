@@ -332,6 +332,38 @@ def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
     assert config.is_ssl is True
 
 
+def test_ssl_config_ca_cert(
+    tls_ca_certificate_pem_path: str,
+    tls_ca_certificate_private_key_path: str,
+) -> None:
+
+    config = Config(
+        app=asgi_app,
+        ssl_certfile=tls_ca_certificate_pem_path,
+        ssl_keyfile=tls_ca_certificate_private_key_path,
+        ssl_ca_certs=tls_ca_certificate_pem_path,
+    )
+    config.load()
+
+    assert len(config.ssl.get_ca_certs()) == 1
+
+
+def test_ssl_config_ca_certs(
+    tls_ca_certificate_pem_path: str,
+    tls_ca_certificate_private_key_path: str,
+) -> None:
+
+    config = Config(
+        app=asgi_app,
+        ssl_certfile=tls_ca_certificate_pem_path,
+        ssl_keyfile=tls_ca_certificate_private_key_path,
+        ssl_ca_certs=[tls_ca_certificate_pem_path],
+    )
+    config.load()
+
+    assert len(config.ssl.get_ca_certs()) == 1
+
+
 def asgi2_app(scope: Scope) -> typing.Callable:
     async def asgi(
         receive: ASGIReceiveCallable, send: ASGISendCallable
