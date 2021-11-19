@@ -230,7 +230,7 @@ class Config:
         ssl_keyfile_password: Optional[str] = None,
         ssl_version: int = SSL_PROTOCOL_VERSION,
         ssl_cert_reqs: int = ssl.CERT_NONE,
-        ssl_ca_certs: Optional[str] = None,
+        ssl_ca_certs: Optional[Union[str, os.PathLike, List[Union[str, os.PathLike]]]] = None,
         ssl_ciphers: str = "TLSv1",
         headers: Optional[List[List[str]]] = None,
         factory: bool = False,
