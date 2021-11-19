@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import socket
+import ssl
 import sys
 import typing
 from copy import deepcopy
@@ -345,7 +346,9 @@ def test_ssl_config_ca_cert(
     )
     config.load()
 
-    assert len(config.ssl.get_ca_certs()) == 1
+    assert isinstance(config.ssl, ssl.SSLContext)
+    config_ssl: ssl.SSLContext = config.ssl
+    assert len(config_ssl.get_ca_certs()) == 1
 
 
 def test_ssl_config_ca_certs(
@@ -361,7 +364,9 @@ def test_ssl_config_ca_certs(
     )
     config.load()
 
-    assert len(config.ssl.get_ca_certs()) == 1
+    assert isinstance(config.ssl, ssl.SSLContext)
+    config_ssl: ssl.SSLContext = config.ssl
+    assert len(config_ssl.get_ca_certs()) == 1
 
 
 def asgi2_app(scope: Scope) -> typing.Callable:
