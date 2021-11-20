@@ -539,3 +539,36 @@ async def test_send_binary_data_to_server_bigger_than_default(
             with pytest.raises(websockets.ConnectionClosedError) as e:
                 data = await send_text("ws://127.0.0.1:8000")
             assert e.value.code == expected_result
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_server_reject_connection(ws_protocol_cls, http_protocol_cls):
+    async def app(scope, receive, send):
+        assert scope["type"] == "websocket"
+
+        # Pull up first recv message.
+        message = await receive()
+        assert message["type"] == "websocket.connect"
+
+        # Reject the connection.
+        await send({"type": "websocket.close"})
+        # -- At this point websockets' recv() is unusable. --
+
+        # This doesn't raise `TypeError`:
+        # See https://github.com/encode/uvicorn/issues/244
+        message = await receive()
+        print("message", message)
+        assert message["type"] == "websocket.disconnect"
+
+    async def websocket_session(url):
+        try:
+            async with websockets.connect(url):
+                pass
+        except Exception:
+            pass
+
+    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        await websocket_session("ws://127.0.0.1:8000")
