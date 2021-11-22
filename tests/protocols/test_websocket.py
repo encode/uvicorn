@@ -403,7 +403,11 @@ async def test_asgi_return_value(ws_protocol_cls, http_protocol_cls):
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 @pytest.mark.parametrize("code", [None, 1000, 1001])
-@pytest.mark.parametrize("reason", [None, "test"])
+@pytest.mark.parametrize(
+    "reason",
+    [None, "test", False],
+    ids=["none_as_reason", "normal_reason", "without_reason"],
+)
 async def test_app_close(ws_protocol_cls, http_protocol_cls, code, reason):
     async def app(scope, receive, send):
         while True:
@@ -416,7 +420,7 @@ async def test_app_close(ws_protocol_cls, http_protocol_cls, code, reason):
                 if code is not None:
                     reply["code"] = code
 
-                if reason is not None:
+                if reason is not False:
                     reply["reason"] = reason
 
                 await send(reply)

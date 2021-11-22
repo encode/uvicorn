@@ -297,7 +297,7 @@ class WSProtocol(asyncio.Protocol):
             elif message_type == "websocket.close":
                 self.close_sent = True
                 code = message.get("code", 1000)
-                reason = message.get("reason", "")
+                reason = message.get("reason", "") or ""
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
                 output = self.conn.send(
                     wsproto.events.CloseConnection(code=code, reason=reason)
