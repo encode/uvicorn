@@ -22,7 +22,6 @@ cryptography==3.4.8
 coverage==5.5
 httpx==1.0.0b0
 pytest-asyncio==0.15.1
-async_generator==1.10 ; python_version < '3.7'
 
 
 # Documentation

@@ -1,7 +1,6 @@
 import asyncio
 import http
 import logging
-import sys
 from typing import Callable
 from urllib.parse import unquote
 
@@ -25,22 +24,7 @@ class Server:
         return not self.closing
 
 
-# special case logger kwarg in websockets >=10
-if sys.version_info >= (3, 7):
-
-    class _LoggerMixin:
-        pass
-
-
-else:
-
-    class _LoggerMixin:
-        def __init__(self, *args, logger, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.logger = logging.LoggerAdapter(logger, {"websocket": self})
-
-
-class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
+class WebSocketProtocol(websockets.WebSocketServerProtocol):
     def __init__(
         self, config, server_state, on_connection_lost: Callable = None, _loop=None
     ):

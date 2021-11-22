@@ -51,7 +51,8 @@ async def handle_http(
     # So we need to attach a callback to handle exceptions ourselves for that case.
     # (It's not easy to know which loop we're effectively running on, so we attach the
     # callback in all cases. In practice it won't be called on vanilla asyncio.)
-    task = _get_current_task()
+    task = asyncio.current_task()
+    assert task is not None
 
     @task.add_done_callback
     def retrieve_exception(task: asyncio.Task) -> None:
@@ -85,15 +86,3 @@ async def handle_http(
     # Let the transport run in the background. When closed, this future will complete
     # and we'll exit here.
     await connection_lost
-
-
-def _get_current_task() -> asyncio.Task:
-    try:
-        current_task = asyncio.current_task  # type: ignore
-    except AttributeError:  # pragma: no cover
-        # Python 3.6.
-        current_task = asyncio.Task.current_task  # type: ignore
-
-    task = current_task()
-    assert task is not None
-    return task
