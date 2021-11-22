@@ -497,7 +497,7 @@ class Config:
 
     def bind_socket(self) -> socket.socket:
         logger_args: List[Union[str, int]]
-        if self.uds:
+        if self.uds:  # pragma: py-win32
             path = self.uds
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             try:
@@ -516,7 +516,7 @@ class Config:
                 + " (Press CTRL+C to quit)"
             )
             logger_args = [self.uds]
-        elif self.fd:
+        elif self.fd:  # pragma: py-win32
             sock = socket.fromfd(self.fd, socket.AF_UNIX, socket.SOCK_STREAM)
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
             fd_name_format = "%s"
@@ -530,7 +530,7 @@ class Config:
             family = socket.AF_INET
             addr_format = "%s://%s:%d"
 
-            if self.host and ":" in self.host:
+            if self.host and ":" in self.host:  # pragma: py-win32
                 # It's an IPv6 address.
                 family = socket.AF_INET6
                 addr_format = "%s://[%s]:%d"
