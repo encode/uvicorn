@@ -261,7 +261,7 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
 
             elif message_type == "websocket.close":
                 code = message.get("code", 1000)
-                reason = message.get("reason", "")
+                reason = message.get("reason", "") or ""
                 await self.close(code, reason)
                 self.closed_event.set()
 
