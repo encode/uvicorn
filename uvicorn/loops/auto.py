@@ -1,4 +1,7 @@
-def auto_loop_setup(**kwdargs) -> None:
+from typing import Any
+
+
+def auto_loop_setup(**kwdargs: Any) -> None:
     try:
         import uvloop  # noqa
     except ImportError:  # pragma: no cover
