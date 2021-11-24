@@ -493,7 +493,7 @@ class Config:
     def setup_event_loop(self) -> None:
         loop_setup: Optional[Callable] = import_from_string(LOOP_SETUPS[self.loop])
         if loop_setup is not None:
-            loop_setup()
+            loop_setup(reload=self.reload)
 
     def bind_socket(self) -> socket.socket:
         logger_args: List[Union[str, int]]
