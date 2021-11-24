@@ -180,7 +180,15 @@ def resolve_reload_patterns(
 
     directories = list(set(directories).difference(set(children)))
 
-    return (list(set(patterns)), directories)
+    return list(set(patterns)), directories
+
+
+def _normalize_dirs(dirs: Union[List[str], str, None]) -> List[str]:
+    if dirs is None:
+        return []
+    if isinstance(dirs, str):
+        return [dirs]
+    return list(set(dirs))
 
 
 class Config:
@@ -291,9 +299,9 @@ class Config:
             )
 
         if self.should_reload:
-            reload_dirs = list(set(reload_dirs)) if reload_dirs else []
-            reload_includes = list(set(reload_includes)) if reload_includes else []
-            reload_excludes = list(set(reload_excludes)) if reload_excludes else []
+            reload_dirs = _normalize_dirs(reload_dirs)
+            reload_includes = _normalize_dirs(reload_includes)
+            reload_excludes = _normalize_dirs(reload_excludes)
 
             self.reload_includes, self.reload_dirs = resolve_reload_patterns(
                 reload_includes, reload_dirs
