@@ -310,7 +310,7 @@ class Server:
 
     def handle_exit(self, sig: signal.Signals, frame: FrameType) -> None:
 
-        if self.should_exit:
+        if self.should_exit and sig == signal.SIGINT:
             self.force_exit = True
         else:
             self.should_exit = True
