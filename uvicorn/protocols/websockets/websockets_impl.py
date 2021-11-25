@@ -282,10 +282,17 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
             return {"type": "websocket.connect"}
 
         await self.handshake_completed_event.wait()
+
+        if self.closed_event.is_set():
+            # If client disconnected, use WebSocketServerProtocol.close_code property.
+            # If the handshake failed or the app closed before handshake completion,
+            # use 1006 Abnormal Closure.
+            return {"type": "websocket.disconnect", "code": self.close_code or 1006}
+
         try:
-            await self.ensure_open()
             data = await self.recv()
         except websockets.ConnectionClosed as exc:
+            self.closed_event.set()
             return {"type": "websocket.disconnect", "code": exc.code}
 
         msg = {"type": "websocket.receive"}
