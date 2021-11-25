@@ -119,6 +119,10 @@ def test_reload_dir_is_set(
             == f"Will watch for changes in these directories: {[str(app_dir)]}"
         )
         assert config.reload_dirs == [app_dir]
+        config = Config(
+            app="tests.test_config:asgi_app", reload=True, reload_dirs=str(app_dir)
+        )
+        assert config.reload_dirs == [app_dir]
 
 
 def test_non_existant_reload_dir_is_not_set(
