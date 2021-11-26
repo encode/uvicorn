@@ -582,7 +582,7 @@ async def test_server_reject_connection(ws_protocol_cls, http_protocol_cls):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_server_can_read_messages_in_buffer_after_close(
+async def test_server_can_read_messages_in_buffer_after_client_close(
     ws_protocol_cls, http_protocol_cls
 ):
     frames = []
@@ -608,4 +608,51 @@ async def test_server_can_read_messages_in_buffer_after_close(
     async with run_server(config):
         await send_text("ws://127.0.0.1:8000")
 
+    assert frames == [b"abc", b"abc", b"abc"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", [WebSocketProtocol])
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_server_can_read_messages_in_buffer_after_server_close(
+    ws_protocol_cls, http_protocol_cls
+):
+    """
+    Note: this doesn't work with WSProtocol.
+    """
+
+    frames = []
+
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+            # Ensure server doesn't start reading frames from read buffer until
+            # after server has sent close frame, but server is still able to
+            # read these frames
+            await asyncio.sleep(0.2)
+            await self.send({"type": "websocket.close"})
+
+        async def websocket_receive(self, message):
+            frames.append(message.get("bytes"))
+
+    async def send_text(url):
+        async with websockets.connect(url) as websocket:
+            await websocket.send(b"abc")
+            await websocket.send(b"abc")
+            await websocket.send(b"abc")
+
+            # Wait until after server has sent close frame
+            await asyncio.sleep(0.3)
+
+            try:
+                # Client will fail to send this frame
+                await websocket.send(b"abc")
+            except Exception:
+                pass
+
+    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        await send_text("ws://127.0.0.1:8000")
+
+    # Client tried to send 4 frames, could only send 3
     assert frames == [b"abc", b"abc", b"abc"]
