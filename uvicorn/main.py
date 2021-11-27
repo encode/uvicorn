@@ -425,7 +425,7 @@ def main(
 
 
 def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
-    app_dir = kwargs.pop("app_dir")
+    app_dir = kwargs.pop("app_dir", None)
     if app_dir is not None:
         sys.path.insert(0, app_dir)
 
