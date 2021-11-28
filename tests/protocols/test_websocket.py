@@ -647,8 +647,10 @@ async def test_server_can_read_messages_in_buffer_after_server_close(
             try:
                 # Client will fail to send this frame
                 await websocket.send(b"abc")
-            except Exception:
+            except websockets.exceptions.ConnectionClosed:
                 pass
+            else:
+                raise AssertionError("connection was not closed")
 
     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
     async with run_server(config):
