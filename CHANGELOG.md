@@ -17,6 +17,7 @@
 - Allow WebSocket close event to receive reason being None from ASGI app. (#1259) 23/11/21
 - Fix a bug in `WebSocketProtocol.asgi_receive` on which we returned a close frame even if there were data messages before that frame in the read queue. (#1252) 25/11/21
 - The option `--reload-dirs` was splitting a string into single character directories. (#1267) 25/11/21
+- Only second SIGINT is able to forcelly shutdown the server (#1269) 28/11/21
 
 
 ## 0.15.0 - 2021-08-13
