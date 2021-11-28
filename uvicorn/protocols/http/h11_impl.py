@@ -141,10 +141,10 @@ class H11Protocol(asyncio.Protocol):
                 return
             event_type = type(event)
 
-            if event_type is h11.NEED_DATA:
+            if event is h11.NEED_DATA:
                 break
 
-            elif event_type is h11.PAUSED:
+            elif event is h11.PAUSED:
                 # This case can occur in HTTP pipelining, so we need to
                 # stop reading any more data, and ensure that at the end
                 # of the active request/response cycle we handle any
