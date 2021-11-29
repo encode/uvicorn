@@ -48,7 +48,12 @@ async def test_run(host, url):
 
 @pytest.mark.asyncio
 async def test_run_multiprocess():
-    config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
+    config = Config(
+        app="tests.test_main:app",
+        loop="asyncio",
+        workers=2,
+        limit_max_requests=1,
+    )
     async with run_server(config):
         async with httpx.AsyncClient() as client:
             response = await client.get("http://127.0.0.1:8000")
@@ -57,7 +62,12 @@ async def test_run_multiprocess():
 
 @pytest.mark.asyncio
 async def test_run_reload():
-    config = Config(app=app, loop="asyncio", reload=True, limit_max_requests=1)
+    config = Config(
+        app="tests.test_main:app",
+        loop="asyncio",
+        reload=True,
+        limit_max_requests=1,
+    )
     async with run_server(config):
         async with httpx.AsyncClient() as client:
             response = await client.get("http://127.0.0.1:8000")
