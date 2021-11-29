@@ -429,10 +429,11 @@ def main(
 def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
     config = Config(app, **kwargs)
     server = Server(config=config)
-    run_server(config, server)
+    run_server(server)
 
 
-def run_server(config: Config, server: Server) -> None:
+def run_server(server: Server) -> None:
+    config = server.config
     if config.should_reload:
         sock = config.bind_socket()
         ChangeReload(config, target=server.run, sockets=[sock]).run()
