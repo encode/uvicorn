@@ -429,7 +429,7 @@ def main(
 def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
     config = Config(app, **kwargs)
     server = Server(config=config)
-    serve(config, server)
+    run_server(config, server)
 
 
 def run_server(config: Config, server: Server) -> None:
