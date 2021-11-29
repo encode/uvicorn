@@ -516,7 +516,10 @@ def test_ws_max_size() -> None:
 def test_bind_unix_socket_works_with_reload_or_workers(tmp_path, reload, workers):
     uds_file = tmp_path / "uvicorn.sock"
     config = Config(
-        app=asgi_app, uds=uds_file.as_posix(), reload=reload, workers=workers
+        app="test_config:asgi_app",
+        uds=uds_file.as_posix(),
+        reload=reload,
+        workers=workers,
     )
     config.load()
     sock = config.bind_socket()
@@ -538,7 +541,7 @@ def test_bind_unix_socket_works_with_reload_or_workers(tmp_path, reload, workers
 def test_bind_fd_works_with_reload_or_workers(reload, workers):
     fdsock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     fd = fdsock.fileno()
-    config = Config(app=asgi_app, fd=fd, reload=reload, workers=workers)
+    config = Config(app="test_config:asgi_app", fd=fd, reload=reload, workers=workers)
     config.load()
     sock = config.bind_socket()
     assert isinstance(sock, socket.socket)
