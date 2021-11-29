@@ -444,6 +444,13 @@ class Config:
 
         self.lifespan_class = import_from_string(LIFESPAN[self.lifespan])
 
+        if (self.reload or self.workers > 1) and not isinstance(self.app, str):
+            logger.warning(
+                "You must pass the application as an import string to enable"
+                " 'reload' or 'workers'."
+            )
+            sys.exit(1)
+
         try:
             self.loaded_app = import_from_string(self.app)
         except ImportFromStringError as exc:
