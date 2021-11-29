@@ -1,10 +1,12 @@
 import logging
+import os
 import platform
 import ssl
 import sys
 import typing
 
 import click
+from asgiref.typing import ASGIApplication
 
 import uvicorn
 from uvicorn.config import (
@@ -21,17 +23,17 @@ from uvicorn.config import (
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
-LEVEL_CHOICES = click.Choice(LOG_LEVELS.keys())
-HTTP_CHOICES = click.Choice(HTTP_PROTOCOLS.keys())
-WS_CHOICES = click.Choice(WS_PROTOCOLS.keys())
-LIFESPAN_CHOICES = click.Choice(LIFESPAN.keys())
+LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
+HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
+WS_CHOICES = click.Choice(list(WS_PROTOCOLS.keys()))
+LIFESPAN_CHOICES = click.Choice(list(LIFESPAN.keys()))
 LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
 logger = logging.getLogger("uvicorn.error")
 
 
-def print_version(ctx, param, value):
+def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> None:
     if not value or ctx.resilient_parsing:
         return
     click.echo(
@@ -76,6 +78,22 @@ def print_version(ctx, param, value):
     multiple=True,
     help="Set reload directories explicitly, instead of using the current working"
     " directory.",
+    type=click.Path(exists=True),
+)
+@click.option(
+    "--reload-include",
+    "reload_includes",
+    multiple=True,
+    help="Set glob patterns to include while watching for files. Includes '*.py' "
+    "by default; these defaults can be overridden in `--reload-exclude`.",
+)
+@click.option(
+    "--reload-exclude",
+    "reload_excludes",
+    multiple=True,
+    help="Set glob patterns to exclude while watching for files. Includes "
+    "'.*, .py[cod], .sw.*, ~*' by default; these defaults can be overridden "
+    "in `--reload-include`.",
 )
 @click.option(
     "--reload-delay",
@@ -111,6 +129,27 @@ def print_version(ctx, param, value):
     type=WS_CHOICES,
     default="auto",
     help="WebSocket protocol implementation.",
+    show_default=True,
+)
+@click.option(
+    "--ws-max-size",
+    type=int,
+    default=16777216,
+    help="WebSocket max size message in bytes",
+    show_default=True,
+)
+@click.option(
+    "--ws-ping-interval",
+    type=float,
+    default=20.0,
+    help="WebSocket ping interval",
+    show_default=True,
+)
+@click.option(
+    "--ws-ping-timeout",
+    type=float,
+    default=20.0,
+    help="WebSocket ping timeout",
     show_default=True,
 )
 @click.option(
@@ -166,6 +205,18 @@ def print_version(ctx, param, value):
     default=True,
     help="Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to "
     "populate remote address info.",
+)
+@click.option(
+    "--server-header/--no-server-header",
+    is_flag=True,
+    default=True,
+    help="Enable/Disable default Server header.",
+)
+@click.option(
+    "--date-header/--no-date-header",
+    is_flag=True,
+    default=True,
+    help="Enable/Disable default Date header.",
 )
 @click.option(
     "--forwarded-allow-ips",
@@ -226,14 +277,14 @@ def print_version(ctx, param, value):
 @click.option(
     "--ssl-version",
     type=int,
-    default=SSL_PROTOCOL_VERSION,
+    default=int(SSL_PROTOCOL_VERSION),
     help="SSL version to use (see stdlib ssl module's)",
     show_default=True,
 )
 @click.option(
     "--ssl-cert-reqs",
     type=int,
-    default=ssl.CERT_NONE,
+    default=int(ssl.CERT_NONE),
     help="Whether client certificate is required (see stdlib ssl module's)",
     show_default=True,
 )
@@ -281,7 +332,7 @@ def print_version(ctx, param, value):
     show_default=True,
 )
 def main(
-    app,
+    app: str,
     host: str,
     port: int,
     uds: str,
@@ -289,11 +340,16 @@ def main(
     loop: str,
     http: str,
     ws: str,
+    ws_max_size: int,
+    ws_ping_interval: float,
+    ws_ping_timeout: float,
     lifespan: str,
     interface: str,
     debug: bool,
     reload: bool,
     reload_dirs: typing.List[str],
+    reload_includes: typing.List[str],
+    reload_excludes: typing.List[str],
     reload_delay: float,
     workers: int,
     env_file: str,
@@ -301,6 +357,8 @@ def main(
     log_level: str,
     access_log: bool,
     proxy_headers: bool,
+    server_header: bool,
+    date_header: bool,
     forwarded_allow_ips: str,
     root_path: str,
     limit_concurrency: int,
@@ -318,11 +376,10 @@ def main(
     use_colors: bool,
     app_dir: str,
     factory: bool,
-):
+) -> None:
     sys.path.insert(0, app_dir)
 
     kwargs = {
-        "app": app,
         "host": host,
         "port": port,
         "uds": uds,
@@ -330,6 +387,9 @@ def main(
         "loop": loop,
         "http": http,
         "ws": ws,
+        "ws_max_size": ws_max_size,
+        "ws_ping_interval": ws_ping_interval,
+        "ws_ping_timeout": ws_ping_timeout,
         "lifespan": lifespan,
         "env_file": env_file,
         "log_config": LOGGING_CONFIG if log_config is None else log_config,
@@ -339,9 +399,13 @@ def main(
         "debug": debug,
         "reload": reload,
         "reload_dirs": reload_dirs if reload_dirs else None,
+        "reload_includes": reload_includes if reload_includes else None,
+        "reload_excludes": reload_excludes if reload_excludes else None,
         "reload_delay": reload_delay,
         "workers": workers,
         "proxy_headers": proxy_headers,
+        "server_header": server_header,
+        "date_header": date_header,
         "forwarded_allow_ips": forwarded_allow_ips,
         "root_path": root_path,
         "limit_concurrency": limit_concurrency,
@@ -359,14 +423,14 @@ def main(
         "use_colors": use_colors,
         "factory": factory,
     }
-    run(**kwargs)
+    run(app, **kwargs)
 
 
-def run(app, **kwargs):
+def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
     run_server(Server(config=Config(app, **kwargs)))
 
 
-def run_server(server):
+def run_server(server: Server) -> None:
     config = server.config
     app = config.app
     if (config.reload or config.workers > 1) and not isinstance(app, str):
@@ -379,15 +443,15 @@ def run_server(server):
 
     if config.should_reload:
         sock = config.bind_socket()
-        supervisor = ChangeReload(config, target=server.run, sockets=[sock])
-        supervisor.run()
+        ChangeReload(config, target=server.run, sockets=[sock]).run()
     elif config.workers > 1:
         sock = config.bind_socket()
-        supervisor = Multiprocess(config, target=server.run, sockets=[sock])
-        supervisor.run()
+        Multiprocess(config, target=server.run, sockets=[sock]).run()
     else:
         server.run()
+    if config.uds:
+        os.remove(config.uds)  # pragma: py-win32
 
 
 if __name__ == "__main__":
-    main()
+    main()  # pragma: no cover

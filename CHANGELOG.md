@@ -1,5 +1,54 @@
 # Change Log
 
+## 0.15.0 - 2021-08-13
+
+### Added
+
+- Change reload to be configurable with glob patterns. Currently only `.py` files are watched, which is different from the previous default behavior. (#820) 08/08/21
+- Add Python 3.10-rc.1 support. Now the server uses `asyncio.run` which will: start a fresh asyncio event loop, on shutdown cancel any background tasks rather than aborting them, `aexit` any remaining async generators, and shutdown the default `ThreadPoolExecutor`. (#1070) 30/07/21
+- Exit with status 3 when worker starts failed (#1077) 22/06/21
+- Add option to set websocket ping interval and timeout (#1048) 09/06/21
+- Adapt bind_socket to make it usable with multiple processes (#1009) 21/06/21
+- Add existence check to the reload directory(ies) (#1089) 21/06/21
+- Add missing trace log for websocket protocols (#1083) 19/06/21
+- Support disabling default Server and Date headers (#818) 11/06/21
+
+### Changed
+
+- Add PEP440 compliant version of click (#1099) 29/06/21
+- Bump asgiref to 3.4.0 (#1100) 29/06/21
+
+### Fixed
+
+- When receiving a `SIGTERM` supervisors now terminate their processes before joining them (#1069) 30/07/21
+- Fix the need of `httptools` on minimal installation (#1135) 30/07/21
+- Fix ping parameters annotation in Config class (#1127) 19/07/21
+
+## 0.14.0 - 2021-06-01
+
+### Added
+
+- Defaults ws max_size on server to 16MB (#995) 5/29/21
+- Improve user feedback if no ws library installed (#926 and #1023) 2/27/21
+- Support 'reason' field in 'websocket.close' messages (#957) 2/24/21
+- Implemented lifespan.shutdown.failed (#755) 2/25/21
+
+### Changed
+
+- Upgraded websockets requirements (#1065)  6/1/21
+- Switch to asyncio streams API (#869) 5/29/21
+- Update httptools from 0.1.* to 0.2.* (#1024) 5/28/21
+- Allow Click 8.0, refs #1016 (#1042) 5/23/21
+- Add search for a trusted host in ProxyHeadersMiddleware (#591) 3/13/21
+- Up wsproto to 1.0.0 (#892) 2/25/21
+
+### Fixed
+
+- Force reload_dirs to be a list (#978) 6/1/21
+- Fix gunicorn worker not running if extras not installed (#901) 5/28/21
+- Fix socket port 0 (#975) 3/5/21
+- Prevent garbage collection of main lifespan task (#972) 3/4/21
+
 ## 0.13.4 - 2021-02-20
 
 ### Fixed
@@ -11,7 +60,7 @@
 
 ### Added:
 
-- Docs: Nginx + websockets (#948) 2/10/21 
+- Docs: Nginx + websockets (#948) 2/10/21
 - Document the default value of 1 for workers (#940) (#943) 1/25/21
 - Enabled permessage-deflate extension in websockets (#764) 1/1/21
 

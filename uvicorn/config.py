@@ -7,9 +7,18 @@ import os
 import socket
 import ssl
 import sys
-from typing import List, Tuple
+from pathlib import Path
+from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
+
+from uvicorn.logging import TRACE_LOG_LEVEL
+
+if sys.version_info < (3, 8):
+    from typing_extensions import Literal
+else:
+    from typing import Literal
 
 import click
+from asgiref.typing import ASGIApplication
 
 try:
     import yaml
@@ -26,9 +35,13 @@ from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
-TRACE_LOG_LEVEL = 5
+HTTPProtocolType = Literal["auto", "h11", "httptools"]
+WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
+LifespanType = Literal["auto", "on", "off"]
+LoopSetupType = Literal["none", "auto", "asyncio", "uvloop"]
+InterfaceType = Literal["auto", "asgi3", "asgi2", "wsgi"]
 
-LOG_LEVELS = {
+LOG_LEVELS: Dict[str, int] = {
     "critical": logging.CRITICAL,
     "error": logging.ERROR,
     "warning": logging.WARNING,
@@ -36,36 +49,35 @@ LOG_LEVELS = {
     "debug": logging.DEBUG,
     "trace": TRACE_LOG_LEVEL,
 }
-HTTP_PROTOCOLS = {
+HTTP_PROTOCOLS: Dict[HTTPProtocolType, str] = {
     "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
     "h11": "uvicorn.protocols.http.h11_impl:H11Protocol",
     "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
 }
-WS_PROTOCOLS = {
+WS_PROTOCOLS: Dict[WSProtocolType, Optional[str]] = {
     "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",
     "none": None,
     "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
     "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
 }
-LIFESPAN = {
+LIFESPAN: Dict[LifespanType, str] = {
     "auto": "uvicorn.lifespan.on:LifespanOn",
     "on": "uvicorn.lifespan.on:LifespanOn",
     "off": "uvicorn.lifespan.off:LifespanOff",
 }
-LOOP_SETUPS = {
+LOOP_SETUPS: Dict[LoopSetupType, Optional[str]] = {
     "none": None,
     "auto": "uvicorn.loops.auto:auto_loop_setup",
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
 }
-INTERFACES = ["auto", "asgi3", "asgi2", "wsgi"]
+INTERFACES: List[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
 
 
-# Fallback to 'ssl.PROTOCOL_SSLv23' in order to support Python < 3.5.3.
-SSL_PROTOCOL_VERSION = getattr(ssl, "PROTOCOL_TLS", ssl.PROTOCOL_SSLv23)
+SSL_PROTOCOL_VERSION: int = ssl.PROTOCOL_TLS_SERVER
 
 
-LOGGING_CONFIG = {
+LOGGING_CONFIG: dict = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
@@ -102,8 +114,14 @@ logger = logging.getLogger("uvicorn.error")
 
 
 def create_ssl_context(
-    certfile, keyfile, password, ssl_version, cert_reqs, ca_certs, ciphers
-):
+    certfile: Union[str, os.PathLike],
+    keyfile: Optional[Union[str, os.PathLike]],
+    password: Optional[str],
+    ssl_version: int,
+    cert_reqs: int,
+    ca_certs: Optional[Union[str, os.PathLike]],
+    ciphers: Optional[str],
+) -> ssl.SSLContext:
     ctx = ssl.SSLContext(ssl_version)
     get_password = (lambda: password) if password else None
     ctx.load_cert_chain(certfile, keyfile, get_password)
@@ -115,47 +133,112 @@ def create_ssl_context(
     return ctx
 
 
+def is_dir(path: Path) -> bool:
+    try:
+        if not path.is_absolute():
+            path = path.resolve()
+        return path.is_dir()
+    except OSError:
+        return False
+
+
+def resolve_reload_patterns(
+    patterns_list: List[str], directories_list: List[str]
+) -> Tuple[List[str], List[Path]]:
+
+    directories: List[Path] = list(set(map(Path, directories_list.copy())))
+    patterns: List[str] = patterns_list.copy()
+
+    current_working_directory = Path.cwd()
+    for pattern in patterns_list:
+        # Special case for the .* pattern, otherwise this would only match
+        # hidden directories which is probably undesired
+        if pattern == ".*":
+            continue
+        patterns.append(pattern)
+        if is_dir(Path(pattern)):
+            directories.append(Path(pattern))
+        else:
+            for match in current_working_directory.glob(pattern):
+                if is_dir(match):
+                    directories.append(match)
+
+    directories = list(set(directories))
+    directories = list(map(Path, directories))
+    directories = list(map(lambda x: x.resolve(), directories))
+    directories = list(
+        set([reload_path for reload_path in directories if is_dir(reload_path)])
+    )
+
+    children = []
+    for j in range(len(directories)):
+        for k in range(j + 1, len(directories)):
+            if directories[j] in directories[k].parents:
+                children.append(directories[k])
+            elif directories[k] in directories[j].parents:
+                children.append(directories[j])
+
+    directories = list(set(directories).difference(set(children)))
+
+    return list(set(patterns)), directories
+
+
+def _normalize_dirs(dirs: Union[List[str], str, None]) -> List[str]:
+    if dirs is None:
+        return []
+    if isinstance(dirs, str):
+        return [dirs]
+    return list(set(dirs))
+
+
 class Config:
     def __init__(
         self,
-        app,
-        host="127.0.0.1",
-        port=8000,
-        uds=None,
-        fd=None,
-        loop="auto",
-        http="auto",
-        ws="auto",
-        lifespan="auto",
-        env_file=None,
-        log_config=LOGGING_CONFIG,
-        log_level=None,
-        access_log=True,
-        use_colors=None,
-        interface="auto",
-        debug=False,
-        reload=False,
-        reload_dirs=None,
-        reload_delay=None,
-        workers=None,
-        proxy_headers=True,
-        forwarded_allow_ips=None,
-        root_path="",
-        limit_concurrency=None,
-        limit_max_requests=None,
-        backlog=2048,
-        timeout_keep_alive=5,
-        timeout_notify=30,
-        callback_notify=None,
-        ssl_keyfile=None,
-        ssl_certfile=None,
-        ssl_keyfile_password=None,
-        ssl_version=SSL_PROTOCOL_VERSION,
-        ssl_cert_reqs=ssl.CERT_NONE,
-        ssl_ca_certs=None,
-        ssl_ciphers="TLSv1",
-        headers=None,
-        factory=False,
+        app: Union[ASGIApplication, Callable, str],
+        host: str = "127.0.0.1",
+        port: int = 8000,
+        uds: Optional[str] = None,
+        fd: Optional[int] = None,
+        loop: LoopSetupType = "auto",
+        http: Union[Type[asyncio.Protocol], HTTPProtocolType] = "auto",
+        ws: Union[Type[asyncio.Protocol], WSProtocolType] = "auto",
+        ws_max_size: int = 16 * 1024 * 1024,
+        ws_ping_interval: Optional[float] = 20,
+        ws_ping_timeout: Optional[float] = 20,
+        lifespan: LifespanType = "auto",
+        env_file: Optional[Union[str, os.PathLike]] = None,
+        log_config: Optional[Union[dict, str]] = LOGGING_CONFIG,
+        log_level: Optional[Union[str, int]] = None,
+        access_log: bool = True,
+        use_colors: Optional[bool] = None,
+        interface: InterfaceType = "auto",
+        debug: bool = False,
+        reload: bool = False,
+        reload_dirs: Optional[Union[List[str], str]] = None,
+        reload_delay: Optional[float] = None,
+        reload_includes: Optional[Union[List[str], str]] = None,
+        reload_excludes: Optional[Union[List[str], str]] = None,
+        workers: Optional[int] = None,
+        proxy_headers: bool = True,
+        server_header: bool = True,
+        date_header: bool = True,
+        forwarded_allow_ips: Optional[str] = None,
+        root_path: str = "",
+        limit_concurrency: Optional[int] = None,
+        limit_max_requests: Optional[int] = None,
+        backlog: int = 2048,
+        timeout_keep_alive: int = 5,
+        timeout_notify: int = 30,
+        callback_notify: Callable[..., Awaitable[None]] = None,
+        ssl_keyfile: Optional[str] = None,
+        ssl_certfile: Optional[Union[str, os.PathLike]] = None,
+        ssl_keyfile_password: Optional[str] = None,
+        ssl_version: int = SSL_PROTOCOL_VERSION,
+        ssl_cert_reqs: int = ssl.CERT_NONE,
+        ssl_ca_certs: Optional[str] = None,
+        ssl_ciphers: str = "TLSv1",
+        headers: Optional[List[List[str]]] = None,
+        factory: bool = False,
     ):
         self.app = app
         self.host = host
@@ -165,6 +248,9 @@ class Config:
         self.loop = loop
         self.http = http
         self.ws = ws
+        self.ws_max_size = ws_max_size
+        self.ws_ping_interval = ws_ping_interval
+        self.ws_ping_timeout = ws_ping_timeout
         self.lifespan = lifespan
         self.log_config = log_config
         self.log_level = log_level
@@ -176,6 +262,8 @@ class Config:
         self.reload_delay = reload_delay or 0.25
         self.workers = workers or 1
         self.proxy_headers = proxy_headers
+        self.server_header = server_header
+        self.date_header = date_header
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests
@@ -190,17 +278,69 @@ class Config:
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
-        self.headers = headers if headers else []  # type: List[str]
-        self.encoded_headers = None  # type: List[Tuple[bytes, bytes]]
+        self.headers: List[List[str]] = headers or []
+        self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
 
         self.loaded = False
         self.configure_logging()
 
-        if reload_dirs is None:
-            self.reload_dirs = [os.getcwd()]
-        else:
-            self.reload_dirs = reload_dirs
+        self.reload_dirs: List[Path] = []
+        self.reload_dirs_excludes: List[Path] = []
+        self.reload_includes: List[str] = []
+        self.reload_excludes: List[str] = []
+
+        if (
+            reload_dirs or reload_includes or reload_excludes
+        ) and not self.should_reload:
+            logger.warning(
+                "Current configuration will not reload as not all conditions are met,"
+                "please refer to documentation."
+            )
+
+        if self.should_reload:
+            reload_dirs = _normalize_dirs(reload_dirs)
+            reload_includes = _normalize_dirs(reload_includes)
+            reload_excludes = _normalize_dirs(reload_excludes)
+
+            self.reload_includes, self.reload_dirs = resolve_reload_patterns(
+                reload_includes, reload_dirs
+            )
+
+            self.reload_excludes, self.reload_dirs_excludes = resolve_reload_patterns(
+                reload_excludes, []
+            )
+
+            reload_dirs_tmp = self.reload_dirs.copy()
+
+            for directory in self.reload_dirs_excludes:
+                for reload_directory in reload_dirs_tmp:
+                    if (
+                        directory == reload_directory
+                        or directory in reload_directory.parents
+                    ):
+                        try:
+                            self.reload_dirs.remove(reload_directory)
+                        except ValueError:
+                            pass
+
+            for pattern in self.reload_excludes:
+                if pattern in self.reload_includes:
+                    self.reload_includes.remove(pattern)
+
+            if not self.reload_dirs:
+                if reload_dirs:
+                    logger.warning(
+                        "Provided reload directories %s did not contain valid "
+                        + "directories, watching current working directory.",
+                        reload_dirs,
+                    )
+                self.reload_dirs = [Path(os.getcwd())]
+
+            logger.info(
+                "Will watch for changes in these directories: %s",
+                sorted(list(map(str, self.reload_dirs))),
+            )
 
         if env_file is not None:
             from dotenv import load_dotenv
@@ -219,14 +359,19 @@ class Config:
             self.forwarded_allow_ips = forwarded_allow_ips
 
     @property
-    def asgi_version(self) -> str:
-        return {"asgi2": "2.0", "asgi3": "3.0", "wsgi": "3.0"}[self.interface]
+    def asgi_version(self) -> Literal["2.0", "3.0"]:
+        mapping: Dict[str, Literal["2.0", "3.0"]] = {
+            "asgi2": "2.0",
+            "asgi3": "3.0",
+            "wsgi": "3.0",
+        }
+        return mapping[self.interface]
 
     @property
     def is_ssl(self) -> bool:
         return bool(self.ssl_keyfile or self.ssl_certfile)
 
-    def configure_logging(self):
+    def configure_logging(self) -> None:
         logging.addLevelName(TRACE_LOG_LEVEL, "TRACE")
 
         if self.log_config is not None:
@@ -266,11 +411,12 @@ class Config:
             logging.getLogger("uvicorn.access").handlers = []
             logging.getLogger("uvicorn.access").propagate = False
 
-    def load(self):
+    def load(self) -> None:
         assert not self.loaded
 
         if self.is_ssl:
-            self.ssl = create_ssl_context(
+            assert self.ssl_certfile
+            self.ssl: Optional[ssl.SSLContext] = create_ssl_context(
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
                 password=self.ssl_keyfile_password,
@@ -287,18 +433,20 @@ class Config:
             for key, value in self.headers
         ]
         self.encoded_headers = (
-            encoded_headers
-            if b"server" in dict(encoded_headers)
-            else [(b"server", b"uvicorn")] + encoded_headers
-        )  # type: List[Tuple[bytes, bytes]]
+            [(b"server", b"uvicorn")] + encoded_headers
+            if b"server" not in dict(encoded_headers) and self.server_header
+            else encoded_headers
+        )
 
         if isinstance(self.http, str):
-            self.http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
+            http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
+            self.http_protocol_class: Type[asyncio.Protocol] = http_protocol_class
         else:
             self.http_protocol_class = self.http
 
         if isinstance(self.ws, str):
-            self.ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
+            ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
+            self.ws_protocol_class: Optional[Type[asyncio.Protocol]] = ws_protocol_class
         else:
             self.ws_protocol_class = self.ws
 
@@ -350,45 +498,71 @@ class Config:
 
         self.loaded = True
 
-    def setup_event_loop(self):
-        loop_setup = import_from_string(LOOP_SETUPS[self.loop])
+    def setup_event_loop(self) -> None:
+        loop_setup: Optional[Callable] = import_from_string(LOOP_SETUPS[self.loop])
         if loop_setup is not None:
-            loop_setup()
+            loop_setup(reload=self.reload)
 
-    def bind_socket(self):
-        family = socket.AF_INET
-        addr_format = "%s://%s:%d"
+    def bind_socket(self) -> socket.socket:
+        logger_args: List[Union[str, int]]
+        if self.uds:  # pragma: py-win32
+            path = self.uds
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+                sock.bind(path)
+                uds_perms = 0o666
+                os.chmod(self.uds, uds_perms)
+            except OSError as exc:
+                logger.error(exc)
+                sys.exit(1)
 
-        if self.host and ":" in self.host:
-            # It's an IPv6 address.
-            family = socket.AF_INET6
-            addr_format = "%s://[%s]:%d"
+            message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
+            sock_name_format = "%s"
+            color_message = (
+                "Uvicorn running on "
+                + click.style(sock_name_format, bold=True)
+                + " (Press CTRL+C to quit)"
+            )
+            logger_args = [self.uds]
+        elif self.fd:  # pragma: py-win32
+            sock = socket.fromfd(self.fd, socket.AF_UNIX, socket.SOCK_STREAM)
+            message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
+            fd_name_format = "%s"
+            color_message = (
+                "Uvicorn running on "
+                + click.style(fd_name_format, bold=True)
+                + " (Press CTRL+C to quit)"
+            )
+            logger_args = [sock.getsockname()]
+        else:
+            family = socket.AF_INET
+            addr_format = "%s://%s:%d"
 
-        sock = socket.socket(family=family)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        try:
-            sock.bind((self.host, self.port))
-        except OSError as exc:
-            logger.error(exc)
-            sys.exit(1)
+            if self.host and ":" in self.host:  # pragma: py-win32
+                # It's an IPv6 address.
+                family = socket.AF_INET6
+                addr_format = "%s://[%s]:%d"
+
+            sock = socket.socket(family=family)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                sock.bind((self.host, self.port))
+            except OSError as exc:
+                logger.error(exc)
+                sys.exit(1)
+
+            message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
+            color_message = (
+                "Uvicorn running on "
+                + click.style(addr_format, bold=True)
+                + " (Press CTRL+C to quit)"
+            )
+            protocol_name = "https" if self.is_ssl else "http"
+            logger_args = [protocol_name, self.host, self.port]
+        logger.info(message, *logger_args, extra={"color_message": color_message})
         sock.set_inheritable(True)
-
-        message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
-        color_message = (
-            "Uvicorn running on "
-            + click.style(addr_format, bold=True)
-            + " (Press CTRL+C to quit)"
-        )
-        protocol_name = "https" if self.is_ssl else "http"
-        logger.info(
-            message,
-            protocol_name,
-            self.host,
-            self.port,
-            extra={"color_message": color_message},
-        )
         return sock
 
     @property
-    def should_reload(self):
+    def should_reload(self) -> bool:
         return isinstance(self.app, str) and (self.debug or self.reload)

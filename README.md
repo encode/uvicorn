@@ -13,8 +13,6 @@
 
 **Documentation**: [https://www.uvicorn.org](https://www.uvicorn.org)
 
-**Community**: [https://discuss.encode.io/c/uvicorn](https://discuss.encode.io/c/uvicorn)
-
 **Requirements**: Python 3.6+ (For Python 3.5 support, install version 0.8.6.)
 
 Uvicorn is a lightning-fast ASGI server implementation, using [uvloop][uvloop] and [httptools][httptools].
@@ -49,7 +47,7 @@ In this context, "Cython-based" means the following:
 Moreover, "optional extras" means that:
 
 - the websocket protocol will be handled by `websockets` (should you want to use `wsproto` you'd need to install it manually) if possible.
-- the `--reloader` flag in development mode will use `watchgod`.
+- the `--reload` flag in development mode will use `watchgod`.
 - windows users will have `colorama` installed for the colored logs.
 - `python-dotenv` will be installed should you want to use the `--env-file` option.
 - `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.

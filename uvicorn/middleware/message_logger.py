@@ -1,4 +1,16 @@
 import logging
+from typing import Any
+
+from asgiref.typing import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGIReceiveEvent,
+    ASGISendCallable,
+    ASGISendEvent,
+    WWWScope,
+)
+
+from uvicorn.logging import TRACE_LOG_LEVEL
 
 PLACEHOLDER_FORMAT = {
     "body": "<{length} bytes>",
@@ -6,10 +18,9 @@ PLACEHOLDER_FORMAT = {
     "text": "<{length} chars>",
     "headers": "<...>",
 }
-TRACE_LOG_LEVEL = 5
 
 
-def message_with_placeholders(message):
+def message_with_placeholders(message: Any) -> Any:
     """
     Return an ASGI message, with any body-type content omitted and replaced
     with a placeholder.
@@ -24,45 +35,51 @@ def message_with_placeholders(message):
 
 
 class MessageLoggerMiddleware:
-    def __init__(self, app):
+    def __init__(self, app: ASGI3Application):
         self.task_counter = 0
         self.app = app
         self.logger = logging.getLogger("uvicorn.asgi")
 
-        def trace(message, *args, **kwargs):
+        def trace(message: Any, *args: Any, **kwargs: Any) -> None:
             self.logger.log(TRACE_LOG_LEVEL, message, *args, **kwargs)
 
-        self.logger.trace = trace
+        self.logger.trace = trace  # type: ignore
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         self.task_counter += 1
 
         task_counter = self.task_counter
         client = scope.get("client")
         prefix = "%s:%d - ASGI" % (client[0], client[1]) if client else "ASGI"
 
-        async def inner_receive():
+        async def inner_receive() -> ASGIReceiveEvent:
             message = await receive()
             logged_message = message_with_placeholders(message)
             log_text = "%s [%d] Receive %s"
-            self.logger.trace(log_text, prefix, task_counter, logged_message)
+            self.logger.trace(  # type: ignore
+                log_text, prefix, task_counter, logged_message
+            )
             return message
 
-        async def inner_send(message):
+        async def inner_send(message: ASGISendEvent) -> None:
             logged_message = message_with_placeholders(message)
             log_text = "%s [%d] Send %s"
-            self.logger.trace(log_text, prefix, task_counter, logged_message)
+            self.logger.trace(  # type: ignore
+                log_text, prefix, task_counter, logged_message
+            )
             await send(message)
 
         logged_scope = message_with_placeholders(scope)
         log_text = "%s [%d] Started scope=%s"
-        self.logger.trace(log_text, prefix, task_counter, logged_scope)
+        self.logger.trace(log_text, prefix, task_counter, logged_scope)  # type: ignore
         try:
             await self.app(scope, inner_receive, inner_send)
         except BaseException as exc:
             log_text = "%s [%d] Raised exception"
-            self.logger.trace(log_text, prefix, task_counter)
+            self.logger.trace(log_text, prefix, task_counter)  # type: ignore
             raise exc from None
         else:
             log_text = "%s [%d] Completed"
-            self.logger.trace(log_text, prefix, task_counter)
+            self.logger.trace(log_text, prefix, task_counter)  # type: ignore
