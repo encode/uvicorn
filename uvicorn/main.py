@@ -30,6 +30,8 @@ LIFESPAN_CHOICES = click.Choice(list(LIFESPAN.keys()))
 LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
+STARTUP_FAILED = 3
+
 logger = logging.getLogger("uvicorn.error")
 
 
@@ -448,6 +450,9 @@ def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
         server.run()
     if config.uds:
         os.remove(config.uds)  # pragma: py-win32
+
+    if not server.started:
+        sys.exit(STARTUP_FAILED)
 
 
 if __name__ == "__main__":
