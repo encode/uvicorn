@@ -451,7 +451,7 @@ def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
     if config.uds:
         os.remove(config.uds)  # pragma: py-win32
 
-    if not server.started:
+    if not server.started and not config.should_reload and config.workers == 1:
         sys.exit(STARTUP_FAILED)
 
 
