@@ -50,6 +50,7 @@ By default Uvicorn uses simple changes detection strategy that compares python f
 * `--ws-ping-interval <float>` - Set the WebSockets ping interval, in seconds. Please note that this can be used only with the default `websockets` protocol.
 * `--ws-ping-timeout <float>` - Set the WebSockets ping timeout, in seconds. Please note that this can be used only with the default `websockets` protocol.
 * `--lifespan <str>` - Set the Lifespan protocol implementation. **Options:** *'auto', 'on', 'off'.* **Default:** *'auto'*.
+* `--h11-max-incomplete-event-size <int>` - For h11 protocol implementation, set the maximum number of bytes to buffer of an incomplete event.
 
 ## Application Interface
 
