@@ -57,7 +57,7 @@ def test_cli_call_server_run() -> None:
     with mock.patch.object(Server, "run") as mock_run:
         result = runner.invoke(cli, ["tests.test_cli:App"])
 
-    assert result.exit_code == 0
+    assert result.exit_code == 3
     mock_run.assert_called_once()
 
 
