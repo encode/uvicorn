@@ -30,6 +30,8 @@ LIFESPAN_CHOICES = click.Choice(list(LIFESPAN.keys()))
 LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
+STARTUP_FAILURE = 3
+
 logger = logging.getLogger("uvicorn.error")
 
 
@@ -48,7 +50,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     ctx.exit()
 
 
-@click.command()
+@click.command(context_settings={"auto_envvar_prefix": "UVICORN"})
 @click.argument("app")
 @click.option(
     "--host",
@@ -450,6 +452,9 @@ def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
         server.run()
     if config.uds:
         os.remove(config.uds)  # pragma: py-win32
+
+    if not server.started and not config.should_reload and config.workers == 1:
+        sys.exit(STARTUP_FAILURE)
 
 
 if __name__ == "__main__":

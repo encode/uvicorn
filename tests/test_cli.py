@@ -1,4 +1,5 @@
 import importlib
+import os
 import platform
 import sys
 from pathlib import Path
@@ -15,6 +16,10 @@ from uvicorn.supervisors import ChangeReload, Multiprocess
 
 HEADERS = "Content-Security-Policy:default-src 'self'; script-src https://example.com"
 main = importlib.import_module("uvicorn.main")
+
+
+class App:
+    pass
 
 
 def test_cli_print_version() -> None:
@@ -57,7 +62,7 @@ def test_cli_call_server_run() -> None:
     with mock.patch.object(Server, "run") as mock_run:
         result = runner.invoke(cli, ["tests.test_cli:App"])
 
-    assert result.exit_code == 0
+    assert result.exit_code == 3
     mock_run.assert_called_once()
 
 
@@ -131,5 +136,26 @@ def test_cli_reloader_incomplete_app_parameter(
     ) in captured.err
 
 
-class App:
-    pass
+@pytest.fixture()
+def load_env_h11_protocol():
+    old_environ = dict(os.environ)
+    os.environ["UVICORN_HTTP"] = "h11"
+    yield
+    os.environ.clear()
+    os.environ.update(old_environ)
+
+
+def test_env_variables(load_env_h11_protocol: None):
+    runner = CliRunner(env=os.environ)
+    with mock.patch.object(main, "run") as mock_run:
+        runner.invoke(cli, ["tests.test_cli:App"])
+        _, kwargs = mock_run.call_args
+        assert kwargs["http"] == "h11"
+
+
+def test_mistmatch_env_variables(load_env_h11_protocol: None):
+    runner = CliRunner(env=os.environ)
+    with mock.patch.object(main, "run") as mock_run:
+        runner.invoke(cli, ["tests.test_cli:App", "--http=httptools"])
+        _, kwargs = mock_run.call_args
+        assert kwargs["http"] == "httptools"

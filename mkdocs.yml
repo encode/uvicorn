@@ -29,6 +29,7 @@ nav:
   - Contributing: "contributing.md"
 
 markdown_extensions:
+  - admonition
   - codehilite:
       css_class: highlight
   - toc:
