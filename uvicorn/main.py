@@ -50,7 +50,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     ctx.exit()
 
 
-@click.command()
+@click.command(context_settings={"auto_envvar_prefix": "UVICORN"})
 @click.argument("app")
 @click.option(
     "--host",
