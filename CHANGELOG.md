@@ -4,7 +4,9 @@
 
 ### Added
 
+- Enable read of uvicorn settings from environment variables (#1279) 06/12/2021
 - Bump `websockets` to 10.0. (#1180) 13/09/2021
+- Ensure non-zero exit code when startup fails (#1278) 06/12/2021
 - Increase `httptools` version range from "==0.2.*" to ">=0.2.0,<0.4.0". (#1243) 8/11/21
 - Override default asyncio event loop with reload only on Windows (#1257) 24/11/21
 - Replace `HttpToolsProtocol.pipeline` type from `list` to `deque`. (#1213) 10/10/21
@@ -18,6 +20,7 @@
 - Fix a bug in `WebSocketProtocol.asgi_receive` on which we returned a close frame even if there were data messages before that frame in the read queue. (#1252) 25/11/21
 - The option `--reload-dirs` was splitting a string into single character directories. (#1267) 25/11/21
 - Only second SIGINT is able to forcelly shutdown the server (#1269) 28/11/21
+- Allow app-dir parameter on the run() function #1271
 
 
 ## 0.15.0 - 2021-08-13
