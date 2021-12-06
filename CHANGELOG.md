@@ -4,9 +4,9 @@
 
 ### Added
 
-- Enable read of uvicorn settings from environment variables (#1279) 06/12/2021
-- Bump `websockets` to 10.0. (#1180) 13/09/2021
-- Ensure non-zero exit code when startup fails (#1278) 06/12/2021
+- Enable read of uvicorn settings from environment variables (#1279) 06/12/21
+- Bump `websockets` to 10.0. (#1180) 13/09/21
+- Ensure non-zero exit code when startup fails (#1278) 06/12/21
 - Increase `httptools` version range from "==0.2.*" to ">=0.2.0,<0.4.0". (#1243) 8/11/21
 - Override default asyncio event loop with reload only on Windows (#1257) 24/11/21
 - Replace `HttpToolsProtocol.pipeline` type from `list` to `deque`. (#1213) 10/10/21
