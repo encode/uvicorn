@@ -2,6 +2,7 @@ import importlib
 import platform
 import sys
 from pathlib import Path
+from textwrap import dedent
 from unittest import mock
 
 import pytest
@@ -129,6 +130,27 @@ def test_cli_reloader_incomplete_app_parameter(
         'Error loading ASGI app. Import string "tests.test_cli" '
         'must be in format "<module>:<attribute>".'
     ) in captured.err
+
+
+def test_app_dir(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    app_dir = tmp_path / "dir" / "app_dir"
+    app_file = app_dir / "main.py"
+    app_dir.mkdir(parents=True)
+    app_file.touch()
+    app_file.write_text(
+        dedent(
+            """
+            async def app(scope, receive, send):
+                ...
+            """
+        )
+    )
+    runner = CliRunner()
+    with mock.patch.object(main, "run") as mock_run:
+        result = runner.invoke(cli, ["main:app", "--app-dir", f"{str(app_dir)}"])
+
+    assert result.exit_code == 0
+    mock_run.assert_called_once()
 
 
 class App:
