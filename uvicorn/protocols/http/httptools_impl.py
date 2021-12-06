@@ -3,6 +3,7 @@ import http
 import logging
 import re
 import urllib
+from collections import deque
 from typing import Callable
 
 import httptools
@@ -75,7 +76,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.server = None
         self.client = None
         self.scheme = None
-        self.pipeline = []
+        self.pipeline = deque()
         self.tls = None
 
         # Per-request state
@@ -270,7 +271,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         else:
             # Pipelined HTTP requests need to be queued up.
             self.flow.pause_reading()
-            self.pipeline.insert(0, (self.cycle, app))
+            self.pipeline.appendleft((self.cycle, app))
 
     def on_body(self, body: bytes):
         if self.parser.should_upgrade() or self.cycle.response_complete:

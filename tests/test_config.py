@@ -18,6 +18,7 @@ import yaml
 from asgiref.typing import ASGIApplication, ASGIReceiveCallable, ASGISendCallable, Scope
 from pytest_mock import MockerFixture
 
+from tests.utils import as_cwd
 from uvicorn._types import Environ, StartResponse
 from uvicorn.config import LOGGING_CONFIG, Config
 from uvicorn.middleware.debug import DebugMiddleware
@@ -80,9 +81,159 @@ def test_config_should_reload_is_set(
     assert config_reload.should_reload is expected_should_reload
 
 
-def test_reload_dir_is_set() -> None:
-    config = Config(app=asgi_app, reload=True, reload_dirs="reload_me")
-    assert config.reload_dirs == ["reload_me"]
+def test_should_warn_on_invalid_reload_configuration(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    config_class = Config(app=asgi_app, reload_dirs=[str(tmp_path)])
+    assert not config_class.should_reload
+    assert len(caplog.records) == 1
+    assert (
+        caplog.records[-1].message
+        == "Current configuration will not reload as not all conditions are met,"
+        "please refer to documentation."
+    )
+
+    config_no_reload = Config(
+        app="tests.test_config:asgi_app", reload_dirs=[str(tmp_path)]
+    )
+    assert not config_no_reload.should_reload
+    assert len(caplog.records) == 2
+    assert (
+        caplog.records[-1].message
+        == "Current configuration will not reload as not all conditions are met,"
+        "please refer to documentation."
+    )
+
+
+def test_reload_dir_is_set(
+    reload_directory_structure: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    app_dir = reload_directory_structure / "app"
+    with caplog.at_level(logging.INFO):
+        config = Config(
+            app="tests.test_config:asgi_app", reload=True, reload_dirs=[str(app_dir)]
+        )
+        assert len(caplog.records) == 1
+        assert (
+            caplog.records[-1].message
+            == f"Will watch for changes in these directories: {[str(app_dir)]}"
+        )
+        assert config.reload_dirs == [app_dir]
+        config = Config(
+            app="tests.test_config:asgi_app", reload=True, reload_dirs=str(app_dir)
+        )
+        assert config.reload_dirs == [app_dir]
+
+
+def test_non_existant_reload_dir_is_not_set(
+    reload_directory_structure: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    with as_cwd(reload_directory_structure), caplog.at_level(logging.WARNING):
+        config = Config(
+            app="tests.test_config:asgi_app", reload=True, reload_dirs=["reload"]
+        )
+        assert config.reload_dirs == [reload_directory_structure]
+        assert (
+            caplog.records[-1].message
+            == "Provided reload directories ['reload'] did not contain valid "
+            + "directories, watching current working directory."
+        )
+
+
+def test_reload_subdir_removal(reload_directory_structure: Path) -> None:
+    app_dir = reload_directory_structure / "app"
+
+    reload_dirs = [str(reload_directory_structure), "app", str(app_dir)]
+
+    with as_cwd(reload_directory_structure):
+        config = Config(
+            app="tests.test_config:asgi_app", reload=True, reload_dirs=reload_dirs
+        )
+        assert config.reload_dirs == [reload_directory_structure]
+
+
+def test_reload_included_dir_is_added_to_reload_dirs(
+    reload_directory_structure: Path,
+) -> None:
+    app_dir = reload_directory_structure / "app"
+    ext_dir = reload_directory_structure / "ext"
+
+    with as_cwd(reload_directory_structure):
+        config = Config(
+            app="tests.test_config:asgi_app",
+            reload=True,
+            reload_dirs=[str(app_dir)],
+            reload_includes=["*.js", str(ext_dir)],
+        )
+        assert frozenset(config.reload_dirs), frozenset([app_dir, ext_dir])
+        assert frozenset(config.reload_includes) == frozenset(["*.js", str(ext_dir)])
+
+
+def test_reload_dir_subdirectories_are_removed(
+    reload_directory_structure: Path,
+) -> None:
+    app_dir = reload_directory_structure / "app"
+    app_sub_dir = app_dir / "sub"
+    ext_dir = reload_directory_structure / "ext"
+    ext_sub_dir = ext_dir / "sub"
+
+    with as_cwd(reload_directory_structure):
+        config = Config(
+            app="tests.test_config:asgi_app",
+            reload=True,
+            reload_dirs=[
+                str(app_dir),
+                str(app_sub_dir),
+                str(ext_sub_dir),
+                str(ext_dir),
+            ],
+        )
+        assert frozenset(config.reload_dirs) == frozenset([app_dir, ext_dir])
+
+
+def test_reload_excluded_subdirectories_are_removed(
+    reload_directory_structure: Path,
+) -> None:
+    app_dir = reload_directory_structure / "app"
+    app_sub_dir = app_dir / "sub"
+
+    with as_cwd(reload_directory_structure):
+        config = Config(
+            app="tests.test_config:asgi_app",
+            reload=True,
+            reload_excludes=[str(app_dir), str(app_sub_dir)],
+        )
+        assert frozenset(config.reload_dirs) == frozenset([reload_directory_structure])
+        assert frozenset(config.reload_dirs_excludes) == frozenset([app_dir])
+        assert frozenset(config.reload_excludes) == frozenset(
+            [str(app_dir), str(app_sub_dir)]
+        )
+
+
+def test_reload_includes_exclude_dir_patterns_are_matched(
+    reload_directory_structure: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.INFO):
+        first_app_dir = reload_directory_structure / "app_first" / "src"
+        second_app_dir = reload_directory_structure / "app_second" / "src"
+
+        with as_cwd(reload_directory_structure):
+            config = Config(
+                app="tests.test_config:asgi_app",
+                reload=True,
+                reload_includes=["*/src"],
+                reload_excludes=["app", "*third*"],
+            )
+            assert len(caplog.records) == 1
+            assert (
+                caplog.records[-1].message
+                == "Will watch for changes in these directories: "
+                f"{sorted([str(first_app_dir), str(second_app_dir)])}"
+            )
+            assert frozenset(config.reload_dirs) == frozenset(
+                [first_app_dir, second_app_dir]
+            )
+            assert config.reload_includes == ["*/src"]
 
 
 def test_wsgi_app() -> None:
@@ -175,10 +326,10 @@ def test_ssl_config(
     assert config.is_ssl is True
 
 
-def test_ssl_config_combined(tls_certificate_pem_path: str) -> None:
+def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
     config = Config(
         app=asgi_app,
-        ssl_certfile=tls_certificate_pem_path,
+        ssl_certfile=tls_certificate_key_and_chain_path,
     )
     config.load()
 
@@ -366,7 +517,9 @@ def test_ws_max_size() -> None:
     ids=["--reload=True --workers=1", "--reload=False --workers=2"],
 )
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
-def test_bind_unix_socket_works_with_reload_or_workers(tmp_path, reload, workers):
+def test_bind_unix_socket_works_with_reload_or_workers(
+    tmp_path, reload, workers
+):  # pragma: py-win32
     uds_file = tmp_path / "uvicorn.sock"
     config = Config(
         app=asgi_app, uds=uds_file.as_posix(), reload=reload, workers=workers
@@ -388,7 +541,7 @@ def test_bind_unix_socket_works_with_reload_or_workers(tmp_path, reload, workers
     ids=["--reload=True --workers=1", "--reload=False --workers=2"],
 )
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
-def test_bind_fd_works_with_reload_or_workers(reload, workers):
+def test_bind_fd_works_with_reload_or_workers(reload, workers):  # pragma: py-win32
     fdsock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     fd = fdsock.fileno()
     config = Config(app=asgi_app, fd=fd, reload=reload, workers=workers)

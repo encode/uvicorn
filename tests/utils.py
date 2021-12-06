@@ -1,4 +1,7 @@
 import asyncio
+import os
+from contextlib import contextmanager
+from pathlib import Path
 
 try:
     from contextlib import asynccontextmanager
@@ -18,3 +21,14 @@ async def run_server(config: Config, sockets=None):
     finally:
         await server.shutdown()
         cancel_handle.cancel()
+
+
+@contextmanager
+def as_cwd(path: Path):
+    """Changes working directory and returns to previous on exit."""
+    prev_cwd = Path.cwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(prev_cwd)

@@ -1,6 +1,7 @@
 import asyncio
 import http
 import logging
+import sys
 from typing import Callable
 from urllib.parse import unquote
 
@@ -24,7 +25,22 @@ class Server:
         return not self.closing
 
 
-class WebSocketProtocol(websockets.WebSocketServerProtocol):
+# special case logger kwarg in websockets >=10
+if sys.version_info >= (3, 7):
+
+    class _LoggerMixin:
+        pass
+
+
+else:
+
+    class _LoggerMixin:
+        def __init__(self, *args, logger, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.logger = logging.LoggerAdapter(logger, {"websocket": self})
+
+
+class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
     def __init__(
         self, config, server_state, on_connection_lost: Callable = None, _loop=None
     ):
@@ -35,7 +51,6 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.app = config.loaded_app
         self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
-        self.logger = logging.getLogger("uvicorn.error")
         self.root_path = config.root_path
 
         # Shared server state
@@ -59,7 +74,6 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.transfer_data_task = None
 
         self.ws_server = Server()
-
         super().__init__(
             ws_handler=self.ws_handler,
             ws_server=self.ws_server,
@@ -67,6 +81,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             ping_interval=self.config.ws_ping_interval,
             ping_timeout=self.config.ws_ping_timeout,
             extensions=[ServerPerMessageDeflateFactory()],
+            logger=logging.getLogger("uvicorn.error"),
         )
 
     def connection_made(self, transport):
@@ -76,7 +91,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         self.client = get_remote_addr(transport)
         self.scheme = "wss" if is_ssl(transport) else "ws"
 
-        if self.logger.level <= TRACE_LOG_LEVEL:
+        if self.logger.isEnabledFor(TRACE_LOG_LEVEL):
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection made", prefix)
 
@@ -85,7 +100,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
     def connection_lost(self, exc):
         self.connections.remove(self)
 
-        if self.logger.level <= TRACE_LOG_LEVEL:
+        if self.logger.isEnabledFor(TRACE_LOG_LEVEL):
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection lost", prefix)
 
@@ -246,7 +261,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
             elif message_type == "websocket.close":
                 code = message.get("code", 1000)
-                reason = message.get("reason", "")
+                reason = message.get("reason", "") or ""
                 await self.close(code, reason)
                 self.closed_event.set()
 
@@ -267,10 +282,17 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             return {"type": "websocket.connect"}
 
         await self.handshake_completed_event.wait()
+
+        if self.closed_event.is_set():
+            # If client disconnected, use WebSocketServerProtocol.close_code property.
+            # If the handshake failed or the app closed before handshake completion,
+            # use 1006 Abnormal Closure.
+            return {"type": "websocket.disconnect", "code": self.close_code or 1006}
+
         try:
-            await self.ensure_open()
             data = await self.recv()
         except websockets.ConnectionClosed as exc:
+            self.closed_event.set()
             return {"type": "websocket.disconnect", "code": exc.code}
 
         msg = {"type": "websocket.receive"}

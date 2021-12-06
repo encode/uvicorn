@@ -42,6 +42,8 @@ env_marker_cpython = (
 
 env_marker_win = "sys_platform == 'win32'"
 env_marker_below_38 = "python_version < '3.8'"
+env_marker_below_37 = "python_version < '3.7'"
+env_marker_gte_37 = "python_version >= '3.7'"
 
 minimal_requirements = [
     "asgiref>=3.4.0",
@@ -52,8 +54,9 @@ minimal_requirements = [
 
 
 extra_requirements = [
-    "websockets>=9.1",
-    "httptools==0.2.*",
+    "websockets>=9.1; " + env_marker_below_37,
+    "websockets>=10.0; " + env_marker_gte_37,
+    "httptools>=0.2.0,<0.4.0",
     "uvloop>=0.14.0,!=0.15.0,!=0.15.1; " + env_marker_cpython,
     "colorama>=0.4;" + env_marker_win,
     "watchgod>=0.6",
@@ -65,7 +68,7 @@ extra_requirements = [
 setup(
     name="uvicorn",
     version=get_version("uvicorn"),
-    url="https://github.com/encode/uvicorn",
+    url="https://www.uvicorn.org/",
     license="BSD",
     description="The lightning-fast ASGI server.",
     long_description=get_long_description(),
@@ -88,6 +91,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
@@ -95,4 +99,9 @@ setup(
     [console_scripts]
     uvicorn=uvicorn.main:main
     """,
+    project_urls={
+        "Funding": "https://github.com/sponsors/encode",
+        "Source": "https://github.com/encode/uvicorn",
+        "Changelog": "https://github.com/encode/uvicorn/blob/master/CHANGELOG.md",
+    },
 )

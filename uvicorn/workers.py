@@ -72,16 +72,17 @@ class UvicornWorker(Worker):
         for s in self.SIGNALS:
             signal.signal(s, signal.SIG_DFL)
 
-    def run(self) -> None:
+    async def _serve(self) -> None:
         self.config.app = self.wsgi
         server = Server(config=self.config)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(server.serve(sockets=self.sockets))
-        # Exit with status 3 when worker starts failed, so Gunicorn
-        # can shut it down to avoid infinite start/stop cycles.
-        # See: https://github.com/encode/uvicorn/issues/1066
+        await server.serve(sockets=self.sockets)
         if not server.started:
             sys.exit(Arbiter.WORKER_BOOT_ERROR)
+
+    def run(self) -> None:
+        if sys.version_info >= (3, 7):
+            return asyncio.run(self._serve())
+        return asyncio.get_event_loop().run_until_complete(self._serve())
 
     async def callback_notify(self) -> None:
         self.notify()

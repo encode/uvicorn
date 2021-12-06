@@ -30,6 +30,8 @@ LIFESPAN_CHOICES = click.Choice(list(LIFESPAN.keys()))
 LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
+STARTUP_FAILURE = 3
+
 logger = logging.getLogger("uvicorn.error")
 
 
@@ -48,7 +50,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     ctx.exit()
 
 
-@click.command()
+@click.command(context_settings={"auto_envvar_prefix": "UVICORN"})
 @click.argument("app")
 @click.option(
     "--host",
@@ -79,6 +81,21 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     help="Set reload directories explicitly, instead of using the current working"
     " directory.",
     type=click.Path(exists=True),
+)
+@click.option(
+    "--reload-include",
+    "reload_includes",
+    multiple=True,
+    help="Set glob patterns to include while watching for files. Includes '*.py' "
+    "by default; these defaults can be overridden in `--reload-exclude`.",
+)
+@click.option(
+    "--reload-exclude",
+    "reload_excludes",
+    multiple=True,
+    help="Set glob patterns to exclude while watching for files. Includes "
+    "'.*, .py[cod], .sw.*, ~*' by default; these defaults can be overridden "
+    "in `--reload-include`.",
 )
 @click.option(
     "--reload-delay",
@@ -126,14 +143,14 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 @click.option(
     "--ws-ping-interval",
     type=float,
-    default=20,
+    default=20.0,
     help="WebSocket ping interval",
     show_default=True,
 )
 @click.option(
     "--ws-ping-timeout",
     type=float,
-    default=20,
+    default=20.0,
     help="WebSocket ping timeout",
     show_default=True,
 )
@@ -262,14 +279,14 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 @click.option(
     "--ssl-version",
     type=int,
-    default=SSL_PROTOCOL_VERSION,
+    default=int(SSL_PROTOCOL_VERSION),
     help="SSL version to use (see stdlib ssl module's)",
     show_default=True,
 )
 @click.option(
     "--ssl-cert-reqs",
     type=int,
-    default=ssl.CERT_NONE,
+    default=int(ssl.CERT_NONE),
     help="Whether client certificate is required (see stdlib ssl module's)",
     show_default=True,
 )
@@ -333,6 +350,8 @@ def main(
     debug: bool,
     reload: bool,
     reload_dirs: typing.List[str],
+    reload_includes: typing.List[str],
+    reload_excludes: typing.List[str],
     reload_delay: float,
     workers: int,
     env_file: str,
@@ -382,6 +401,8 @@ def main(
         "debug": debug,
         "reload": reload,
         "reload_dirs": reload_dirs if reload_dirs else None,
+        "reload_includes": reload_includes if reload_includes else None,
+        "reload_excludes": reload_excludes if reload_excludes else None,
         "reload_delay": reload_delay,
         "workers": workers,
         "proxy_headers": proxy_headers,
@@ -428,8 +449,11 @@ def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
     else:
         server.run()
     if config.uds:
-        os.remove(config.uds)
+        os.remove(config.uds)  # pragma: py-win32
+
+    if not server.started and not config.should_reload and config.workers == 1:
+        sys.exit(STARTUP_FAILURE)
 
 
 if __name__ == "__main__":
-    main()
+    main()  # pragma: no cover

@@ -4,7 +4,7 @@ import signal
 import threading
 from socket import socket
 from types import FrameType
-from typing import Callable, Dict, List, Optional
+from typing import Callable, List, Optional
 
 import click
 
@@ -45,6 +45,9 @@ class BaseReload:
             if self.should_restart():
                 self.restart()
 
+            if self.process.exitcode is not None:
+                break
+
         self.shutdown()
 
     def startup(self) -> None:
@@ -64,7 +67,6 @@ class BaseReload:
         self.process.start()
 
     def restart(self) -> None:
-        self.mtimes: Dict[str, float] = {}
 
         self.process.terminate()
         self.process.join()
@@ -75,7 +77,12 @@ class BaseReload:
         self.process.start()
 
     def shutdown(self) -> None:
+        self.process.terminate()
         self.process.join()
+
+        for sock in self.sockets:
+            sock.close()
+
         message = "Stopping reloader process [{}]".format(str(self.pid))
         color_message = "Stopping reloader process [{}]".format(
             click.style(str(self.pid), fg="cyan", bold=True)
