@@ -85,8 +85,8 @@ def tls_client_certificate_pem_path(tls_client_certificate: trustme.LeafCert):
     private_key_and_cert_chain = tls_client_certificate.private_key_and_cert_chain_pem
     with private_key_and_cert_chain.tempfile() as client_cert_pem:
         yield client_cert_pem
-        
-        
+
+
 @pytest.fixture(scope="package")
 def reload_directory_structure(tmp_path_factory: pytest.TempPathFactory):
     """
