@@ -3,6 +3,7 @@ import os
 import platform
 import sys
 from pathlib import Path
+from textwrap import dedent
 from unittest import mock
 
 import pytest
@@ -159,3 +160,25 @@ def test_mistmatch_env_variables(load_env_h11_protocol: None):
         runner.invoke(cli, ["tests.test_cli:App", "--http=httptools"])
         _, kwargs = mock_run.call_args
         assert kwargs["http"] == "httptools"
+
+
+def test_app_dir(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    app_dir = tmp_path / "dir" / "app_dir"
+    app_file = app_dir / "main.py"
+    app_dir.mkdir(parents=True)
+    app_file.touch()
+    app_file.write_text(
+        dedent(
+            """
+            async def app(scope, receive, send):
+                ...
+            """
+        )
+    )
+    runner = CliRunner()
+    with mock.patch.object(Server, "run") as mock_run:
+        result = runner.invoke(cli, ["main:app", "--app-dir", f"{str(app_dir)}"])
+
+    assert result.exit_code == 3
+    mock_run.assert_called_once()
+    assert sys.path[0] == str(app_dir)
