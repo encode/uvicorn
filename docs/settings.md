@@ -7,6 +7,13 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 Please note that in this case, if you use `reload=True` or `workers=NUM`,
 you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main module.
 
+You can also configure Uvicorn using environment variables with the prefix `UVICORN_`.
+For example, in case you want to run the app on port `5000`, just set the environment variable `UVICORN_PORT` to `5000`.
+
+!!! note
+    CLI options and the arguments for `uvicorn.run()` take precedence over environment variables.
+
+
 ## Application
 
 * `APP` - The ASGI application to run, in the format `"<module>:<attribute>"`.
