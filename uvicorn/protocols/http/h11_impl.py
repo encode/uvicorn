@@ -501,6 +501,8 @@ class RequestResponseCycle:
             # Write response body
             if self.scope["method"] == "HEAD":
                 event = h11.Data(data=b"")
+                output = self.conn.send(event)
+                self.transport.write(output)
             elif use_sendfile:  # pragma: no cover
                 with os.fdopen(os.dup(file_fd), "rb") as file:
                     event = SendfileData(file, sendfile_offset, sendfile_count)
