@@ -144,7 +144,16 @@ async def test_close_connection(ws_protocol_cls, http_protocol_cls):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_headers(ws_protocol_cls, http_protocol_cls):
+@pytest.mark.parametrize(
+    "request_headers",
+    [
+        {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5 (Ergänzendes Update))"
+        }
+    ],
+    ids=["non-ascii-byte-in-header"],
+)
+async def test_headers(ws_protocol_cls, http_protocol_cls, request_headers):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
             headers = self.scope.get("headers")
@@ -153,7 +162,7 @@ async def test_headers(ws_protocol_cls, http_protocol_cls):
             await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.connect(url, extra_headers=request_headers) as websocket:
             return websocket.open
 
     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
