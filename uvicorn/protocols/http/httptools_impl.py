@@ -78,7 +78,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.pipeline = deque()
 
         # Per-request state
-        self.url = b""
         self.scope = None
         self.headers = None
         self.expect_100_continue = False
@@ -189,6 +188,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.transport.set_protocol(protocol)
 
     def on_message_begin(self):
+        self.url = b""
         self.expect_100_continue = False
         self.headers = []
         self.scope = {
