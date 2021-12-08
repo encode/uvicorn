@@ -7,6 +7,13 @@ equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=
 Please note that in this case, if you use `reload=True` or `workers=NUM`,
 you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main module.
 
+You can also configure Uvicorn using environment variables with the prefix `UVICORN_`.
+For example, in case you want to run the app on port `5000`, just set the environment variable `UVICORN_PORT` to `5000`.
+
+!!! note
+    CLI options and the arguments for `uvicorn.run()` take precedence over environment variables.
+
+
 ## Application
 
 * `APP` - The ASGI application to run, in the format `"<module>:<attribute>"`.
@@ -16,7 +23,7 @@ you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main
 
 * `--host <str>` - Bind socket to this host. Use `--host 0.0.0.0` to make the application available on your local network. IPv6 addresses are supported, for example: `--host '::'`. **Default:** *'127.0.0.1'*.
 * `--port <int>` - Bind to a socket with this port. **Default:** *8000*.
-* `--uds <str>` - Bind to a UNIX domain socket. Useful if you want to run Uvicorn behind a reverse proxy.
+* `--uds <path>` - Bind to a UNIX domain socket, for example `--uds /tmp/uvicorn.sock`. Useful if you want to run Uvicorn behind a reverse proxy.
 * `--fd <int>` - Bind to socket from this file descriptor. Useful if you want to run Uvicorn within a process manager.
 
 ## Development
@@ -63,6 +70,8 @@ Note that WSGI mode always disables WebSocket support, as it is not supported by
 * `--proxy-headers` / `--no-proxy-headers` - Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to populate remote address info. Defaults to enabled, but is restricted to only trusting
 connecting IPs in the `forwarded-allow-ips` configuration.
 * `--forwarded-allow-ips` <comma-separated-list> Comma separated list of IPs to trust with proxy headers. Defaults to the `$FORWARDED_ALLOW_IPS` environment variable if available, or '127.0.0.1'. A wildcard '*' means always trust.
+* `--server-header` / `--no-server-header` - Enable/Disable default `Server` header.
+* `--date-header` / `--no-date-header` - Enable/Disable default `Date` header.
 
 ## HTTPS
 

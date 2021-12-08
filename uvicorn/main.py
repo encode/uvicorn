@@ -30,6 +30,8 @@ LIFESPAN_CHOICES = click.Choice(list(LIFESPAN.keys()))
 LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
+STARTUP_FAILURE = 3
+
 logger = logging.getLogger("uvicorn.error")
 
 
@@ -48,7 +50,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     ctx.exit()
 
 
-@click.command()
+@click.command(context_settings={"auto_envvar_prefix": "UVICORN"})
 @click.argument("app")
 @click.option(
     "--host",
@@ -141,14 +143,14 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 @click.option(
     "--ws-ping-interval",
     type=float,
-    default=20,
+    default=20.0,
     help="WebSocket ping interval",
     show_default=True,
 )
 @click.option(
     "--ws-ping-timeout",
     type=float,
-    default=20,
+    default=20.0,
     help="WebSocket ping timeout",
     show_default=True,
 )
@@ -277,14 +279,14 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 @click.option(
     "--ssl-version",
     type=int,
-    default=SSL_PROTOCOL_VERSION,
+    default=int(SSL_PROTOCOL_VERSION),
     help="SSL version to use (see stdlib ssl module's)",
     show_default=True,
 )
 @click.option(
     "--ssl-cert-reqs",
     type=int,
-    default=ssl.CERT_NONE,
+    default=int(ssl.CERT_NONE),
     help="Whether client certificate is required (see stdlib ssl module's)",
     show_default=True,
 )
@@ -318,7 +320,6 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 )
 @click.option(
     "--app-dir",
-    "app_dir",
     default=".",
     show_default=True,
     help="Look for APP in the specified directory, by adding this to the PYTHONPATH."
@@ -377,8 +378,6 @@ def main(
     app_dir: str,
     factory: bool,
 ) -> None:
-    sys.path.insert(0, app_dir)
-
     kwargs = {
         "host": host,
         "port": port,
@@ -422,11 +421,16 @@ def main(
         "headers": [header.split(":", 1) for header in headers],
         "use_colors": use_colors,
         "factory": factory,
+        "app_dir": app_dir,
     }
     run(app, **kwargs)
 
 
 def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
+    app_dir = kwargs.pop("app_dir", None)
+    if app_dir is not None:
+        sys.path.insert(0, app_dir)
+
     config = Config(app, **kwargs)
     server = Server(config=config)
 
@@ -447,7 +451,10 @@ def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
     else:
         server.run()
     if config.uds:
-        os.remove(config.uds)
+        os.remove(config.uds)  # pragma: py-win32
+
+    if not server.started and not config.should_reload and config.workers == 1:
+        sys.exit(STARTUP_FAILURE)
 
 
 if __name__ == "__main__":

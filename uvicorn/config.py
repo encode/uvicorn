@@ -180,7 +180,15 @@ def resolve_reload_patterns(
 
     directories = list(set(directories).difference(set(children)))
 
-    return (list(set(patterns)), directories)
+    return list(set(patterns)), directories
+
+
+def _normalize_dirs(dirs: Union[List[str], str, None]) -> List[str]:
+    if dirs is None:
+        return []
+    if isinstance(dirs, str):
+        return [dirs]
+    return list(set(dirs))
 
 
 class Config:
@@ -291,9 +299,9 @@ class Config:
             )
 
         if self.should_reload:
-            reload_dirs = list(set(reload_dirs)) if reload_dirs else []
-            reload_includes = list(set(reload_includes)) if reload_includes else []
-            reload_excludes = list(set(reload_excludes)) if reload_excludes else []
+            reload_dirs = _normalize_dirs(reload_dirs)
+            reload_includes = _normalize_dirs(reload_includes)
+            reload_excludes = _normalize_dirs(reload_excludes)
 
             self.reload_includes, self.reload_dirs = resolve_reload_patterns(
                 reload_includes, reload_dirs
@@ -493,11 +501,11 @@ class Config:
     def setup_event_loop(self) -> None:
         loop_setup: Optional[Callable] = import_from_string(LOOP_SETUPS[self.loop])
         if loop_setup is not None:
-            loop_setup()
+            loop_setup(reload=self.reload)
 
     def bind_socket(self) -> socket.socket:
         logger_args: List[Union[str, int]]
-        if self.uds:
+        if self.uds:  # pragma: py-win32
             path = self.uds
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             try:
@@ -516,7 +524,7 @@ class Config:
                 + " (Press CTRL+C to quit)"
             )
             logger_args = [self.uds]
-        elif self.fd:
+        elif self.fd:  # pragma: py-win32
             sock = socket.fromfd(self.fd, socket.AF_UNIX, socket.SOCK_STREAM)
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
             fd_name_format = "%s"
@@ -530,7 +538,7 @@ class Config:
             family = socket.AF_INET
             addr_format = "%s://%s:%d"
 
-            if self.host and ":" in self.host:
+            if self.host and ":" in self.host:  # pragma: py-win32
                 # It's an IPv6 address.
                 family = socket.AF_INET6
                 addr_format = "%s://[%s]:%d"
