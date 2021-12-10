@@ -369,15 +369,16 @@ def test_log_config_default(
     mocked_logging_config_module: MagicMock,
     use_colors: typing.Optional[bool],
     expected: typing.Optional[bool],
+    logging_config,
 ) -> None:
     """
     Test that one can specify the use_colors option when using the default logging
     config.
     """
-    config = Config(app=asgi_app, use_colors=use_colors)
+    config = Config(app=asgi_app, use_colors=use_colors, log_config=logging_config)
     config.load()
 
-    mocked_logging_config_module.dictConfig.assert_called_once_with(LOGGING_CONFIG)
+    mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
 
     (provided_dict_config,), _ = mocked_logging_config_module.dictConfig.call_args
     assert provided_dict_config["formatters"]["default"]["use_colors"] == expected
