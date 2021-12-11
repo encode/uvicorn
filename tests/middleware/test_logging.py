@@ -29,7 +29,9 @@ async def app(scope, receive, send):
 
 @pytest.mark.asyncio
 async def test_trace_logging(caplog, logging_config):
-    config = Config(app=app, log_level="trace", log_config=logging_config)
+    config = Config(
+        app=app, log_level="trace", log_config=logging_config, lifespan="off"
+    )
     with caplog_for_logger(caplog, "uvicorn.asgi"):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
@@ -50,7 +52,11 @@ async def test_trace_logging(caplog, logging_config):
 @pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
 async def test_trace_logging_on_http_protocol(http_protocol, caplog, logging_config):
     config = Config(
-        app=app, log_level="trace", http=http_protocol, log_config=logging_config
+        app=app,
+        log_level="trace",
+        http=http_protocol,
+        log_config=logging_config,
+        lifespan="off",
     )
     with caplog_for_logger(caplog, "uvicorn.error"):
         async with run_server(config):
