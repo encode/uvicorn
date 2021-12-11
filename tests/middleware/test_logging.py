@@ -70,7 +70,6 @@ async def test_trace_logging_on_http_protocol(http_protocol, caplog, logging_con
 @pytest.mark.parametrize("ws_protocol", [("websockets"), ("wsproto")])
 async def test_trace_logging_on_ws_protocol(ws_protocol, caplog, logging_config):
     async def websocket_app(scope, receive, send):
-        print(scope)
         assert scope["type"] == "websocket"
         while True:
             message = await receive()
