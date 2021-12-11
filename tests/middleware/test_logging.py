@@ -29,7 +29,9 @@ async def app(scope, receive, send):
 
 @pytest.mark.asyncio
 async def test_trace_logging(caplog, logging_config):
-    config = Config(app=app, log_level="trace", log_config=logging_config, lifespan="auto")
+    config = Config(
+        app=app, log_level="trace", log_config=logging_config, lifespan="auto"
+    )
     with caplog_for_logger(caplog, "uvicorn.asgi"):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
@@ -38,6 +40,7 @@ async def test_trace_logging(caplog, logging_config):
         messages = [
             record.message for record in caplog.records if record.name == "uvicorn.asgi"
         ]
+        print(caplog.records)
         assert "ASGI [1] Started scope=" in messages.pop(0)
         assert "ASGI [1] Raised exception" in messages.pop(0)
         assert "ASGI [2] Started scope=" in messages.pop(0)
@@ -66,6 +69,7 @@ async def test_trace_logging_on_http_protocol(http_protocol, caplog, logging_con
             for record in caplog.records
             if record.name == "uvicorn.error"
         ]
+        print(caplog.records)
         assert any(" - HTTP connection made" in message for message in messages)
         assert any(" - HTTP connection lost" in message for message in messages)
 
@@ -102,6 +106,7 @@ async def test_trace_logging_on_ws_protocol(ws_protocol, caplog, logging_config)
             for record in caplog.records
             if record.name == "uvicorn.error"
         ]
+        print(caplog.records)
         assert any(" - Upgrading to WebSocket" in message for message in messages)
         assert any(" - WebSocket connection made" in message for message in messages)
         assert any(" - WebSocket connection lost" in message for message in messages)
