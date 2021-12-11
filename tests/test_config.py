@@ -4,7 +4,6 @@ import os
 import socket
 import sys
 import typing
-from copy import deepcopy
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -20,7 +19,7 @@ from pytest_mock import MockerFixture
 
 from tests.utils import as_cwd
 from uvicorn._types import Environ, StartResponse
-from uvicorn.config import LOGGING_CONFIG, Config
+from uvicorn.config import Config
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
@@ -30,11 +29,6 @@ from uvicorn.protocols.http.h11_impl import H11Protocol
 @pytest.fixture
 def mocked_logging_config_module(mocker: MockerFixture) -> MagicMock:
     return mocker.patch("logging.config")
-
-
-@pytest.fixture(scope="function")
-def logging_config() -> dict:
-    return deepcopy(LOGGING_CONFIG)
 
 
 @pytest.fixture
