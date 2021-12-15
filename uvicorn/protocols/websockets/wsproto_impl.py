@@ -253,7 +253,7 @@ class WSProtocol(asyncio.Protocol):
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
                     self.scope["client"],
-                    self.scope["root_path"] + self.scope["path"],
+                    self.scope["path"],
                 )
                 self.handshake_complete = True
                 subprotocol = message.get("subprotocol")
@@ -269,7 +269,7 @@ class WSProtocol(asyncio.Protocol):
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
                     self.scope["client"],
-                    self.scope["root_path"] + self.scope["path"],
+                    self.scope["path"],
                 )
                 self.handshake_complete = True
                 self.close_sent = True

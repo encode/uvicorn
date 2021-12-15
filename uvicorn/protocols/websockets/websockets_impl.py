@@ -227,7 +227,7 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
                     self.scope["client"],
-                    self.scope["root_path"] + self.scope["path"],
+                    self.scope["path"],
                 )
                 self.initial_response = None
                 self.accepted_subprotocol = message.get("subprotocol")
@@ -237,7 +237,7 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
                     self.scope["client"],
-                    self.scope["root_path"] + self.scope["path"],
+                    self.scope["path"],
                 )
                 self.initial_response = (http.HTTPStatus.FORBIDDEN, [], b"")
                 self.handshake_started_event.set()
