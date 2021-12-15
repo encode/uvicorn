@@ -165,6 +165,26 @@ async def test_headers(ws_protocol_cls, http_protocol_cls):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_extra_headers(ws_protocol_cls, http_protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send(
+                {"type": "websocket.accept", "headers": [(b"extra", b"header")]}
+            )
+
+    async def open_connection(url):
+        async with websockets.connect(url) as websocket:
+            return websocket.response_headers
+
+    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        extra_headers = await open_connection("ws://127.0.0.1:8000")
+        assert extra_headers.get("extra") == "header"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_path_and_raw_path(ws_protocol_cls, http_protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
