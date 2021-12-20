@@ -236,7 +236,7 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
                     self.extra_headers.extend(
                         # ASGI spec requires bytes
                         # But for compability we need to convert it to strings
-                        (name.decode(), value.decode())
+                        (name.decode("latin-1"), value.decode("latin-1"))
                         for name, value in message.get("headers")
                     )
                 self.handshake_started_event.set()
