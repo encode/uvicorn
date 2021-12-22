@@ -74,3 +74,15 @@ def test_run_invalid_app_config_combination(caplog: pytest.LogCaptureFixture) ->
         "You must pass the application as an import string to enable "
         "'reload' or 'workers'."
     )
+
+
+def test_run_startup_failure(caplog: pytest.LogCaptureFixture) -> None:
+    async def app(scope, receive, send):
+        assert scope["type"] == "lifespan"
+        message = await receive()
+        if message["type"] == "lifespan.startup":
+            raise RuntimeError("Startup failed")
+
+    with pytest.raises(SystemExit) as exit_exception:
+        run(app, lifespan="on")
+    assert exit_exception.value.code == 3
