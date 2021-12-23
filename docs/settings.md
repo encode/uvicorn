@@ -91,4 +91,5 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 
 ## Timeouts
 
+* `--timeout-notify <int>` - Maximum number of seconds to allow a connection to live, before issuing HTTP 504 responses. **Default:** *30*
 * `--timeout-keep-alive <int>` - Close Keep-Alive connections if no new data is received within this timeout. **Default:** *5*.
