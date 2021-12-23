@@ -418,7 +418,7 @@ def main(
         "limit_concurrency": limit_concurrency,
         "backlog": backlog,
         "limit_max_requests": limit_max_requests,
-        "timeout_nofity": timeout_notify,
+        "timeout_notify": timeout_notify,
         "timeout_keep_alive": timeout_keep_alive,
         "ssl_keyfile": ssl_keyfile,
         "ssl_certfile": ssl_certfile,
