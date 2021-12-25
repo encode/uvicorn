@@ -123,6 +123,35 @@ async def test_supports_permessage_deflate_extension(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_can_disable_permessage_deflate_extension(
+    ws_protocol_cls, http_protocol_cls
+):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+    async def open_connection(url):
+        # enable per-message deflate on the client, so that we can check the server
+        # won't support it when it's disabled.
+        extension_factories = [ClientPerMessageDeflateFactory()]
+        async with websockets.connect(url, extensions=extension_factories) as websocket:
+            return [extension.name for extension in websocket.extensions]
+
+    config = Config(
+        app=App,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        ws_per_message_deflate=False,
+    )
+    async with run_server(config):
+        extension_names = await open_connection("ws://127.0.0.1:8000")
+        assert "permessage-deflate" not in extension_names
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_close_connection(ws_protocol_cls, http_protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):

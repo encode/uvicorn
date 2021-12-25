@@ -257,9 +257,12 @@ class WSProtocol(asyncio.Protocol):
                 )
                 self.handshake_complete = True
                 subprotocol = message.get("subprotocol")
+                extensions = []
+                if self.config.ws_per_message_deflate:
+                    extensions.append(PerMessageDeflate())
                 output = self.conn.send(
                     wsproto.events.AcceptConnection(
-                        subprotocol=subprotocol, extensions=[PerMessageDeflate()]
+                        subprotocol=subprotocol, extensions=extensions
                     )
                 )
                 self.transport.write(output)
