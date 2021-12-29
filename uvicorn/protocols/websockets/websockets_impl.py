@@ -74,13 +74,18 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
         self.transfer_data_task = None
 
         self.ws_server = Server()
+
+        extensions = []
+        if self.config.ws_per_message_deflate:
+            extensions.append(ServerPerMessageDeflateFactory())
+
         super().__init__(
             ws_handler=self.ws_handler,
             ws_server=self.ws_server,
             max_size=self.config.ws_max_size,
             ping_interval=self.config.ws_ping_interval,
             ping_timeout=self.config.ws_ping_timeout,
-            extensions=[ServerPerMessageDeflateFactory()],
+            extensions=extensions,
             logger=logging.getLogger("uvicorn.error"),
         )
 
