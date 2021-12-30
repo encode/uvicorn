@@ -53,8 +53,9 @@ class LifespanOn:
         await self.startup_event.wait()
 
         if self.startup_failed or (self.error_occured and self.config.lifespan == "on"):
-            self.logger.error("Application startup failed. Exiting.")
-            self.should_exit = True
+            # Startup failure should not exit the application.
+            # https://asgi.readthedocs.io/en/latest/specs/lifespan.html#scope
+            self.logger.error("Application startup failed.")
         else:
             self.logger.info("Application startup complete.")
 

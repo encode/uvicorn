@@ -158,7 +158,7 @@ def test_lifespan_with_failed_startup(mode, raise_exception, caplog):
         if record.name == "uvicorn.error" and record.levelname == "ERROR"
     ]
     assert "the lifespan event failed" in error_messages.pop(0)
-    assert "Application startup failed. Exiting." in error_messages.pop(0)
+    assert "Application startup failed." in error_messages.pop(0)
 
 
 def test_lifespan_scope_asgi3app():
