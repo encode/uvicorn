@@ -15,6 +15,7 @@ else:
 
 import pytest
 import yaml
+from a2wsgi import WSGIMiddleware
 from asgiref.typing import ASGIApplication, ASGIReceiveCallable, ASGISendCallable, Scope
 from pytest_mock import MockerFixture
 
@@ -23,7 +24,6 @@ from uvicorn._types import Environ, StartResponse
 from uvicorn.config import LOGGING_CONFIG, Config
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
 
 

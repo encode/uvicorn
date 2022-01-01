@@ -62,6 +62,7 @@ extra_requirements = [
     "watchgod>=0.6",
     "python-dotenv>=0.13",
     "PyYAML>=5.1",
+    "a2wsgi>=1.4.0,<2.0.0"
 ]
 
 

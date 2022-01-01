@@ -28,12 +28,21 @@ except ImportError:
     # enable this functionality.
     pass
 
+try:
+    from a2wsgi import WSGIMiddleware
+except ImportError:
+    from uvicorn._types import WSGIApp
+
+    class WSGIMiddleware:  # type: ignore
+        def __init__(self, app: WSGIApp, workers: int = 10):
+            raise RuntimeError("Please install `a2wsgi` for serving WSGI applications")
+
+
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-from uvicorn.middleware.wsgi import WSGIMiddleware
 
 HTTPProtocolType = Literal["auto", "h11", "httptools"]
 WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
