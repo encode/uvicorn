@@ -16,7 +16,7 @@ from asgiref.typing import (
     ASGISendCallable,
     HTTPScope,
     Scope,
-    WebSocketScope,
+    WebsocketScope,
 )
 
 
@@ -47,7 +47,7 @@ class ProxyHeadersMiddleware:
         self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] in ("http", "websocket"):
-            scope = cast(Union[HTTPScope, WebSocketScope], scope)
+            scope = cast(Union[HTTPScope, WebsocketScope], scope)
             client_addr: Optional[Tuple[str, int]] = scope.get("client")
             client_host = client_addr[0] if client_addr else None
 
