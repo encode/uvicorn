@@ -18,7 +18,6 @@ else:  # pragma: py-lt-38
     from typing import Literal
 
 import click
-from asgiref.typing import ASGIApplication
 
 try:
     import yaml
@@ -28,6 +27,7 @@ except ImportError:  # pragma: no cover
     # enable this functionality.
     pass
 
+from uvicorn._types import ASGIApplication
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.debug import DebugMiddleware

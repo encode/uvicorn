@@ -5,18 +5,20 @@ import sys
 from collections import deque
 from typing import Deque, Iterable, Optional, Tuple
 
-from asgiref.typing import (
+from uvicorn._types import (
     ASGIReceiveCallable,
     ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
+    Environ,
+    ExcInfo,
     HTTPRequestEvent,
     HTTPResponseBodyEvent,
     HTTPResponseStartEvent,
     HTTPScope,
+    StartResponse,
+    WSGIApp,
 )
-
-from uvicorn._types import Environ, ExcInfo, StartResponse, WSGIApp
 
 
 def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> Environ:

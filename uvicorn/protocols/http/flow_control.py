@@ -1,6 +1,6 @@
 import asyncio
 
-from asgiref.typing import (
+from uvicorn._types import (
     ASGIReceiveCallable,
     ASGISendCallable,
     HTTPResponseBodyEvent,

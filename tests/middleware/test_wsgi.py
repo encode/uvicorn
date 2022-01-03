@@ -3,9 +3,8 @@ from typing import List
 
 import httpx
 import pytest
-from asgiref.typing import HTTPRequestEvent, HTTPScope
 
-from uvicorn._types import Environ, StartResponse
+from uvicorn._types import Environ, HTTPRequestEvent, HTTPScope, StartResponse
 from uvicorn.middleware.wsgi import WSGIMiddleware, build_environ
 
 

@@ -6,9 +6,9 @@ import sys
 import typing
 
 import click
-from asgiref.typing import ASGIApplication
 
 import uvicorn
+from uvicorn._types import ASGIApplication
 from uvicorn.config import (
     HTTP_PROTOCOLS,
     INTERFACES,
