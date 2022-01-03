@@ -155,6 +155,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
+    "--ws-per-message-deflate",
+    type=bool,
+    default=True,
+    help="WebSocket per-message-deflate compression",
+    show_default=True,
+)
+@click.option(
     "--lifespan",
     type=LIFESPAN_CHOICES,
     default="auto",
@@ -344,6 +351,7 @@ def main(
     ws_max_size: int,
     ws_ping_interval: float,
     ws_ping_timeout: float,
+    ws_per_message_deflate: bool,
     lifespan: str,
     interface: str,
     debug: bool,
@@ -389,6 +397,7 @@ def main(
         "ws_max_size": ws_max_size,
         "ws_ping_interval": ws_ping_interval,
         "ws_ping_timeout": ws_ping_timeout,
+        "ws_per_message_deflate": ws_per_message_deflate,
         "lifespan": lifespan,
         "env_file": env_file,
         "log_config": LOGGING_CONFIG if log_config is None else log_config,

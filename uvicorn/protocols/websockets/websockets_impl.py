@@ -74,13 +74,18 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
         self.transfer_data_task = None
 
         self.ws_server = Server()
+
+        extensions = []
+        if self.config.ws_per_message_deflate:
+            extensions.append(ServerPerMessageDeflateFactory())
+
         super().__init__(
             ws_handler=self.ws_handler,
             ws_server=self.ws_server,
             max_size=self.config.ws_max_size,
             ping_interval=self.config.ws_ping_interval,
             ping_timeout=self.config.ws_ping_timeout,
-            extensions=[ServerPerMessageDeflateFactory()],
+            extensions=extensions,
             logger=logging.getLogger("uvicorn.error"),
             extra_headers=[],
         )
@@ -228,7 +233,7 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
                     self.scope["client"],
-                    self.scope["root_path"] + self.scope["path"],
+                    self.scope["path"],
                 )
                 self.initial_response = None
                 self.accepted_subprotocol = message.get("subprotocol")
@@ -245,7 +250,7 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
                     self.scope["client"],
-                    self.scope["root_path"] + self.scope["path"],
+                    self.scope["path"],
                 )
                 self.initial_response = (http.HTTPStatus.FORBIDDEN, [], b"")
                 self.handshake_started_event.set()
