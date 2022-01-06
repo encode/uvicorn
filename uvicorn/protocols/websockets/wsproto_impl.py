@@ -247,13 +247,19 @@ class WSProtocol(asyncio.Protocol):
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
                     self.scope["client"],
-                    self.scope["root_path"] + self.scope["path"],
+                    self.scope["path"],
                 )
                 self.handshake_complete = True
                 subprotocol = message.get("subprotocol")
+                extra_headers = message.get("headers", [])
+                extensions = []
+                if self.config.ws_per_message_deflate:
+                    extensions.append(PerMessageDeflate())
                 output = self.conn.send(
                     wsproto.events.AcceptConnection(
-                        subprotocol=subprotocol, extensions=[PerMessageDeflate()]
+                        subprotocol=subprotocol,
+                        extensions=extensions,
+                        extra_headers=extra_headers,
                     )
                 )
                 self.transport.write(output)
@@ -263,7 +269,7 @@ class WSProtocol(asyncio.Protocol):
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
                     self.scope["client"],
-                    self.scope["root_path"] + self.scope["path"],
+                    self.scope["path"],
                 )
                 self.handshake_complete = True
                 self.close_sent = True

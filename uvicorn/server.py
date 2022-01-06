@@ -57,9 +57,7 @@ class Server:
 
     def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
-        if sys.version_info >= (3, 7):
-            return asyncio.run(self.serve(sockets=sockets))
-        return asyncio.get_event_loop().run_until_complete(self.serve(sockets=sockets))
+        return asyncio.run(self.serve(sockets=sockets))
 
     async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
         process_id = os.getpid()
@@ -136,7 +134,7 @@ class Server:
             uds_perms = 0o666
             if os.path.exists(config.uds):
                 uds_perms = os.stat(config.uds).st_mode
-            server = await loop.create_server(
+            server = await loop.create_server(  # type: ignore[call-overload]
                 create_protocol, path=config.uds, ssl=config.ssl, backlog=config.backlog
             )
             os.chmod(config.uds, uds_perms)

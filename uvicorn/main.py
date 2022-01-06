@@ -155,6 +155,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
+    "--ws-per-message-deflate",
+    type=bool,
+    default=True,
+    help="WebSocket per-message-deflate compression",
+    show_default=True,
+)
+@click.option(
     "--lifespan",
     type=LIFESPAN_CHOICES,
     default="auto",
@@ -320,7 +327,6 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 )
 @click.option(
     "--app-dir",
-    "app_dir",
     default=".",
     show_default=True,
     help="Look for APP in the specified directory, by adding this to the PYTHONPATH."
@@ -345,6 +351,7 @@ def main(
     ws_max_size: int,
     ws_ping_interval: float,
     ws_ping_timeout: float,
+    ws_per_message_deflate: bool,
     lifespan: str,
     interface: str,
     debug: bool,
@@ -379,8 +386,6 @@ def main(
     app_dir: str,
     factory: bool,
 ) -> None:
-    sys.path.insert(0, app_dir)
-
     kwargs = {
         "host": host,
         "port": port,
@@ -392,6 +397,7 @@ def main(
         "ws_max_size": ws_max_size,
         "ws_ping_interval": ws_ping_interval,
         "ws_ping_timeout": ws_ping_timeout,
+        "ws_per_message_deflate": ws_per_message_deflate,
         "lifespan": lifespan,
         "env_file": env_file,
         "log_config": LOGGING_CONFIG if log_config is None else log_config,
@@ -424,11 +430,16 @@ def main(
         "headers": [header.split(":", 1) for header in headers],
         "use_colors": use_colors,
         "factory": factory,
+        "app_dir": app_dir,
     }
     run(app, **kwargs)
 
 
 def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
+    app_dir = kwargs.pop("app_dir", None)
+    if app_dir is not None:
+        sys.path.insert(0, app_dir)
+
     config = Config(app, **kwargs)
     server = Server(config=config)
 
