@@ -87,6 +87,7 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
             ping_timeout=self.config.ws_ping_timeout,
             extensions=extensions,
             logger=logging.getLogger("uvicorn.error"),
+            extra_headers=[],
         )
 
     def connection_made(self, transport):
@@ -236,6 +237,13 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
                 )
                 self.initial_response = None
                 self.accepted_subprotocol = message.get("subprotocol")
+                if "headers" in message:
+                    self.extra_headers.extend(
+                        # ASGI spec requires bytes
+                        # But for compability we need to convert it to strings
+                        (name.decode("latin-1"), value.decode("latin-1"))
+                        for name, value in message.get("headers")
+                    )
                 self.handshake_started_event.set()
 
             elif message_type == "websocket.close":
