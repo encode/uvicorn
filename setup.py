@@ -42,8 +42,6 @@ env_marker_cpython = (
 
 env_marker_win = "sys_platform == 'win32'"
 env_marker_below_38 = "python_version < '3.8'"
-env_marker_below_37 = "python_version < '3.7'"
-env_marker_gte_37 = "python_version >= '3.7'"
 
 minimal_requirements = [
     "asgiref>=3.4.0",
@@ -54,8 +52,7 @@ minimal_requirements = [
 
 
 extra_requirements = [
-    "websockets>=9.1; " + env_marker_below_37,
-    "websockets>=10.0; " + env_marker_gte_37,
+    "websockets>=10.0",
     "httptools>=0.2.0,<0.4.0",
     "uvloop>=0.14.0,!=0.15.0,!=0.15.1; " + env_marker_cpython,
     "colorama>=0.4;" + env_marker_win,
@@ -87,7 +84,6 @@ setup(
         "Operating System :: OS Independent",
         "Topic :: Internet :: WWW/HTTP",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
