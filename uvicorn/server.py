@@ -10,7 +10,7 @@ import threading
 import time
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, Any, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Set, Tuple, Union
 
 import click
 

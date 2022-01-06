@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from typing import Callable
 from urllib.parse import unquote
 
 import h11

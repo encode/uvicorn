@@ -4,7 +4,6 @@ import logging
 import re
 import urllib
 from collections import deque
-from typing import Callable
 
 import httptools
 
