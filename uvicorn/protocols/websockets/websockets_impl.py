@@ -1,7 +1,7 @@
 import asyncio
 import http
 import logging
-from typing import Callable, Literal, Optional, Sequence, Tuple, Union, cast
+from typing import Any, Callable, List, Literal, Optional, Sequence, Tuple, Union, cast
 from urllib.parse import unquote
 
 import websockets
@@ -78,6 +78,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.connect_sent = False
         self.accepted_subprotocol: Optional[Subprotocol] = None
         self.transfer_data_task: asyncio.Task = None  # type: ignore[assignment]
+        self.extra_headers: List[Tuple[str, str]] = []
 
         self.ws_server: Server = Server()  # type: ignore[assignment]
 
@@ -93,7 +94,6 @@ class WebSocketProtocol(WebSocketServerProtocol):
             ping_timeout=self.config.ws_ping_timeout,
             extensions=extensions,
             logger=logging.getLogger("uvicorn.error"),
-            extra_headers=[],
         )
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
@@ -198,7 +198,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         # itself (see https://github.com/encode/uvicorn/issues/920)
         self.handshake_started_event.set()
 
-    async def ws_handler(self, protocol: WebSocketServerProtocol, path: str) -> None:
+    async def ws_handler(self, protocol: WebSocketServerProtocol) -> Any:
         """
         This is the main handler function for the 'websockets' implementation
         to call into. We just wait for close then return, and instead allow
@@ -251,13 +251,12 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 self.accepted_subprotocol = message.get(  # type: ignore[assignment]
                     "subprotocol"
                 )
-                if "headers" in message:
-                    self.extra_headers.extend(
-                        # ASGI spec requires bytes
-                        # But for compability we need to convert it to strings
-                        (name.decode("latin-1"), value.decode("latin-1"))
-                        for name, value in message.get("headers")
-                    )
+                self.extra_headers.extend(
+                    # ASGI spec requires bytes
+                    # But for compability we need to convert it to strings
+                    (name.decode("latin-1"), value.decode("latin-1"))
+                    for name, value in message.get("headers", [])
+                )
                 self.handshake_started_event.set()
 
             elif message_type == "websocket.close":
