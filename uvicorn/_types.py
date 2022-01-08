@@ -1,10 +1,8 @@
+import re
+import sys
 import types
 import typing
-import sys
-import re
-
 from typing import Awaitable, Callable, Dict, Iterable, Optional, Tuple, Type, Union
-
 
 if sys.version_info >= (3, 8):
     from typing import Literal, Protocol, TypedDict
@@ -30,6 +28,30 @@ def split_version(version):
             split_version[3] = "final"
         split_version = list(map(int, split_version[:3])) + split_version[3:]
         return tuple(split_version)
+
+
+ASGIREF_VERSION_TUPLE = None
+ASGIREF_33 = False
+ASGIREF_34 = False
+
+try:
+    import asgiref
+
+    ASGIREF_VERSION_TUPLE = split_version(asgiref.__version__)
+except ImportError:
+    pass
+
+if ASGIREF_VERSION_TUPLE is not None:
+    ASGIREF_33 = ASGIREF_VERSION_TUPLE > (3, 3, 2,) and ASGIREF_VERSION_TUPLE < (
+        3,
+        4,
+        0,
+    )
+    ASGIREF_34 = ASGIREF_VERSION_TUPLE >= (3, 4, 0,) and ASGIREF_VERSION_TUPLE < (
+        3,
+        5,
+        0,
+    )
 
 
 # WSGI
