@@ -1,12 +1,35 @@
 import types
 import typing
 import sys
+import re
+
 from typing import Awaitable, Callable, Dict, Iterable, Optional, Tuple, Type, Union
+
 
 if sys.version_info >= (3, 8):
     from typing import Literal, Protocol, TypedDict
 else:
     from typing_extensions import Literal, Protocol, TypedDict
+
+
+_version_re = re.compile(r"^(\d+)\.(\d+)\.(\d+)(\..*)?$", re.VERBOSE)
+
+
+def split_version(version):
+    """Return VERSION tuple for given string representation of version
+
+    Credit: sindresorhus/editorconfig-sublime, editorconfig/versiontools.py @ 19f3532
+    License: MIT
+    """
+    match = _version_re.search(version)
+    if not match:
+        return None
+    else:
+        split_version = list(match.groups())
+        if split_version[3] is None:
+            split_version[3] = "final"
+        split_version = list(map(int, split_version[:3])) + split_version[3:]
+        return tuple(split_version)
 
 
 # WSGI
