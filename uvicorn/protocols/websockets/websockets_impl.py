@@ -1,7 +1,8 @@
 import asyncio
 import http
 import logging
-from typing import Any, Callable, List, Literal, Optional, Sequence, Tuple, Union, cast
+import sys
+from typing import Any, Callable, List, Optional, Sequence, Tuple, Union, cast
 from urllib.parse import unquote
 
 import websockets
@@ -26,6 +27,11 @@ from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 from uvicorn.server import ServerState
+
+if sys.version_info < (3, 8):
+    from typing_extensions import Literal
+else:
+    from typing import Literal
 
 
 class Server:
