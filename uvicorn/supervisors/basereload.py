@@ -45,9 +45,6 @@ class BaseReload:
             if self.should_restart():
                 self.restart()
 
-            if self.process.exitcode is not None:
-                break
-
         self.shutdown()
 
     def startup(self) -> None:
