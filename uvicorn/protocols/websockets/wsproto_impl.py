@@ -1,25 +1,38 @@
 import asyncio
 import logging
-from typing import Callable
+import sys
+from typing import Callable, Optional, Tuple
 from urllib.parse import unquote
 
 import h11
 import wsproto
+from asgiref.typing import ASGIReceiveEvent
 from wsproto import ConnectionType, events
 from wsproto.connection import ConnectionState
 from wsproto.extensions import PerMessageDeflate
 from wsproto.utilities import RemoteProtocolError
 
+from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+from uvicorn.server import ServerState
 
 # Check wsproto version. We've build against 0.13. We don't know about 0.14 yet.
 assert wsproto.__version__ > "0.13", "Need wsproto version 0.13"
 
+if sys.version_info < (3, 8):
+    from typing_extensions import Literal
+else:
+    from typing import Literal
+
 
 class WSProtocol(asyncio.Protocol):
     def __init__(
-        self, config, server_state, on_connection_lost: Callable = None, _loop=None
+        self,
+        config: Config,
+        server_state: ServerState,
+        on_connection_lost: Callable[..., None] = None,
+        _loop: Optional[asyncio.AbstractEventLoop] = None,
     ):
         if not config.loaded:
             config.load()
@@ -36,14 +49,14 @@ class WSProtocol(asyncio.Protocol):
         self.tasks = server_state.tasks
 
         # Connection state
-        self.transport = None
-        self.server = None
-        self.client = None
-        self.scheme = None
+        self.transport: asyncio.Transport = None  # type: ignore[assignment]
+        self.server: Optional[Tuple[str, int]] = None
+        self.client: Optional[Tuple[str, int]] = None
+        self.scheme: Literal["wss", "ws"] = None  # type: ignore[assignment]
 
         # WebSocket state
         self.connect_event = None
-        self.queue = asyncio.Queue()
+        self.queue: asyncio.Queue[ASGIReceiveEvent] = asyncio.Queue()
         self.handshake_complete = False
         self.close_sent = False
 
@@ -59,7 +72,7 @@ class WSProtocol(asyncio.Protocol):
 
     # Protocol interface
 
-    def connection_made(self, transport):
+    def connection_made(self, transport: asyncio.BaseTransport) -> None:
         self.connections.add(self)
         self.transport = transport
         self.server = get_local_addr(transport)
@@ -67,10 +80,10 @@ class WSProtocol(asyncio.Protocol):
         self.scheme = "wss" if is_ssl(transport) else "ws"
 
         if self.logger.level <= TRACE_LOG_LEVEL:
-            prefix = "%s:%d - " % tuple(self.client) if self.client else ""
+            prefix = "{}:{} - ".format(*self.client) if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection made", prefix)
 
-    def connection_lost(self, exc):
+    def connection_lost(self, exc: Optional[Exception]) -> None:
         if exc is not None:
             self.queue.put_nowait({"type": "websocket.disconnect"})
         self.connections.remove(self)
