@@ -6,7 +6,6 @@ from urllib.parse import unquote
 
 import websockets
 from asgiref.typing import (
-    ASGIReceiveEvent,
     ASGISendEvent,
     WebSocketAcceptEvent,
     WebSocketCloseEvent,
@@ -19,7 +18,7 @@ from asgiref.typing import (
 from websockets.datastructures import Headers
 from websockets.exceptions import ConnectionClosed
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
-from websockets.legacy.server import HTTPResponse, WebSocketServer
+from websockets.legacy.server import HTTPResponse
 from websockets.server import WebSocketServerProtocol
 from websockets.typing import Subprotocol
 
