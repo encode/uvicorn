@@ -1,22 +1,27 @@
+from __future__ import annotations
+
 import asyncio
 import concurrent.futures
 import io
 import sys
 from collections import deque
-from typing import Deque, Iterable, Optional, Tuple
+from typing import TYPE_CHECKING
 
-from asgiref.typing import (
-    ASGIReceiveCallable,
-    ASGIReceiveEvent,
-    ASGISendCallable,
-    ASGISendEvent,
-    HTTPRequestEvent,
-    HTTPResponseBodyEvent,
-    HTTPResponseStartEvent,
-    HTTPScope,
-)
+if TYPE_CHECKING:
+    from typing import Deque, Iterable, Optional, Tuple
 
-from uvicorn._types import Environ, ExcInfo, StartResponse, WSGIApp
+    from asgiref.typing import (
+        ASGIReceiveCallable,
+        ASGIReceiveEvent,
+        ASGISendCallable,
+        ASGISendEvent,
+        HTTPRequestEvent,
+        HTTPResponseBodyEvent,
+        HTTPResponseStartEvent,
+        HTTPScope,
+    )
+
+    from uvicorn._types import Environ, ExcInfo, StartResponse, WSGIApp
 
 
 def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> Environ:

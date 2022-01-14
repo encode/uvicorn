@@ -2,14 +2,19 @@
 Some light wrappers around Python's multiprocessing, to deal with cleanly
 starting child processes.
 """
+from __future__ import annotations
+
 import multiprocessing
 import os
 import sys
-from multiprocessing.context import SpawnProcess
-from socket import socket
-from typing import Callable, List, Optional
+from typing import TYPE_CHECKING
 
-from uvicorn.config import Config
+if TYPE_CHECKING:
+    from multiprocessing.context import SpawnProcess
+    from socket import socket
+    from typing import Callable, List, Optional
+
+    from uvicorn.config import Config
 
 multiprocessing.allow_connection_pickling()
 spawn = multiprocessing.get_context("spawn")

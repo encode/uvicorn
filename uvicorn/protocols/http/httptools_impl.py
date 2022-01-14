@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import asyncio
 import http
 import logging
 import re
 import urllib
 from collections import deque
-from typing import Callable
+from typing import TYPE_CHECKING
 
 import httptools
 
@@ -22,6 +24,9 @@ from uvicorn.protocols.utils import (
     get_remote_addr,
     is_ssl,
 )
+
+if TYPE_CHECKING:
+    from typing import Callable
 
 HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")

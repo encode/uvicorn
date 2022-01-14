@@ -1,16 +1,21 @@
+from __future__ import annotations
+
 import html
 import traceback
-from typing import Union
+from typing import TYPE_CHECKING
 
-from asgiref.typing import (
-    ASGI3Application,
-    ASGIReceiveCallable,
-    ASGISendCallable,
-    ASGISendEvent,
-    HTTPResponseBodyEvent,
-    HTTPResponseStartEvent,
-    WWWScope,
-)
+if TYPE_CHECKING:
+    from typing import Union
+
+    from asgiref.typing import (
+        ASGI3Application,
+        ASGIReceiveCallable,
+        ASGISendCallable,
+        ASGISendEvent,
+        HTTPResponseBodyEvent,
+        HTTPResponseStartEvent,
+        WWWScope,
+    )
 
 
 class HTMLResponse:

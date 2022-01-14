@@ -1,11 +1,17 @@
-from typing import List, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import httpx
 import pytest
-from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
 from tests.response import Response
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
+if TYPE_CHECKING:
+    from typing import List, Union
+
+    from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
 
 async def app(

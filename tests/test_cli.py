@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import importlib
 import os
 import platform
 import sys
-from pathlib import Path
 from textwrap import dedent
+from typing import TYPE_CHECKING
 from unittest import mock
 
 import pytest
@@ -14,6 +16,10 @@ from uvicorn.config import Config
 from uvicorn.main import main as cli
 from uvicorn.server import Server
 from uvicorn.supervisors import ChangeReload, Multiprocess
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
 
 HEADERS = "Content-Security-Policy:default-src 'self'; script-src https://example.com"
 main = importlib.import_module("uvicorn.main")

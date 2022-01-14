@@ -1,9 +1,15 @@
+from __future__ import annotations
+
 import asyncio
 import os
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from uvicorn import Config, Server
+from uvicorn import Server
+
+if TYPE_CHECKING:
+    from uvicorn import Config
 
 
 @asynccontextmanager

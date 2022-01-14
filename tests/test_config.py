@@ -1,30 +1,42 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
 import socket
 import sys
-import typing
 from copy import deepcopy
-from pathlib import Path
-from unittest.mock import MagicMock
-
-if sys.version_info < (3, 8):
-    from typing_extensions import Literal
-else:
-    from typing import Literal
+from typing import TYPE_CHECKING
 
 import pytest
 import yaml
-from asgiref.typing import ASGIApplication, ASGIReceiveCallable, ASGISendCallable, Scope
-from pytest_mock import MockerFixture
 
 from tests.utils import as_cwd
-from uvicorn._types import Environ, StartResponse
 from uvicorn.config import LOGGING_CONFIG, Config
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from typing import Callable, Iterator, Optional
+    from unittest.mock import MagicMock
+
+    from asgiref.typing import (
+        ASGIApplication,
+        ASGIReceiveCallable,
+        ASGISendCallable,
+        Scope,
+    )
+    from pytest_mock import MockerFixture
+
+    from uvicorn._types import Environ, StartResponse
+
+    if sys.version_info < (3, 8):
+        from typing_extensions import Literal
+    else:
+        from typing import Literal
 
 
 @pytest.fixture
@@ -336,7 +348,7 @@ def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
     assert config.is_ssl is True
 
 
-def asgi2_app(scope: Scope) -> typing.Callable:
+def asgi2_app(scope: Scope) -> Callable:
     async def asgi(
         receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:  # pragma: nocover
@@ -367,8 +379,8 @@ def test_asgi_version(
 )
 def test_log_config_default(
     mocked_logging_config_module: MagicMock,
-    use_colors: typing.Optional[bool],
-    expected: typing.Optional[bool],
+    use_colors: Optional[bool],
+    expected: Optional[bool],
 ) -> None:
     """
     Test that one can specify the use_colors option when using the default logging
@@ -438,14 +450,14 @@ def test_log_config_file(mocked_logging_config_module: MagicMock) -> None:
 
 
 @pytest.fixture(params=[0, 1])
-def web_concurrency(request: pytest.FixtureRequest) -> typing.Iterator[int]:
+def web_concurrency(request: pytest.FixtureRequest) -> Iterator[int]:
     yield getattr(request, "param")
     if os.getenv("WEB_CONCURRENCY"):
         del os.environ["WEB_CONCURRENCY"]
 
 
 @pytest.fixture(params=["127.0.0.1", "127.0.0.2"])
-def forwarded_allow_ips(request: pytest.FixtureRequest) -> typing.Iterator[str]:
+def forwarded_allow_ips(request: pytest.FixtureRequest) -> Iterator[str]:
     yield getattr(request, "param")
     if os.getenv("FORWARDED_ALLOW_IPS"):
         del os.environ["FORWARDED_ALLOW_IPS"]

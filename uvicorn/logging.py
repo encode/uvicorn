@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import http
 import logging
 import sys
 from copy import copy
-from typing import Optional
+from typing import TYPE_CHECKING
 
 import click
+
+if TYPE_CHECKING:
+    from typing import Optional
 
 TRACE_LOG_LEVEL = 5
 

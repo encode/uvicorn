@@ -1,7 +1,12 @@
-import asyncio
-import typing
+from __future__ import annotations
 
-AutoWebSocketsProtocol: typing.Optional[typing.Type[asyncio.Protocol]]
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from asyncio import Protocol
+    from typing import Optional
+
+AutoWebSocketsProtocol: Optional[type[Protocol]]
 try:
     import websockets  # noqa
 except ImportError:  # pragma: no cover

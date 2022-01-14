@@ -1,12 +1,19 @@
+from __future__ import annotations
+
 import sys
-from typing import List
+from typing import TYPE_CHECKING
 
 import httpx
 import pytest
-from asgiref.typing import HTTPRequestEvent, HTTPScope
 
-from uvicorn._types import Environ, StartResponse
 from uvicorn.middleware.wsgi import WSGIMiddleware, build_environ
+
+if TYPE_CHECKING:
+    from typing import List
+
+    from asgiref.typing import HTTPRequestEvent, HTTPScope
+
+    from uvicorn._types import Environ, StartResponse
 
 
 def hello_world(environ: Environ, start_response: StartResponse) -> List[bytes]:

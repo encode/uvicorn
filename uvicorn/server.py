@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
@@ -8,15 +10,17 @@ import sys
 import threading
 import time
 from email.utils import formatdate
-from types import FrameType
-from typing import TYPE_CHECKING, Any, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING
 
 import click
 
 from uvicorn._handlers.http import handle_http
-from uvicorn.config import Config
 
 if TYPE_CHECKING:
+    from types import FrameType
+    from typing import Any, List, Optional, Set, Tuple, Union
+
+    from uvicorn.config import Config
     from uvicorn.protocols.http.h11_impl import H11Protocol
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
@@ -47,7 +51,7 @@ class ServerState:
 
     def __init__(self) -> None:
         self.total_requests = 0
-        self.connections: Set["Protocols"] = set()
+        self.connections: Set[Protocols] = set()
         self.tasks: Set[asyncio.Task] = set()
         self.default_headers: List[Tuple[bytes, bytes]] = []
 

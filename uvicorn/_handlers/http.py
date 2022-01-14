@@ -1,16 +1,17 @@
+from __future__ import annotations
+
 import asyncio
 from typing import TYPE_CHECKING
 
-from uvicorn.config import Config
-
 if TYPE_CHECKING:  # pragma: no cover
+    from uvicorn.config import Config
     from uvicorn.server import ServerState
 
 
 async def handle_http(
     reader: asyncio.StreamReader,
     writer: asyncio.StreamWriter,
-    server_state: "ServerState",
+    server_state: ServerState,
     config: Config,
 ) -> None:
     # Run transport/protocol session from streams.

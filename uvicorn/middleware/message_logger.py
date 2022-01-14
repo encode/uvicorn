@@ -1,16 +1,21 @@
-import logging
-from typing import Any
+from __future__ import annotations
 
-from asgiref.typing import (
-    ASGI3Application,
-    ASGIReceiveCallable,
-    ASGIReceiveEvent,
-    ASGISendCallable,
-    ASGISendEvent,
-    WWWScope,
-)
+import logging
+from typing import TYPE_CHECKING
 
 from uvicorn.logging import TRACE_LOG_LEVEL
+
+if TYPE_CHECKING:
+    from typing import Any
+
+    from asgiref.typing import (
+        ASGI3Application,
+        ASGIReceiveCallable,
+        ASGIReceiveEvent,
+        ASGISendCallable,
+        ASGISendEvent,
+        WWWScope,
+    )
 
 PLACEHOLDER_FORMAT = {
     "body": "<{length} bytes>",

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import asyncio
 import logging
-from typing import Callable
+from typing import TYPE_CHECKING
 from urllib.parse import unquote
 
 import h11
@@ -12,6 +14,9 @@ from wsproto.utilities import RemoteProtocolError
 
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+
+if TYPE_CHECKING:
+    from typing import Callable
 
 # Check wsproto version. We've build against 0.13. We don't know about 0.14 yet.
 assert wsproto.__version__ > "0.13", "Need wsproto version 0.13"

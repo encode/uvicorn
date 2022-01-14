@@ -1,14 +1,19 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import signal
 import sys
-from typing import Any
+from typing import TYPE_CHECKING
 
 from gunicorn.arbiter import Arbiter
 from gunicorn.workers.base import Worker
 
 from uvicorn.config import Config
 from uvicorn.main import Server
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
 class UvicornWorker(Worker):

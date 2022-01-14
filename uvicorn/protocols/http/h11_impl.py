@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import asyncio
 import http
 import logging
-from typing import Callable
+from typing import TYPE_CHECKING
 from urllib.parse import unquote
 
 import h11
@@ -20,6 +22,9 @@ from uvicorn.protocols.utils import (
     get_remote_addr,
     is_ssl,
 )
+
+if TYPE_CHECKING:
+    from typing import Callable
 
 
 def _get_status_phrase(status_code):

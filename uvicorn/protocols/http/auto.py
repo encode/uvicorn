@@ -1,7 +1,12 @@
-import asyncio
-from typing import Type
+from __future__ import annotations
 
-AutoHTTPProtocol: Type[asyncio.Protocol]
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from asyncio import Protocol
+    from typing import Type
+
+AutoHTTPProtocol: Type[Protocol]
 try:
     import httptools  # noqa
 except ImportError:  # pragma: no cover

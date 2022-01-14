@@ -1,17 +1,21 @@
+from __future__ import annotations
+
 import logging
 from pathlib import Path
-from socket import socket
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING
 
 from watchgod import DefaultWatcher
 
-from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
 
 logger = logging.getLogger("uvicorn.error")
 
 if TYPE_CHECKING:  # pragma: no cover
     import os
+    from socket import socket
+    from typing import Callable, Dict, List, Optional
+
+    from uvicorn.config import Config
 
     DirEntry = os.DirEntry[str]
 
@@ -43,7 +47,7 @@ class CustomWatcher(DefaultWatcher):
         self.resolved_root = root_path
         super().__init__(str(root_path))
 
-    def should_watch_file(self, entry: "DirEntry") -> bool:
+    def should_watch_file(self, entry: DirEntry) -> bool:
         cached_result = self.watched_files.get(entry.path)
         if cached_result is not None:
             return cached_result
@@ -65,7 +69,7 @@ class CustomWatcher(DefaultWatcher):
         self.watched_files[entry.path] = False
         return False
 
-    def should_watch_dir(self, entry: "DirEntry") -> bool:
+    def should_watch_dir(self, entry: DirEntry) -> bool:
         cached_result = self.watched_dirs.get(entry.path)
         if cached_result is not None:
             return cached_result

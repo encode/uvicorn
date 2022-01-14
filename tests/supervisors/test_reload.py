@@ -1,15 +1,21 @@
+from __future__ import annotations
+
 import signal
 from logging import DEBUG, INFO, WARNING
-from pathlib import Path
 from time import sleep
+from typing import TYPE_CHECKING
 
 import pytest
 
 from tests.utils import as_cwd
 from uvicorn.config import Config
-from uvicorn.supervisors.basereload import BaseReload
 from uvicorn.supervisors.statreload import StatReload
 from uvicorn.supervisors.watchgodreload import WatchGodReload
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from uvicorn.supervisors.basereload import BaseReload
 
 
 class TestBaseReload:

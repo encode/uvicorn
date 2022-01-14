@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 import logging
 from pathlib import Path
-from socket import socket
-from typing import Callable, Dict, Iterator, List, Optional
+from typing import TYPE_CHECKING
 
-from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
+
+if TYPE_CHECKING:
+    from socket import socket
+    from typing import Callable, Dict, Iterator, List, Optional
+
+    from uvicorn.config import Config
 
 logger = logging.getLogger("uvicorn.error")
 

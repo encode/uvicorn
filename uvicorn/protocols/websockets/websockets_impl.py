@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import asyncio
 import http
 import logging
-from typing import Callable
+from typing import TYPE_CHECKING
 from urllib.parse import unquote
 
 import websockets
@@ -9,6 +11,9 @@ from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFact
 
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+
+if TYPE_CHECKING:
+    from typing import Callable
 
 
 class Server:

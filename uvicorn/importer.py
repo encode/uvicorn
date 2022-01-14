@@ -1,5 +1,10 @@
+from __future__ import annotations
+
 import importlib
-from typing import Any
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
 class ImportFromStringError(Exception):

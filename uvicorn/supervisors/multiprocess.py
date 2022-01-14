@@ -1,16 +1,22 @@
+from __future__ import annotations
+
 import logging
 import os
 import signal
 import threading
-from multiprocessing.context import SpawnProcess
-from socket import socket
-from types import FrameType
-from typing import Callable, List, Optional
+from typing import TYPE_CHECKING
 
 import click
 
-from uvicorn.config import Config
 from uvicorn.subprocess import get_subprocess
+
+if TYPE_CHECKING:
+    from multiprocessing.context import SpawnProcess
+    from socket import socket
+    from types import FrameType
+    from typing import Callable, List, Optional
+
+    from uvicorn.config import Config
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
