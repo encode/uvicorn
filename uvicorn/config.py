@@ -347,8 +347,6 @@ class Config:
         if env_file is not None:
             from dotenv import load_dotenv
 
-            print("I'm here")
-
             logger.info("Loading environment from '%s'", env_file)
             load_dotenv(dotenv_path=env_file)
 
