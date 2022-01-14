@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from uvicorn.config import Config
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from uvicorn.server import ServerState
 
 
