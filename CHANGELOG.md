@@ -1,5 +1,19 @@
 # Change Log
 
+## 0.17.0 - 2022-01-14
+
+### Added
+
+- Allow configurable websocket per-message-deflate setting (#1300) 29/12/21
+- Support extra_headers for WS accept message (#1293) 06/01/22
+- Add missing http version on websockets scope (#1309) 08/01/22
+
+### Fixed/Removed
+
+- Drop Python 3.6 support (#1261) 06/01/22
+- Fix reload process behavior when exception is raised (#1313) 11/01/22
+- Remove `root_path` from logs (#1294) 25/12/21
+
 ## 0.16.0 - 2021-12-08
 
 ### Added
