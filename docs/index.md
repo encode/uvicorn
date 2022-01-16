@@ -489,6 +489,7 @@ You write your API function parameters with Python 3.6+ type declarations and ge
 Its most distinctive features are built-in support for dependency injection, automatic binding of parameters by request handler's type annotations, and automatic generation of OpenAPI documentation and Swagger UI.
 
 ### Falcon
+
 [Falcon](https://falconframework.org) is a minimalist REST and app backend framework for Python, with a focus on reliability, correctness, and performance at scale.
 
 
