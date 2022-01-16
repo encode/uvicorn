@@ -1,3 +1,4 @@
+import io
 import sys
 from typing import List
 
@@ -133,6 +134,6 @@ def test_build_environ_encoding() -> None:
         "body": b"",
         "more_body": False,
     }
-    environ = build_environ(scope, message, b"")
+    environ = build_environ(scope, message, io.BytesIO(b""))
     assert environ["PATH_INFO"] == "/文".encode("utf8").decode("latin-1")
     assert environ["HTTP_KEY"] == "value1,value2"
