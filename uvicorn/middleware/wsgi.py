@@ -19,7 +19,9 @@ from asgiref.typing import (
 from uvicorn._types import Environ, ExcInfo, StartResponse, WSGIApp
 
 
-def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> Environ:
+def build_environ(
+    scope: HTTPScope, message: ASGIReceiveEvent, body: io.BytesIO
+) -> Environ:
     """
     Builds a scope and request message into a WSGI environ object.
     """
@@ -31,7 +33,7 @@ def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> E
         "SERVER_PROTOCOL": "HTTP/%s" % scope["http_version"],
         "wsgi.version": (1, 0),
         "wsgi.url_scheme": scope.get("scheme", "http"),
-        "wsgi.input": io.BytesIO(body),
+        "wsgi.input": body,
         "wsgi.errors": sys.stdout,
         "wsgi.multithread": True,
         "wsgi.multiprocess": True,
@@ -105,12 +107,16 @@ class WSGIResponder:
         self, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         message: HTTPRequestEvent = await receive()  # type: ignore[assignment]
-        body = message.get("body", b"")
+        body = io.BytesIO(message.get("body", b""))
         more_body = message.get("more_body", False)
+        if more_body:
+            body.seek(0, io.SEEK_END)
         while more_body:
             body_message: HTTPRequestEvent = await receive()  # type: ignore[assignment]
-            body += body_message.get("body", b"")
+            body.write(body_message.get("body", b""))
             more_body = body_message.get("more_body", False)
+        else:
+            body.seek(0)
         environ = build_environ(self.scope, message, body)
         self.loop = asyncio.get_event_loop()
         wsgi = self.loop.run_in_executor(

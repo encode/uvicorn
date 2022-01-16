@@ -68,6 +68,19 @@ async def test_wsgi_post() -> None:
 
 
 @pytest.mark.asyncio
+async def test_wsgi_put_more_body() -> None:
+    async def generate_body():
+        for _ in range(1024):
+            yield b"123456789abcdef\n" * 64
+
+    app = WSGIMiddleware(echo_body)
+    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+        response = await client.put("/", content=generate_body())
+    assert response.status_code == 200
+    assert response.text == "123456789abcdef\n" * 64 * 1024
+
+
+@pytest.mark.asyncio
 async def test_wsgi_exception() -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
