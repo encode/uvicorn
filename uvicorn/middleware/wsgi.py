@@ -111,11 +111,12 @@ class WSGIResponder:
         more_body = message.get("more_body", False)
         if more_body:
             body.seek(0, io.SEEK_END)
-        while more_body:
-            body_message: HTTPRequestEvent = await receive()  # type: ignore[assignment]
-            body.write(body_message.get("body", b""))
-            more_body = body_message.get("more_body", False)
-        else:
+            while more_body:
+                body_message: HTTPRequestEvent = (
+                    await receive()
+                )  # type: ignore[assignment]
+                body.write(body_message.get("body", b""))
+                more_body = body_message.get("more_body", False)
             body.seek(0)
         environ = build_environ(self.scope, message, body)
         self.loop = asyncio.get_event_loop()
