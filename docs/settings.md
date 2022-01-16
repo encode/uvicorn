@@ -28,12 +28,21 @@ For example, in case you want to run the app on port `5000`, just set the enviro
 
 ## Development
 
-* `--reload` - Enable auto-reload.
+* `--reload` - Enable auto-reload. Uvicorn supports two versions of auto-reloading behavior enabled by this option. See below for important differences between them.
 * `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default the whole current directory will be watched. If you are running programmatically use `reload_dirs=[]` and pass a list of strings.
+
+### Naive Reloading
+
+If Uvicorn _cannot_ load [watchgod](https://pypi.org/project/watchgod/) at runtime, it will periodically look for changes in modification times to any `*.py` file inside of its monitored directories. See the `--reload-dir` option above. Note: _all_ `*.py` files, and _only_ `*.py` files will be monitored for changes. This is not configurable under naive reloading.
+
+### watchgod-Enabled Reloading
+
+For more nuanced control over which file modifications trigger reloads, install [watchgod](https://pypi.org/project/watchgod/) where Unvicorn can see it. Alternatively, install `uvicorn[standard]`, which includes watchgod as a dependency. This will enable the following options (which are otherwise ignored).
+
 * `--reload-include <glob-pattern>` - Specify a glob pattern to match files or directories which will be watched. May be used multiple times. By default the following patterns are included: `*.py`. These defaults can be overwritten by including them in `--reload-exclude`.
 * `--reload-exclude <glob-pattern>` - Specify a glob pattern to match files or directories which will excluded from watching. May be used multiple times. By default the following patterns are excluded: `.*, .py[cod], .sw.*, ~*`. These defaults can be overwritten by including them in `--reload-include`.
 
-By default Uvicorn uses simple changes detection strategy that compares python files modification times few times a second. If this approach doesn't work for your project (eg. because of its complexity), or you need watching of non python files you can install [watchgod](https://pypi.org/project/watchgod/) or install uvicorn with `uvicorn[standard]`, which will include watchgod.
+_Note: As of this writing, watchgod relies on poll-based OS machinery to surface modifications to Uvicorn. This means that monitored directories must live on filesystems that support that operation. That_ should _accommodate most use cases. Be aware that for locations where such mechanisms are unavailable, modifications will be silently overlooked._
 
 ## Production
 

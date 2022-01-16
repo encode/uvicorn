@@ -20,6 +20,11 @@ class StatReload(BaseReload):
         self.reloader_name = "statreload"
         self.mtimes: Dict[Path, float] = {}
 
+        if config.reload_excludes or config.reload_includes:
+            logger.warning(
+                "--reload-include and --reload-exclude have no effect unless watchgod is installed."
+            )
+
     def should_restart(self) -> bool:
         for file in self.iter_py_files():
             try:
