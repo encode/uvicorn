@@ -358,15 +358,14 @@ async def read_body(receive):
     """
     Read and return the entire body from an incoming ASGI message.
     """
-    body = b''
-    more_body = True
-
-    while more_body:
+    body_parts = []
+    while True:
         message = await receive()
-        body += message.get('body', b'')
-        more_body = message.get('more_body', False)
+        body_parts.append(message.get('body', b''))
+        if not message.get('more_body', False):
+            break
 
-    return body
+    return b''.join(body_parts)
 
 
 async def app(scope, receive, send):
