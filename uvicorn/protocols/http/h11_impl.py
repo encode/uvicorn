@@ -222,6 +222,10 @@ class H11Protocol(asyncio.Protocol):
                     continue
                 self.cycle.more_body = False
                 self.cycle.message_event.set()
+            elif event_type is h11.ConnectionClosed:
+                break
+        if self.conn.our_state is h11.MUST_CLOSE and not self.transport.is_closing():
+            self.transport.close()
 
     def handle_upgrade(self, event):
         upgrade_value = None
