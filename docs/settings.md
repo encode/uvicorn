@@ -28,12 +28,12 @@ For example, in case you want to run the app on port `5000`, just set the enviro
 
 ## Development
 
-* `--reload` - Enable auto-reload. Uvicorn supports two versions of auto-reloading behavior enabled by this option. See below for important differences between them.
+* `--reload` - Enable auto-reload. Uvicorn supports two versions of auto-reloading behavior enabled by this option. There are important differences between them.
 * `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default the whole current directory will be watched. If you are running programmatically use `reload_dirs=[]` and pass a list of strings.
 
 ### Naive Reloading
 
-If Uvicorn _cannot_ load [watchgod](https://pypi.org/project/watchgod/) at runtime, it will periodically look for changes in modification times to any `*.py` file inside of its monitored directories. See the `--reload-dir` option above. Note: _all_ `*.py` files, and _only_ `*.py` files will be monitored for changes. This is not configurable under naive reloading.
+If Uvicorn _cannot_ load [watchgod](https://pypi.org/project/watchgod/) at runtime, it will periodically look for changes in modification times to any `*.py` file inside of its monitored directories. See the `--reload-dir` option. Note: _all_ `*.py` files, and _only_ `*.py` files will be monitored for changes. This is not configurable unless watchgod in installed.
 
 ### watchgod-Enabled Reloading
 
