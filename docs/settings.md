@@ -33,7 +33,7 @@ For example, in case you want to run the app on port `5000`, just set the enviro
 
 ### Naive Reloading
 
-If Uvicorn _cannot_ load [watchgod](https://pypi.org/project/watchgod/) at runtime, it will periodically look for changes in modification times to all `*.py` files (and only `*.py` files) inside of its monitored directories. See the `--reload-dir` option. Which files are monitored is not configurable unless watchgod in installed. See the `--reload-include` and `--reload-exclude` options for details.
+If Uvicorn _cannot_ load [watchgod](https://pypi.org/project/watchgod/) at runtime, it will periodically look for changes in modification times to all `*.py` files (and only `*.py` files) inside of its monitored directories. See the `--reload-dir` option. Specifying other file extensions is not supported unless watchgod is installed. See the `--reload-include` and `--reload-exclude` options for details.
 
 ### watchgod-Enabled Reloading
 
