@@ -70,7 +70,6 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             ping_interval=self.config.ws_ping_interval,
             ping_timeout=self.config.ws_ping_timeout,
             extensions=extensions,
-            logger=logging.getLogger("uvicorn.error"),
             extra_headers=[],
         )
 
