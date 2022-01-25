@@ -132,7 +132,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         self.scope = {
             "type": "websocket",
-            "asgi": {"version": self.config.asgi_version, "spec_version": "2.1"},
+            "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
             "http_version": "1.1",
             "scheme": self.scheme,
             "server": self.server,
@@ -227,7 +227,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                         # ASGI spec requires bytes
                         # But for compability we need to convert it to strings
                         (name.decode("latin-1"), value.decode("latin-1"))
-                        for name, value in message.get("headers")
+                        for name, value in message["headers"]
                     )
                 self.handshake_started_event.set()
 

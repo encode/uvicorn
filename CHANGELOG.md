@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.17.0.post1 - 2022-01-24
+
+### Fixed
+
+- Add the `python_requires` version specifier (#1328) 17/01/22
+
 ## 0.17.0 - 2022-01-14
 
 ### Added
