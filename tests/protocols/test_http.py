@@ -710,8 +710,8 @@ def asgi2app(scope):
 
 
 asgi_scope_data = [
-    (asgi3app, {"version": "3.0", "spec_version": "2.1"}),
-    (asgi2app, {"version": "2.0", "spec_version": "2.1"}),
+    (asgi3app, {"version": "3.0", "spec_version": "2.3"}),
+    (asgi2app, {"version": "2.0", "spec_version": "2.3"}),
 ]
 
 
