@@ -22,7 +22,8 @@ class StatReload(BaseReload):
 
         if config.reload_excludes or config.reload_includes:
             logger.warning(
-                "--reload-include and --reload-exclude have no effect unless watchgod is installed."
+                "--reload-include and --reload-exclude have no effect unless watchgod "
+                "is installed."
             )
 
     def should_restart(self) -> bool:
