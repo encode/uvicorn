@@ -22,6 +22,8 @@ from asgiref.typing import ASGIApplication
 
 try:
     import yaml
+
+    assert yaml.__version__ >= "5.1", "Uvicorn requires PyYAML version 5.1 or higher"
 except ImportError:
     # If the code below that depends on yaml is exercised, it will raise a NameError.
     # Install the PyYAML package or the uvicorn[standard] optional dependencies to

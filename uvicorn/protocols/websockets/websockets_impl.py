@@ -10,6 +10,10 @@ from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFact
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
+assert (
+    websockets.__version__ >= "10.0"
+), "Uvicorn requires websockets version 10.0 or higher"
+
 
 class Server:
     closing = False

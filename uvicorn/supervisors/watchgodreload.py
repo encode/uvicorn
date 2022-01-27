@@ -3,10 +3,13 @@ from pathlib import Path
 from socket import socket
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional
 
+import watchgod
 from watchgod import DefaultWatcher
 
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
+
+assert watchgod.VERSION >= "0.6", "Uvicorn requires watchgod version 0.6 or higher"
 
 logger = logging.getLogger("uvicorn.error")
 
