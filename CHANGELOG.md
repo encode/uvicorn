@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.17.1 - 2022-01-28
+
+### Fixed
+
+- Move all data handling logic to protocol and ensure connection is closed. (#1332) 28/01/22
+- Change `spec_version` field from "2.1" to "2.3", as Uvicorn is compliant with that version of the ASGI specifications. (#1337) 25/01/22
+
 ## 0.17.0.post1 - 2022-01-24
 
 ### Fixed
