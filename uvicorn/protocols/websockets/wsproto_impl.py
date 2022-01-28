@@ -5,6 +5,7 @@ from urllib.parse import unquote
 
 import h11
 import wsproto
+from packaging import version
 from wsproto import ConnectionType, events
 from wsproto.connection import ConnectionState
 from wsproto.extensions import PerMessageDeflate
@@ -13,7 +14,9 @@ from wsproto.utilities import RemoteProtocolError
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
-assert wsproto.__version__ > "0.13", "Need wsproto version 0.13"
+assert version.parse(wsproto.__version__) > version.parse(
+    "0.13"
+), "Need wsproto version 0.13"
 
 
 class WSProtocol(asyncio.Protocol):
