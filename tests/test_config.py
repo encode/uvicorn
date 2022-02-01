@@ -8,7 +8,7 @@ from copy import deepcopy
 from pathlib import Path
 from unittest.mock import MagicMock
 
-if sys.version_info < (3, 8):
+if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
 else:
     from typing import Literal
