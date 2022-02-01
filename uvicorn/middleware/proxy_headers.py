@@ -31,17 +31,15 @@ class ProxyHeadersMiddleware:
             self.trusted_hosts = set(trusted_hosts)
         self.always_trust = "*" in self.trusted_hosts
 
-    def get_trusted_client_host(
+    def get_trusted_client_host(  # type: ignore[return]
         self, x_forwarded_for_hosts: List[str]
-    ) -> Optional[str]:
+    ) -> str:
         if self.always_trust:
             return x_forwarded_for_hosts[0]
 
         for host in reversed(x_forwarded_for_hosts):
             if host not in self.trusted_hosts:
                 return host
-
-        return None
 
     async def __call__(
         self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
