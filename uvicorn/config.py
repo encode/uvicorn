@@ -22,7 +22,7 @@ from asgiref.typing import ASGIApplication
 
 try:
     import yaml
-except ImportError:
+except ImportError:  # pragma: no cover
     # If the code below that depends on yaml is exercised, it will raise a NameError.
     # Install the PyYAML package or the uvicorn[standard] optional dependencies to
     # enable this functionality.
