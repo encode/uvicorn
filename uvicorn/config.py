@@ -14,7 +14,7 @@ from uvicorn.logging import TRACE_LOG_LEVEL
 
 if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
-else:
+else:  # pragma: py-lt-38
     from typing import Literal
 
 import click
