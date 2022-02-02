@@ -8,6 +8,7 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
+from ipaddress import ip_address, ip_network
 from typing import List, Optional, Tuple, Union, cast
 
 from asgiref.typing import (
@@ -31,6 +32,26 @@ class ProxyHeadersMiddleware:
             self.trusted_hosts = set(trusted_hosts)
         self.always_trust = "*" in self.trusted_hosts
 
+        self.trusted_ip_networks = set()
+        for host in self.trusted_hosts:
+            try:
+                self.trusted_ip_networks.add(ip_network(host))
+            except:
+                None
+
+    def is_trusted_client_host(self, client_host: str) -> bool:
+        if self.always_trust:
+            return True
+
+        try:
+            client_host_ip = ip_address(client_host)
+            for trusted_ip_network in self.trusted_ip_networks:
+                if client_host_ip in trusted_ip_network:
+                    return True
+            return False
+        except:
+            return client_host in self.trusted_hosts
+
     def get_trusted_client_host(
         self, x_forwarded_for_hosts: List[str]
     ) -> Optional[str]:
@@ -38,7 +59,7 @@ class ProxyHeadersMiddleware:
             return x_forwarded_for_hosts[0]
 
         for host in reversed(x_forwarded_for_hosts):
-            if host not in self.trusted_hosts:
+            if not self.is_trusted_client_host(host):
                 return host
 
         return None
@@ -51,7 +72,7 @@ class ProxyHeadersMiddleware:
             client_addr: Optional[Tuple[str, int]] = scope.get("client")
             client_host = client_addr[0] if client_addr else None
 
-            if self.always_trust or client_host in self.trusted_hosts:
+            if self.is_trusted_client_host(client_host):
                 headers = dict(scope["headers"])
 
                 if b"x-forwarded-proto" in headers:
