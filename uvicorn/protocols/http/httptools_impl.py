@@ -370,6 +370,7 @@ class RequestResponseCycle:
         self.response_started = False
         self.response_complete = False
         self.chunked_encoding = None
+        self.just_stream = False
         self.expected_content_length = 0
 
     # ASGI exception wrapper
@@ -462,21 +463,31 @@ class RequestResponseCycle:
                 if name == b"content-length" and self.chunked_encoding is None:
                     self.expected_content_length = int(value.decode())
                     self.chunked_encoding = False
-                elif name == b"transfer-encoding" and value.lower() == b"chunked":
+                elif name == b"transfer-encoding":
                     self.expected_content_length = 0
-                    self.chunked_encoding = True
+                    if value.lower() == b"chunked":
+                        self.chunked_encoding = True
+                    else:
+                        self.just_stream = True
+                        if value.lower() == b"just_stream":
+                            # internal signal only, don't pass as header
+                            continue
                 elif name == b"connection" and value.lower() == b"close":
                     self.keep_alive = False
                 content.extend([name, b": ", value, b"\r\n"])
 
             if (
                 self.chunked_encoding is None
+                and not self.just_stream
                 and self.scope["method"] != "HEAD"
                 and status_code not in (204, 304)
             ):
                 # Neither content-length nor transfer-encoding specified
-                self.chunked_encoding = True
-                content.append(b"transfer-encoding: chunked\r\n")
+                if self.scope["http_version"] == "1.0":
+                    self.just_stream = True
+                else:
+                    self.chunked_encoding = True
+                    content.append(b"transfer-encoding: chunked\r\n")
 
             content.append(b"\r\n")
             self.transport.write(b"".join(content))
@@ -501,13 +512,18 @@ class RequestResponseCycle:
                 if not more_body:
                     content.append(b"0\r\n\r\n")
                 self.transport.write(b"".join(content))
-            else:
+            elif not self.just_stream:
                 num_bytes = len(body)
                 if num_bytes > self.expected_content_length:
                     raise RuntimeError("Response content longer than Content-Length")
                 else:
                     self.expected_content_length -= num_bytes
                 self.transport.write(body)
+            else:
+                if body:
+                    self.transport.write(body)
+                else:
+                    self.transport.write(b"")
 
             # Handle response completion
             if not more_body:

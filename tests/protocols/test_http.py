@@ -283,6 +283,63 @@ def test_close(protocol_cls, event_loop):
         assert protocol.transport.is_closing()
 
 
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol])
+def test_get_streaming_gzip_request(protocol_cls, event_loop):
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200, "headers": [[b"transfer-encoding", b"gzip"]]})
+        await send({"type": "http.response.body", "body": b"some zipped stream data", "more_body": True})
+
+    with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
+        protocol.data_received(SIMPLE_GET_REQUEST)
+        protocol.loop.run_one()
+        assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+        assert b"transfer-encoding: gzip" in protocol.transport.buffer
+        assert b"transfer-encoding: chunked" not in protocol.transport.buffer
+        assert b'some zipped stream data' in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol])
+def test_get_streaming_http11_request(protocol_cls, event_loop):
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200})
+        await send({"type": "http.response.body", "body": b"some streaming data", "more_body": True})
+
+    with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
+        protocol.data_received(SIMPLE_GET_REQUEST)
+        protocol.loop.run_one()
+        assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+        assert b"transfer-encoding: chunked" in protocol.transport.buffer
+        assert b'some streaming data' in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", [HttpToolsProtocol])
+def test_get_streaming_nochunked_request(protocol_cls, event_loop):
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200, "headers": [[b"transfer-encoding", b"just_stream"]]})
+        await send({"type": "http.response.body", "body": b"some streaming data", "more_body": True})
+
+    with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
+        protocol.data_received(SIMPLE_GET_REQUEST)
+        protocol.loop.run_one()
+        assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+        assert b"transfer-encoding: chunked" not in protocol.transport.buffer
+        assert b'some streaming data' in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+def test_get_streaming_http10_request(protocol_cls, event_loop):
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200})
+        await send({"type": "http.response.body", "body": b"some streaming data", "more_body": True})
+
+    with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
+        protocol.data_received(HTTP10_GET_REQUEST)
+        protocol.loop.run_one()
+        assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+        assert b"Transfer-Encoding:" not in protocol.transport.buffer
+        assert b'some streaming data' in protocol.transport.buffer
+
+
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 def test_chunked_encoding(protocol_cls, event_loop):
     app = Response(
