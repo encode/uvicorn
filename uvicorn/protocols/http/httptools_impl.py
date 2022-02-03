@@ -136,8 +136,6 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.transport.close()
         except httptools.HttpParserUpgrade:
             self.handle_upgrade()
-        if data == b"" and not self.transport.is_closing():
-            self.transport.close()
 
     def handle_upgrade(self):
         upgrade_value = None
