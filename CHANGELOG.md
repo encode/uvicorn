@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.17.3 - 2022-02-03
+
+### Fixed
+
+- Drop wsproto version checking. (#1359) 03/02/22
+
 ## 0.17.2 - 2022-02-03
 
 ### Fixed
