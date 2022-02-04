@@ -1,10 +1,10 @@
 # Change Log
 
-### 0.17.4 - 2022-02-03
+### 0.17.4 - 2022-02-04
 
 ### Fixed
 
-- Replace `create_server` by `create_unix_server` (#1362) 03/02/22
+- Replace `create_server` by `create_unix_server` (#1362) 04/02/22
 
 ## 0.17.3 - 2022-02-03
 
