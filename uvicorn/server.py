@@ -134,7 +134,7 @@ class Server:
             uds_perms = 0o666
             if os.path.exists(config.uds):
                 uds_perms = os.stat(config.uds).st_mode
-            server = await loop.create_server(  # type: ignore[call-overload]
+            server = await loop.create_unix_server(
                 create_protocol, path=config.uds, ssl=config.ssl, backlog=config.backlog
             )
             os.chmod(config.uds, uds_perms)
