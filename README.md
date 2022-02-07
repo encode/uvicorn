@@ -97,7 +97,7 @@ I/O such as dealing with slow HTTP requests.
 
 A strength of the ASGI protocol is that it decouples the server implementation
 from the application framework. This allows for an ecosystem of interoperating
-webservers and applcation frameworks.
+webservers and application frameworks.
 
 ### Daphne
 
