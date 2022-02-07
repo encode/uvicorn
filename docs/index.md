@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-<em>The lightning-fast ASGI server.</em>
+<em>An ASGI web server, for Python.</em>
 </p>
 
 <p align="center">
@@ -19,17 +19,13 @@
 
 # Introduction
 
-Uvicorn is a lightning-fast ASGI server implementation, using [uvloop][uvloop] and [httptools][httptools].
+Uvicorn is an ASGI web server implementation for Python.
 
 Until recently Python has lacked a minimal low-level server/application interface for
-asyncio frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
-start building a common set of tooling usable across all asyncio frameworks.
+async frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
+start building a common set of tooling usable across all async frameworks.
 
-ASGI should help enable an ecosystem of Python web frameworks that are highly competitive against Node
-and Go in terms of achieving high throughput in IO-bound contexts. It also provides support for HTTP/2 and
-WebSockets, which cannot be handled by WSGI.
-
-Uvicorn currently supports HTTP/1.1 and WebSockets. Support for HTTP/2 is planned.
+Uvicorn currently supports HTTP/1.1 and WebSockets.
 
 ## Quickstart
 
@@ -422,7 +418,25 @@ async def app(scope, receive, send):
 
 ---
 
+## Why ASGI?
+
+Most well established Python Web frameworks started out as WSGI-based frameworks.
+
+WSGI applications are a single, synchronous callable that takes a request and returns a response.
+This doesn’t allow for long-lived connections, like you get with long-poll HTTP or WebSocket connections,
+which WSGI doesn't support well.
+
+Having a async concurrency model also allows for options such as lightweight background tasks,
+and can be less of a limiting factor for endpoints that have long periods being blocked on network
+I/O such as dealing with slow HTTP requests.
+
+---
+
 ## Alternative ASGI servers
+
+A strength of the ASGI protocol is that it decouples the server implementation
+from the application framework. This allows for an ecosystem of interoperating
+webservers and applcation frameworks.
 
 ### Daphne
 
