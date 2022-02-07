@@ -426,7 +426,7 @@ WSGI applications are a single, synchronous callable that takes a request and re
 This doesn’t allow for long-lived connections, like you get with long-poll HTTP or WebSocket connections,
 which WSGI doesn't support well.
 
-Having a async concurrency model also allows for options such as lightweight background tasks,
+Having an async concurrency model also allows for options such as lightweight background tasks,
 and can be less of a limiting factor for endpoints that have long periods being blocked on network
 I/O such as dealing with slow HTTP requests.
 
@@ -436,7 +436,7 @@ I/O such as dealing with slow HTTP requests.
 
 A strength of the ASGI protocol is that it decouples the server implementation
 from the application framework. This allows for an ecosystem of interoperating
-webservers and applcation frameworks.
+webservers and application frameworks.
 
 ### Daphne
 
