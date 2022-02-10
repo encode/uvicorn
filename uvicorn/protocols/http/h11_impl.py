@@ -135,7 +135,7 @@ class H11Protocol(asyncio.Protocol):
             try:
                 event = self.conn.next_event()
             except h11.RemoteProtocolError as exc:
-                msg = b"Invalid HTTP request received."
+                msg = "Invalid HTTP request received."
                 self.logger.warning(msg, exc_info=exc)
                 self.send_400_response(msg)
                 return
@@ -234,7 +234,7 @@ class H11Protocol(asyncio.Protocol):
                 upgrade_value = value.lower()
 
         if upgrade_value != b"websocket" or self.ws_protocol_class is None:
-            msg = b"Unsupported upgrade request."
+            msg = "Unsupported upgrade request."
             self.logger.warning(msg)
             self.send_400_response(msg)
             return
@@ -257,7 +257,7 @@ class H11Protocol(asyncio.Protocol):
         protocol.data_received(b"".join(output))
         self.transport.set_protocol(protocol)
 
-    def send_400_response(self, msg: bytes):
+    def send_400_response(self, msg: str):
 
         from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
 
@@ -273,7 +273,7 @@ class H11Protocol(asyncio.Protocol):
         event = h11.Response(status_code=400, headers=headers, reason=reason)
         output = self.conn.send(event)
         self.transport.write(output)
-        event = h11.Data(data=msg)
+        event = h11.Data(data=msg.encode("ascii"))
         output = self.conn.send(event)
         self.transport.write(output)
         event = h11.EndOfMessage()
