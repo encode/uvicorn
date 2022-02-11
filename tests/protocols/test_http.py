@@ -138,7 +138,7 @@ class MockLoop(asyncio.AbstractEventLoop):
         self.loop = event_loop
 
     def is_running(self):
-        return True
+        return True  # pragma: no cover
 
     def create_task(self, coroutine):
         self.tasks.insert(0, coroutine)
@@ -717,8 +717,8 @@ def asgi2app(scope):
 
 
 asgi_scope_data = [
-    (asgi3app, {"version": "3.0", "spec_version": "2.1"}),
-    (asgi2app, {"version": "2.0", "spec_version": "2.1"}),
+    (asgi3app, {"version": "3.0", "spec_version": "2.3"}),
+    (asgi2app, {"version": "2.0", "spec_version": "2.3"}),
 ]
 
 

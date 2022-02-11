@@ -61,6 +61,9 @@ Options:
                                   [default: 16777216]
   --ws-ping-interval FLOAT        WebSocket ping interval  [default: 20.0]
   --ws-ping-timeout FLOAT         WebSocket ping timeout  [default: 20.0]
+  --ws-per-message-deflate BOOLEAN
+                                  WebSocket per-message-deflate compression
+                                  [default: True]
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --interface [auto|asgi3|asgi2|wsgi]
                                   Select ASGI3, ASGI2, or WSGI as the

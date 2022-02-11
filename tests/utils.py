@@ -1,12 +1,7 @@
 import asyncio
 import os
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
-
-try:
-    from contextlib import asynccontextmanager
-except ImportError:  # pragma: no cover
-    from async_generator import asynccontextmanager
 
 from uvicorn import Config, Server
 

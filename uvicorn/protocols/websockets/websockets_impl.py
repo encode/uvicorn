@@ -1,8 +1,6 @@
 import asyncio
 import http
 import logging
-import sys
-from typing import Callable
 from urllib.parse import unquote
 
 import websockets
@@ -25,31 +23,13 @@ class Server:
         return not self.closing
 
 
-# special case logger kwarg in websockets >=10
-if sys.version_info >= (3, 7):
-
-    class _LoggerMixin:
-        pass
-
-
-else:
-
-    class _LoggerMixin:
-        def __init__(self, *args, logger, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.logger = logging.LoggerAdapter(logger, {"websocket": self})
-
-
-class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
-    def __init__(
-        self, config, server_state, on_connection_lost: Callable = None, _loop=None
-    ):
+class WebSocketProtocol(websockets.WebSocketServerProtocol):
+    def __init__(self, config, server_state, _loop=None):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
-        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.root_path = config.root_path
 
@@ -74,14 +54,20 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
         self.transfer_data_task = None
 
         self.ws_server = Server()
+
+        extensions = []
+        if self.config.ws_per_message_deflate:
+            extensions.append(ServerPerMessageDeflateFactory())
+
         super().__init__(
             ws_handler=self.ws_handler,
             ws_server=self.ws_server,
             max_size=self.config.ws_max_size,
             ping_interval=self.config.ws_ping_interval,
             ping_timeout=self.config.ws_ping_timeout,
-            extensions=[ServerPerMessageDeflateFactory()],
+            extensions=extensions,
             logger=logging.getLogger("uvicorn.error"),
+            extra_headers=[],
         )
 
     def connection_made(self, transport):
@@ -106,8 +92,6 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
 
         self.handshake_completed_event.set()
         super().connection_lost(exc)
-        if self.on_connection_lost is not None:
-            self.on_connection_lost()
         if exc is None:
             self.transport.close()
 
@@ -142,7 +126,8 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
 
         self.scope = {
             "type": "websocket",
-            "asgi": {"version": self.config.asgi_version, "spec_version": "2.1"},
+            "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
+            "http_version": "1.1",
             "scheme": self.scheme,
             "server": self.server,
             "client": self.client,
@@ -227,17 +212,24 @@ class WebSocketProtocol(_LoggerMixin, websockets.WebSocketServerProtocol):
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
                     self.scope["client"],
-                    self.scope["root_path"] + self.scope["path"],
+                    self.scope["path"],
                 )
                 self.initial_response = None
                 self.accepted_subprotocol = message.get("subprotocol")
+                if "headers" in message:
+                    self.extra_headers.extend(
+                        # ASGI spec requires bytes
+                        # But for compability we need to convert it to strings
+                        (name.decode("latin-1"), value.decode("latin-1"))
+                        for name, value in message["headers"]
+                    )
                 self.handshake_started_event.set()
 
             elif message_type == "websocket.close":
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
                     self.scope["client"],
-                    self.scope["root_path"] + self.scope["path"],
+                    self.scope["path"],
                 )
                 self.initial_response = (http.HTTPStatus.FORBIDDEN, [], b"")
                 self.handshake_started_event.set()

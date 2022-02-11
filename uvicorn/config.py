@@ -12,9 +12,9 @@ from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from uvicorn.logging import TRACE_LOG_LEVEL
 
-if sys.version_info < (3, 8):
+if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
-else:
+else:  # pragma: py-lt-38
     from typing import Literal
 
 import click
@@ -22,7 +22,7 @@ from asgiref.typing import ASGIApplication
 
 try:
     import yaml
-except ImportError:
+except ImportError:  # pragma: no cover
     # If the code below that depends on yaml is exercised, it will raise a NameError.
     # Install the PyYAML package or the uvicorn[standard] optional dependencies to
     # enable this functionality.
@@ -205,6 +205,7 @@ class Config:
         ws_max_size: int = 16 * 1024 * 1024,
         ws_ping_interval: Optional[float] = 20,
         ws_ping_timeout: Optional[float] = 20,
+        ws_per_message_deflate: Optional[bool] = True,
         lifespan: LifespanType = "auto",
         env_file: Optional[Union[str, os.PathLike]] = None,
         log_config: Optional[Union[dict, str]] = LOGGING_CONFIG,
@@ -251,6 +252,7 @@ class Config:
         self.ws_max_size = ws_max_size
         self.ws_ping_interval = ws_ping_interval
         self.ws_ping_timeout = ws_ping_timeout
+        self.ws_per_message_deflate = ws_per_message_deflate
         self.lifespan = lifespan
         self.log_config = log_config
         self.log_level = log_level
