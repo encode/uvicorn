@@ -13,9 +13,7 @@ For example, in case you want to run the app on port `5000`, just set the enviro
 !!! note
     CLI options and the arguments for `uvicorn.run()` take precedence over environment variables.
 
-    Also note that `UVICORN_*` prefixed settings cannot be used from within an environment configuration file.
-    Using an environment configuration file with the `--env-file` flag is intended for configuring the ASGI application
-    that uvicorn runs, rather than configuring uvicorn itself.
+    Also note that `UVICORN_*` prefixed settings cannot be used from within an environment configuration file. Using an environment configuration file with the `--env-file` flag is intended for configuring the ASGI application that uvicorn runs, rather than configuring uvicorn itself.
 
 ## Application
 
