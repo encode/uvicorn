@@ -131,7 +131,7 @@ class MockLoop(asyncio.AbstractEventLoop):
         self.loop = event_loop
 
     def is_running(self):
-        return True
+        return True  # pragma: no cover
 
     def create_task(self, coroutine):
         self.tasks.insert(0, coroutine)

@@ -1,11 +1,9 @@
 import asyncio
 import logging
-from typing import Callable
 from urllib.parse import unquote
 
 import h11
 import wsproto
-from packaging import version
 from wsproto import ConnectionType, events
 from wsproto.connection import ConnectionState
 from wsproto.extensions import PerMessageDeflate
@@ -14,21 +12,14 @@ from wsproto.utilities import RemoteProtocolError
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
-assert version.parse(wsproto.__version__) >= version.parse(
-    "0.13"
-), "Uvicorn requires wsproto version 0.13 or higher"
-
 
 class WSProtocol(asyncio.Protocol):
-    def __init__(
-        self, config, server_state, on_connection_lost: Callable = None, _loop=None
-    ):
+    def __init__(self, config, server_state, _loop=None):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
-        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.root_path = config.root_path
@@ -81,8 +72,6 @@ class WSProtocol(asyncio.Protocol):
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection lost", prefix)
 
-        if self.on_connection_lost is not None:
-            self.on_connection_lost()
         if exc is None:
             self.transport.close()
 
