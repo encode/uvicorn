@@ -192,7 +192,7 @@ class Server:
                 # It's an IPv6 address.
                 addr_format = "%s://[%s]:%d"
 
-            port = config.port
+            port = int(config.port)
             if port == 0:
                 port = listeners[0].getsockname()[1]
 
