@@ -207,7 +207,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             "query_string": parsed_url.query if parsed_url.query else b"",
             "headers": self.headers,
         }
-        if self.allow_sendfile:
+        if self.allow_sendfile:  # pragma: no cover
             extensions = self.scope.setdefault("extensions", {})
             extensions["http.response.zerocopysend"] = {}
 
