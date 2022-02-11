@@ -135,6 +135,27 @@ async def test_default_logging(use_colors, caplog):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("use_colors", [(True), (False)])
+async def test_default_logging_with_port_as_string(use_colors, caplog):
+    config = Config(app=app, use_colors=use_colors, port="8000")
+    with caplog_for_logger(caplog, "uvicorn.access"):
+        async with run_server(config):
+            async with httpx.AsyncClient() as client:
+                response = await client.get("http://127.0.0.1:8000")
+        assert response.status_code == 204
+        messages = [
+            record.message for record in caplog.records if "uvicorn" in record.name
+        ]
+        assert "Started server process" in messages.pop(0)
+        assert "Waiting for application startup" in messages.pop(0)
+        assert "ASGI 'lifespan' protocol appears unsupported" in messages.pop(0)
+        assert "Application startup complete" in messages.pop(0)
+        assert "Uvicorn running on http://127.0.0.1:8000" in messages.pop(0)
+        assert '"GET / HTTP/1.1" 204' in messages.pop(0)
+        assert "Shutting down" in messages.pop(0)
+
+
+@pytest.mark.asyncio
 async def test_unknown_status_code(caplog):
     async def app(scope, receive, send):
         assert scope["type"] == "http"
