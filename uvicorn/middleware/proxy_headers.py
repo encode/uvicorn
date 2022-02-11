@@ -8,16 +8,9 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
-from typing import List, Optional, Tuple, Union, cast
+from typing import List, Optional, Tuple, Union
 
-from asgiref.typing import (
-    ASGI3Application,
-    ASGIReceiveCallable,
-    ASGISendCallable,
-    HTTPScope,
-    Scope,
-    WebSocketScope,
-)
+from asgiref.typing import ASGI3Application, ASGIReceiveCallable, ASGISendCallable
 
 
 class ProxyHeadersMiddleware:
@@ -44,10 +37,9 @@ class ProxyHeadersMiddleware:
         return None
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: dict, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] in ("http", "websocket"):
-            scope = cast(Union[HTTPScope, WebSocketScope], scope)
             client_addr: Optional[Tuple[str, int]] = scope.get("client")
             client_host = client_addr[0] if client_addr else None
 

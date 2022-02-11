@@ -10,16 +10,17 @@ from asgiref.typing import (
     ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
+    Environ,
+    ExcInfo,
     HTTPRequestEvent,
     HTTPResponseBodyEvent,
     HTTPResponseStartEvent,
-    HTTPScope,
+    StartResponse,
+    WSGIApp,
 )
 
-from uvicorn._types import Environ, ExcInfo, StartResponse, WSGIApp
 
-
-def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> Environ:
+def build_environ(scope: dict, message: ASGIReceiveEvent, body: bytes) -> Environ:
     """
     Builds a scope and request message into a WSGI environ object.
     """
@@ -76,7 +77,7 @@ class WSGIMiddleware:
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
     async def __call__(
-        self, scope: HTTPScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: dict, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         assert scope["type"] == "http"
         instance = WSGIResponder(self.app, self.executor, scope)
@@ -88,7 +89,7 @@ class WSGIResponder:
         self,
         app: WSGIApp,
         executor: concurrent.futures.ThreadPoolExecutor,
-        scope: HTTPScope,
+        scope: dict,
     ):
         self.app = app
         self.executor = executor

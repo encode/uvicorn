@@ -1,9 +1,4 @@
-from asgiref.typing import (
-    ASGI2Application,
-    ASGIReceiveCallable,
-    ASGISendCallable,
-    Scope,
-)
+from asgiref.typing import ASGI2Application, ASGIReceiveCallable, ASGISendCallable
 
 
 class ASGI2Middleware:
@@ -11,7 +6,7 @@ class ASGI2Middleware:
         self.app = app
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: dict, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         instance = self.app(scope)
         await instance(receive, send)

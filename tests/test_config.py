@@ -15,7 +15,7 @@ else:  # pragma: py-lt-38
 
 import pytest
 import yaml
-from asgiref.typing import ASGIApplication, ASGIReceiveCallable, ASGISendCallable, Scope
+from asgiref.typing import ASGIApplication, ASGIReceiveCallable, ASGISendCallable
 from pytest_mock import MockerFixture
 
 from tests.utils import as_cwd
@@ -48,7 +48,7 @@ def yaml_logging_config(logging_config: dict) -> str:
 
 
 async def asgi_app(
-    scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    scope: dict, receive: ASGIReceiveCallable, send: ASGISendCallable
 ) -> None:
     pass  # pragma: nocover
 
@@ -336,7 +336,7 @@ def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
     assert config.is_ssl is True
 
 
-def asgi2_app(scope: Scope) -> typing.Callable:
+def asgi2_app(scope: dict) -> typing.Callable:
     async def asgi(
         receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:  # pragma: nocover

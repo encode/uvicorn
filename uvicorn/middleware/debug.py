@@ -9,7 +9,6 @@ from asgiref.typing import (
     ASGISendEvent,
     HTTPResponseBodyEvent,
     HTTPResponseStartEvent,
-    WWWScope,
 )
 
 
@@ -19,7 +18,7 @@ class HTMLResponse:
         self.status_code = status_code
 
     async def __call__(
-        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: dict, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         response_start: HTTPResponseStartEvent = {
             "type": "http.response.start",
@@ -42,7 +41,7 @@ class PlainTextResponse:
         self.status_code = status_code
 
     async def __call__(
-        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: dict, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         response_start: HTTPResponseStartEvent = {
             "type": "http.response.start",
@@ -59,7 +58,7 @@ class PlainTextResponse:
         await send(response_body)
 
 
-def get_accept_header(scope: WWWScope) -> str:
+def get_accept_header(scope: dict) -> str:
     accept = "*/*"
 
     for key, value in scope.get("headers", []):
@@ -75,7 +74,7 @@ class DebugMiddleware:
         self.app = app
 
     async def __call__(
-        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: dict, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)

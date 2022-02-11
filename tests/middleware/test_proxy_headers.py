@@ -2,14 +2,14 @@ from typing import List, Union
 
 import httpx
 import pytest
-from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
+from asgiref.typing import ASGIReceiveCallable, ASGISendCallable
 
 from tests.response import Response
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 
 async def app(
-    scope: Scope,
+    scope: dict,
     receive: ASGIReceiveCallable,
     send: ASGISendCallable,
 ) -> None:

@@ -4,7 +4,6 @@ from asyncio import Queue
 from typing import Union
 
 from asgiref.typing import (
-    LifespanScope,
     LifespanShutdownCompleteEvent,
     LifespanShutdownEvent,
     LifespanShutdownFailedEvent,
@@ -77,7 +76,7 @@ class LifespanOn:
     async def main(self) -> None:
         try:
             app = self.config.loaded_app
-            scope: LifespanScope = {
+            scope = {
                 "type": "lifespan",
                 "asgi": {"version": self.config.asgi_version, "spec_version": "2.0"},
             }

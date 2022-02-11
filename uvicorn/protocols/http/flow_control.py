@@ -5,7 +5,6 @@ from asgiref.typing import (
     ASGISendCallable,
     HTTPResponseBodyEvent,
     HTTPResponseStartEvent,
-    Scope,
 )
 
 CLOSE_HEADER = (b"connection", b"close")
@@ -46,7 +45,7 @@ class FlowControl:
 
 
 async def service_unavailable(
-    scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    scope: dict, receive: ASGIReceiveCallable, send: ASGISendCallable
 ) -> None:
     response_start: HTTPResponseStartEvent = {
         "type": "http.response.start",

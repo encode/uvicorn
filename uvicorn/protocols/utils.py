@@ -2,8 +2,6 @@ import asyncio
 import urllib.parse
 from typing import Optional, Tuple
 
-from asgiref.typing import WWWScope
-
 
 def get_remote_addr(transport: asyncio.Transport) -> Optional[Tuple[str, int]]:
     socket_info = transport.get_extra_info("socket")
@@ -38,14 +36,14 @@ def is_ssl(transport: asyncio.Transport) -> bool:
     return bool(transport.get_extra_info("sslcontext"))
 
 
-def get_client_addr(scope: WWWScope) -> str:
+def get_client_addr(scope: dict) -> str:
     client = scope.get("client")
     if not client:
         return ""
     return "%s:%d" % client
 
 
-def get_path_with_query_string(scope: WWWScope) -> str:
+def get_path_with_query_string(scope: dict) -> str:
     path_with_query_string = urllib.parse.quote(scope["path"])
     if scope["query_string"]:
         path_with_query_string = "{}?{}".format(

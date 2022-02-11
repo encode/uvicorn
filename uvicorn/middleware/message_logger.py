@@ -7,7 +7,6 @@ from asgiref.typing import (
     ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
-    WWWScope,
 )
 
 from uvicorn.logging import TRACE_LOG_LEVEL
@@ -46,7 +45,7 @@ class MessageLoggerMiddleware:
         self.logger.trace = trace  # type: ignore
 
     async def __call__(
-        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: dict, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         self.task_counter += 1
 
