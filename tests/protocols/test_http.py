@@ -131,7 +131,7 @@ class MockLoop(asyncio.AbstractEventLoop):
         self.loop = event_loop
 
     def is_running(self):
-        return True
+        return True  # pragma: no cover
 
     def create_task(self, coroutine):
         self.tasks.insert(0, coroutine)
@@ -742,5 +742,5 @@ def test_invalid_http_request(request_line, protocol_cls, caplog, event_loop):
 
     with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
         protocol.data_received(request)
-        assert not protocol.transport.buffer
-        assert "Invalid HTTP request received." in caplog.messages
+        assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
+        assert b"Invalid HTTP request received." in protocol.transport.buffer

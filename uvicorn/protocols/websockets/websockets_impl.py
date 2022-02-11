@@ -1,7 +1,6 @@
 import asyncio
 import http
 import logging
-from typing import Callable
 from urllib.parse import unquote
 
 import websockets
@@ -25,15 +24,12 @@ class Server:
 
 
 class WebSocketProtocol(websockets.WebSocketServerProtocol):
-    def __init__(
-        self, config, server_state, on_connection_lost: Callable = None, _loop=None
-    ):
+    def __init__(self, config, server_state, _loop=None):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
-        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.root_path = config.root_path
 
@@ -96,8 +92,6 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         self.handshake_completed_event.set()
         super().connection_lost(exc)
-        if self.on_connection_lost is not None:
-            self.on_connection_lost()
         if exc is None:
             self.transport.close()
 

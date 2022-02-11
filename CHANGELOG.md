@@ -1,5 +1,32 @@
 # Change Log
 
+### 0.17.4 - 2022-02-04
+
+### Fixed
+
+- Replace `create_server` by `create_unix_server` (#1362) 04/02/22
+
+## 0.17.3 - 2022-02-03
+
+### Fixed
+
+- Drop wsproto version checking. (#1359) 03/02/22
+
+## 0.17.2 - 2022-02-03
+
+### Fixed
+
+- Revert #1332. While trying to solve the memory leak, it introduced an issue (#1345) when the server receives big chunks of data using the `httptools` implementation. (#1354) 03/02/22
+- Revert stream interface changes. This was introduced on 0.14.0, and caused an issue (#1226), which caused a memory leak when sending TCP pings. (#1355) 03/02/22
+- Fix wsproto version check expression (#1342) 28/01/22
+
+## 0.17.1 - 2022-01-28
+
+### Fixed
+
+- Move all data handling logic to protocol and ensure connection is closed. (#1332) 28/01/22
+- Change `spec_version` field from "2.1" to "2.3", as Uvicorn is compliant with that version of the ASGI specifications. (#1337) 25/01/22
+
 ## 0.17.0.post1 - 2022-01-24
 
 ### Fixed

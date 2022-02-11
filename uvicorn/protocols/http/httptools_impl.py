@@ -4,7 +4,6 @@ import logging
 import re
 import urllib
 from collections import deque
-from typing import Callable
 
 import httptools
 
@@ -41,15 +40,12 @@ STATUS_LINE = {
 
 
 class HttpToolsProtocol(asyncio.Protocol):
-    def __init__(
-        self, config, server_state, on_connection_lost: Callable = None, _loop=None
-    ):
+    def __init__(self, config, server_state, _loop=None):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
-        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.access_logger = logging.getLogger("uvicorn.access")
@@ -114,9 +110,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         if exc is None:
             self.transport.close()
 
-        if self.on_connection_lost is not None:
-            self.on_connection_lost()
-
     def eof_received(self):
         pass
 
@@ -133,7 +126,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         except httptools.HttpParserError as exc:
             msg = "Invalid HTTP request received."
             self.logger.warning(msg, exc_info=exc)
-            self.transport.close()
+            self.send_400_response(msg)
+            return
         except httptools.HttpParserUpgrade:
             self.handle_upgrade()
 
@@ -146,27 +140,12 @@ class HttpToolsProtocol(asyncio.Protocol):
         if upgrade_value != b"websocket" or self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
-
             from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
 
-            if AutoWebSocketsProtocol is None:
+            if AutoWebSocketsProtocol is None:  # pragma: no cover
                 msg = "No supported WebSocket library detected. Please use 'pip install uvicorn[standard]', or install 'websockets' or 'wsproto' manually."  # noqa: E501
                 self.logger.warning(msg)
-
-            content = [STATUS_LINE[400]]
-            for name, value in self.default_headers:
-                content.extend([name, b": ", value, b"\r\n"])
-            content.extend(
-                [
-                    b"content-type: text/plain; charset=utf-8\r\n",
-                    b"content-length: " + str(len(msg)).encode("ascii") + b"\r\n",
-                    b"connection: close\r\n",
-                    b"\r\n",
-                    msg.encode("ascii"),
-                ]
-            )
-            self.transport.write(b"".join(content))
-            self.transport.close()
+            self.send_400_response(msg)
             return
 
         if self.logger.level <= TRACE_LOG_LEVEL:
@@ -180,13 +159,28 @@ class HttpToolsProtocol(asyncio.Protocol):
             output += [name, b": ", value, b"\r\n"]
         output.append(b"\r\n")
         protocol = self.ws_protocol_class(
-            config=self.config,
-            server_state=self.server_state,
-            on_connection_lost=self.on_connection_lost,
+            config=self.config, server_state=self.server_state
         )
         protocol.connection_made(self.transport)
         protocol.data_received(b"".join(output))
         self.transport.set_protocol(protocol)
+
+    def send_400_response(self, msg: str):
+
+        content = [STATUS_LINE[400]]
+        for name, value in self.default_headers:
+            content.extend([name, b": ", value, b"\r\n"])
+        content.extend(
+            [
+                b"content-type: text/plain; charset=utf-8\r\n",
+                b"content-length: " + str(len(msg)).encode("ascii") + b"\r\n",
+                b"connection: close\r\n",
+                b"\r\n",
+                msg.encode("ascii"),
+            ]
+        )
+        self.transport.write(b"".join(content))
+        self.transport.close()
 
     # Parser callbacks
     def on_url(self, url):
