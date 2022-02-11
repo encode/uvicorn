@@ -1,6 +1,6 @@
 import io
 import sys
-from typing import List
+from typing import AsyncGenerator, List
 
 import httpx
 import pytest
@@ -70,7 +70,7 @@ async def test_wsgi_post() -> None:
 
 @pytest.mark.asyncio
 async def test_wsgi_put_more_body() -> None:
-    async def generate_body():
+    async def generate_body() -> AsyncGenerator[bytes, None]:
         for _ in range(1024):
             yield b"123456789abcdef\n" * 64
 

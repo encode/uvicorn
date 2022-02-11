@@ -113,8 +113,8 @@ class WSGIResponder:
             body.seek(0, io.SEEK_END)
             while more_body:
                 body_message: HTTPRequestEvent = (
-                    await receive()
-                )  # type: ignore[assignment]
+                    await receive()  # type: ignore[assignment]
+                )
                 body.write(body_message.get("body", b""))
                 more_body = body_message.get("more_body", False)
             body.seek(0)
