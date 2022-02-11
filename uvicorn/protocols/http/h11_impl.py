@@ -2,7 +2,6 @@ import asyncio
 import http
 import logging
 import os
-from typing import Callable
 from urllib.parse import unquote
 
 import h11
