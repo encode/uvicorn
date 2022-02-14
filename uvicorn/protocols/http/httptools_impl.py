@@ -176,7 +176,7 @@ class HttpToolsProtocol(asyncio.Protocol):
                 b"connection: close\r\n",
                 b"\r\n",
                 msg.encode("ascii"),
-                ]
+            ]
         )
         self.transport.write(b"".join(content))
         self.transport.close()
