@@ -1,7 +1,9 @@
 import importlib
+import os
 import platform
 import sys
 from pathlib import Path
+from textwrap import dedent
 from unittest import mock
 
 import pytest
@@ -15,6 +17,10 @@ from uvicorn.supervisors import ChangeReload, Multiprocess
 
 HEADERS = "Content-Security-Policy:default-src 'self'; script-src https://example.com"
 main = importlib.import_module("uvicorn.main")
+
+
+class App:
+    pass
 
 
 def test_cli_print_version() -> None:
@@ -57,7 +63,7 @@ def test_cli_call_server_run() -> None:
     with mock.patch.object(Server, "run") as mock_run:
         result = runner.invoke(cli, ["tests.test_cli:App"])
 
-    assert result.exit_code == 0
+    assert result.exit_code == 3
     mock_run.assert_called_once()
 
 
@@ -86,7 +92,7 @@ def test_cli_call_multiprocess_run() -> None:
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
-def test_cli_uds(tmp_path: Path) -> None:
+def test_cli_uds(tmp_path: Path) -> None:  # pragma: py-win32
     runner = CliRunner()
     uds_file = tmp_path / "uvicorn.sock"
     uds_file.touch(exist_ok=True)
@@ -116,20 +122,48 @@ def test_cli_incomplete_app_parameter() -> None:
     assert result.exit_code == 1
 
 
-def test_cli_reloader_incomplete_app_parameter(
-    capfd: pytest.CaptureFixture[str],
-) -> None:
+@pytest.fixture()
+def load_env_h11_protocol():
+    old_environ = dict(os.environ)
+    os.environ["UVICORN_HTTP"] = "h11"
+    yield
+    os.environ.clear()
+    os.environ.update(old_environ)
+
+
+def test_env_variables(load_env_h11_protocol: None):
+    runner = CliRunner(env=os.environ)
+    with mock.patch.object(main, "run") as mock_run:
+        runner.invoke(cli, ["tests.test_cli:App"])
+        _, kwargs = mock_run.call_args
+        assert kwargs["http"] == "h11"
+
+
+def test_mistmatch_env_variables(load_env_h11_protocol: None):
+    runner = CliRunner(env=os.environ)
+    with mock.patch.object(main, "run") as mock_run:
+        runner.invoke(cli, ["tests.test_cli:App", "--http=httptools"])
+        _, kwargs = mock_run.call_args
+        assert kwargs["http"] == "httptools"
+
+
+def test_app_dir(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    app_dir = tmp_path / "dir" / "app_dir"
+    app_file = app_dir / "main.py"
+    app_dir.mkdir(parents=True)
+    app_file.touch()
+    app_file.write_text(
+        dedent(
+            """
+            async def app(scope, receive, send):
+                ...
+            """
+        )
+    )
     runner = CliRunner()
+    with mock.patch.object(Server, "run") as mock_run:
+        result = runner.invoke(cli, ["main:app", "--app-dir", f"{str(app_dir)}"])
 
-    runner.invoke(cli, ["tests.test_cli", "--reload"])
-
-    captured = capfd.readouterr()
-
-    assert (
-        'Error loading ASGI app. Import string "tests.test_cli" '
-        'must be in format "<module>:<attribute>".'
-    ) in captured.err
-
-
-class App:
-    pass
+    assert result.exit_code == 3
+    mock_run.assert_called_once()
+    assert sys.path[0] == str(app_dir)

@@ -26,8 +26,10 @@ nav:
   - Settings: "settings.md"
   - Deployment: "deployment.md"
   - Server Behavior: "server-behavior.md"
+  - Contributing: "contributing.md"
 
 markdown_extensions:
+  - admonition
   - codehilite:
       css_class: highlight
   - toc:
