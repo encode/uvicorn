@@ -211,6 +211,7 @@ class Config:
         log_config: Optional[Union[dict, str]] = LOGGING_CONFIG,
         log_level: Optional[Union[str, int]] = None,
         access_log: bool = True,
+        access_log_format: Optional[str] = None,
         use_colors: Optional[bool] = None,
         interface: InterfaceType = "auto",
         debug: bool = False,
@@ -283,6 +284,8 @@ class Config:
         self.headers: List[List[str]] = headers or []
         self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
+
+        self.access_log_format = access_log_format
 
         self.loaded = False
         self.configure_logging()
@@ -385,6 +388,10 @@ class Config:
                     self.log_config["formatters"]["access"][
                         "use_colors"
                     ] = self.use_colors
+                if self.access_log_format:
+                    self.log_config["formatters"]["access"][
+                        "fmt"
+                    ] = "%(levelprefix)s %(message)s"
                 logging.config.dictConfig(self.log_config)
             elif self.log_config.endswith(".json"):
                 with open(self.log_config) as file:

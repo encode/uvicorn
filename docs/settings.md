@@ -54,7 +54,27 @@ For more nuanced control over which file modifications trigger reloads, install 
 * `--log-level <str>` - Set the log level. **Options:** *'critical', 'error', 'warning', 'info', 'debug', 'trace'.* **Default:** *'info'*.
 * `--no-access-log` - Disable access log only, without changing log level.
 * `--use-colors / --no-use-colors` - Enable / disable colorized formatting of the log records, in case this is not set it will be auto-detected. This option is ignored if the `--log-config` CLI option is used.
-
+* `--access-log-format` - Customized message for access log. Will override log formatter for `uvicorn.access` logger. Format string that supports the following placeholders:
+    * `%(h)s` - remote IP address
+    * `%(l)s` - prints `-`
+    * `%(u)s` - user name, currently not supported, prints `-`
+    * `%(t)s` - request timestamp (in Apache Common Log Format `[10/Oct/2000:13:55:36 -0700]`)
+    * `%(r)s` - status line (method, path & http version, e.g.)
+    * `%(m)s` - request method
+    * `%(U)s` - request path
+    * `%(q)s` - request query string
+    * `%(H)s` - request protocol
+    * `%(s)s` - response status code
+    * `%(B)s` - response body length (if body was empty, prints `0`)
+    * `%(b)s` - response body length (if body was empty, prints `-`)
+    * `%(f)s` - request referer
+    * `%(a)s` - request user agent
+    * `%(T)s` - request+response time (in seconds, integer number)
+    * `%(D)s` - request+response time (in milliseconds, integer number)
+    * `%(L)s` - request+response time (in seconds, decimal number)
+    * `%(p)s` - process id (pid) of request handler
+    * `%({...}i)s` - value of arbitrary request header, e.g. `%({Accept-Encoding}i)s`
+    * `%({...}o)s` - value of arbitrary response header, e.g. `%({Content-Encoding}o)s`
 
 ## Implementation
 

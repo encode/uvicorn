@@ -205,6 +205,12 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     help="Enable/Disable access log.",
 )
 @click.option(
+    "--access-log-format",
+    type=str,
+    default=None,
+    help="Log format for access logger, check documentation for details",
+)
+@click.option(
     "--use-colors/--no-use-colors",
     is_flag=True,
     default=None,
@@ -367,6 +373,7 @@ def main(
     log_config: str,
     log_level: str,
     access_log: bool,
+    access_log_format: str,
     proxy_headers: bool,
     server_header: bool,
     date_header: bool,
@@ -405,6 +412,7 @@ def main(
         "log_config": LOGGING_CONFIG if log_config is None else log_config,
         "log_level": log_level,
         "access_log": access_log,
+        "access_log_format": access_log_format,
         "interface": interface,
         "debug": debug,
         "reload": reload,
