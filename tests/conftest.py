@@ -1,9 +1,12 @@
 import ssl
+from copy import deepcopy
 
 import pytest
 import trustme
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+
+from uvicorn.config import LOGGING_CONFIG
 
 
 @pytest.fixture
@@ -128,3 +131,8 @@ def reload_directory_structure(tmp_path_factory: pytest.TempPathFactory):
     ext_file.touch()
 
     yield root
+
+
+@pytest.fixture(scope="function")
+def logging_config() -> dict:
+    return deepcopy(LOGGING_CONFIG)
