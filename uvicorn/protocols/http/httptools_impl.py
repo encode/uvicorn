@@ -74,7 +74,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.pipeline = deque()
 
         # Per-request state
-        self.url = None
         self.scope = None
         self.headers = None
         self.expect_100_continue = False
@@ -182,15 +181,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.transport.write(b"".join(content))
         self.transport.close()
 
-    # Parser callbacks
-    def on_url(self, url):
-        method = self.parser.get_method()
-        parsed_url = httptools.parse_url(url)
-        raw_path = parsed_url.path
-        path = raw_path.decode("ascii")
-        if "%" in path:
-            path = urllib.parse.unquote(path)
-        self.url = url
+    def on_message_begin(self):
+        self.url = b""
         self.expect_100_continue = False
         self.headers = []
         self.scope = {
@@ -200,13 +192,13 @@ class HttpToolsProtocol(asyncio.Protocol):
             "server": self.server,
             "client": self.client,
             "scheme": self.scheme,
-            "method": method.decode("ascii"),
             "root_path": self.root_path,
-            "path": path,
-            "raw_path": raw_path,
-            "query_string": parsed_url.query if parsed_url.query else b"",
             "headers": self.headers,
         }
+
+    # Parser callbacks
+    def on_url(self, url):
+        self.url += url
 
     def on_header(self, name: bytes, value: bytes):
         name = name.lower()
@@ -216,10 +208,20 @@ class HttpToolsProtocol(asyncio.Protocol):
 
     def on_headers_complete(self):
         http_version = self.parser.get_http_version()
+        method = self.parser.get_method()
+        self.scope["method"] = method.decode("ascii")
         if http_version != "1.1":
             self.scope["http_version"] = http_version
         if self.parser.should_upgrade():
             return
+        parsed_url = httptools.parse_url(self.url)
+        raw_path = parsed_url.path
+        path = raw_path.decode("ascii")
+        if "%" in path:
+            path = urllib.parse.unquote(path)
+        self.scope["path"] = path
+        self.scope["raw_path"] = raw_path
+        self.scope["query_string"] = parsed_url.query if parsed_url.query else b""
 
         # Handle 503 responses when 'limit_concurrency' is exceeded.
         if self.limit_concurrency is not None and (
