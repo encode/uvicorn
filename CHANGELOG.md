@@ -1,5 +1,15 @@
 # Change Log
 
+### 0.17.5 - 2022-02-16
+
+### Fixed
+
+- Fix case where url is fragmented in httptools protocol (#1263) 2/16/22
+
+### Changed
+
+- Send HTTP 400 response for invalid request (#1352) 2/11/22
+
 ### 0.17.4 - 2022-02-04
 
 ### Fixed
