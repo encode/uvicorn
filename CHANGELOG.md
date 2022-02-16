@@ -5,6 +5,7 @@
 ### Fixed
 
 - Fix case where url is fragmented in httptools protocol (#1263) 2/16/22
+- Fix WSGI middleware not to explode quadratically in the case of a larger body (#1329) 2/16/16
 
 ### Changed
 
