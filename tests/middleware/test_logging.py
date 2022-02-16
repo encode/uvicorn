@@ -56,7 +56,6 @@ async def test_trace_logging_on_http_protocol(http_protocol, caplog, logging_con
         log_level="trace",
         http=http_protocol,
         log_config=logging_config,
-        lifespan="off",
     )
     with caplog_for_logger(caplog, "uvicorn.error"):
         async with run_server(config):
@@ -68,7 +67,6 @@ async def test_trace_logging_on_http_protocol(http_protocol, caplog, logging_con
             for record in caplog.records
             if record.name == "uvicorn.error"
         ]
-        print(caplog.records)
         assert any(" - HTTP connection made" in message for message in messages)
         assert any(" - HTTP connection lost" in message for message in messages)
 
@@ -94,7 +92,6 @@ async def test_trace_logging_on_ws_protocol(ws_protocol, caplog, logging_config)
         log_level="trace",
         log_config=logging_config,
         ws=ws_protocol,
-        lifespan="off",
     )
     with caplog_for_logger(caplog, "uvicorn.error"):
         async with run_server(config):
@@ -105,7 +102,6 @@ async def test_trace_logging_on_ws_protocol(ws_protocol, caplog, logging_config)
             for record in caplog.records
             if record.name == "uvicorn.error"
         ]
-        print(caplog.records)
         assert any(" - Upgrading to WebSocket" in message for message in messages)
         assert any(" - WebSocket connection made" in message for message in messages)
         assert any(" - WebSocket connection lost" in message for message in messages)
