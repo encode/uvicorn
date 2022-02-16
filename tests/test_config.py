@@ -353,10 +353,10 @@ def test_asgi_version(
 @pytest.mark.parametrize(
     "use_colors, expected",
     [
-        pytest.param(False, False, id="use_colors_disabled"),
         pytest.param(None, None, id="use_colors_not_provided"),
-        pytest.param(True, True, id="use_colors_enabled"),
         pytest.param("invalid", None, id="use_colors_invalid_value"),
+        pytest.param(True, True, id="use_colors_enabled"),
+        pytest.param(False, False, id="use_colors_disabled"),
     ],
 )
 def test_log_config_default(
