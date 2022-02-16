@@ -40,7 +40,6 @@ async def test_trace_logging(caplog, logging_config):
         messages = [
             record.message for record in caplog.records if record.name == "uvicorn.asgi"
         ]
-        print(caplog.records)
         assert "ASGI [1] Started scope=" in messages.pop(0)
         assert "ASGI [1] Raised exception" in messages.pop(0)
         assert "ASGI [2] Started scope=" in messages.pop(0)
