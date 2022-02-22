@@ -46,7 +46,7 @@ def get_client_addr(scope: WWWScope) -> str:
 
 
 def get_path_with_query_string(scope: WWWScope) -> str:
-    path_with_query_string = urllib.parse.quote(scope["path"])
+    path_with_query_string = urllib.parse.quote(scope["raw_path"])
     if scope["query_string"]:
         path_with_query_string = "{}?{}".format(
             path_with_query_string, scope["query_string"].decode("ascii")

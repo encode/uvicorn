@@ -10,7 +10,12 @@ from wsproto.extensions import PerMessageDeflate
 from wsproto.utilities import RemoteProtocolError
 
 from uvicorn.logging import TRACE_LOG_LEVEL
-from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+from uvicorn.protocols.utils import (
+    get_local_addr,
+    get_path_with_query_string,
+    get_remote_addr,
+    is_ssl,
+)
 
 
 class WSProtocol(asyncio.Protocol):
@@ -244,7 +249,7 @@ class WSProtocol(asyncio.Protocol):
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
                     self.scope["client"],
-                    self.scope["path"],
+                    get_path_with_query_string(self.scope),
                 )
                 self.handshake_complete = True
                 subprotocol = message.get("subprotocol")
@@ -266,7 +271,7 @@ class WSProtocol(asyncio.Protocol):
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
                     self.scope["client"],
-                    self.scope["path"],
+                    get_path_with_query_string(self.scope),
                 )
                 self.handshake_complete = True
                 self.close_sent = True

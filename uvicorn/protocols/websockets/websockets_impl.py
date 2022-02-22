@@ -7,7 +7,12 @@ import websockets
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 
 from uvicorn.logging import TRACE_LOG_LEVEL
-from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+from uvicorn.protocols.utils import (
+    get_local_addr,
+    get_path_with_query_string,
+    get_remote_addr,
+    is_ssl,
+)
 
 
 class Server:
@@ -212,7 +217,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
                     self.scope["client"],
-                    self.scope["path"],
+                    get_path_with_query_string(self.scope),
                 )
                 self.initial_response = None
                 self.accepted_subprotocol = message.get("subprotocol")
@@ -229,7 +234,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
                     self.scope["client"],
-                    self.scope["path"],
+                    get_path_with_query_string(self.scope),
                 )
                 self.initial_response = (http.HTTPStatus.FORBIDDEN, [], b"")
                 self.handshake_started_event.set()
