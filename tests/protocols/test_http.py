@@ -783,7 +783,7 @@ def test_fragmentation():
     t = threading.Thread(target=server.run)
     t.daemon = True
     t.start()
-    time.sleep(1)  # wait for unicorn to start
+    time.sleep(1)  # wait for uvicorn to start
 
     path = "/?param=" + "q" * 10
     response = send_fragmented_req(path)
