@@ -511,9 +511,9 @@ def test_ws_max_size() -> None:
     ],
     ids=["--reload=True --workers=1", "--reload=False --workers=2"],
 )
-@pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="require linux")
 def test_bind_unix_socket_works_with_reload_or_workers(
-    tmp_path, reload, workers
+    tmp_path: Path, reload: bool, workers: int
 ):  # pragma: py-win32
     uds_file = tmp_path / "uvicorn.sock"
     config = Config(
