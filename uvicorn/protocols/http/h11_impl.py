@@ -34,7 +34,7 @@ from uvicorn.protocols.utils import (
 )
 from uvicorn.server import ServerState
 
-if sys.version_info >= (3, 7):
+if sys.version_info > (3, 7):
     from typing import Literal
 else:
     from typing_extensions import Literal
