@@ -34,10 +34,10 @@ from uvicorn.protocols.utils import (
 )
 from uvicorn.server import ServerState
 
-if sys.version_info > (3, 7):
-    from typing import Literal
-else:
+if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
+else:  # pragma: py-lt-38
+    from typing import Literal
 
 H11Event = Union[
     h11.Request,
