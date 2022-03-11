@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.17.6 - 2022-03-11
+
+### Changed
+
+- Change `httptools` range to `>=0.4.0` (#1400) 11/03/22
+
 ## 0.17.5 - 2022-02-16
 
 ### Fixed
