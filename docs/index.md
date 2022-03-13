@@ -511,7 +511,7 @@ Its most distinctive features are built-in support for dependency injection, aut
 
 ### Muffin
 
-[Muffin](https://github.com/klen/muffin) is a fast, lightweight and asyncronous ASGI web-framework for Python 3.
+[Muffin](https://github.com/klen/muffin) is a fast, lightweight and asynchronous ASGI web-framework for Python 3.
 
 
 [uvloop]: https://github.com/MagicStack/uvloop
