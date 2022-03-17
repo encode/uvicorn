@@ -1,7 +1,7 @@
 -e .[standard]
 
 # Explicit optionals
-wsproto==1.0.0
+wsproto==1.1.0
 
 # Packaging
 twine==3.4.2
