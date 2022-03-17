@@ -11,7 +11,7 @@ wheel==0.37.0
 autoflake==1.4
 black==21.9b0
 flake8==3.9.2
-isort==5.9.3
+isort==5.10.1
 pytest==6.2.5
 pytest-mock==3.6.1
 mypy==0.910
