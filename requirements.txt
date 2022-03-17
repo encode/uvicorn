@@ -27,4 +27,4 @@ pytest-asyncio==0.15.1
 
 # Documentation
 mkdocs==1.2.3
-mkdocs-material==7.2.6
+mkdocs-material==8.2.5
