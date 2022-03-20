@@ -774,7 +774,12 @@ def test_fragmentation():
         time.sleep(0.01)
         sock.sendall(d[split:])
         resp = receive_all(sock)
-        sock.shutdown(socket.SHUT_RDWR)
+        # see https://github.com/kmonsoor/py-amqplib/issues/45
+        # we skip the error on bsd systems if python is too slow
+        try:
+            sock.shutdown(socket.SHUT_RDWR)
+        except Exception:
+            pass
         sock.close()
         return resp
 

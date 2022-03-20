@@ -1,5 +1,10 @@
+import os
 import ssl
 from copy import deepcopy
+from hashlib import md5
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from uuid import uuid4
 
 import pytest
 import trustme
@@ -136,3 +141,38 @@ def reload_directory_structure(tmp_path_factory: pytest.TempPathFactory):
 @pytest.fixture(scope="function")
 def logging_config() -> dict:
     return deepcopy(LOGGING_CONFIG)
+
+
+@pytest.fixture
+def short_socket_name(tmp_path, tmp_path_factory):  # pragma: py-win32
+    max_sock_len = 100
+    socket_filename = "my.sock"
+    identifier = f"{uuid4()}-"
+    identifier_len = len(identifier.encode())
+    tmp_dir = Path("/tmp").resolve()
+    os_tmp_dir = Path(os.getenv("TMPDIR", "/tmp")).resolve()
+    basetemp = Path(
+        str(tmp_path_factory.getbasetemp()),
+    ).resolve()
+    hash_basetemp = md5(
+        str(basetemp).encode(),
+    ).hexdigest()
+
+    def make_tmp_dir(base_dir):
+        return TemporaryDirectory(
+            dir=str(base_dir),
+            prefix="p-",
+            suffix=f"-{hash_basetemp}",
+        )
+
+    paths = basetemp, os_tmp_dir, tmp_dir
+    for num, tmp_dir_path in enumerate(paths, 1):
+        with make_tmp_dir(tmp_dir_path) as tmpd:
+            tmpd = Path(tmpd).resolve()
+            sock_path = str(tmpd / socket_filename)
+            sock_path_len = len(sock_path.encode())
+            if sock_path_len <= max_sock_len:
+                if max_sock_len - sock_path_len >= identifier_len:
+                    sock_path = str(tmpd / "".join((identifier, socket_filename)))
+                yield sock_path
+                return
