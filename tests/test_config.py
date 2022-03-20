@@ -513,17 +513,14 @@ def test_ws_max_size() -> None:
 )
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
 def test_bind_unix_socket_works_with_reload_or_workers(
-    tmp_path, reload, workers
+    tmp_path, reload, workers, short_socket_name
 ):  # pragma: py-win32
-    uds_file = tmp_path / "uvicorn.sock"
-    config = Config(
-        app=asgi_app, uds=uds_file.as_posix(), reload=reload, workers=workers
-    )
+    config = Config(app=asgi_app, uds=short_socket_name, reload=reload, workers=workers)
     config.load()
     sock = config.bind_socket()
     assert isinstance(sock, socket.socket)
     assert sock.family == socket.AF_UNIX
-    assert sock.getsockname() == uds_file.as_posix()
+    assert sock.getsockname() == short_socket_name
     sock.close()
 
 
