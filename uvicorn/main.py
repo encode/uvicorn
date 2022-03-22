@@ -73,7 +73,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 @click.option(
     "--debug", is_flag=True, default=False, help="Enable debug mode.", hidden=True
 )
-@click.option("--reload", is_flag=True, default=False, help="Enable auto-reload.")
+@click.option("--reload", is_flag=True, default=False, help="Enable auto-reload. (Disables --workers)")
 @click.option(
     "--reload-dir",
     "reload_dirs",

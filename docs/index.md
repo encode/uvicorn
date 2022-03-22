@@ -54,7 +54,7 @@ In this context, "Cython-based" means the following:
 Moreover, "optional extras" means that:
 
 - the websocket protocol will be handled by `websockets` (should you want to use `wsproto` you'd need to install it manually) if possible.
-- the `--reload` flag in development mode will use `watchgod`.
+- the `--reload` flag in development mode will use `watchgod`. (Disables --workers)
 - windows users will have `colorama` installed for the colored logs.
 - `python-dotenv` will be installed should you want to use the `--env-file` option.
 - `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
@@ -103,7 +103,7 @@ Options:
   --port INTEGER                  Bind socket to this port.  [default: 8000]
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
-  --reload                        Enable auto-reload.
+  --reload                        Enable auto-reload. (Disables --workers)
   --reload-dir PATH               Set reload directories explicitly, instead
                                   of using the current working directory.
   --reload-include TEXT           Set glob patterns to include while watching
