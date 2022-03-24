@@ -7,8 +7,15 @@ if typing.TYPE_CHECKING:
     ChangeReload: typing.Type[BaseReload]  # pragma: no cover
 else:
     try:
-        from uvicorn.supervisors.watchgodreload import WatchGodReload as ChangeReload
+        from uvicorn.supervisors.watchfilesreload import WatchFilesReload
+
+        ChangeReload = WatchFilesReload
     except ImportError:  # pragma: no cover
-        from uvicorn.supervisors.statreload import StatReload as ChangeReload
+        try:
+            from uvicorn.supervisors.watchgodreload import WatchGodReload
+
+            ChangeReload = WatchGodReload
+        except ImportError:  # pragma: no cover
+            from uvicorn.supervisors.statreload import StatReload as ChangeReload
 
 __all__ = ["Multiprocess", "ChangeReload"]
