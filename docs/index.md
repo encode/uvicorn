@@ -155,7 +155,7 @@ Options:
                                   Enable/Disable default Server header.
   --date-header / --no-date-header
                                   Enable/Disable default Date header.
-  --forwarded-allow-ips TEXT      Comma seperated list of IPs to trust with
+  --forwarded-allow-ips TEXT      Comma separated list of IPs to trust with
                                   proxy headers. Defaults to the
                                   $FORWARDED_ALLOW_IPS environment variable if
                                   available, or '127.0.0.1'.
