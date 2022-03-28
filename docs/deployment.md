@@ -21,7 +21,7 @@ The ASGI application should be specified in the form `path.to.module:instance.pa
 
 When running locally, use `--reload` to turn on auto-reloading.
 
-The `--reload` and `--workers` flag are mutually exclusive. Use one or the other.
+The `--reload` and `--workers` arguments are mutually exclusive.
 
 To see the complete set of available options, use `uvicorn --help`:
 
