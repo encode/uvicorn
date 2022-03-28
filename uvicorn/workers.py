@@ -2,6 +2,7 @@ import asyncio
 import logging
 import signal
 import sys
+import threading
 from typing import Any
 
 from gunicorn.arbiter import Arbiter
@@ -72,9 +73,24 @@ class UvicornWorker(Worker):
         for s in self.SIGNALS:
             signal.signal(s, signal.SIG_DFL)
 
+    def _install_sigquit_handler(self, server: Server) -> None:
+        """Workaround to install a SIGQUIT handler on workers.
+
+        Ref.:
+        - https://github.com/encode/uvicorn/issues/1116
+        - https://github.com/benoitc/gunicorn/issues/2604
+        """
+        if threading.current_thread() is not threading.main_thread():
+            # Signals can only be listened to from the main thread.
+            return
+
+        loop = asyncio.get_running_loop()
+        loop.add_signal_handler(signal.SIGQUIT, self.handle_exit, signal.SIGQUIT, None)
+
     async def _serve(self) -> None:
         self.config.app = self.wsgi
         server = Server(config=self.config)
+        self._install_sigquit_handler(server)
         await server.serve(sockets=self.sockets)
         if not server.started:
             sys.exit(Arbiter.WORKER_BOOT_ERROR)
