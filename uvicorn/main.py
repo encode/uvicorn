@@ -341,7 +341,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     help="Treat APP as an application factory, i.e. a () -> <ASGI app> callable.",
     show_default=True,
 )
-def main(
+def main_command(
     app: str,
     host: str,
     port: int,
@@ -435,6 +435,12 @@ def main(
         "app_dir": app_dir,
     }
     run(app, **kwargs)
+
+
+def main() -> None:
+    argument_separator_index = sys.argv.index("--")
+    own_arguments = sys.argv[1:argument_separator_index]
+    main_command(own_arguments)
 
 
 def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
