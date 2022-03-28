@@ -438,8 +438,11 @@ def main_command(
 
 
 def main() -> None:
-    argument_separator_index = sys.argv.index("--")
-    own_arguments = sys.argv[1:argument_separator_index]
+    try:
+        argument_separator_index = sys.argv.index("--")
+        own_arguments = sys.argv[1:argument_separator_index]
+    except ValueError:
+        own_arguments = sys.argv[1:]
     main_command(own_arguments)
 
 
