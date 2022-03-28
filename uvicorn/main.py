@@ -485,68 +485,11 @@ def run(
     ssl_cert_reqs: int = int(ssl.CERT_NONE),
     ssl_ca_certs: typing.Optional[str] = None,
     ssl_ciphers: str = "TLSv1",
-    headers: typing.Sequence[typing.Sequence[str]] = (),
+    headers: typing.Optional[typing.List[typing.List[str]]] = None,
     use_colors: typing.Optional[bool] = None,
     app_dir: typing.Optional[str] = None,
     factory: bool = False,
 ) -> None:
-    """Run uvicorn via Python code.
-
-    Args:
-        app (typing.Union[ASGIApplication, str]): ASGI application itself or path to it.
-            Use the latter with `--reload`.
-        host (str): Hostname to listen on.
-        port (int): Port to listen on.
-        uds (str): Path to a Unix domain socket to listen on.
-        fd (int): File descriptor number to listen on.
-        loop (Literal["auto", "uvloop", "asyncio"]): Event loop implementation.
-        http (Literal["auto", "h11", "httptools"]): HTTP implementation.
-        ws (Literal["auto", "none", "websockets", "wsproto"]): WebSocket
-            implementation.
-        ws_max_size (int): Maximum message size.
-        ws_ping_interval (float): Websocket ping interval.
-        ws_ping_timeout (float): Websocket ping timeout.
-        ws_per_message_deflate (bool): Enable per-message deflate.
-        lifespan (Literal["auto", "on", "off"]): Lifespan of the application.
-        interface (Literal["auto", "asgi3", "asgi2", "wsgi"]): Application interface.
-        debug (bool): Turn on debug mode.
-        reload (bool): Turn on auto reload.
-        reload_dirs (typing.List[str]): Directories to watch for changes.
-        reload_includes (typing.List[str]): Filename patterns to include.
-        reload_excludes (typing.List[str]): Filename patterns to exclude.
-        reload_delay (float): Delay to watch for changes.
-        workers (int): Number of workers.
-        env_file (str): Path to a file to load environment variables from.
-        log_config (str): Path to a file to load logging configuration from.
-        log_level (str): Logging level.
-        access_log (bool): Turn on access log.
-        proxy_headers (bool): Turn on proxy headers support.
-        server_header (bool): Turn on server header support.
-        date_header (bool): Turn on date header support.
-        forwarded_allow_ips (str): Comma separated list of IPs to trust with proxy
-            headers.
-        root_path (str): Set the ASGI 'root_path' for applications submounted below a
-            given URL path.
-        limit_concurrency (int): Maximum number of concurrent connections or tasks to
-            allow, before issuing HTTP 503 responses.
-        backlog (int): Maximum number of connections to hold in backlog.
-        limit_max_requests (int): Maximum number of requests to service before
-            terminating the process.
-        timeout_keep_alive (int): Timeout for keep-alive connections.
-        ssl_keyfile (str): Path to a file containing the SSL key.
-        ssl_certfile (str): Path to a file containing the SSL certificate.
-        ssl_keyfile_password (str): Password to unlock the SSL key.
-        ssl_version (int): SSL version to use.
-        ssl_cert_reqs (int): SSL certificate requirements.
-        ssl_ca_certs (str): Path to a file containing the SSL certificate authority.
-        ssl_ciphers (str): SSL ciphers to use.
-        headers (typing.Sequence[typing.Sequence[str]]): Custom default HTTP response
-            headers.
-        use_colors (bool): Turn on colorized logging.
-        app_dir (str): Look for APP in the specified directory, by adding this to the
-            PYTHONPATH.
-        factory (bool): Use the ASGI factory mode.
-    """
     if app_dir is not None:
         sys.path.insert(0, app_dir)
 
