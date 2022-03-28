@@ -10,7 +10,7 @@ from asgiref.typing import (
     WWWScope,
 )
 
-from uvicorn.log import TRACE_LOG_LEVEL
+from uvicorn._logging import TRACE_LOG_LEVEL
 
 PLACEHOLDER_FORMAT = {
     "body": "<{length} bytes>",

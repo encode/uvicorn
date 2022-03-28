@@ -5,7 +5,7 @@ from urllib.parse import unquote
 
 import h11
 
-from uvicorn.log import TRACE_LOG_LEVEL
+from uvicorn._logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
     HIGH_WATER_LIMIT,

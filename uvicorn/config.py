@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
 
-from uvicorn.log import TRACE_LOG_LEVEL
+from uvicorn._logging import TRACE_LOG_LEVEL
 
 if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
@@ -82,12 +82,12 @@ LOGGING_CONFIG: dict = {
     "disable_existing_loggers": False,
     "formatters": {
         "default": {
-            "()": "uvicorn.log.DefaultFormatter",
+            "()": "uvicorn._logging.DefaultFormatter",
             "fmt": "%(levelprefix)s %(message)s",
             "use_colors": None,
         },
         "access": {
-            "()": "uvicorn.log.AccessFormatter",
+            "()": "uvicorn._logging.AccessFormatter",
             "fmt": '%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',  # noqa: E501
         },
     },
