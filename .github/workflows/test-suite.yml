@@ -26,6 +26,7 @@ jobs:
       - name: "Run linting checks"
         run: "scripts/check"
         shell: bash
+        if: "${{ matrix.os == 'ubuntu-latest'}}"
       - name: "Build package & docs"
         run: "scripts/build"
         shell: bash
