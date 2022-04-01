@@ -22,8 +22,8 @@ class StatReload(BaseReload):
 
         if config.reload_excludes or config.reload_includes:
             logger.warning(
-                "--reload-include and --reload-exclude have no effect unless watchfiles "
-                "is installed."
+                "--reload-include and --reload-exclude have no effect unless "
+                "watchfiles is installed."
             )
 
     def should_restart(self) -> Optional[List[Path]]:
@@ -41,6 +41,7 @@ class StatReload(BaseReload):
                 continue
             elif mtime > old_time:
                 return [file]
+        return None
 
     def restart(self) -> None:
         self.mtimes = {}

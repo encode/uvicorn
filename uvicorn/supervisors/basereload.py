@@ -5,7 +5,7 @@ import threading
 from pathlib import Path
 from socket import socket
 from types import FrameType
-from typing import Callable, List, Optional
+from typing import Callable, Iterator, List, Optional
 
 import click
 
@@ -42,12 +42,12 @@ class BaseReload:
 
     def run(self) -> None:
         self.startup()
-        for changes_paths in self:
-            if changes_paths:
+        for changes in self:
+            if changes:
                 logger.warning(
                     "%s detected changes in %s. Reloading...",
                     self.reloader_name,
-                    ', '.join(map(_display_path, changes_paths))
+                    ", ".join(map(_display_path, changes)),
                 )
                 self.restart()
 
@@ -57,7 +57,7 @@ class BaseReload:
         if self.should_exit.wait(self.config.reload_delay):
             raise StopIteration()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Optional[List[Path]]]:
         return self
 
     def __next__(self) -> Optional[List[Path]]:
@@ -107,9 +107,7 @@ class BaseReload:
 
 
 def _display_path(path: Path) -> str:
-    display_path = str(path)
     try:
-        display_path = str(path.relative_to(Path.cwd()))
+        return f"'{path.relative_to(Path.cwd())}'"
     except ValueError:
-        pass
-    return f"'{display_path}'"
+        return f"'{path}'"
