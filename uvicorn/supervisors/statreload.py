@@ -17,7 +17,7 @@ class StatReload(BaseReload):
         sockets: List[socket],
     ) -> None:
         super().__init__(config, target, sockets)
-        self.reloader_name = "statreload"
+        self.reloader_name = "StatReload"
         self.mtimes: Dict[Path, float] = {}
 
         if config.reload_excludes or config.reload_includes:
@@ -26,9 +26,8 @@ class StatReload(BaseReload):
                 "is installed."
             )
 
-    def __next__(self):
-        if self.should_exit.wait(self.config.reload_delay):
-            raise StopIteration()
+    def should_restart(self) -> Optional[List[Path]]:
+        self.pause()
 
         for file in self.iter_py_files():
             try:
@@ -41,15 +40,7 @@ class StatReload(BaseReload):
                 self.mtimes[file] = mtime
                 continue
             elif mtime > old_time:
-                display_path = str(file)
-                try:
-                    display_path = str(file.relative_to(Path.cwd()))
-                except ValueError:
-                    pass
-                message = "StatReload detected file change in '%s'. Reloading..."
-                logger.warning(message, display_path)
-                return True
-        return False
+                return [file]
 
     def restart(self) -> None:
         self.mtimes = {}

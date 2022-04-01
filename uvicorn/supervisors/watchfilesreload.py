@@ -11,7 +11,7 @@ from uvicorn.supervisors.basereload import BaseReload
 logger = logging.getLogger("uvicorn.error")
 
 
-class CustomFilter:
+class FileFilter:
     def __init__(self, config: Config):
         default_includes = ["*.py"]
         self.includes = [
@@ -31,9 +31,7 @@ class CustomFilter:
         self.excludes.extend(config.reload_excludes)
         self.excludes = list(set(self.excludes))
 
-    def __call__(self, change: Change, path: str) -> bool:
-        path = Path(path)
-        debug(self.includes, self.excludes, change, path)
+    def __call__(self, path: Path) -> bool:
         for include_pattern in self.includes:
             if path.match(include_pattern):
                 for exclude_pattern in self.excludes:
@@ -51,7 +49,7 @@ class WatchFilesReload(BaseReload):
         sockets: List[socket],
     ) -> None:
         super().__init__(config, target, sockets)
-        self.reloader_name = "watchfiles"
+        self.reloader_name = "WatchFilesReload"
         self.watchers = []
         self.reload_dirs = []
         for directory in config.reload_dirs:
@@ -60,11 +58,14 @@ class WatchFilesReload(BaseReload):
         if Path.cwd() not in self.reload_dirs:
             self.reload_dirs.append(Path.cwd())
 
-        watch_filter = CustomFilter(config)
-        self.watcher = watch(*self.reload_dirs, watch_filter=watch_filter, stop_event=self.should_exit)
+        self.watch_filter = FileFilter(config)
+        self.watcher = watch(
+            *self.reload_dirs,
+            watch_filter=None,
+            stop_event=self.should_exit,
+        )
 
-    def __next__(self) -> bool:
+    def should_restart(self) -> Optional[List[Path]]:
         changes = next(self.watcher)
-        message = "WatchFilesReload detected file change in '%s'. Reloading..."
-        logger.warning(message, list({c[1] for c in changes}))
-        return True
+        unique_paths = {Path(c[1]) for c in changes}
+        return [p for p in unique_paths if self.watch_filter(p)]
