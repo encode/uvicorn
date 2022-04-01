@@ -258,9 +258,10 @@ def test_should_watch_separate_dirs_outside_cwd(mocker, reload_directory_structu
 def test_display_path_relative(tmp_path):
     with as_cwd(tmp_path):
         p = tmp_path / "app" / "foobar.py"
-        assert _display_path(p) == "'app/foobar.py'"
+        # accept windows paths as wells as posix
+        assert _display_path(p) in ("'app/foobar.py'", "'app\\foobar.py'")
 
 
 def test_display_path_non_relative():
     p = Path("/foo/bar.py")
-    assert _display_path(p) == "'/foo/bar.py'"
+    assert _display_path(p) in ("'/foo/bar.py'", "'\\foo\\bar.py'")
