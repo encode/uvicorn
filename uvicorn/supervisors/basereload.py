@@ -41,11 +41,17 @@ class BaseReload:
 
     def run(self) -> None:
         self.startup()
-        while not self.should_exit.wait(self.config.reload_delay):
-            if self.should_restart():
+        for should_reload in self:
+            if should_reload:
                 self.restart()
 
         self.shutdown()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self) -> bool:
+        raise NotImplementedError("Reload strategies should implement __next__")
 
     def startup(self) -> None:
         message = f"Started reloader process [{self.pid}] using {self.reloader_name}"
@@ -86,5 +92,3 @@ class BaseReload:
         )
         logger.info(message, extra={"color_message": color_message})
 
-    def should_restart(self) -> bool:
-        raise NotImplementedError("Reload strategies should override should_restart()")

@@ -22,11 +22,14 @@ class StatReload(BaseReload):
 
         if config.reload_excludes or config.reload_includes:
             logger.warning(
-                "--reload-include and --reload-exclude have no effect unless watchgod "
+                "--reload-include and --reload-exclude have no effect unless watchfiles "
                 "is installed."
             )
 
-    def should_restart(self) -> bool:
+    def __next__(self):
+        if self.should_exit.wait(self.config.reload_delay):
+            raise StopIteration()
+
         for file in self.iter_py_files():
             try:
                 mtime = file.stat().st_mtime
