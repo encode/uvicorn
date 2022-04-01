@@ -4,6 +4,8 @@ from copy import deepcopy
 from hashlib import md5
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from threading import Thread
+from time import sleep
 from uuid import uuid4
 
 import pytest
@@ -176,3 +178,24 @@ def short_socket_name(tmp_path, tmp_path_factory):  # pragma: py-win32
                     sock_path = str(tmpd / "".join((identifier, socket_filename)))
                 yield sock_path
                 return
+
+
+def sleep_touch(*paths: Path):
+    sleep(0.1)
+    for p in paths:
+        p.touch()
+
+
+@pytest.fixture
+def touch_soon():
+    threads = []
+
+    def start(*paths: Path):
+        thread = Thread(target=sleep_touch, args=paths)
+        thread.start()
+        threads.append(thread)
+
+    yield start
+
+    for t in threads:
+        t.join()

@@ -1,5 +1,4 @@
 from pathlib import Path
-from threading import Thread
 from time import sleep
 from typing import Type
 
@@ -10,27 +9,6 @@ from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload, _display_path
 from uvicorn.supervisors.statreload import StatReload
 from uvicorn.supervisors.watchfilesreload import WatchFilesReload
-
-
-def sleep_touch(*paths: Path):
-    sleep(0.1)
-    for p in paths:
-        p.touch()
-
-
-@pytest.fixture(name="touch_soon")
-def _fix_touch_soon():
-    threads = []
-
-    def start(*paths: Path):
-        thread = Thread(target=sleep_touch, args=paths)
-        thread.start()
-        threads.append(thread)
-
-    yield start
-
-    for t in threads:
-        t.join()
 
 
 def run(sockets):
