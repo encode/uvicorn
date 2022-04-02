@@ -31,7 +31,13 @@ class FileFilter:
         self.exclude_dirs = []
         for e in config.reload_excludes:
             p = Path(e)
-            if p.is_dir():
+            try:
+                is_dir = p.is_dir()
+            except OSError:
+                # gets raised on Windows for values like "*.py"
+                is_dir = False
+
+            if is_dir:
                 self.exclude_dirs.append(p)
             else:
                 self.excludes.append(e)
