@@ -9,8 +9,8 @@ from typing import Callable, List, Optional
 
 import click
 
-from uvicorn.config import Config
 from uvicorn._subprocess import get_subprocess
+from uvicorn.config import Config
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
