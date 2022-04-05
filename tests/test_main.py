@@ -40,8 +40,8 @@ def _has_ipv6(host):
             has_ipv6 = True
         except Exception:
             pass
-    if sock:
-        sock.close()
+        finally:
+            sock.close()
     return has_ipv6
 
 
