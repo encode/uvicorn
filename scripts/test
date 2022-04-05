@@ -11,7 +11,7 @@ if [ -z $GITHUB_ACTIONS ]; then
     scripts/check
 fi
 
-PYTHONWARNINGS=all PYTHONTRACEMALLOC=25 ${PREFIX}coverage run --debug config -m pytest "$@"
+PYTHONWARNINGS=all PYTHONTRACEMALLOC=100 ${PREFIX}coverage run --debug config -m pytest "$@"
 
 if [ -z $GITHUB_ACTIONS ]; then
     scripts/coverage

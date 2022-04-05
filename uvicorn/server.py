@@ -152,6 +152,7 @@ class Server:
                     ssl=config.ssl,
                     backlog=config.backlog,
                 )
+                print(server)
             except OSError as exc:
                 logger.error(exc)
                 await self.lifespan.shutdown()
