@@ -14,6 +14,6 @@ fi
 #${PREFIX}coverage run --debug config -m pytest "$@"
 PYTHONWARNINGS=all PYTHONTRACEMALLOC=25 pytest -W error -p no:warnings
 
-#if [ -z $GITHUB_ACTIONS ]; then
-#    scripts/coverage
-#fi
+if [ -z $GITHUB_ACTIONS ]; then
+    scripts/coverage
+fi
