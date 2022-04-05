@@ -298,12 +298,12 @@ def test_concrete_http_class() -> None:
     assert config.http_protocol_class is H11Protocol
 
 
-# def test_socket_bind() -> None:
-#     config = Config(app=asgi_app)
-#     config.load()
-#     sock = config.bind_socket()
-#     assert isinstance(sock, socket.socket)
-#     sock.close()
+def test_socket_bind() -> None:
+    config = Config(app=asgi_app)
+    config.load()
+    sock = config.bind_socket()
+    assert isinstance(sock, socket.socket)
+    sock.close()
 
 
 def test_ssl_config(
