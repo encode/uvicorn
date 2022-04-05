@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.7", "3.8", "3.9", "3.10"]
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
     steps:
       - uses: "actions/checkout@v2"
       - uses: "actions/setup-python@v2"
@@ -26,6 +26,7 @@ jobs:
       - name: "Run linting checks"
         run: "scripts/check"
         shell: bash
+        if: "${{ matrix.os == 'ubuntu-latest'}}"
       - name: "Build package & docs"
         run: "scripts/build"
         shell: bash
