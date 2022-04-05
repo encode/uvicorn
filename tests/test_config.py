@@ -503,7 +503,6 @@ def test_ws_max_size() -> None:
     assert config.ws_max_size == 1000
 
 
-
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
 @pytest.mark.parametrize(
     "reload, workers",
