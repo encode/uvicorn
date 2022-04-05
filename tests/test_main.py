@@ -1,4 +1,5 @@
 import socket
+import sys
 from logging import WARNING
 
 import httpx
@@ -55,7 +56,10 @@ def _has_ipv6(host):
             "::1",
             "http://[::1]:8000",
             id="ipv6",
-            marks=pytest.mark.skipif(not _has_ipv6("::1"), reason="IPV6 not enabled"),
+            marks=pytest.mark.skipif(
+                not _has_ipv6("::1") or sys.platform == "win32",
+                reason="IPV6 not enabled",
+            ),
         ),
     ],
 )
