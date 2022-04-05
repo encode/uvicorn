@@ -503,6 +503,8 @@ def test_ws_max_size() -> None:
     assert config.ws_max_size == 1000
 
 
+
+@pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
 @pytest.mark.parametrize(
     "reload, workers",
     [
@@ -511,7 +513,6 @@ def test_ws_max_size() -> None:
     ],
     ids=["--reload=True --workers=1", "--reload=False --workers=2"],
 )
-@pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
 def test_bind_unix_socket_works_with_reload_or_workers(
     tmp_path, reload, workers, short_socket_name
 ):  # pragma: py-win32
