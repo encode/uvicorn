@@ -160,7 +160,8 @@ or reloading (`reload=True`), so we recommend using the import string style.
 
 Also note that in this case, you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main module.
 
-Also in this case, the two options are mutually exclusive, use only one of `reload=True` or `workers=NUM`.
+!!! note
+`reload` and `workers` parameters are mutually exclusive.
 
 ## Using a process manager
 
