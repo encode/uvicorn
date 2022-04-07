@@ -29,7 +29,7 @@ For example, in case you want to run the app on port `5000`, just set the enviro
 
 ## Development
 
-* `--reload` - Enable auto-reload. This setting disables the `--workers` setting. Uvicorn supports two versions of auto-reloading behavior enabled by this option. There are important differences between them.
+* `--reload` - Enable auto-reload. Uvicorn supports two versions of auto-reloading behavior enabled by this option. There are important differences between them.
 * `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default the whole current directory will be watched. If you are running programmatically use `reload_dirs=[]` and pass a list of strings.
 
 ### Reloading without watchgod
