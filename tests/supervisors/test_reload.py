@@ -9,6 +9,7 @@ from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload, _display_path
 from uvicorn.supervisors.statreload import StatReload
 from uvicorn.supervisors.watchfilesreload import WatchFilesReload
+from uvicorn.supervisors.watchgodreload import WatchGodReload
 
 
 def run(sockets):
@@ -36,16 +37,16 @@ class TestBaseReload:
         reloader.restart()
 
         reloader.restart()
-        if isinstance(reloader, StatReload):
+        if isinstance(reloader, WatchFilesReload):
+            touch_soon(*files)
+        else:
             assert not next(reloader)
             sleep(0.1)
             for file in files:
                 file.touch()
-        else:
-            touch_soon(*files)
         return next(reloader)
 
-    @pytest.mark.parametrize("reloader_class", [StatReload, WatchFilesReload])
+    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload, WatchFilesReload])
     def test_reloader_should_initialize(self) -> None:
         """
         A basic sanity check.
@@ -58,7 +59,7 @@ class TestBaseReload:
             reloader = self._setup_reloader(config)
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [StatReload, WatchFilesReload])
+    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload, WatchFilesReload])
     def test_reload_when_python_file_is_changed(self, touch_soon) -> None:
         file = self.reload_path / "main.py"
 
@@ -70,7 +71,7 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [StatReload, WatchFilesReload])
+    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload, WatchFilesReload])
     def test_should_reload_when_python_file_in_subdir_is_changed(
         self, touch_soon
     ) -> None:
@@ -84,7 +85,7 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [WatchFilesReload])
+    @pytest.mark.parametrize("reloader_class", [WatchFilesReload, WatchGodReload])
     def test_should_not_reload_when_python_file_in_excluded_subdir_is_changed(
         self, touch_soon
     ) -> None:
@@ -121,7 +122,7 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [WatchFilesReload])
+    @pytest.mark.parametrize("reloader_class", [WatchFilesReload, WatchGodReload])
     def test_should_not_reload_when_exclude_pattern_match_file_is_changed(
         self, touch_soon
     ) -> None:
@@ -144,7 +145,7 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [StatReload, WatchFilesReload])
+    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload, WatchFilesReload])
     def test_should_not_reload_when_dot_file_is_changed(self, touch_soon) -> None:
         file = self.reload_path / ".dotted"
 
@@ -156,7 +157,7 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [StatReload, WatchFilesReload])
+    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload, WatchFilesReload])
     def test_should_reload_when_directories_have_same_prefix(self, touch_soon) -> None:
         app_dir = self.reload_path / "app"
         app_file = app_dir / "src" / "main.py"
@@ -176,7 +177,7 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [StatReload, WatchFilesReload])
+    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload, WatchFilesReload])
     def test_should_not_reload_when_only_subdirectory_is_watched(
         self, touch_soon
     ) -> None:
@@ -198,7 +199,7 @@ class TestBaseReload:
 
         reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [WatchFilesReload])
+    @pytest.mark.parametrize("reloader_class", [WatchFilesReload, WatchGodReload])
     def test_override_defaults(self, touch_soon) -> None:
         dotted_file = self.reload_path / ".dotted"
         dotted_dir_file = self.reload_path / ".dotted_dir" / "file.txt"

@@ -66,7 +66,7 @@ class WatchFilesReload(BaseReload):
         sockets: List[socket],
     ) -> None:
         super().__init__(config, target, sockets)
-        self.reloader_name = "WatchFilesReload"
+        self.reloader_name = "WatchFiles"
         self.reload_dirs = []
         for directory in config.reload_dirs:
             if Path.cwd() not in directory.parents:

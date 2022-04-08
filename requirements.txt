@@ -23,6 +23,7 @@ coverage==6.3.2
 coverage-conditional-plugin==0.5.0
 httpx==1.0.0b0
 pytest-asyncio==0.15.1
+watchgod==0.8.2
 
 
 # Documentation
