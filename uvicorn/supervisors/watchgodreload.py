@@ -1,4 +1,5 @@
 import logging
+import warnings
 from pathlib import Path
 from socket import socket
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional
@@ -129,6 +130,12 @@ class WatchGodReload(BaseReload):
         target: Callable[[Optional[List[socket]]], None],
         sockets: List[socket],
     ) -> None:
+        warnings.warn(
+            '"watchgod" is depreciated, you should switch '
+            'to watchfiles (`pip install watchfiles`)',
+            DeprecationWarning
+        )
+
         super().__init__(config, target, sockets)
         self.reloader_name = "WatchGod"
         self.watchers = []

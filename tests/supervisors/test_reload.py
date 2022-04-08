@@ -28,7 +28,13 @@ class TestBaseReload:
 
     def _setup_reloader(self, config: Config) -> BaseReload:
         config.reload_delay = 0  # save time
-        reloader = self.reloader_class(config, target=run, sockets=[])
+
+        if self.reloader_class is WatchGodReload:
+            with pytest.deprecated_call():
+                reloader = self.reloader_class(config, target=run, sockets=[])
+        else:
+            reloader = self.reloader_class(config, target=run, sockets=[])
+
         assert config.should_reload
         reloader.startup()
         return reloader
