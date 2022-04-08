@@ -52,7 +52,9 @@ class TestBaseReload:
                 file.touch()
         return next(reloader)
 
-    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload, WatchFilesReload])
+    @pytest.mark.parametrize(
+        "reloader_class", [StatReload, WatchGodReload, WatchFilesReload]
+    )
     def test_reloader_should_initialize(self) -> None:
         """
         A basic sanity check.
@@ -65,7 +67,9 @@ class TestBaseReload:
             reloader = self._setup_reloader(config)
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload, WatchFilesReload])
+    @pytest.mark.parametrize(
+        "reloader_class", [StatReload, WatchGodReload, WatchFilesReload]
+    )
     def test_reload_when_python_file_is_changed(self, touch_soon) -> None:
         file = self.reload_path / "main.py"
 
@@ -77,7 +81,9 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload, WatchFilesReload])
+    @pytest.mark.parametrize(
+        "reloader_class", [StatReload, WatchGodReload, WatchFilesReload]
+    )
     def test_should_reload_when_python_file_in_subdir_is_changed(
         self, touch_soon
     ) -> None:
@@ -151,7 +157,9 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload, WatchFilesReload])
+    @pytest.mark.parametrize(
+        "reloader_class", [StatReload, WatchGodReload, WatchFilesReload]
+    )
     def test_should_not_reload_when_dot_file_is_changed(self, touch_soon) -> None:
         file = self.reload_path / ".dotted"
 
@@ -163,7 +171,9 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload, WatchFilesReload])
+    @pytest.mark.parametrize(
+        "reloader_class", [StatReload, WatchGodReload, WatchFilesReload]
+    )
     def test_should_reload_when_directories_have_same_prefix(self, touch_soon) -> None:
         app_dir = self.reload_path / "app"
         app_file = app_dir / "src" / "main.py"
@@ -183,7 +193,9 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [StatReload, WatchGodReload, WatchFilesReload])
+    @pytest.mark.parametrize(
+        "reloader_class", [StatReload, WatchGodReload, WatchFilesReload]
+    )
     def test_should_not_reload_when_only_subdirectory_is_watched(
         self, touch_soon
     ) -> None:

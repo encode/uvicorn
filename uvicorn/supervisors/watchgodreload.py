@@ -132,8 +132,8 @@ class WatchGodReload(BaseReload):
     ) -> None:
         warnings.warn(
             '"watchgod" is depreciated, you should switch '
-            'to watchfiles (`pip install watchfiles`)',
-            DeprecationWarning
+            "to watchfiles (`pip install watchfiles`)",
+            DeprecationWarning,
         )
 
         super().__init__(config, target, sockets)
