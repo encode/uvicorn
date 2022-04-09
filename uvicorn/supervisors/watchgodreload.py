@@ -1,4 +1,5 @@
 import logging
+import warnings
 from pathlib import Path
 from socket import socket
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional
@@ -17,6 +18,12 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class CustomWatcher(DefaultWatcher):
+    warnings.warn(
+        '"watchgod" is depreciated, you should switch '
+        "to watchfiles (`pip install watchfiles`).",
+        DeprecationWarning,
+    )
+
     def __init__(self, root_path: Path, config: Config):
         default_includes = ["*.py"]
         self.includes = [
