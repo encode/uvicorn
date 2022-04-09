@@ -1,4 +1,5 @@
 import typing
+import warnings
 
 from uvicorn.supervisors.basereload import BaseReload
 from uvicorn.supervisors.multiprocess import Multiprocess
@@ -17,5 +18,11 @@ else:
             )
         except ImportError:
             from uvicorn.supervisors.statreload import StatReload as ChangeReload
+        else:
+            warnings.warn(
+                '"watchgod" is depreciated, you should switch '
+                "to watchfiles (`pip install watchfiles`).",
+                DeprecationWarning,
+            )
 
 __all__ = ["Multiprocess", "ChangeReload"]

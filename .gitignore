@@ -6,4 +6,3 @@ uvicorn.egg-info/
 venv/
 htmlcov/
 site/
-/.idea/
