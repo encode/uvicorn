@@ -8,6 +8,7 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
+import re
 from typing import List, Optional, Tuple, Union, cast
 
 from asgiref.typing import (
@@ -69,7 +70,12 @@ class ProxyHeadersMiddleware:
                         item.strip() for item in x_forwarded_for.split(",")
                     ]
                     host = self.get_trusted_client_host(x_forwarded_for_hosts)
-                    port = 0
+                    #in case that x_forwarded_for format is IP:PORT
+                    if m := re.match(r"(.*):(\d+)"):
+                        host = m.group[1]
+                        port = m.group[1]
+                    else:
+                        port = 0
                     scope["client"] = (host, port)  # type: ignore[index]
 
         return await self.app(scope, receive, send)
