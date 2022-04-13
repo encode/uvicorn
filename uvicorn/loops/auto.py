@@ -8,4 +8,4 @@ def auto_loop_setup(reload: bool = False) -> None:
     else:  # pragma: no cover
         from uvicorn.loops.uvloop import uvloop_setup
 
-        uvloop_setup(reload=reload)
+        uvloop_setup()
