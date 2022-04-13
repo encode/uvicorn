@@ -144,7 +144,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         await self.handshake_started_event.wait()
         return self.initial_response
 
-    def process_subprotocol(self, headers, available_subprotocols):
+    def process_subprotocol(self):
         """
         We override the standard 'process_subprotocol' behavior here so that
         we return whatever subprotocol is sent in the 'accept' message.
@@ -166,7 +166,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
         # itself (see https://github.com/encode/uvicorn/issues/920)
         self.handshake_started_event.set()
 
-    async def ws_handler(self, protocol, path):
+    async def ws_handler(self):
         """
         This is the main handler function for the 'websockets' implementation
         to call into. We just wait for close then return, and instead allow

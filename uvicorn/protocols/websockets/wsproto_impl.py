@@ -15,6 +15,7 @@ from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 class WSProtocol(asyncio.Protocol):
     def __init__(self, config, server_state, _loop=None):
+        self.scope = None
         if not config.loaded:
             config.load()
 
