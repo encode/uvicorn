@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 from socket import socket
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional
+
 from watchgod import DefaultWatcher
 
 from uvicorn.config import Config
