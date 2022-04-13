@@ -3,7 +3,6 @@ import os
 import signal
 import threading
 from socket import socket
-from types import FrameType
 from typing import Callable, List, Optional
 
 import click
@@ -33,7 +32,7 @@ class BaseReload:
         self.pid = os.getpid()
         self.reloader_name: Optional[str] = None
 
-    def signal_handler(self, sig: signal.Signals, frame: FrameType) -> None:
+    def signal_handler(self) -> None:
         """
         A signal handler that is registered with the parent process.
         """
@@ -64,7 +63,6 @@ class BaseReload:
         self.process.start()
 
     def restart(self) -> None:
-
         self.process.terminate()
         self.process.join()
 
