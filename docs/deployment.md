@@ -316,7 +316,7 @@ $ uvicorn example:app --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.
 
 ### Running gunicorn worker
 
-It is also possible to use certificates with uvicorn's worker for gunicorn
+It's also possible to use certificates with uvicorn's worker for gunicorn.
 
 ```bash
 $ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornWorker example:app
