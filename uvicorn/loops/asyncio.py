@@ -12,4 +12,12 @@ def asyncio_setup(reload: bool = False) -> None:  # pragma: no cover
                 "The --reload flag should not be \
                 used in production on Windows."
             )
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        try:
+            from asyncio import WindowsSelectorEventLoopPolicy
+        except ImportError:
+            logger.error("Can't assign a policy which doesn't exist.")
+        else:
+            if not isinstance(
+                asyncio.get_event_loop_policy(), WindowsSelectorEventLoopPolicy
+            ):
+                asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
