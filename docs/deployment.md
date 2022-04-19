@@ -243,16 +243,16 @@ Then run `circusd circus.ini`.
 
 ## Running behind Nginx
 
-Using Nginx as a proxy in front of your Uvicorn processes may not be neccessary, but is recommended for additional resiliance. Nginx can deal with serving your static media and buffering slow requests, leaving your application servers free from load as much as possible.
+Using Nginx as a proxy in front of your Uvicorn processes may not be necessary, but is recommended for additional resilience. Nginx can deal with serving your static media and buffering slow requests, leaving your application servers free from load as much as possible.
 
-In managed environments such as `Heroku`, you wont typically need to configure Nginx, as your server processes will already be running behind load balancing proxies.
+In managed environments such as `Heroku`, you won't typically need to configure Nginx, as your server processes will already be running behind load balancing proxies.
 
 The recommended configuration for proxying from Nginx is to use a UNIX domain socket between Nginx and whatever the process manager that is being used to run Uvicorn.
-Note that when doing this you will need run Uvicorn with `--forwarded-allow-ips='*'` to ensure that the domain socket is trusted as a source from which to proxy headers.
+Note that when doing this you will need to run Uvicorn with `--forwarded-allow-ips='*'` to ensure that the domain socket is trusted as a source from which to proxy headers.
 
-When fronting the application with a proxy server you want to make sure that the proxy sets headers to ensure that application can properly determine the client address of the incoming connection, and if the connection was over `http` or `https`.
+When fronting the application with a proxy server you want to make sure that the proxy sets headers to ensure that the application can properly determine the client address of the incoming connection, and if the connection was over `http` or `https`.
 
-You should ensure that the `X-Forwarded-For` and `X-Forwarded-Proto` headers are set by the proxy, and that Uvicorn is run using the `--proxy-headers` setting. This ensure that the ASGI scope includes correct `client` and `scheme` information.
+You should ensure that the `X-Forwarded-For` and `X-Forwarded-Proto` headers are set by the proxy, and that Uvicorn is run using the `--proxy-headers` setting. This ensures that the ASGI scope includes correct `client` and `scheme` information.
 
 Here's how a simple Nginx configuration might look. This example includes setting proxy headers, and using a UNIX domain socket to communicate with the application server.
 
@@ -297,11 +297,11 @@ http {
 
 Uvicorn's `--proxy-headers` behavior may not be sufficient for more complex proxy configurations that use different combinations of headers, or where the application is running behind more than one intermediary proxying service.
 
-In those cases you might want to use an ASGI middleware to set the `client` and `scheme` dependant on the request headers.
+In those cases, you might want to use an ASGI middleware to set the `client` and `scheme` dependant on the request headers.
 
 ## Running behind a CDN
 
-Running behind a content delivery network, such as Cloudflare or Cloud Front, provides a serious layer of protection against DDOS attacks. Your sevice will be running behind huge clusters of proxies and load balancers that are designed for handling huge amounts of traffic, and have capabilities for detecting and closing off connections from DDOS attacks.
+Running behind a content delivery network, such as Cloudflare or Cloud Front, provides a serious layer of protection against DDOS attacks. Your service will be running behind huge clusters of proxies and load balancers that are designed for handling huge amounts of traffic, and have capabilities for detecting and closing off connections from DDOS attacks.
 
 Proper usage of cache control headers can mean that a CDN is able to serve large amounts of data without always having to forward the request on to your server.
 
@@ -321,7 +321,7 @@ $ uvicorn example:app --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.
 
 ### Running gunicorn worker
 
-It also possible to use certificates with uvicorn's worker for gunicorn
+It's also possible to use certificates with uvicorn's worker for gunicorn.
 
 ```bash
 $ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornWorker example:app
