@@ -21,6 +21,8 @@ The ASGI application should be specified in the form `path.to.module:instance.pa
 
 When running locally, use `--reload` to turn on auto-reloading.
 
+The `--reload` and `--workers` arguments are **mutually exclusive**.
+
 To see the complete set of available options, use `uvicorn --help`:
 
 <!-- :cli_usage: -->
@@ -158,6 +160,9 @@ or reloading (`reload=True`), so we recommend using the import string style.
 
 Also note that in this case, you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main module.
 
+!!! note
+    The `reload` and `workers` parameters are **mutually exclusive**.
+
 ## Using a process manager
 
 Running Uvicorn using a process manager ensures that you can run multiple processes in a resilient manner, and allows you to perform server upgrades without dropping requests.
@@ -277,7 +282,7 @@ http {
       root /path/to/app/static;
     }
   }
-  
+
   map $http_upgrade $connection_upgrade {
     default upgrade;
     '' close;
