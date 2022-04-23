@@ -4,7 +4,6 @@ from copy import deepcopy
 from hashlib import md5
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, Tuple
 from uuid import uuid4
 
 import pytest
@@ -140,8 +139,8 @@ def reload_directory_structure(tmp_path_factory: pytest.TempPathFactory):
 
 
 @pytest.fixture
-def anyio_backend() -> Tuple[str, Dict[str, object]]:
-    return ("asyncio", {})
+def anyio_backend() -> str:
+    return "asyncio"
 
 
 @pytest.fixture(scope="function")
