@@ -332,7 +332,7 @@ class TestBaseReload:
         app_first_dir = tmp_path / "app_first"
         app_first_file = app_first_dir / "file.py"
 
-        with as_cwd(tmp_path), caplog.at_level(INFO):
+        with as_cwd(tmp_path):
             config = Config(
                 app="tests.test_config:asgi_app", reload=True, reload_includes=["app*"]
             )
@@ -360,7 +360,7 @@ class TestBaseReload:
         app_first_dir = tmp_path / "app_first"
         app_first_file = app_first_dir / "file.py"
 
-        with as_cwd(tmp_path), caplog.at_level(DEBUG):
+        with as_cwd(tmp_path):
             config = Config(
                 app="tests.test_config:asgi_app", reload=True, reload_excludes=["app*"]
             )

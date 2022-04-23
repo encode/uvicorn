@@ -1,12 +1,11 @@
 import asyncio
 import http
 import logging
-from typing import Callable
 from urllib.parse import unquote
 
 import h11
 
-from uvicorn.logging import TRACE_LOG_LEVEL
+from uvicorn._logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
     HIGH_WATER_LIMIT,
@@ -35,15 +34,12 @@ STATUS_PHRASES = {
 
 
 class H11Protocol(asyncio.Protocol):
-    def __init__(
-        self, config, server_state, on_connection_lost: Callable = None, _loop=None
-    ):
+    def __init__(self, config, server_state, _loop=None):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
-        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.access_logger = logging.getLogger("uvicorn.access")
@@ -113,9 +109,6 @@ class H11Protocol(asyncio.Protocol):
         if exc is None:
             self.transport.close()
 
-        if self.on_connection_lost is not None:
-            self.on_connection_lost()
-
     def eof_received(self):
         pass
 
@@ -137,7 +130,7 @@ class H11Protocol(asyncio.Protocol):
             except h11.RemoteProtocolError as exc:
                 msg = "Invalid HTTP request received."
                 self.logger.warning(msg, exc_info=exc)
-                self.transport.close()
+                self.send_400_response(msg)
                 return
             event_type = type(event)
 
@@ -159,7 +152,7 @@ class H11Protocol(asyncio.Protocol):
                     "type": "http",
                     "asgi": {
                         "version": self.config.asgi_version,
-                        "spec_version": "2.1",
+                        "spec_version": "2.3",
                     },
                     "http_version": event.http_version.decode("ascii"),
                     "server": self.server,
@@ -232,28 +225,12 @@ class H11Protocol(asyncio.Protocol):
         if upgrade_value != b"websocket" or self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
-
             from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
 
-            if AutoWebSocketsProtocol is None:
+            if AutoWebSocketsProtocol is None:  # pragma: no cover
                 msg = "No supported WebSocket library detected. Please use 'pip install uvicorn[standard]', or install 'websockets' or 'wsproto' manually."  # noqa: E501
                 self.logger.warning(msg)
-
-            reason = STATUS_PHRASES[400]
-            headers = [
-                (b"content-type", b"text/plain; charset=utf-8"),
-                (b"connection", b"close"),
-            ]
-            event = h11.Response(status_code=400, headers=headers, reason=reason)
-            output = self.conn.send(event)
-            self.transport.write(output)
-            event = h11.Data(data=b"Unsupported upgrade request.")
-            output = self.conn.send(event)
-            self.transport.write(output)
-            event = h11.EndOfMessage()
-            output = self.conn.send(event)
-            self.transport.write(output)
-            self.transport.close()
+            self.send_400_response(msg)
             return
 
         if self.logger.level <= TRACE_LOG_LEVEL:
@@ -266,13 +243,29 @@ class H11Protocol(asyncio.Protocol):
             output += [name, b": ", value, b"\r\n"]
         output.append(b"\r\n")
         protocol = self.ws_protocol_class(
-            config=self.config,
-            server_state=self.server_state,
-            on_connection_lost=self.on_connection_lost,
+            config=self.config, server_state=self.server_state
         )
         protocol.connection_made(self.transport)
         protocol.data_received(b"".join(output))
         self.transport.set_protocol(protocol)
+
+    def send_400_response(self, msg: str):
+
+        reason = STATUS_PHRASES[400]
+        headers = [
+            (b"content-type", b"text/plain; charset=utf-8"),
+            (b"connection", b"close"),
+        ]
+        event = h11.Response(status_code=400, headers=headers, reason=reason)
+        output = self.conn.send(event)
+        self.transport.write(output)
+        event = h11.Data(data=msg.encode("ascii"))
+        output = self.conn.send(event)
+        self.transport.write(output)
+        event = h11.EndOfMessage()
+        output = self.conn.send(event)
+        self.transport.write(output)
+        self.transport.close()
 
     def on_response_complete(self):
         self.server_state.total_requests += 1

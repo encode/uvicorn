@@ -1,10 +1,14 @@
 import asyncio
 import contextlib
 import logging
+import socket
+import threading
+import time
 
 import pytest
 
 from tests.response import Response
+from uvicorn import Server
 from uvicorn.config import Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -131,7 +135,7 @@ class MockLoop(asyncio.AbstractEventLoop):
         self.loop = event_loop
 
     def is_running(self):
-        return True
+        return True  # pragma: no cover
 
     def create_task(self, coroutine):
         self.tasks.insert(0, coroutine)
@@ -716,8 +720,8 @@ def asgi2app(scope):
 
 
 asgi_scope_data = [
-    (asgi3app, {"version": "3.0", "spec_version": "2.1"}),
-    (asgi2app, {"version": "2.0", "spec_version": "2.1"}),
+    (asgi3app, {"version": "3.0", "spec_version": "2.3"}),
+    (asgi2app, {"version": "2.0", "spec_version": "2.3"}),
 ]
 
 
@@ -748,5 +752,53 @@ def test_invalid_http_request(request_line, protocol_cls, caplog, event_loop):
 
     with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
         protocol.data_received(request)
-        assert not protocol.transport.buffer
-        assert "Invalid HTTP request received." in caplog.messages
+        assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
+        assert b"Invalid HTTP request received." in protocol.transport.buffer
+
+
+def test_fragmentation():
+    def receive_all(sock):
+        chunks = []
+        while True:
+            chunk = sock.recv(1024)
+            if not chunk:
+                break
+            chunks.append(chunk)
+        return b"".join(chunks)
+
+    app = Response("Hello, world", media_type="text/plain")
+
+    def send_fragmented_req(path):
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect(("127.0.0.1", 8000))
+        d = (
+            f"GET {path} HTTP/1.1\r\n" "Host: localhost\r\n" "Connection: close\r\n\r\n"
+        ).encode()
+        split = len(path) // 2
+        sock.sendall(d[:split])
+        time.sleep(0.01)
+        sock.sendall(d[split:])
+        resp = receive_all(sock)
+        # see https://github.com/kmonsoor/py-amqplib/issues/45
+        # we skip the error on bsd systems if python is too slow
+        try:
+            sock.shutdown(socket.SHUT_RDWR)
+        except Exception:
+            pass
+        sock.close()
+        return resp
+
+    config = Config(app=app, http="httptools")
+    server = Server(config=config)
+    t = threading.Thread(target=server.run)
+    t.daemon = True
+    t.start()
+    time.sleep(1)  # wait for uvicorn to start
+
+    path = "/?param=" + "q" * 10
+    response = send_fragmented_req(path)
+    bad_response = b"HTTP/1.1 400 Bad Request"
+    assert bad_response != response[: len(bad_response)]
+    server.should_exit = True
+    t.join()

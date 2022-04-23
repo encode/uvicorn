@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-<em>The lightning-fast ASGI server.</em>
+<em>An ASGI web server, for Python.</em>
 </p>
 
 <p align="center">
@@ -19,17 +19,13 @@
 
 # Introduction
 
-Uvicorn is a lightning-fast ASGI server implementation, using [uvloop][uvloop] and [httptools][httptools].
+Uvicorn is an ASGI web server implementation for Python.
 
 Until recently Python has lacked a minimal low-level server/application interface for
-asyncio frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
-start building a common set of tooling usable across all asyncio frameworks.
+async frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
+start building a common set of tooling usable across all async frameworks.
 
-ASGI should help enable an ecosystem of Python web frameworks that are highly competitive against Node
-and Go in terms of achieving high throughput in IO-bound contexts. It also provides support for HTTP/2 and
-WebSockets, which cannot be handled by WSGI.
-
-Uvicorn currently supports HTTP/1.1 and WebSockets. Support for HTTP/2 is planned.
+Uvicorn currently supports HTTP/1.1 and WebSockets.
 
 ## Quickstart
 
@@ -111,12 +107,16 @@ Options:
   --reload-dir PATH               Set reload directories explicitly, instead
                                   of using the current working directory.
   --reload-include TEXT           Set glob patterns to include while watching
-                                  for files. Includes '*.py' by default, which
-                                  can be overridden in reload-excludes.
+                                  for files. Includes '*.py' by default; these
+                                  defaults can be overridden with `--reload-
+                                  exclude`. This option has no effect unless
+                                  watchgod is installed.
   --reload-exclude TEXT           Set glob patterns to exclude while watching
                                   for files. Includes '.*, .py[cod], .sw.*,
-                                  ~*' by default, which can be overridden in
-                                  reload-excludes.
+                                  ~*' by default; these defaults can be
+                                  overridden with `--reload-include`. This
+                                  option has no effect unless watchgod is
+                                  installed.
   --reload-delay FLOAT            Delay between previous and next check if
                                   application needs to be. Defaults to 0.25s.
                                   [default: 0.25]
@@ -133,6 +133,9 @@ Options:
                                   [default: 16777216]
   --ws-ping-interval FLOAT        WebSocket ping interval  [default: 20.0]
   --ws-ping-timeout FLOAT         WebSocket ping timeout  [default: 20.0]
+  --ws-per-message-deflate BOOLEAN
+                                  WebSocket per-message-deflate compression
+                                  [default: True]
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --interface [auto|asgi3|asgi2|wsgi]
                                   Select ASGI3, ASGI2, or WSGI as the
@@ -185,7 +188,7 @@ Options:
                                   adding this to the PYTHONPATH. Defaults to
                                   the current working directory.  [default: .]
   --factory                       Treat APP as an application factory, i.e. a
-                                  () -> <ASGI app> callable.  [default: False]
+                                  () -> <ASGI app> callable.
   --help                          Show this message and exit.
 ```
 
@@ -418,7 +421,25 @@ async def app(scope, receive, send):
 
 ---
 
+## Why ASGI?
+
+Most well established Python Web frameworks started out as WSGI-based frameworks.
+
+WSGI applications are a single, synchronous callable that takes a request and returns a response.
+This doesn’t allow for long-lived connections, like you get with long-poll HTTP or WebSocket connections,
+which WSGI doesn't support well.
+
+Having an async concurrency model also allows for options such as lightweight background tasks,
+and can be less of a limiting factor for endpoints that have long periods being blocked on network
+I/O such as dealing with slow HTTP requests.
+
+---
+
 ## Alternative ASGI servers
+
+A strength of the ASGI protocol is that it decouples the server implementation
+from the application framework. This allows for an ecosystem of interoperating
+webservers and application frameworks.
 
 ### Daphne
 
@@ -483,6 +504,14 @@ You write your API function parameters with Python 3.6+ type declarations and ge
 [BlackSheep](https://www.neoteroi.dev/blacksheep/) is a web framework based on ASGI, inspired by Flask and ASP.NET Core.
 
 Its most distinctive features are built-in support for dependency injection, automatic binding of parameters by request handler's type annotations, and automatic generation of OpenAPI documentation and Swagger UI.
+
+### Falcon
+
+[Falcon](https://falconframework.org) is a minimalist REST and app backend framework for Python, with a focus on reliability, correctness, and performance at scale.
+
+### Muffin
+
+[Muffin](https://github.com/klen/muffin) is a fast, lightweight and asynchronous ASGI web-framework for Python 3.
 
 
 [uvloop]: https://github.com/MagicStack/uvloop

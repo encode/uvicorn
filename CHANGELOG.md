@@ -1,5 +1,92 @@
 # Change Log
 
+## 0.17.6 - 2022-03-11
+
+### Changed
+
+- Change `httptools` range to `>=0.4.0` (#1400) 11/03/22
+
+## 0.17.5 - 2022-02-16
+
+### Fixed
+
+- Fix case where url is fragmented in httptools protocol (#1263) 2/16/22
+- Fix WSGI middleware not to explode quadratically in the case of a larger body (#1329) 2/16/16
+
+### Changed
+
+- Send HTTP 400 response for invalid request (#1352) 2/11/22
+
+## 0.17.4 - 2022-02-04
+
+### Fixed
+
+- Replace `create_server` by `create_unix_server` (#1362) 04/02/22
+
+## 0.17.3 - 2022-02-03
+
+### Fixed
+
+- Drop wsproto version checking. (#1359) 03/02/22
+
+## 0.17.2 - 2022-02-03
+
+### Fixed
+
+- Revert #1332. While trying to solve the memory leak, it introduced an issue (#1345) when the server receives big chunks of data using the `httptools` implementation. (#1354) 03/02/22
+- Revert stream interface changes. This was introduced on 0.14.0, and caused an issue (#1226), which caused a memory leak when sending TCP pings. (#1355) 03/02/22
+- Fix wsproto version check expression (#1342) 28/01/22
+
+## 0.17.1 - 2022-01-28
+
+### Fixed
+
+- Move all data handling logic to protocol and ensure connection is closed. (#1332) 28/01/22
+- Change `spec_version` field from "2.1" to "2.3", as Uvicorn is compliant with that version of the ASGI specifications. (#1337) 25/01/22
+
+## 0.17.0.post1 - 2022-01-24
+
+### Fixed
+
+- Add the `python_requires` version specifier (#1328) 17/01/22
+
+## 0.17.0 - 2022-01-14
+
+### Added
+
+- Allow configurable websocket per-message-deflate setting (#1300) 29/12/21
+- Support extra_headers for WS accept message (#1293) 06/01/22
+- Add missing http version on websockets scope (#1309) 08/01/22
+
+### Fixed/Removed
+
+- Drop Python 3.6 support (#1261) 06/01/22
+- Fix reload process behavior when exception is raised (#1313) 11/01/22
+- Remove `root_path` from logs (#1294) 25/12/21
+
+## 0.16.0 - 2021-12-08
+
+### Added
+
+- Enable read of uvicorn settings from environment variables (#1279) 06/12/21
+- Bump `websockets` to 10.0. (#1180) 13/09/21
+- Ensure non-zero exit code when startup fails (#1278) 06/12/21
+- Increase `httptools` version range from "==0.2.*" to ">=0.2.0,<0.4.0". (#1243) 8/11/21
+- Override default asyncio event loop with reload only on Windows (#1257) 24/11/21
+- Replace `HttpToolsProtocol.pipeline` type from `list` to `deque`. (#1213) 10/10/21
+- Replace `WSGIResponder.send_queue` type from `list` to `deque`. (#1214) 10/10/21
+
+### Fixed
+
+- Main process exit after startup failure on reloader classes (#1177) 30/09/21
+- Add explicit casting on click options (#1217) 11/10/21
+- Allow WebSocket close event to receive reason being None from ASGI app. (#1259) 23/11/21
+- Fix a bug in `WebSocketProtocol.asgi_receive` on which we returned a close frame even if there were data messages before that frame in the read queue. (#1252) 25/11/21
+- The option `--reload-dirs` was splitting a string into single character directories. (#1267) 25/11/21
+- Only second SIGINT is able to forcelly shutdown the server (#1269) 28/11/21
+- Allow app-dir parameter on the run() function (#1271) 06/12/21
+
+
 ## 0.15.0 - 2021-08-13
 
 ### Added

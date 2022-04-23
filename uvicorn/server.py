@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import logging
 import os
 import platform
@@ -9,11 +10,10 @@ import threading
 import time
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, Any, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Set, Tuple, Union
 
 import click
 
-from uvicorn._handlers.http import handle_http
 from uvicorn.config import Config
 
 if TYPE_CHECKING:
@@ -23,13 +23,6 @@ if TYPE_CHECKING:
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
     Protocols = Union[H11Protocol, HttpToolsProtocol, WSProtocol, WebSocketProtocol]
-
-if sys.platform != "win32":
-    from asyncio import start_unix_server as _start_unix_server
-else:
-
-    async def _start_unix_server(*args: Any, **kwargs: Any) -> Any:
-        raise NotImplementedError("Cannot start a unix server on win32")
 
 
 HANDLED_SIGNALS = (
@@ -64,9 +57,7 @@ class Server:
 
     def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
-        if sys.version_info >= (3, 7):
-            return asyncio.run(self.serve(sockets=sockets))
-        return asyncio.get_event_loop().run_until_complete(self.serve(sockets=sockets))
+        return asyncio.run(self.serve(sockets=sockets))
 
     async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
         process_id = os.getpid()
@@ -101,12 +92,10 @@ class Server:
 
         config = self.config
 
-        async def handler(
-            reader: asyncio.StreamReader, writer: asyncio.StreamWriter
-        ) -> None:
-            await handle_http(
-                reader, writer, server_state=self.server_state, config=config
-            )
+        create_protocol = functools.partial(
+            config.http_protocol_class, config=config, server_state=self.server_state
+        )
+        loop = asyncio.get_running_loop()
 
         if sockets is not None:
             # Explicitly passed a list of open sockets.
@@ -124,8 +113,8 @@ class Server:
             for sock in sockets:
                 if config.workers > 1 and platform.system() == "Windows":
                     sock = _share_socket(sock)
-                server = await asyncio.start_server(
-                    handler, sock=sock, ssl=config.ssl, backlog=config.backlog
+                server = await loop.create_server(
+                    create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
                 )
                 self.servers.append(server)
             listeners = sockets
@@ -133,8 +122,8 @@ class Server:
         elif config.fd is not None:
             # Use an existing socket, from a file descriptor.
             sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
-            server = await asyncio.start_server(
-                handler, sock=sock, ssl=config.ssl, backlog=config.backlog
+            server = await loop.create_server(
+                create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
             )
             assert server.sockets is not None  # mypy
             listeners = server.sockets
@@ -145,8 +134,8 @@ class Server:
             uds_perms = 0o666
             if os.path.exists(config.uds):
                 uds_perms = os.stat(config.uds).st_mode
-            server = await _start_unix_server(
-                handler, path=config.uds, ssl=config.ssl, backlog=config.backlog
+            server = await loop.create_unix_server(
+                create_protocol, path=config.uds, ssl=config.ssl, backlog=config.backlog
             )
             os.chmod(config.uds, uds_perms)
             assert server.sockets is not None  # mypy
@@ -156,8 +145,8 @@ class Server:
         else:
             # Standard case. Create a socket from a host/port pair.
             try:
-                server = await asyncio.start_server(
-                    handler,
+                server = await loop.create_server(
+                    create_protocol,
                     host=config.host,
                     port=config.port,
                     ssl=config.ssl,
@@ -310,7 +299,7 @@ class Server:
 
     def handle_exit(self, sig: signal.Signals, frame: FrameType) -> None:
 
-        if self.should_exit:
+        if self.should_exit and sig == signal.SIGINT:
             self.force_exit = True
         else:
             self.should_exit = True

@@ -1,5 +1,6 @@
+import io
 import sys
-from typing import List
+from typing import AsyncGenerator, List
 
 import httpx
 import pytest
@@ -68,6 +69,19 @@ async def test_wsgi_post() -> None:
 
 
 @pytest.mark.anyio
+async def test_wsgi_put_more_body() -> None:
+    async def generate_body() -> AsyncGenerator[bytes, None]:
+        for _ in range(1024):
+            yield b"123456789abcdef\n" * 64
+
+    app = WSGIMiddleware(echo_body)
+    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+        response = await client.put("/", content=generate_body())
+    assert response.status_code == 200
+    assert response.text == "123456789abcdef\n" * 64 * 1024
+
+
+@pytest.mark.asyncio
 async def test_wsgi_exception() -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
@@ -120,6 +134,6 @@ def test_build_environ_encoding() -> None:
         "body": b"",
         "more_body": False,
     }
-    environ = build_environ(scope, message, b"")
+    environ = build_environ(scope, message, io.BytesIO(b""))
     assert environ["PATH_INFO"] == "/文".encode("utf8").decode("latin-1")
     assert environ["HTTP_KEY"] == "value1,value2"

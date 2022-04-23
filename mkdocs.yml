@@ -2,24 +2,39 @@ site_name: Uvicorn
 site_description: The lightning-fast ASGI server.
 
 theme:
-    name: 'material'
+  name: "material"
+  custom_dir: docs/overrides
+  palette:
+    - scheme: "default"
+      media: "(prefers-color-scheme: light)"
+      toggle:
+        icon: "material/lightbulb"
+        name: "Switch to dark mode"
+    - scheme: "slate"
+      media: "(prefers-color-scheme: dark)"
+      primary: "blue"
+      toggle:
+        icon: "material/lightbulb-outline"
+        name: "Switch to light mode"
 
 repo_name: encode/uvicorn
 repo_url: https://github.com/encode/uvicorn
 edit_uri: ""
 
 nav:
-    - Introduction: 'index.md'
-    - Settings: 'settings.md'
-    - Deployment: 'deployment.md'
-    - Server Behavior: 'server-behavior.md'
+  - Introduction: "index.md"
+  - Settings: "settings.md"
+  - Deployment: "deployment.md"
+  - Server Behavior: "server-behavior.md"
+  - Contributing: "contributing.md"
 
 markdown_extensions:
+  - admonition
   - codehilite:
       css_class: highlight
   - toc:
       permalink: true
 
 extra_javascript:
-  - 'js/chat.js'
-  - 'js/sidecar-1.5.0.js'
+  - "js/chat.js"
+  - "js/sidecar-1.5.0.js"

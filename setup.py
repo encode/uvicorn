@@ -52,8 +52,8 @@ minimal_requirements = [
 
 
 extra_requirements = [
-    "websockets>=9.1",
-    "httptools==0.2.*",
+    "websockets>=10.0",
+    "httptools>=0.4.0",
     "uvloop>=0.14.0,!=0.15.0,!=0.15.1; " + env_marker_cpython,
     "colorama>=0.4;" + env_marker_win,
     "watchgod>=0.6",
@@ -73,6 +73,7 @@ setup(
     author="Tom Christie",
     author_email="tom@tomchristie.com",
     packages=get_packages("uvicorn"),
+    python_requires=">=3.7",
     install_requires=minimal_requirements,
     extras_require={"standard": extra_requirements},
     include_package_data=True,
@@ -84,7 +85,6 @@ setup(
         "Operating System :: OS Independent",
         "Topic :: Internet :: WWW/HTTP",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
