@@ -81,7 +81,7 @@ async def test_wsgi_put_more_body() -> None:
     assert response.text == "123456789abcdef\n" * 64 * 1024
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_wsgi_exception() -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.

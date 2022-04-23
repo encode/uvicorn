@@ -149,7 +149,7 @@ async def test_can_disable_permessage_deflate_extension(
         assert "permessage-deflate" not in extension_names
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_close_connection(ws_protocol_cls, http_protocol_cls):
@@ -211,7 +211,7 @@ async def test_extra_headers(ws_protocol_cls, http_protocol_cls):
         assert extra_headers.get("extra") == "header"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_path_and_raw_path(ws_protocol_cls, http_protocol_cls):
@@ -596,7 +596,7 @@ async def test_send_binary_data_to_server_bigger_than_default(
             assert e.value.code == expected_result
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection(ws_protocol_cls, http_protocol_cls):
@@ -628,7 +628,7 @@ async def test_server_reject_connection(ws_protocol_cls, http_protocol_cls):
         await websocket_session("ws://127.0.0.1:8000")
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_can_read_messages_in_buffer_after_close(
