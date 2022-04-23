@@ -121,7 +121,7 @@ Options:
                                   adding this to the PYTHONPATH. Defaults to
                                   the current working directory.  [default: .]
   --factory                       Treat APP as an application factory, i.e. a
-                                  () -> <ASGI app> callable.  [default: False]
+                                  () -> <ASGI app> callable.
   --help                          Show this message and exit.
 ```
 
@@ -282,7 +282,7 @@ http {
       root /path/to/app/static;
     }
   }
-  
+
   map $http_upgrade $connection_upgrade {
     default upgrade;
     '' close;
