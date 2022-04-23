@@ -1,10 +1,10 @@
-import typing
+from typing import TYPE_CHECKING, Type
 
 from uvicorn.supervisors.basereload import BaseReload
 from uvicorn.supervisors.multiprocess import Multiprocess
 
-if typing.TYPE_CHECKING:
-    ChangeReload: typing.Type[BaseReload]  # pragma: no cover
+if TYPE_CHECKING:
+    ChangeReload: Type[BaseReload]
 else:
     try:
         from uvicorn.supervisors.watchgodreload import WatchGodReload as ChangeReload
