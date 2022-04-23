@@ -7,7 +7,14 @@ import websockets
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 
 from uvicorn._logging import TRACE_LOG_LEVEL
+from uvicorn._vendor.packaging import version
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+
+if version.parse(websockets.__version__) < version.parse("10.0"):
+    raise RuntimeError(
+        f'"websockets" version {websockets.__version__} was found.\n'
+        'Uvicorn requires "websockets" version 10.0 or higher.'
+    )
 
 
 class Server:

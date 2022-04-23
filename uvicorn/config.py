@@ -22,6 +22,15 @@ from asgiref.typing import ASGIApplication
 
 try:
     import yaml
+
+    from uvicorn._vendor.packaging import version
+
+    if version.parse(yaml.__version__) < version.parse("5.1"):
+        raise RuntimeError(
+            f'"PyYAML" version {yaml.__version__} was found.\n'
+            'Uvicorn requires "PyYAML" version 5.1 or higher.'
+        )
+
 except ImportError:  # pragma: no cover
     # If the code below that depends on yaml is exercised, it will raise a NameError.
     # Install the PyYAML package or the uvicorn[standard] optional dependencies to
