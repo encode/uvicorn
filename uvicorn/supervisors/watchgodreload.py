@@ -3,10 +3,17 @@ from pathlib import Path
 from socket import socket
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional
 
-from watchgod import DefaultWatcher
+import watchgod
 
+from uvicorn._vendor.packaging import version
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
+
+if version.parse(watchgod.VERSION) < version.parse("0.6"):
+    raise RuntimeError(
+        f'"watchgod" version {watchgod.VERSION} was found.\n'
+        'Uvicorn requires "watchgod" version 0.6 or higher.'
+    )
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -16,7 +23,7 @@ if TYPE_CHECKING:
     DirEntry = os.DirEntry[str]
 
 
-class CustomWatcher(DefaultWatcher):
+class CustomWatcher(watchgod.DefaultWatcher):
     def __init__(self, root_path: Path, config: Config):
         default_includes = ["*.py"]
         self.includes = [

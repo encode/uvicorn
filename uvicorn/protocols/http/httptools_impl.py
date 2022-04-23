@@ -8,6 +8,7 @@ from collections import deque
 import httptools
 
 from uvicorn._logging import TRACE_LOG_LEVEL
+from uvicorn._vendor.packaging import version
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
     HIGH_WATER_LIMIT,
@@ -21,6 +22,12 @@ from uvicorn.protocols.utils import (
     get_remote_addr,
     is_ssl,
 )
+
+if version.parse(httptools.__version__) < version.parse("0.2.0"):
+    raise RuntimeError(
+        f'"httptools" version {httptools.__version__} was found.\n'
+        'Uvicorn requires "httptools" version 0.2.0 or higher.'
+    )
 
 HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")

@@ -10,7 +10,14 @@ from wsproto.extensions import PerMessageDeflate
 from wsproto.utilities import RemoteProtocolError
 
 from uvicorn._logging import TRACE_LOG_LEVEL
+from uvicorn._vendor.packaging import version
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+
+if version.parse(wsproto.__version__) < version.parse("0.13"):
+    raise RuntimeError(
+        f'"wsproto" version {wsproto.__version__} was found.\n'
+        'Uvicorn requires "wsproto" version 0.13 or higher.'
+    )
 
 
 class WSProtocol(asyncio.Protocol):
