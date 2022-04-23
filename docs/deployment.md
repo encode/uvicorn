@@ -36,7 +36,7 @@ Options:
   --port INTEGER                  Bind socket to this port.  [default: 8000]
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
-  --reload                        Enable auto-reload. (Disables --workers)
+  --reload                        Enable auto-reload.
   --reload-dir PATH               Set reload directories explicitly, instead
                                   of using the current working directory.
   --reload-include TEXT           Set glob patterns to include while watching
