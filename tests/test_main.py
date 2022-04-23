@@ -1,3 +1,4 @@
+import socket
 from logging import WARNING
 
 import httpx
@@ -29,13 +30,33 @@ async def test_return_close_header():
     )
 
 
+def _has_ipv6(host):
+    sock = None
+    has_ipv6 = False
+    if socket.has_ipv6:
+        try:
+            sock = socket.socket(socket.AF_INET6)
+            sock.bind((host, 0))
+            has_ipv6 = True
+        except Exception:
+            pass
+    if sock:
+        sock.close()
+    return has_ipv6
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "host, url",
     [
         pytest.param(None, "http://127.0.0.1:8000", id="default"),
         pytest.param("localhost", "http://127.0.0.1:8000", id="hostname"),
-        pytest.param("::1", "http://[::1]:8000", id="ipv6"),
+        pytest.param(
+            "::1",
+            "http://[::1]:8000",
+            id="ipv6",
+            marks=pytest.mark.skipif(not _has_ipv6("::1"), reason="IPV6 not enabled"),
+        ),
     ],
 )
 async def test_run(host, url):

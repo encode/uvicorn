@@ -4,13 +4,12 @@ import os
 import socket
 import sys
 import typing
-from copy import deepcopy
 from pathlib import Path
 from unittest.mock import MagicMock
 
-if sys.version_info < (3, 8):
+if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
-else:
+else:  # pragma: py-lt-38
     from typing import Literal
 
 import pytest
@@ -20,7 +19,7 @@ from pytest_mock import MockerFixture
 
 from tests.utils import as_cwd
 from uvicorn._types import Environ, StartResponse
-from uvicorn.config import LOGGING_CONFIG, Config
+from uvicorn.config import Config
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
@@ -30,11 +29,6 @@ from uvicorn.protocols.http.h11_impl import H11Protocol
 @pytest.fixture
 def mocked_logging_config_module(mocker: MockerFixture) -> MagicMock:
     return mocker.patch("logging.config")
-
-
-@pytest.fixture(scope="function")
-def logging_config() -> dict:
-    return deepcopy(LOGGING_CONFIG)
 
 
 @pytest.fixture
@@ -369,15 +363,16 @@ def test_log_config_default(
     mocked_logging_config_module: MagicMock,
     use_colors: typing.Optional[bool],
     expected: typing.Optional[bool],
+    logging_config,
 ) -> None:
     """
     Test that one can specify the use_colors option when using the default logging
     config.
     """
-    config = Config(app=asgi_app, use_colors=use_colors)
+    config = Config(app=asgi_app, use_colors=use_colors, log_config=logging_config)
     config.load()
 
-    mocked_logging_config_module.dictConfig.assert_called_once_with(LOGGING_CONFIG)
+    mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
 
     (provided_dict_config,), _ = mocked_logging_config_module.dictConfig.call_args
     assert provided_dict_config["formatters"]["default"]["use_colors"] == expected
@@ -518,17 +513,14 @@ def test_ws_max_size() -> None:
 )
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
 def test_bind_unix_socket_works_with_reload_or_workers(
-    tmp_path, reload, workers
+    tmp_path, reload, workers, short_socket_name
 ):  # pragma: py-win32
-    uds_file = tmp_path / "uvicorn.sock"
-    config = Config(
-        app=asgi_app, uds=uds_file.as_posix(), reload=reload, workers=workers
-    )
+    config = Config(app=asgi_app, uds=short_socket_name, reload=reload, workers=workers)
     config.load()
     sock = config.bind_socket()
     assert isinstance(sock, socket.socket)
     assert sock.family == socket.AF_UNIX
-    assert sock.getsockname() == uds_file.as_posix()
+    assert sock.getsockname() == short_socket_name
     sock.close()
 
 

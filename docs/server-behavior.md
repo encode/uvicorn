@@ -20,7 +20,7 @@ HTTP headers are mandated to be case-insensitive. Uvicorn will always send respo
 
 ## Flow Control
 
-Proper flow control ensures that large amounts of data does not become buffered on the transport when either side of a connection is sending data faster than its counterpart is able to handle.
+Proper flow control ensures that large amounts of data do not become buffered on the transport when either side of a connection is sending data faster than its counterpart is able to handle.
 
 ### Write flow control
 
@@ -46,7 +46,7 @@ The `Expect: 100-Continue` header may be sent by clients to require a confirmati
 
 Uvicorn ensures that any required `100 Continue` confirmations are only sent if the ASGI application calls `receive` to read the request body.
 
-Note that that proxy configurations may not necessarily forward on `Expect: 100-Continue` headers. In particular Nginx defaults to buffering request bodies, and automatically sends `100 Continues` rather than passing the header on to the upstream server.
+Note that proxy configurations may not necessarily forward on `Expect: 100-Continue` headers. In particular, Nginx defaults to buffering request bodies, and automatically sends `100 Continues` rather than passing the header on to the upstream server.
 
 ### HEAD requests
 

@@ -13,6 +13,7 @@ For example, in case you want to run the app on port `5000`, just set the enviro
 !!! note
     CLI options and the arguments for `uvicorn.run()` take precedence over environment variables.
 
+    Also note that `UVICORN_*` prefixed settings cannot be used from within an environment configuration file. Using an environment configuration file with the `--env-file` flag is intended for configuring the ASGI application that uvicorn runs, rather than configuring uvicorn itself.
 
 ## Application
 
@@ -28,12 +29,19 @@ For example, in case you want to run the app on port `5000`, just set the enviro
 
 ## Development
 
-* `--reload` - Enable auto-reload.
+* `--reload` - Enable auto-reload. Uvicorn supports two versions of auto-reloading behavior enabled by this option. There are important differences between them.
 * `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default the whole current directory will be watched. If you are running programmatically use `reload_dirs=[]` and pass a list of strings.
+
+### Reloading without watchgod
+
+If Uvicorn _cannot_ load [watchgod](https://pypi.org/project/watchgod/) at runtime, it will periodically look for changes in modification times to all `*.py` files (and only `*.py` files) inside of its monitored directories. See the `--reload-dir` option. Specifying other file extensions is not supported unless watchgod is installed. See the `--reload-include` and `--reload-exclude` options for details.
+
+### Reloading with watchgod
+
+For more nuanced control over which file modifications trigger reloads, install `uvicorn[standard]`, which includes watchgod as a dependency. Alternatively, install [watchgod](https://pypi.org/project/watchgod/) where Unvicorn can see it. This will enable the following options (which are otherwise ignored).
+
 * `--reload-include <glob-pattern>` - Specify a glob pattern to match files or directories which will be watched. May be used multiple times. By default the following patterns are included: `*.py`. These defaults can be overwritten by including them in `--reload-exclude`.
 * `--reload-exclude <glob-pattern>` - Specify a glob pattern to match files or directories which will excluded from watching. May be used multiple times. By default the following patterns are excluded: `.*, .py[cod], .sw.*, ~*`. These defaults can be overwritten by including them in `--reload-include`.
-
-By default Uvicorn uses simple changes detection strategy that compares python files modification times few times a second. If this approach doesn't work for your project (eg. because of its complexity), or you need watching of non python files you can install [watchgod](https://pypi.org/project/watchgod/) or install uvicorn with `uvicorn[standard]`, which will include watchgod.
 
 ## Production
 

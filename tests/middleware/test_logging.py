@@ -28,8 +28,10 @@ async def app(scope, receive, send):
 
 
 @pytest.mark.asyncio
-async def test_trace_logging(caplog):
-    config = Config(app=app, log_level="trace")
+async def test_trace_logging(caplog, logging_config):
+    config = Config(
+        app=app, log_level="trace", log_config=logging_config, lifespan="auto"
+    )
     with caplog_for_logger(caplog, "uvicorn.asgi"):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
@@ -48,8 +50,13 @@ async def test_trace_logging(caplog):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("http_protocol", [("h11"), ("httptools")])
-async def test_trace_logging_on_http_protocol(http_protocol, caplog):
-    config = Config(app=app, log_level="trace", http=http_protocol)
+async def test_trace_logging_on_http_protocol(http_protocol, caplog, logging_config):
+    config = Config(
+        app=app,
+        log_level="trace",
+        http=http_protocol,
+        log_config=logging_config,
+    )
     with caplog_for_logger(caplog, "uvicorn.error"):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
@@ -66,7 +73,7 @@ async def test_trace_logging_on_http_protocol(http_protocol, caplog):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("ws_protocol", [("websockets"), ("wsproto")])
-async def test_trace_logging_on_ws_protocol(ws_protocol, caplog):
+async def test_trace_logging_on_ws_protocol(ws_protocol, caplog, logging_config):
     async def websocket_app(scope, receive, send):
         assert scope["type"] == "websocket"
         while True:
@@ -80,7 +87,12 @@ async def test_trace_logging_on_ws_protocol(ws_protocol, caplog):
         async with websockets.connect(url) as websocket:
             return websocket.open
 
-    config = Config(app=websocket_app, log_level="trace", ws=ws_protocol)
+    config = Config(
+        app=websocket_app,
+        log_level="trace",
+        log_config=logging_config,
+        ws=ws_protocol,
+    )
     with caplog_for_logger(caplog, "uvicorn.error"):
         async with run_server(config):
             is_open = await open_connection("ws://127.0.0.1:8000")
@@ -97,8 +109,8 @@ async def test_trace_logging_on_ws_protocol(ws_protocol, caplog):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("use_colors", [(True), (False), (None)])
-async def test_access_logging(use_colors, caplog):
-    config = Config(app=app, use_colors=use_colors)
+async def test_access_logging(use_colors, caplog, logging_config):
+    config = Config(app=app, use_colors=use_colors, log_config=logging_config)
     with caplog_for_logger(caplog, "uvicorn.access"):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
@@ -115,8 +127,8 @@ async def test_access_logging(use_colors, caplog):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("use_colors", [(True), (False)])
-async def test_default_logging(use_colors, caplog):
-    config = Config(app=app, use_colors=use_colors)
+async def test_default_logging(use_colors, caplog, logging_config):
+    config = Config(app=app, use_colors=use_colors, log_config=logging_config)
     with caplog_for_logger(caplog, "uvicorn.access"):
         async with run_server(config):
             async with httpx.AsyncClient() as client:

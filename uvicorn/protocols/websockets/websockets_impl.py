@@ -1,13 +1,12 @@
 import asyncio
 import http
 import logging
-from typing import Callable
 from urllib.parse import unquote
 
 import websockets
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 
-from uvicorn.logging import TRACE_LOG_LEVEL
+from uvicorn._logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
 
 
@@ -25,15 +24,12 @@ class Server:
 
 
 class WebSocketProtocol(websockets.WebSocketServerProtocol):
-    def __init__(
-        self, config, server_state, on_connection_lost: Callable = None, _loop=None
-    ):
+    def __init__(self, config, server_state, _loop=None):
         if not config.loaded:
             config.load()
 
         self.config = config
         self.app = config.loaded_app
-        self.on_connection_lost = on_connection_lost
         self.loop = _loop or asyncio.get_event_loop()
         self.root_path = config.root_path
 
@@ -96,8 +92,6 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         self.handshake_completed_event.set()
         super().connection_lost(exc)
-        if self.on_connection_lost is not None:
-            self.on_connection_lost()
         if exc is None:
             self.transport.close()
 
@@ -132,7 +126,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
 
         self.scope = {
             "type": "websocket",
-            "asgi": {"version": self.config.asgi_version, "spec_version": "2.1"},
+            "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
             "http_version": "1.1",
             "scheme": self.scheme,
             "server": self.server,
@@ -227,7 +221,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                         # ASGI spec requires bytes
                         # But for compability we need to convert it to strings
                         (name.decode("latin-1"), value.decode("latin-1"))
-                        for name, value in message.get("headers")
+                        for name, value in message["headers"]
                     )
                 self.handshake_started_event.set()
 
