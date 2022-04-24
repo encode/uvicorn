@@ -4,6 +4,7 @@ import json
 import logging
 import logging.config
 import os
+from random import randint
 import socket
 import ssl
 import sys
@@ -227,6 +228,7 @@ class Config:
         root_path: str = "",
         limit_concurrency: Optional[int] = None,
         limit_max_requests: Optional[int] = None,
+        max_requests_jitter: Optional[int] = None,
         backlog: int = 2048,
         timeout_keep_alive: int = 5,
         timeout_notify: int = 30,
@@ -269,6 +271,7 @@ class Config:
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests
+        self.max_requests_jitter = max_requests_jitter
         self.backlog = backlog
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
@@ -359,6 +362,9 @@ class Config:
             )
         else:
             self.forwarded_allow_ips = forwarded_allow_ips
+
+        if self.max_requests_jitter is not None:
+            self.limit_max_requests = self.max_requests_jitter + randint(0, self.max_requests_jitter)
 
     @property
     def asgi_version(self) -> Literal["2.0", "3.0"]:

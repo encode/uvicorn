@@ -39,6 +39,7 @@ class UvicornWorker(Worker):
             "timeout_notify": self.timeout,
             "callback_notify": self.callback_notify,
             "limit_max_requests": self.max_requests,
+            "max_requests_jitter": self.max_requests_jitter,
             "forwarded_allow_ips": self.cfg.forwarded_allow_ips,
         }
 
