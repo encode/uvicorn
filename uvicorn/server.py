@@ -245,7 +245,10 @@ class Server:
         if self.should_exit:
             return True
         if self.config.limit_max_requests is not None:
-            return self.server_state.total_requests >= self.config.limit_max_requests
+            max_requests_reached =  self.server_state.total_requests >= self.config.limit_max_requests
+            if max_requests_reached:
+                logger.info(f"Max requests reached : {os.getpid()}")
+            return max_requests_reached
         return False
 
     async def shutdown(self, sockets: Optional[List[socket.socket]] = None) -> None:
