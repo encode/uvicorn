@@ -38,7 +38,7 @@ def _has_ipv6(host):
             sock = socket.socket(socket.AF_INET6)
             sock.bind((host, 0))
             has_ipv6 = True
-        except Exception:
+        except Exception:  # pragma: no cover
             pass
     if sock:
         sock.close()
