@@ -1,9 +1,14 @@
-from asgiref.typing import (
-    ASGI2Application,
-    ASGIReceiveCallable,
-    ASGISendCallable,
-    Scope,
-)
+from __future__ import annotations
+
+import typing
+
+if typing.TYPE_CHECKING:
+    from asgiref.typing import (
+        ASGI2Application,
+        ASGIReceiveCallable,
+        ASGISendCallable,
+        Scope,
+    )
 
 
 class ASGI2Middleware:

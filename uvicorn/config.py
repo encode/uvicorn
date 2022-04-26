@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import inspect
 import json
@@ -8,7 +10,19 @@ import socket
 import ssl
 import sys
 from pathlib import Path
-from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
+
+import click
 
 from uvicorn._logging import TRACE_LOG_LEVEL
 
@@ -17,8 +31,8 @@ if sys.version_info < (3, 8):  # pragma: py-gte-38
 else:  # pragma: py-lt-38
     from typing import Literal
 
-import click
-from asgiref.typing import ASGIApplication
+if TYPE_CHECKING:
+    from asgiref.typing import ASGIApplication
 
 try:
     import yaml

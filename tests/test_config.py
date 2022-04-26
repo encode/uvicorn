@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -7,14 +9,8 @@ import typing
 from pathlib import Path
 from unittest.mock import MagicMock
 
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
-
 import pytest
 import yaml
-from asgiref.typing import ASGIApplication, ASGIReceiveCallable, ASGISendCallable, Scope
 from pytest_mock import MockerFixture
 
 from tests.utils import as_cwd
@@ -24,6 +20,19 @@ from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
+
+if sys.version_info < (3, 8):  # pragma: py-gte-38
+    from typing_extensions import Literal
+else:  # pragma: py-lt-38
+    from typing import Literal
+
+if typing.TYPE_CHECKING:
+    from asgiref.typing import (
+        ASGIApplication,
+        ASGIReceiveCallable,
+        ASGISendCallable,
+        Scope,
+    )
 
 
 @pytest.fixture

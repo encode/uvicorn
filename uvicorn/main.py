@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 import platform
@@ -6,7 +8,6 @@ import sys
 import typing
 
 import click
-from asgiref.typing import ASGIApplication
 
 import uvicorn
 from uvicorn.config import (
@@ -22,6 +23,9 @@ from uvicorn.config import (
 )
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
+
+if typing.TYPE_CHECKING:
+    from asgiref.typing import ASGIApplication
 
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
 HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))

@@ -8,16 +8,19 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
-from typing import List, Optional, Tuple, Union, cast
+from __future__ import annotations
 
-from asgiref.typing import (
-    ASGI3Application,
-    ASGIReceiveCallable,
-    ASGISendCallable,
-    HTTPScope,
-    Scope,
-    WebSocketScope,
-)
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union, cast
+
+if TYPE_CHECKING:
+    from asgiref.typing import (
+        ASGI3Application,
+        ASGIReceiveCallable,
+        ASGISendCallable,
+        HTTPScope,
+        Scope,
+        WebSocketScope,
+    )
 
 
 class ProxyHeadersMiddleware:
