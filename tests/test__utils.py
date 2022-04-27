@@ -22,7 +22,10 @@ def extra_packages():
 
 
 def versions(pkg_name: str):
-    """Extracted from https://stackoverflow.com/a/40745656/13087720."""
+    """Retrieve all the versions from a given pkg_name.
+
+    Extracted from https://stackoverflow.com/a/40745656/13087720.
+    """
     url = f"https://pypi.python.org/pypi/{pkg_name}/json"
     releases = json.loads(request.urlopen(url).read())["releases"]
     return sorted(releases, key=parse_version, reverse=True)
