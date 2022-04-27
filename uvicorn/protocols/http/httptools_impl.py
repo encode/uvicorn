@@ -8,7 +8,7 @@ from collections import deque
 import httptools
 
 from uvicorn._logging import TRACE_LOG_LEVEL
-from uvicorn._vendor.packaging import version
+from uvicorn._utils import version_parse
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
     HIGH_WATER_LIMIT,
@@ -23,7 +23,7 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 
-if version.parse(httptools.__version__) < version.parse("0.2.0"):
+if version_parse(httptools.__version__) < version_parse("0.2.0"):
     raise RuntimeError(
         f'"httptools" version {httptools.__version__} was found.\n'
         'Uvicorn requires "httptools" version 0.2.0 or higher.'

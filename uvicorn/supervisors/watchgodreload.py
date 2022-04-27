@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional
 
 import watchgod
 
-from uvicorn._vendor.packaging import version
+from uvicorn._utils import version_parse
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
 
-if version.parse(watchgod.VERSION) < version.parse("0.6"):
+if version_parse(watchgod.VERSION) < version_parse("0.6"):
     raise RuntimeError(
         f'"watchgod" version {watchgod.VERSION} was found.\n'
         'Uvicorn requires "watchgod" version 0.6 or higher.'

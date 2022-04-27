@@ -23,7 +23,7 @@ from asgiref.typing import ASGIApplication
 try:
     import yaml
 
-    from uvicorn._vendor.packaging import version
+    from packaging import version
 
     if version.parse(yaml.__version__) < version.parse("5.1"):
         raise RuntimeError(
