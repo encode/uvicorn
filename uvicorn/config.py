@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from uvicorn._logging import TRACE_LOG_LEVEL
+from uvicorn._utils import version_parse
 
 if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
@@ -23,9 +24,7 @@ from asgiref.typing import ASGIApplication
 try:
     import yaml
 
-    from packaging import version
-
-    if version.parse(yaml.__version__) < version.parse("5.1"):
+    if version_parse(yaml.__version__) < version_parse("5.1"):
         raise RuntimeError(
             f'"PyYAML" version {yaml.__version__} was found.\n'
             'Uvicorn requires "PyYAML" version 5.1 or higher.'
