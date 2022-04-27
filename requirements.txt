@@ -23,6 +23,7 @@ coverage==6.3.2
 coverage-conditional-plugin==0.5.0
 httpx==1.0.0b0
 pytest-asyncio==0.15.1
+importlib-metadata==4.11.3; python_version < "3.8"
 
 
 # Documentation
