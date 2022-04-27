@@ -1,6 +1,6 @@
 import json
 import re
-from importlib.metadata import requires
+import sys
 from typing import List, Tuple, cast
 from urllib import request
 
@@ -9,6 +9,11 @@ from packaging import version
 from pkg_resources import parse_version
 
 from uvicorn._utils import version_parse
+
+if sys.version_info >= (3, 8):  # pragma: py-lt-38
+    from importlib.metadata import requires
+else:  # pragma: py-gte-38
+    from importlib_metadata import requires
 
 
 def extra_packages():
