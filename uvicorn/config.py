@@ -238,7 +238,7 @@ class Config:
         ssl_cert_reqs: int = ssl.CERT_NONE,
         ssl_ca_certs: Optional[str] = None,
         ssl_ciphers: str = "TLSv1",
-        headers: Optional[List[List[str]]] = None,
+        headers: Optional[List[Tuple[str, str]]] = None,
         factory: bool = False,
     ):
         self.app = app
@@ -280,7 +280,7 @@ class Config:
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
-        self.headers: List[List[str]] = headers or []
+        self.headers: List[Tuple[str, str]] = headers or []
         self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
 
