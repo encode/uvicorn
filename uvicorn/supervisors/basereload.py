@@ -33,7 +33,7 @@ class BaseReload:
         self.pid = os.getpid()
         self.reloader_name: Optional[str] = None
 
-    def signal_handler(self, sig: signal.Signals, frame: FrameType) -> None:
+    def signal_handler(self, sig: int, frame: Optional[FrameType]) -> None:
         """
         A signal handler that is registered with the parent process.
         """
