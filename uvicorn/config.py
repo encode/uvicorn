@@ -174,7 +174,7 @@ def resolve_reload_patterns(
     for j in range(len(directories)):
         for k in range(j + 1, len(directories)):
             if directories[j] in directories[k].parents:
-                children.append(directories[k])
+                children.append(directories[k])  # pragma: py-darwin
             elif directories[k] in directories[j].parents:
                 children.append(directories[j])
 
