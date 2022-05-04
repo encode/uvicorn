@@ -6,6 +6,11 @@ from typing import Optional
 
 import click
 
+if sys.version_info < (3, 8):  # pragma: py-gte-38
+    from typing_extensions import Literal
+else:  # pragma: py-lt-38
+    from typing import Literal
+
 TRACE_LOG_LEVEL = 5
 
 
@@ -33,7 +38,7 @@ class ColourizedFormatter(logging.Formatter):
         self,
         fmt: Optional[str] = None,
         datefmt: Optional[str] = None,
-        style: str = "%",
+        style: Literal["%", "{", "$"] = "%",
         use_colors: Optional[bool] = None,
     ):
         if use_colors in (True, False):
@@ -102,8 +107,8 @@ class AccessFormatter(ColourizedFormatter):
             full_path,
             http_version,
             status_code,
-        ) = recordcopy.args
-        status_code = self.get_status_code(int(status_code))
+        ) = recordcopy.args  # type: ignore[misc]
+        status_code = self.get_status_code(int(status_code))  # type: ignore[arg-type]
         request_line = "%s %s HTTP/%s" % (method, full_path, http_version)
         if self.use_colors:
             request_line = click.style(request_line, bold=True)

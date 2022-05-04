@@ -9,7 +9,7 @@ from watchgod import DefaultWatcher
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     import os
 
     DirEntry = os.DirEntry[str]
