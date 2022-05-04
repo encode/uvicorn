@@ -619,7 +619,7 @@ async def test_server_reject_connection(ws_protocol_cls, http_protocol_cls):
     async def websocket_session(url):
         try:
             async with websockets.connect(url):
-                pass
+                pass  # pragma: no cover
         except Exception:
             pass
 
