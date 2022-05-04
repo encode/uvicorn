@@ -9,21 +9,15 @@ from watchgod import DefaultWatcher
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
 
-logger = logging.getLogger("uvicorn.error")
-
 if TYPE_CHECKING:  # pragma: no cover
     import os
 
     DirEntry = os.DirEntry[str]
 
+logger = logging.getLogger("uvicorn.error")
+
 
 class CustomWatcher(DefaultWatcher):
-    warnings.warn(
-        '"watchgod" is depreciated, you should switch '
-        "to watchfiles (`pip install watchfiles`).",
-        DeprecationWarning,
-    )
-
     def __init__(self, root_path: Path, config: Config):
         default_includes = ["*.py"]
         self.includes = [
@@ -136,6 +130,11 @@ class WatchGodReload(BaseReload):
         target: Callable[[Optional[List[socket]]], None],
         sockets: List[socket],
     ) -> None:
+        warnings.warn(
+            '"watchgod" is depreciated, you should switch '
+            "to watchfiles (`pip install watchfiles`).",
+            DeprecationWarning,
+        )
         super().__init__(config, target, sockets)
         self.reloader_name = "WatchGod"
         self.watchers = []
