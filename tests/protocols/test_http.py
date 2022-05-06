@@ -778,7 +778,7 @@ def test_fragmentation():
         # we skip the error on bsd systems if python is too slow
         try:
             sock.shutdown(socket.SHUT_RDWR)
-        except Exception:
+        except Exception:  # pragma: py-linux
             pass
         sock.close()
         return resp

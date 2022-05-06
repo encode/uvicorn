@@ -10,7 +10,7 @@ import threading
 import time
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Sequence, Set, Tuple, Union
 
 import click
 
@@ -97,6 +97,7 @@ class Server:
         )
         loop = asyncio.get_running_loop()
 
+        listeners: Sequence[socket.SocketType]
         if sockets is not None:
             # Explicitly passed a list of open sockets.
             # We use this when the server is run from a Gunicorn worker.
@@ -170,7 +171,7 @@ class Server:
 
         self.started = True
 
-    def _log_started_message(self, listeners: List[socket.SocketType]) -> None:
+    def _log_started_message(self, listeners: Sequence[socket.SocketType]) -> None:
         config = self.config
 
         if config.fd is not None:
@@ -297,7 +298,7 @@ class Server:
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)
 
-    def handle_exit(self, sig: signal.Signals, frame: FrameType) -> None:
+    def handle_exit(self, sig: int, frame: Optional[FrameType]) -> None:
 
         if self.should_exit and sig == signal.SIGINT:
             self.force_exit = True

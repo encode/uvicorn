@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
 
-from uvicorn.logging import TRACE_LOG_LEVEL
+from uvicorn._logging import TRACE_LOG_LEVEL
 
 if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
@@ -82,12 +82,12 @@ LOGGING_CONFIG: dict = {
     "disable_existing_loggers": False,
     "formatters": {
         "default": {
-            "()": "uvicorn.logging.DefaultFormatter",
+            "()": "uvicorn._logging.DefaultFormatter",
             "fmt": "%(levelprefix)s %(message)s",
             "use_colors": None,
         },
         "access": {
-            "()": "uvicorn.logging.AccessFormatter",
+            "()": "uvicorn._logging.AccessFormatter",
             "fmt": '%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',  # noqa: E501
         },
     },
@@ -125,7 +125,7 @@ def create_ssl_context(
     ctx = ssl.SSLContext(ssl_version)
     get_password = (lambda: password) if password else None
     ctx.load_cert_chain(certfile, keyfile, get_password)
-    ctx.verify_mode = cert_reqs
+    ctx.verify_mode = ssl.VerifyMode(cert_reqs)
     if ca_certs:
         ctx.load_verify_locations(ca_certs)
     if ciphers:
@@ -174,7 +174,7 @@ def resolve_reload_patterns(
     for j in range(len(directories)):
         for k in range(j + 1, len(directories)):
             if directories[j] in directories[k].parents:
-                children.append(directories[k])
+                children.append(directories[k])  # pragma: py-darwin
             elif directories[k] in directories[j].parents:
                 children.append(directories[j])
 
@@ -238,7 +238,7 @@ class Config:
         ssl_cert_reqs: int = ssl.CERT_NONE,
         ssl_ca_certs: Optional[str] = None,
         ssl_ciphers: str = "TLSv1",
-        headers: Optional[List[List[str]]] = None,
+        headers: Optional[List[Tuple[str, str]]] = None,
         factory: bool = False,
     ):
         self.app = app
@@ -280,7 +280,7 @@ class Config:
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
-        self.headers: List[List[str]] = headers or []
+        self.headers: List[Tuple[str, str]] = headers or []
         self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
 
