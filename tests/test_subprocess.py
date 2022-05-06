@@ -21,7 +21,7 @@ async def app(
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
-def test_get_subprocess() -> None:
+def test_get_subprocess() -> None:  # pragma: py-win32
     fdsock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     fd = fdsock.fileno()
     config = Config(app=app, fd=fd)
@@ -34,7 +34,7 @@ def test_get_subprocess() -> None:
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
-def test_subprocess_started() -> None:
+def test_subprocess_started() -> None:  # pragma: py-win32
     fdsock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     fd = fdsock.fileno()
     config = Config(app=app, fd=fd)
