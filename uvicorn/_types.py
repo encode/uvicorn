@@ -3,10 +3,10 @@ import types
 import typing
 from typing import Awaitable, Callable, Dict, Iterable, Optional, Tuple, Type, Union
 
-if sys.version_info >= (3, 8):
-    from typing import Literal, Protocol, TypedDict
-else:
+if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal, Protocol, TypedDict
+else:  # pragma: py-lt-38
+    from typing import Literal, Protocol, TypedDict
 
 # WSGI
 Environ = typing.MutableMapping[str, typing.Any]
@@ -202,12 +202,12 @@ ASGISendCallable = Callable[[ASGISendEvent], Awaitable[None]]
 
 class ASGI2Protocol(Protocol):
     def __init__(self, scope: Scope) -> None:
-        ...
+        ...  # pragma: no cover
 
     async def __call__(
         self, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
-        ...
+        ...  # pragma: no cover
 
 
 ASGI2Application = Type[ASGI2Protocol]
