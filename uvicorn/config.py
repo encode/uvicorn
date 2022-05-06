@@ -18,6 +18,7 @@ else:  # pragma: py-lt-38
     from typing import Literal
 
 import click
+
 from uvicorn._types import ASGIApplication
 
 try:

@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from uvicorn._logging import TRACE_LOG_LEVEL
 from uvicorn._types import (
     ASGI3Application,
     ASGIReceiveCallable,
@@ -9,8 +10,6 @@ from uvicorn._types import (
     ASGISendEvent,
     WWWScope,
 )
-
-from uvicorn._logging import TRACE_LOG_LEVEL
 
 PLACEHOLDER_FORMAT = {
     "body": "<{length} bytes>",

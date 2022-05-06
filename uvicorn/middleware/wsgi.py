@@ -10,13 +10,15 @@ from uvicorn._types import (
     ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
+    Environ,
+    ExcInfo,
     HTTPRequestEvent,
     HTTPResponseBodyEvent,
     HTTPResponseStartEvent,
     HTTPScope,
+    StartResponse,
+    WSGIApp,
 )
-
-from uvicorn._types import Environ, ExcInfo, StartResponse, WSGIApp
 
 
 def build_environ(

@@ -2,9 +2,9 @@ from typing import List, Union
 
 import httpx
 import pytest
-from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 
 from tests.response import Response
+from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 

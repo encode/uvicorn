@@ -3,6 +3,7 @@ import logging
 from asyncio import Queue
 from typing import Union
 
+from uvicorn import Config
 from uvicorn._types import (
     LifespanScope,
     LifespanShutdownCompleteEvent,
@@ -12,8 +13,6 @@ from uvicorn._types import (
     LifespanStartupEvent,
     LifespanStartupFailedEvent,
 )
-
-from uvicorn import Config
 
 LifespanReceiveMessage = Union[LifespanStartupEvent, LifespanShutdownEvent]
 LifespanSendMessage = Union[
