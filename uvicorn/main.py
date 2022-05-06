@@ -435,7 +435,7 @@ def main(
         ssl_cert_reqs=ssl_cert_reqs,
         ssl_ca_certs=ssl_ca_certs,
         ssl_ciphers=ssl_ciphers,
-        headers=[header.split(":", 1) for header in headers],
+        headers=[header.split(":", 1) for header in headers],  # type: ignore[misc]
         use_colors=use_colors,
         factory=factory,
         app_dir=app_dir,
@@ -485,7 +485,7 @@ def run(
     ssl_cert_reqs: int = int(ssl.CERT_NONE),
     ssl_ca_certs: typing.Optional[str] = None,
     ssl_ciphers: str = "TLSv1",
-    headers: typing.Optional[typing.List[typing.List[str]]] = None,
+    headers: typing.Optional[typing.List[typing.Tuple[str, str]]] = None,
     use_colors: typing.Optional[bool] = None,
     app_dir: typing.Optional[str] = None,
     factory: bool = False,
