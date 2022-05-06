@@ -18,7 +18,7 @@ else:  # pragma: py-lt-38
     from typing import Literal
 
 import click
-from asgiref.typing import ASGIApplication
+from uvicorn._types import ASGIApplication
 
 try:
     import yaml

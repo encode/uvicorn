@@ -14,11 +14,17 @@ else:  # pragma: py-lt-38
 
 import pytest
 import yaml
-from asgiref.typing import ASGIApplication, ASGIReceiveCallable, ASGISendCallable, Scope
 from pytest_mock import MockerFixture
 
 from tests.utils import as_cwd
-from uvicorn._types import Environ, StartResponse
+from uvicorn._types import (
+    ASGIApplication,
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    Environ,
+    Scope,
+    StartResponse,
+)
 from uvicorn.config import Config
 from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware

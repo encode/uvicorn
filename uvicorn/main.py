@@ -6,7 +6,7 @@ import sys
 import typing
 
 import click
-from asgiref.typing import ASGIApplication
+from uvicorn._types import ASGIApplication
 
 import uvicorn
 from uvicorn.config import (

@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from asgiref.typing import (
+from uvicorn._types import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGIReceiveEvent,

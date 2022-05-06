@@ -5,7 +5,7 @@ import sys
 from collections import deque
 from typing import Deque, Iterable, Optional, Tuple
 
-from asgiref.typing import (
+from uvicorn._types import (
     ASGIReceiveCallable,
     ASGIReceiveEvent,
     ASGISendCallable,
