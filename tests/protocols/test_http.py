@@ -774,7 +774,12 @@ def test_fragmentation():
         time.sleep(0.01)
         sock.sendall(d[split:])
         resp = receive_all(sock)
-        sock.shutdown(socket.SHUT_RDWR)
+        # see https://github.com/kmonsoor/py-amqplib/issues/45
+        # we skip the error on bsd systems if python is too slow
+        try:
+            sock.shutdown(socket.SHUT_RDWR)
+        except Exception:  # pragma: py-linux
+            pass
         sock.close()
         return resp
 
@@ -783,7 +788,7 @@ def test_fragmentation():
     t = threading.Thread(target=server.run)
     t.daemon = True
     t.start()
-    time.sleep(1)  # wait for unicorn to start
+    time.sleep(1)  # wait for uvicorn to start
 
     path = "/?param=" + "q" * 10
     response = send_fragmented_req(path)

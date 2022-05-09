@@ -188,7 +188,7 @@ Options:
                                   adding this to the PYTHONPATH. Defaults to
                                   the current working directory.  [default: .]
   --factory                       Treat APP as an application factory, i.e. a
-                                  () -> <ASGI app> callable.  [default: False]
+                                  () -> <ASGI app> callable.
   --help                          Show this message and exit.
 ```
 
@@ -508,6 +508,10 @@ Its most distinctive features are built-in support for dependency injection, aut
 ### Falcon
 
 [Falcon](https://falconframework.org) is a minimalist REST and app backend framework for Python, with a focus on reliability, correctness, and performance at scale.
+
+### Muffin
+
+[Muffin](https://github.com/klen/muffin) is a fast, lightweight and asynchronous ASGI web-framework for Python 3.
 
 
 [uvloop]: https://github.com/MagicStack/uvloop

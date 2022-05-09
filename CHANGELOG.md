@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.17.6 - 2022-03-11
+
+### Changed
+
+- Change `httptools` range to `>=0.4.0` (#1400) 11/03/22
+
 ## 0.17.5 - 2022-02-16
 
 ### Fixed
@@ -77,7 +83,7 @@
 - Allow WebSocket close event to receive reason being None from ASGI app. (#1259) 23/11/21
 - Fix a bug in `WebSocketProtocol.asgi_receive` on which we returned a close frame even if there were data messages before that frame in the read queue. (#1252) 25/11/21
 - The option `--reload-dirs` was splitting a string into single character directories. (#1267) 25/11/21
-- Only second SIGINT is able to forcelly shutdown the server (#1269) 28/11/21
+- Only second SIGINT is able to forcefully shutdown the server (#1269) 28/11/21
 - Allow app-dir parameter on the run() function (#1271) 06/12/21
 
 
@@ -191,7 +197,7 @@
 ### Fixed
 - Fixes watchgod with common prefixes (#817) 10/14/20 1b32f997
 - Fix reload with ipv6 host (#803) 10/14/20 5acaee5b
-- Added cli suport for headers containing colon (#813) 10/12/20 68732899
+- Added cli support for headers containing colon (#813) 10/12/20 68732899
 - Sharing socket across workers on windows (#802) 10/12/20 103167a0
 - Note the need to configure trusted "ips" when using unix sockets (#796) 10/4/20 a504c569
 

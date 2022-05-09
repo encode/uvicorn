@@ -17,8 +17,8 @@ from asgiref.typing import (
     HTTPScope,
 )
 
+from uvicorn._logging import TRACE_LOG_LEVEL
 from uvicorn.config import Config
-from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
     HIGH_WATER_LIMIT,

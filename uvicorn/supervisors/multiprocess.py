@@ -9,8 +9,8 @@ from typing import Callable, List, Optional
 
 import click
 
+from uvicorn._subprocess import get_subprocess
 from uvicorn.config import Config
-from uvicorn.subprocess import get_subprocess
 
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -34,7 +34,7 @@ class Multiprocess:
         self.should_exit = threading.Event()
         self.pid = os.getpid()
 
-    def signal_handler(self, sig: signal.Signals, frame: FrameType) -> None:
+    def signal_handler(self, sig: int, frame: Optional[FrameType]) -> None:
         """
         A signal handler that is registered with the parent process.
         """
