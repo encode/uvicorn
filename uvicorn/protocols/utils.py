@@ -11,7 +11,7 @@ def get_remote_addr(transport: asyncio.Transport) -> Optional[Tuple[str, int]]:
         try:
             info = socket_info.getpeername()
             return (str(info[0]), int(info[1])) if isinstance(info, tuple) else None
-        except OSError:
+        except OSError:  # pragma: no cover
             # This case appears to inconsistently occur with uvloop
             # bound to a unix domain socket.
             return None
