@@ -36,4 +36,4 @@ jobs:
       - name: "Enforce coverage"
         run: "scripts/coverage"
         shell: bash
-        if: "${{ matrix.python-version == '3.8' and matrix.os == 'ubuntu-latest'}}"
+        if: "${{ matrix.python-version == '3.8' && matrix.os == 'ubuntu-latest'}}"
