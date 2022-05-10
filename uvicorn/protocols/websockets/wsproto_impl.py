@@ -91,7 +91,7 @@ class WSProtocol(asyncio.Protocol):
                 self.transport.write(self.conn.send(err.event_hint))
                 self.transport.close()
             else:
-                self.handle_no_connect(events.CloseConnection())
+                self.handle_no_connect(events.CloseConnection(code=1007))
         else:
             self.handle_events()
 
