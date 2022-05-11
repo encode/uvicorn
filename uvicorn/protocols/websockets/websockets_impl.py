@@ -133,7 +133,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
             "client": self.client,
             "root_path": self.root_path,
             "path": unquote(path_portion),
-            "raw_path": path_portion,
+            "raw_path": path_portion.encode("ascii"),
             "query_string": query_string.encode("ascii"),
             "headers": asgi_headers,
             "subprotocols": subprotocols,
