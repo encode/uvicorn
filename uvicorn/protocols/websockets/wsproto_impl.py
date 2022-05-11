@@ -1,12 +1,19 @@
 import asyncio
 import logging
 import sys
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 from urllib.parse import unquote
 
 import h11
 import wsproto
-from asgiref.typing import ASGIReceiveEvent, ASGISendEvent, WebSocketDisconnectEvent
+from asgiref.typing import (
+    ASGIReceiveEvent,
+    ASGISendEvent,
+    WebSocketConnectEvent,
+    WebSocketDisconnectEvent,
+    WebSocketReceiveEvent,
+    WebSocketScope,
+)
 from wsproto import ConnectionType, events
 from wsproto.connection import ConnectionState
 from wsproto.extensions import PerMessageDeflate
@@ -47,10 +54,10 @@ class WSProtocol(asyncio.Protocol):
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
         self.server: Optional[Tuple[str, int]] = None
         self.client: Optional[Tuple[str, int]] = None
-        self.scheme: Optional[Literal["ws", "wss"]] = None
+        self.scheme: Literal["ws", "wss"] = None  # type: ignore[assignment]
 
         # WebSocket state
-        self.connect_event = None
+        self.connect_event: events.Request = None  # type: ignore[assignment]
         self.queue: asyncio.Queue[ASGIReceiveEvent] = asyncio.Queue()
         self.handshake_complete = False
         self.close_sent = False
@@ -148,12 +155,12 @@ class WSProtocol(asyncio.Protocol):
 
     # Event handlers
 
-    def handle_connect(self, event):
+    def handle_connect(self, event: events.Request) -> None:
         self.connect_event = event
         headers = [(b"host", event.host.encode())]
         headers += [(key.lower(), value) for key, value in event.extra_headers]
         raw_path, _, query_string = event.target.partition("?")
-        self.scope = {
+        self.scope: WebSocketScope = {
             "type": "websocket",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
             "http_version": "1.1",
@@ -166,13 +173,20 @@ class WSProtocol(asyncio.Protocol):
             "query_string": query_string.encode("ascii"),
             "headers": headers,
             "subprotocols": event.subprotocols,
+            "extensions": {},
         }
-        self.queue.put_nowait({"type": "websocket.connect"})
+        ws_connect_event: WebSocketConnectEvent = {"type": "websocket.connect"}
+        self.queue.put_nowait(ws_connect_event)
         task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.tasks.discard)
         self.tasks.add(task)
 
-    def handle_no_connect(self, event):
+    def handle_no_connect(
+        self,
+        event: Union[
+            events.RejectConnection, events.RejectData, events.CloseConnection
+        ],
+    ) -> None:
         headers = [
             (b"content-type", b"text/plain; charset=utf-8"),
             (b"connection", b"close"),
@@ -186,32 +200,40 @@ class WSProtocol(asyncio.Protocol):
         self.transport.write(output)
         self.transport.close()
 
-    def handle_text(self, event):
+    def handle_text(self, event: events.TextMessage) -> None:
         self.text += event.data
         if event.message_finished:
-            self.queue.put_nowait({"type": "websocket.receive", "text": self.text})
+            ws_receive_event: WebSocketReceiveEvent = {  # type: ignore[typeddict-item]
+                "type": "websocket.receive",
+                "text": self.text,
+            }
+            self.queue.put_nowait(ws_receive_event)
             self.text = ""
             if not self.read_paused:
                 self.read_paused = True
                 self.transport.pause_reading()
 
-    def handle_bytes(self, event):
+    def handle_bytes(self, event: events.BytesMessage) -> None:
         self.bytes += event.data
         # todo: we may want to guard the size of self.bytes and self.text
         if event.message_finished:
-            self.queue.put_nowait({"type": "websocket.receive", "bytes": self.bytes})
+            ws_receive_event: WebSocketReceiveEvent = {  # type: ignore[typeddict-item]
+                "type": "websocket.receive",
+                "bytes": self.bytes,
+            }
+            self.queue.put_nowait(ws_receive_event)
             self.bytes = b""
             if not self.read_paused:
                 self.read_paused = True
                 self.transport.pause_reading()
 
-    def handle_close(self, event):
+    def handle_close(self, event: events.CloseConnection) -> None:
         if self.conn.state == ConnectionState.REMOTE_CLOSING:
             self.transport.write(self.conn.send(event.response()))
         self.queue.put_nowait({"type": "websocket.disconnect", "code": event.code})
         self.transport.close()
 
-    def handle_ping(self, event):
+    def handle_ping(self, event: events.Ping) -> None:
         self.transport.write(self.conn.send(event.response()))
 
     def send_500_response(self):

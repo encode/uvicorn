@@ -97,7 +97,7 @@ class H11Protocol(asyncio.Protocol):
         self.flow: FlowControl = None  # type: ignore[assignment]
         self.server: Optional[Tuple[str, int]] = None
         self.client: Optional[Tuple[str, int]] = None
-        self.scheme: Optional[Literal["http", "https"]] = None
+        self.scheme: Literal["http", "https"] = None  # type: ignore[assignment]
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
