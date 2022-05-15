@@ -57,6 +57,8 @@ class Server:
 
     def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
+        if not self.config.loaded:
+            self.config.load()
         return asyncio.run(self.serve(sockets=sockets))
 
     async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:

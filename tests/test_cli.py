@@ -2,6 +2,7 @@ import importlib
 import os
 import platform
 import sys
+import textwrap
 from pathlib import Path
 from textwrap import dedent
 from unittest import mock
@@ -167,3 +168,28 @@ def test_app_dir(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     assert result.exit_code == 3
     mock_run.assert_called_once()
     assert sys.path[0] == str(app_dir)
+
+
+def test_load_app_before_event_loop(tmp_path: Path):
+    runner = CliRunner()
+    fp = tmp_path / "main.py"
+    content = textwrap.dedent(
+        """
+        import anyio
+
+        async def example():
+            await anyio.sleep(0)
+            print("All good!")
+
+        anyio.run(example)
+
+        async def app(scope, receive, send):
+            pass
+        """
+    )
+    fp.write_text(content)
+    with mock.patch("uvicorn.server.Server.serve"):
+        assert (
+            runner.invoke(cli, ["main:app", "--app-dir", str(tmp_path)]).stdout
+            == "All good!\n"
+        )
