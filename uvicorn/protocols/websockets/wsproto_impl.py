@@ -26,7 +26,7 @@ class WSProtocol(asyncio.Protocol):
         self.config = config
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
-        self.logger = logging.getLogger("uvicorn.error")
+        self.logger = logging.getLogger("uvicorn.websockets")
         self.root_path = config.root_path
 
         # Shared server state

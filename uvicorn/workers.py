@@ -22,7 +22,7 @@ class UvicornWorker(Worker):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(UvicornWorker, self).__init__(*args, **kwargs)
 
-        logger = logging.getLogger("uvicorn.error")
+        logger = logging.getLogger("uvicorn.server")
         logger.handlers = self.log.error_log.handlers
         logger.setLevel(self.log.error_log.level)
         logger.propagate = False

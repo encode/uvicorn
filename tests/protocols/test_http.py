@@ -808,8 +808,8 @@ async def test_invalid_http_request(request_line, protocol_cls, caplog):
     app = Response("Hello, world", media_type="text/plain")
     request = INVALID_REQUEST_TEMPLATE % request_line
 
-    caplog.set_level(logging.INFO, logger="uvicorn.error")
-    logging.getLogger("uvicorn.error").propagate = True
+    caplog.set_level(logging.INFO, logger="uvicorn.http")
+    logging.getLogger("uvicorn.http").propagate = True
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(request)

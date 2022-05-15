@@ -117,12 +117,14 @@ LOGGING_CONFIG: Dict[str, Any] = {
     },
     "loggers": {
         "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": False},
-        "uvicorn.error": {"level": "INFO"},
+        "uvicorn.server": {"level": "INFO"},
+        "uvicorn.websockets": {"level": "INFO"},
+        "uvicorn.http": {"level": "INFO"},
         "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
     },
 }
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger("uvicorn.server")
 
 
 def create_ssl_context(
@@ -422,8 +424,10 @@ class Config:
                 log_level = LOG_LEVELS[self.log_level]
             else:
                 log_level = self.log_level
-            logging.getLogger("uvicorn.error").setLevel(log_level)
+            logging.getLogger("uvicorn.server").setLevel(log_level)
             logging.getLogger("uvicorn.access").setLevel(log_level)
+            logging.getLogger("uvicorn.http").setLevel(log_level)
+            logging.getLogger("uvicorn.websockets").setLevel(log_level)
             logging.getLogger("uvicorn.asgi").setLevel(log_level)
         if self.access_log is False:
             logging.getLogger("uvicorn.access").handlers = []

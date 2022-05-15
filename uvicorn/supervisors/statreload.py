@@ -6,7 +6,7 @@ from typing import Callable, Dict, Iterator, List, Optional
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger("uvicorn.server")
 
 
 class StatReload(BaseReload):

@@ -14,7 +14,8 @@ if TYPE_CHECKING:
 
     DirEntry = os.DirEntry[str]
 
-logger = logging.getLogger("uvicorn.error")
+
+logger = logging.getLogger("uvicorn.server")
 
 
 class CustomWatcher(DefaultWatcher):

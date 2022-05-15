@@ -2,7 +2,7 @@ import asyncio
 import logging
 import sys
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger("uvicorn.server")
 
 
 def asyncio_setup(use_subprocess: bool = False) -> None:  # pragma: no cover

@@ -66,15 +66,13 @@ async def test_trace_logging_on_http_protocol(http_protocol, caplog, logging_con
         http=http_protocol,
         log_config=logging_config,
     )
-    with caplog_for_logger(caplog, "uvicorn.error"):
+    with caplog_for_logger(caplog, "uvicorn.http"):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
                 response = await client.get("http://127.0.0.1:8000")
         assert response.status_code == 204
         messages = [
-            record.message
-            for record in caplog.records
-            if record.name == "uvicorn.error"
+            record.message for record in caplog.records if record.name == "uvicorn.http"
         ]
         assert any(" - HTTP connection made" in message for message in messages)
         assert any(" - HTTP connection lost" in message for message in messages)
@@ -102,16 +100,21 @@ async def test_trace_logging_on_ws_protocol(ws_protocol, caplog, logging_config)
         log_config=logging_config,
         ws=ws_protocol,
     )
-    with caplog_for_logger(caplog, "uvicorn.error"):
+    with caplog_for_logger(caplog, "uvicorn.http"), caplog_for_logger(
+        caplog, "uvicorn.websockets"
+    ):
         async with run_server(config):
             is_open = await open_connection("ws://127.0.0.1:8000")
         assert is_open
         messages = [
-            record.message
-            for record in caplog.records
-            if record.name == "uvicorn.error"
+            record.message for record in caplog.records if record.name == "uvicorn.http"
         ]
         assert any(" - Upgrading to WebSocket" in message for message in messages)
+        messages = [
+            record.message
+            for record in caplog.records
+            if record.name == "uvicorn.websockets"
+        ]
         assert any(" - WebSocket connection made" in message for message in messages)
         assert any(" - WebSocket connection lost" in message for message in messages)
 
