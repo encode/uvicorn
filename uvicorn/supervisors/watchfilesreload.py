@@ -33,7 +33,7 @@ class FileFilter:
             p = Path(e)
             try:
                 is_dir = p.is_dir()
-            except OSError:
+            except OSError:  # pragma: no cover
                 # gets raised on Windows for values like "*.py"
                 is_dir = False
 

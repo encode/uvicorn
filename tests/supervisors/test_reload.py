@@ -1,3 +1,4 @@
+import signal
 from pathlib import Path
 from time import sleep
 from typing import Type
@@ -77,7 +78,8 @@ class TestBaseReload:
             config = Config(app="tests.test_config:asgi_app", reload=True)
             reloader = self._setup_reloader(config)
 
-            assert self._reload_tester(touch_soon, reloader, file)
+            changes = self._reload_tester(touch_soon, reloader, file)
+            assert changes == [file]
 
             reloader.shutdown()
 
@@ -239,6 +241,32 @@ class TestBaseReload:
 
             reloader.shutdown()
 
+    @pytest.mark.parametrize("reloader_class", [WatchFilesReload])
+    def test_watchfiles_no_changes(self) -> None:
+        sub_dir = self.reload_path / "app" / "sub"
+
+        with as_cwd(self.reload_path):
+            config = Config(
+                app="tests.test_config:asgi_app",
+                reload=True,
+                reload_excludes=[str(sub_dir)],
+            )
+            reloader = self._setup_reloader(config)
+
+            from watchfiles import watch
+            # just so we can make rust_timeout 100ms
+            reloader.watcher = watch(
+                sub_dir,
+                watch_filter=None,
+                stop_event=reloader.should_exit,
+                yield_on_timeout=True,
+                rust_timeout=100,
+            )
+
+            assert reloader.should_restart() is None
+
+            reloader.shutdown()
+
 
 def test_should_watch_one_dir_cwd(mocker, reload_directory_structure):
     mock_watch = mocker.patch("uvicorn.supervisors.watchfilesreload.watch")
@@ -284,3 +312,48 @@ def test_display_path_relative(tmp_path):
 def test_display_path_non_relative():
     p = Path("/foo/bar.py")
     assert _display_path(p) in ("'/foo/bar.py'", "'\\foo\\bar.py'")
+
+
+def test_base_reloader_run(tmp_path):
+    calls = []
+    step = 0
+
+    class CustomReload(BaseReload):
+        def startup(self):
+            calls.append('startup')
+
+        def restart(self):
+            calls.append('restart')
+
+        def shutdown(self):
+            calls.append('shutdown')
+
+        def should_restart(self):
+            nonlocal step
+            step += 1
+            if step == 1:
+                return None
+            elif step == 2:
+                return [tmp_path / "foobar.py"]
+            else:
+                raise StopIteration()
+
+    config = Config(app="tests.test_config:asgi_app", reload=True)
+    reloader = CustomReload(config, target=run, sockets=[])
+    reloader.run()
+
+    assert calls == ['startup', 'restart', 'shutdown']
+
+
+def test_base_reloader_should_exit(tmp_path):
+    config = Config(app="tests.test_config:asgi_app", reload=True)
+    reloader = BaseReload(config, target=run, sockets=[])
+    assert not reloader.should_exit.is_set()
+    reloader.pause()
+
+    reloader.signal_handler(signal.SIGINT, None)
+
+    assert reloader.should_exit.is_set()
+    with pytest.raises(StopIteration):
+        reloader.pause()
+
