@@ -255,6 +255,7 @@ class TestBaseReload:
             reloader = self._setup_reloader(config)
 
             from watchfiles import watch
+
             # just so we can make rust_timeout 100ms
             reloader.watcher = watch(
                 sub_dir,
@@ -349,13 +350,13 @@ def test_base_reloader_run(tmp_path):
 
     class CustomReload(BaseReload):
         def startup(self):
-            calls.append('startup')
+            calls.append("startup")
 
         def restart(self):
-            calls.append('restart')
+            calls.append("restart")
 
         def shutdown(self):
-            calls.append('shutdown')
+            calls.append("shutdown")
 
         def should_restart(self):
             nonlocal step
@@ -371,7 +372,7 @@ def test_base_reloader_run(tmp_path):
     reloader = CustomReload(config, target=run, sockets=[])
     reloader.run()
 
-    assert calls == ['startup', 'restart', 'shutdown']
+    assert calls == ["startup", "restart", "shutdown"]
 
 
 def test_base_reloader_should_exit(tmp_path):
@@ -385,4 +386,3 @@ def test_base_reloader_should_exit(tmp_path):
     assert reloader.should_exit.is_set()
     with pytest.raises(StopIteration):
         reloader.pause()
-
