@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.17.7 - 2022-05-18
+- Replaced watchgod with watchfiles
+
 ## 0.17.6 - 2022-03-11
 
 ### Changed

@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     ChangeReload: Type[BaseReload]
 else:
     try:
-        from uvicorn.supervisors.watchgodreload import WatchGodReload as ChangeReload
+        from uvicorn.supervisors.watchfilesreload import WatchFilesReload as ChangeReload
     except ImportError:  # pragma: no cover
         from uvicorn.supervisors.statreload import StatReload as ChangeReload
 

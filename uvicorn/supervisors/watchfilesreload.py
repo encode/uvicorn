@@ -122,7 +122,7 @@ class CustomWatcher(DefaultWatcher):
         return False
 
 
-class WatchGodReload(BaseReload):
+class WatchFilesReload(BaseReload):
     def __init__(
         self,
         config: Config,
