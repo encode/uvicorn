@@ -1,3 +1,4 @@
+import logging
 import signal
 from pathlib import Path
 from time import sleep
@@ -264,6 +265,34 @@ class TestBaseReload:
             )
 
             assert reloader.should_restart() is None
+
+            reloader.shutdown()
+
+    @pytest.mark.parametrize("reloader_class", [WatchGodReload])
+    def test_should_detect_new_reload_dirs(
+        self, touch_soon, caplog: pytest.LogCaptureFixture, tmp_path: Path
+    ) -> None:
+        app_dir = tmp_path / "app"
+        app_file = app_dir / "file.py"
+        app_dir.mkdir()
+        app_file.touch()
+        app_first_dir = tmp_path / "app_first"
+        app_first_file = app_first_dir / "file.py"
+
+        with as_cwd(tmp_path):
+            config = Config(
+                app="tests.test_config:asgi_app", reload=True, reload_includes=["app*"]
+            )
+            reloader = self._setup_reloader(config)
+            assert self._reload_tester(touch_soon, reloader, app_file)
+
+            app_first_dir.mkdir()
+            assert self._reload_tester(touch_soon, reloader, app_first_file)
+            assert caplog.records[-2].levelno == logging.INFO
+            assert (
+                caplog.records[-1].message == "WatchGodReload detected a new reload "
+                f"dir '{app_first_dir.name}' in '{tmp_path}'; Adding to watch list."
+            )
 
             reloader.shutdown()
 
