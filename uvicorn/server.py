@@ -55,6 +55,14 @@ class Server:
         self.force_exit = False
         self.last_notified = 0.0
 
+        self._sockets: Optional[List[socket.socket]] = None
+
+        self._main_task: Optional[asyncio.Task] = None
+
+        #: Set once immediately after startup has completed and the server has
+        #: started listening for requests.
+        self._startup_event = asyncio.Event()
+
         #: Set once immediately after all requests have been closed and shutdown
         #: has completed.
         self._shutdown_event = asyncio.Event()
@@ -63,7 +71,7 @@ class Server:
         self.config.setup_event_loop()
         return asyncio.run(self.serve(sockets=sockets))
 
-    async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
+    async def _main(self) -> None:
         process_id = os.getpid()
 
         config = self.config
@@ -72,21 +80,43 @@ class Server:
 
         self.lifespan = config.lifespan_class(config)
 
-        self.install_signal_handlers()
-
         message = "Started server process [%d]"
         color_message = "Started server process [" + click.style("%d", fg="cyan") + "]"
         logger.info(message, process_id, extra={"color_message": color_message})
 
-        await self.startup(sockets=sockets)
+        await self.startup(sockets=self._sockets)
         if self.should_exit:
             return
         await self.main_loop()
-        await self._shutdown(sockets=sockets)
+        await self._shutdown(sockets=self._sockets)
 
         message = "Finished server process [%d]"
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
         logger.info(message, process_id, extra={"color_message": color_message})
+
+    async def start_serving(self) -> None:
+        if self._main_task is not None:
+            return
+        self._main_task = asyncio.create_task(self._main())
+        await self._startup_event.wait()
+
+    async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
+        if self._main_task is not None:
+            raise RuntimeError("cannot call serve on running server")
+
+        if sockets is not None and self._sockets is not None:
+            raise RuntimeError("cannot override already provided sockets list")
+
+        self._sockets = sockets
+
+        self.install_signal_handlers()
+        try:
+            await self.start_serving()
+            await self.wait_closed()
+
+        except asyncio.CancelledError:
+            self.close()
+            await self.wait_closed()
 
     async def startup(self, sockets: list = None) -> None:
         await self.lifespan.startup()
@@ -174,6 +204,7 @@ class Server:
             pass
 
         self.started = True
+        self._startup_event.set()
 
     def _log_started_message(self, listeners: Sequence[socket.SocketType]) -> None:
         config = self.config
