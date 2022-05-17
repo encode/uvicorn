@@ -63,10 +63,6 @@ class Server:
         #: started listening for requests.
         self._startup_event = asyncio.Event()
 
-        #: Set once immediately after all requests have been closed and shutdown
-        #: has completed.
-        self._shutdown_event = asyncio.Event()
-
     def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
         return asyncio.run(self.serve(sockets=sockets))
@@ -330,8 +326,6 @@ class Server:
         if not self.force_exit:
             await self.lifespan.shutdown()
 
-        self._shutdown_event.set()
-
     def close(self, *, force_exit: bool = False) -> None:
         """
         Asks the server, asynchronously, to initiate shutdown.
@@ -345,10 +339,9 @@ class Server:
         """
         Blocks until the server is completely shutdown.
         """
-        await asyncio.wait(
-            [asyncio.create_task(self._shutdown_event.wait()), self._main_task],
-            return_when=asyncio.FIRST_COMPLETED,
-        )
+        if self._main_task is None:
+            raise RuntimeError("Server hasn't been started")
+        await self._main_task
 
     async def shutdown(self) -> None:
         self.close()
