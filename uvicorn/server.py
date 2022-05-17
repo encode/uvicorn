@@ -95,10 +95,22 @@ class Server:
         logger.info(message, process_id, extra={"color_message": color_message})
 
     async def start_serving(self) -> None:
-        if self._main_task is not None:
-            return
-        self._main_task = asyncio.create_task(self._main())
-        await self._startup_event.wait()
+        """
+        Starts the server running in a background task and blocks until startup
+        is either fully complete, or fails.
+
+        Idempotent.  Can be called multiple times without creating multiple
+        instances.
+        """
+        if self._main_task is None:
+            self._main_task = asyncio.create_task(self._main())
+
+        # If the main task exits before the startup event is set it means that
+        # startup has failed.
+        await asyncio.wait(
+            [asyncio.create_task(self._startup_event.wait()), self._main_task],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
 
     async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
         if self._main_task is not None:
@@ -333,7 +345,10 @@ class Server:
         """
         Blocks until the server is completely shutdown.
         """
-        await self._shutdown_event.wait()
+        await asyncio.wait(
+            [asyncio.create_task(self._shutdown_event.wait()), self._main_task],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
 
     async def shutdown(self) -> None:
         self.close()
