@@ -61,9 +61,9 @@ class Server:
 
         self._main_task: Optional[asyncio.Task] = None
 
-        #: Set once immediately after startup has completed and the server has
-        #: started listening for requests.
-        self._startup_event = asyncio.Event()
+        #: Created on demand and set once immediately after startup has
+        #: completed and the server has started listening for requests.
+        self._startup_event: Optional[asyncio.Event] = None
 
     def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
@@ -100,6 +100,12 @@ class Server:
         Idempotent.  Can be called multiple times without creating multiple
         instances.
         """
+        if self._startup_event is None:
+            # We defer creating the startup event until start serving is called
+            # because there is no guarantee that the constructor will be called
+            # with an active loop.
+            self._startup_event = asyncio.Event()
+
         if self._main_task is None:
             self._main_task = asyncio.create_task(self._main())
 
@@ -214,6 +220,8 @@ class Server:
             pass
 
         self.started = True
+
+        assert self._startup_event is not None
         self._startup_event.set()
 
     def _log_started_message(self, listeners: Sequence[socket.SocketType]) -> None:
