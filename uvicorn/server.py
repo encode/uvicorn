@@ -46,7 +46,9 @@ class ServerState:
 
 
 class Server:
-    def __init__(self, config: Config) -> None:
+    def __init__(
+        self, config: Config, *, sockets: Optional[List[socket.socket]] = None
+    ) -> None:
         self.config = config
         self.server_state = ServerState()
 
@@ -55,7 +57,7 @@ class Server:
         self.force_exit = False
         self.last_notified = 0.0
 
-        self._sockets: Optional[List[socket.socket]] = None
+        self._sockets: Optional[List[socket.socket]] = sockets
 
         self._main_task: Optional[asyncio.Task] = None
 
