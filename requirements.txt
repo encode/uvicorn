@@ -13,7 +13,7 @@ black==22.3.0
 flake8==3.9.2
 isort==5.10.1
 pytest==7.1.2
-pytest-mock==3.6.1
+pytest-mock==3.7.0
 mypy==0.960
 types-click==7.1.8
 types-pyyaml==6.0.7
