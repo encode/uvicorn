@@ -10,6 +10,8 @@ import sys
 from pathlib import Path
 from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
 
+from h11._connection import DEFAULT_MAX_INCOMPLETE_EVENT_SIZE
+
 from uvicorn._logging import TRACE_LOG_LEVEL
 
 if sys.version_info < (3, 8):  # pragma: py-gte-38
@@ -240,6 +242,7 @@ class Config:
         ssl_ciphers: str = "TLSv1",
         headers: Optional[List[Tuple[str, str]]] = None,
         factory: bool = False,
+        h11_max_incomplete_event_size: int = DEFAULT_MAX_INCOMPLETE_EVENT_SIZE,
     ):
         self.app = app
         self.host = host
@@ -283,6 +286,7 @@ class Config:
         self.headers: List[Tuple[str, str]] = headers or []
         self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
+        self.h11_max_incomplete_event_size = h11_max_incomplete_event_size
 
         self.loaded = False
         self.configure_logging()
