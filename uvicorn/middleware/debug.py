@@ -2,7 +2,7 @@ import html
 import traceback
 from typing import Union
 
-from asgiref.typing import (
+from asgi_types import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,

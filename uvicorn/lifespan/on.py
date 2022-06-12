@@ -3,7 +3,7 @@ import logging
 from asyncio import Queue
 from typing import Union
 
-from asgiref.typing import (
+from asgi_types import (
     LifespanScope,
     LifespanShutdownCompleteEvent,
     LifespanShutdownEvent,

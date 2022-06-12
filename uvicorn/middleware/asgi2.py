@@ -1,4 +1,4 @@
-from asgiref.typing import (
+from asgi_types import (
     ASGI2Application,
     ASGIReceiveCallable,
     ASGISendCallable,

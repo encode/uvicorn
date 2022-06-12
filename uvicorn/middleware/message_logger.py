@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from asgiref.typing import (
+from asgi_types import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGIReceiveEvent,

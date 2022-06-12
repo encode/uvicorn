@@ -9,7 +9,7 @@ from collections import deque
 from typing import Callable, Deque, List, Optional, Tuple, Union, cast
 
 import httptools
-from asgiref.typing import (
+from asgi_types import (
     ASGI3Application,
     ASGIReceiveEvent,
     ASGISendEvent,

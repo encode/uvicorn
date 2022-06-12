@@ -6,7 +6,7 @@ from typing import Callable, List, Optional, Tuple, Union, cast
 from urllib.parse import unquote
 
 import h11
-from asgiref.typing import (
+from asgi_types import (
     ASGI3Application,
     ASGIReceiveEvent,
     ASGISendEvent,

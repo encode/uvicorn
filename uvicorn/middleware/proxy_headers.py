@@ -10,7 +10,7 @@ https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
 from typing import List, Optional, Tuple, Union, cast
 
-from asgiref.typing import (
+from asgi_types import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
