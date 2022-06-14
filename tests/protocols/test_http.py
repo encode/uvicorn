@@ -809,46 +809,60 @@ def test_fragmentation():
     t.join()
 
 
-@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-def test_huge_headers_h11_fail(protocol_cls, event_loop):
+@pytest.mark.parametrize("protocol_cls", [H11Protocol])
+def test_huge_headers_h11protocol_will_fail(protocol_cls, event_loop):
     app = Response("Hello, world", media_type="text/plain")
 
     with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
         # Huge headers make h11 fail in it's default config
         # h11 sends back a 400 in this case
-        if protocol_cls == H11Protocol:
-            protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
-            assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
-            assert b"Connection: close" in protocol.transport.buffer
-            assert b"Invalid HTTP request received." in protocol.transport.buffer
-        else:
-            protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
-            protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
-            protocol.loop.run_one()
-            assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-            assert b"Hello, world" in protocol.transport.buffer
+        protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
+        assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
+        assert b"Connection: close" in protocol.transport.buffer
+        assert b"Invalid HTTP request received." in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-def test_huge_headers_h11_fail_with_setting(protocol_cls, event_loop):
+def test_huge_headers_httptools_will_pass(event_loop, protocol_cls=HttpToolsProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
-    # a test to make sure that even when a value is set
-    # a larger header will fail
+    with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
+        # Huge headers make h11 fail in it's default config
+        # httptools protocol will always pass
+        protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
+        protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
+        protocol.loop.run_one()
+        assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+        assert b"Hello, world" in protocol.transport.buffer
+
+
+@pytest.mark.parametrize("protocol_cls", [H11Protocol])
+def test_huge_headers_h11protocol_will_fail_with_setting(protocol_cls, event_loop):
+    app = Response("Hello, world", media_type="text/plain")
+
     with get_connected_protocol(
         app, protocol_cls, event_loop, h11_max_incomplete_event_size=20 * 1024
     ) as protocol:
-        if protocol_cls == H11Protocol:
-            protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
-            assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
-            assert b"Connection: close" in protocol.transport.buffer
-            assert b"Invalid HTTP request received." in protocol.transport.buffer
-        else:
-            protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
-            protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
-            protocol.loop.run_one()
-            assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-            assert b"Hello, world" in protocol.transport.buffer
+        # Huge headers make h11 fail in it's default config
+        # h11 sends back a 400 in this case
+        protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
+        assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
+        assert b"Connection: close" in protocol.transport.buffer
+        assert b"Invalid HTTP request received." in protocol.transport.buffer
+
+
+def test_huge_headers_httptools_will_pass_with_setting(
+    event_loop, protocol_cls=HttpToolsProtocol
+):
+    app = Response("Hello, world", media_type="text/plain")
+
+    with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
+        # Huge headers make h11 fail in it's default config
+        # httptools protocol will always pass
+        protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
+        protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
+        protocol.loop.run_one()
+        assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+        assert b"Hello, world" in protocol.transport.buffer
 
 
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
