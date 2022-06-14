@@ -220,7 +220,7 @@ async def test_path_and_raw_path(ws_protocol_cls, http_protocol_cls):
             path = self.scope.get("path")
             raw_path = self.scope.get("raw_path")
             assert path == "/one/two"
-            assert raw_path == "/one%2Ftwo"
+            assert raw_path == b"/one%2Ftwo"
             await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
