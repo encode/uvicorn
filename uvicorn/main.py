@@ -345,7 +345,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "h11_max_incomplete_event_size",
     type=int,
     default=None,
-    help="For h11, the maximum number of bytes to buffer of an incomplete event",
+    help="For h11, the maximum number of bytes to buffer of an incomplete event.",
 )
 @click.option(
     "--factory",
