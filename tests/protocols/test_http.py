@@ -131,9 +131,6 @@ class MockLoop:
         self._tasks = []
         self._later = []
 
-    def is_running(self):
-        return True  # pragma: no cover
-
     def create_task(self, coroutine):
         self._tasks.insert(0, coroutine)
         return MockTask()
