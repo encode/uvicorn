@@ -50,7 +50,7 @@ def return_exc_info(environ: Environ, start_response: StartResponse) -> List[byt
         return [output]
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_wsgi_get() -> None:
     app = WSGIMiddleware(hello_world)
     async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
@@ -59,7 +59,7 @@ async def test_wsgi_get() -> None:
     assert response.text == "Hello World!\n"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_wsgi_post() -> None:
     app = WSGIMiddleware(echo_body)
     async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
@@ -68,7 +68,7 @@ async def test_wsgi_post() -> None:
     assert response.text == '{"example": 123}'
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_wsgi_put_more_body() -> None:
     async def generate_body() -> AsyncGenerator[bytes, None]:
         for _ in range(1024):
@@ -81,7 +81,7 @@ async def test_wsgi_put_more_body() -> None:
     assert response.text == "123456789abcdef\n" * 64 * 1024
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_wsgi_exception() -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
@@ -91,7 +91,7 @@ async def test_wsgi_exception() -> None:
             await client.get("/")
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_wsgi_exc_info() -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.

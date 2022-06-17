@@ -1,21 +1,29 @@
 import signal
+import socket
+from typing import List, Optional
+
+from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
 from uvicorn import Config
 from uvicorn.supervisors import Multiprocess
 
 
-def run(sockets):
+def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
     pass  # pragma: no cover
 
 
-def test_multiprocess_run():
+def run(sockets: Optional[List[socket.socket]]) -> None:
+    pass  # pragma: no cover
+
+
+def test_multiprocess_run() -> None:
     """
     A basic sanity check.
 
     Simply run the supervisor against a no-op server, and signal for it to
     quit immediately.
     """
-    config = Config(app=None, workers=2)
+    config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     supervisor.signal_handler(sig=signal.SIGINT, frame=None)
     supervisor.run()

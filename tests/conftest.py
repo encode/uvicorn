@@ -140,6 +140,11 @@ def reload_directory_structure(tmp_path_factory: pytest.TempPathFactory):
     yield root
 
 
+@pytest.fixture
+def anyio_backend() -> str:
+    return "asyncio"
+
+
 @pytest.fixture(scope="function")
 def logging_config() -> dict:
     return deepcopy(LOGGING_CONFIG)
@@ -174,7 +179,7 @@ def short_socket_name(tmp_path, tmp_path_factory):  # pragma: py-win32
             sock_path = str(tmpd / socket_filename)
             sock_path_len = len(sock_path.encode())
             if sock_path_len <= max_sock_len:
-                if max_sock_len - sock_path_len >= identifier_len:
+                if max_sock_len - sock_path_len >= identifier_len:  # pragma: no cover
                     sock_path = str(tmpd / "".join((identifier, socket_filename)))
                 yield sock_path
                 return
