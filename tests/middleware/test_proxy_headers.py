@@ -20,7 +20,7 @@ async def app(
     await response(scope, receive, send)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     ("trusted_hosts", "response_text"),
     [
@@ -50,7 +50,7 @@ async def test_proxy_headers_trusted_hosts(
     assert response.text == response_text
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     ("trusted_hosts", "response_text"),
     [
@@ -87,7 +87,7 @@ async def test_proxy_headers_multiple_proxies(
     assert response.text == response_text
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_proxy_headers_invalid_x_forwarded_for() -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts="*")
     async with httpx.AsyncClient(

@@ -138,6 +138,11 @@ def reload_directory_structure(tmp_path_factory: pytest.TempPathFactory):
     yield root
 
 
+@pytest.fixture
+def anyio_backend() -> str:
+    return "asyncio"
+
+
 @pytest.fixture(scope="function")
 def logging_config() -> dict:
     return deepcopy(LOGGING_CONFIG)

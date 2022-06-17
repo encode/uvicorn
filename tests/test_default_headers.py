@@ -11,7 +11,7 @@ async def app(scope, receive, send):
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_default_default_headers():
     config = Config(app=app, loop="asyncio", limit_max_requests=1)
     async with run_server(config):
@@ -20,7 +20,7 @@ async def test_default_default_headers():
             assert response.headers["server"] == "uvicorn" and response.headers["date"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_override_server_header():
     config = Config(
         app=app,
@@ -36,7 +36,7 @@ async def test_override_server_header():
             )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_disable_default_server_header():
     config = Config(
         app=app,
@@ -50,7 +50,7 @@ async def test_disable_default_server_header():
             assert "server" not in response.headers
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_override_server_header_multiple_times():
     config = Config(
         app=app,
@@ -67,7 +67,7 @@ async def test_override_server_header_multiple_times():
             )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_add_additional_header():
     config = Config(
         app=app,
@@ -85,7 +85,7 @@ async def test_add_additional_header():
             )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_disable_default_date_header():
     config = Config(
         app=app,

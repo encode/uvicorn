@@ -6,7 +6,7 @@ from uvicorn._logging import TRACE_LOG_LEVEL
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_message_logger(caplog):
     async def app(scope, receive, send):
         await receive()
@@ -31,7 +31,7 @@ async def test_message_logger(caplog):
         )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_message_logger_exc(caplog):
     async def app(scope, receive, send):
         raise RuntimeError()

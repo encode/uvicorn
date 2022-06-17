@@ -41,7 +41,7 @@ def test_loop_auto():
     assert type(policy).__module__.startswith(expected_loop)
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_http_auto():
     config = Config(app=app)
     server_state = ServerState()
@@ -50,7 +50,7 @@ async def test_http_auto():
     assert type(protocol).__name__ == expected_http
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_websocket_auto():
     config = Config(app=app)
     server_state = ServerState()
