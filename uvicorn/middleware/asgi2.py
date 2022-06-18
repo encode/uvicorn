@@ -1,9 +1,4 @@
-from asgi_types import (
-    ASGI2Application,
-    ASGIReceiveCallable,
-    ASGISendCallable,
-    Scope,
-)
+from asgi_types import ASGI2Application, ASGIReceiveCallable, ASGISendCallable, Scope
 
 
 class ASGI2Middleware:
