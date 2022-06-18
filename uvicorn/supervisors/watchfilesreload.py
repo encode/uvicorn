@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 from socket import socket
 from typing import Callable, List, Optional
@@ -7,8 +6,6 @@ from watchfiles import watch
 
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
-
-logger = logging.getLogger("uvicorn.error")
 
 
 class FileFilter:

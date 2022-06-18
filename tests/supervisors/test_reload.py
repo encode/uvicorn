@@ -43,8 +43,6 @@ class TestBaseReload:
 
     def _reload_tester(self, touch_soon, reloader: BaseReload, *files: Path) -> bool:
         reloader.restart()
-
-        reloader.restart()
         if isinstance(reloader, WatchFilesReload):
             touch_soon(*files)
         else:
