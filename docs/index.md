@@ -196,9 +196,11 @@ For more information, see the [settings documentation](settings.md).
 
 ### Running programmatically
 
-To run uvicorn directly from your application...
+There are many ways to run uvicorn directly from your application.
 
-**example.py**:
+#### `uvicorn.run` function
+
+The easiest way is to run via `uvicorn.run` function:
 
 ```python
 import uvicorn
@@ -207,7 +209,43 @@ async def app(scope, receive, send):
     ...
 
 if __name__ == "__main__":
-    uvicorn.run("example:app", host="127.0.0.1", port=5000, log_level="info")
+    uvicorn.run("main:app", host="127.0.0.1", port=5000, log_level="info")
+```
+
+#### Explicitly setup `Config` and `Server` instances
+
+You can create the `uvicorn.Config` and `uvicorn.Server` instances manually, and then use `uvicorn.Server.run()`:
+
+```python
+import uvicorn
+
+async def app(scope, receive, send):
+    ...
+
+if __name__ == "__main__":
+    config = uvicorn.Config("main:app", host="127.0.0.1", post=5000, log_level="info")
+    server = uvicorn.Server(config)
+    server.run()
+```
+
+#### Run inside the event loop
+
+There are cases that `async` logic needs to be performed, and it's interesting to run `uvicorn` inside the event loop:
+
+```python
+import asyncio
+import uvicorn
+
+async def app(scope, receive, send):
+    ...
+
+async def main():
+    config = uvicorn.Config("main:app", host="127.0.0.1", post=5000, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ### Running with Gunicorn
