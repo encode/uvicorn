@@ -4,6 +4,7 @@
 
 ### Added
 
+- Switch from `watchgod` to `watchfiles` (#1437) 18/06/22
 - Annotate `uvicorn.run()` function (#1423) 10/05/22
 
 ### Fixed
