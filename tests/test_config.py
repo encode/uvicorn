@@ -14,7 +14,7 @@ else:  # pragma: py-lt-38
 
 import pytest
 import yaml
-from asgiref.typing import ASGIApplication, ASGIReceiveCallable, ASGISendCallable, Scope
+from asgi_types import ASGIApplication, ASGIReceiveCallable, ASGISendCallable, Scope
 from pytest_mock import MockerFixture
 
 from tests.utils import as_cwd

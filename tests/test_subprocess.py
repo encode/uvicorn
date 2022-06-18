@@ -4,7 +4,7 @@ from typing import List
 from unittest.mock import patch
 
 import pytest
-from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
+from asgi_types import ASGIReceiveCallable, ASGISendCallable, Scope
 
 from uvicorn._subprocess import SpawnProcess, get_subprocess, subprocess_started
 from uvicorn.config import Config
