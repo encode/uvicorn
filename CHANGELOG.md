@@ -1,5 +1,16 @@
 # Change Log
 
+## 0.18.0 - 2022-06-18
+
+### Added
+
+- Annotate `uvicorn.run()` function (#1423) 10/05/22
+
+### Fixed
+
+- Turn `raw_path` into bytes on both websockets implementations (#1487) 16/05/22
+- Revert log exception traceback in case of invalid HTTP request (#1518) 14/06/22
+
 ## 0.17.6 - 2022-03-11
 
 ### Changed
