@@ -196,11 +196,11 @@ For more information, see the [settings documentation](settings.md).
 
 ### Running programmatically
 
-There are many ways to run uvicorn directly from your application.
+There are several ways to run uvicorn directly from your application.
 
-#### `uvicorn.run` function
+#### `uvicorn.run`
 
-The easiest way is to run via `uvicorn.run` function:
+If you're looking for a programmatic equivalent of the `uvicorn` command line interface, use `uvicorn.run()`:
 
 ```python
 import uvicorn
@@ -214,7 +214,7 @@ if __name__ == "__main__":
 
 #### Explicitly setup `Config` and `Server` instances
 
-You can create the `uvicorn.Config` and `uvicorn.Server` instances manually, and then use `uvicorn.Server.run()`:
+For more control over configuration and server lifecycle, use `uvicorn.Config` and `uvicorn.Server`:
 
 ```python
 import uvicorn
@@ -228,9 +228,7 @@ if __name__ == "__main__":
     server.run()
 ```
 
-#### Run inside the event loop
-
-There are cases that `async` logic needs to be performed, and it's interesting to run `uvicorn` inside the event loop:
+If you'd like to run Uvicorn from an already running async environment, use `uvicorn.Server.serve()` instead:
 
 ```python
 import asyncio
