@@ -209,7 +209,7 @@ async def app(scope, receive, send):
     ...
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=5000, log_level="info")
+    uvicorn.run("main:app", port=5000, log_level="info")
 ```
 
 #### `Config` and `Server` instances
@@ -223,7 +223,7 @@ async def app(scope, receive, send):
     ...
 
 if __name__ == "__main__":
-    config = uvicorn.Config("main:app", host="127.0.0.1", post=5000, log_level="info")
+    config = uvicorn.Config("main:app", port=5000, log_level="info")
     server = uvicorn.Server(config)
     server.run()
 ```
@@ -238,7 +238,7 @@ async def app(scope, receive, send):
     ...
 
 async def main():
-    config = uvicorn.Config("main:app", host="127.0.0.1", post=5000, log_level="info")
+    config = uvicorn.Config("main:app", port=5000, log_level="info")
     server = uvicorn.Server(config)
     await server.serve()
 
