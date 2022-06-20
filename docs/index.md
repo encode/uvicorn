@@ -203,6 +203,7 @@ There are several ways to run uvicorn directly from your application.
 If you're looking for a programmatic equivalent of the `uvicorn` command line interface, use `uvicorn.run()`:
 
 ```python
+# main.py
 import uvicorn
 
 async def app(scope, receive, send):
