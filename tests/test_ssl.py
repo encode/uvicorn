@@ -11,7 +11,7 @@ async def app(scope, receive, send):
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_run(
     tls_ca_ssl_context,
     tls_certificate_server_cert_path,
@@ -32,7 +32,7 @@ async def test_run(
     assert response.status_code == 204
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_run_chain(
     tls_ca_ssl_context, tls_certificate_key_and_chain_path, tls_ca_certificate_pem_path
 ):
@@ -49,7 +49,7 @@ async def test_run_chain(
     assert response.status_code == 204
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_run_chain_only(tls_ca_ssl_context, tls_certificate_key_and_chain_path):
     config = Config(
         app=app,
@@ -63,7 +63,7 @@ async def test_run_chain_only(tls_ca_ssl_context, tls_certificate_key_and_chain_
     assert response.status_code == 204
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_run_password(
     tls_ca_ssl_context,
     tls_certificate_server_cert_path,

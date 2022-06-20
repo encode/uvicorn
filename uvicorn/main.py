@@ -94,7 +94,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     multiple=True,
     help="Set glob patterns to include while watching for files. Includes '*.py' "
     "by default; these defaults can be overridden with `--reload-exclude`. "
-    "This option has no effect unless watchgod is installed.",
+    "This option has no effect unless watchfiles is installed.",
 )
 @click.option(
     "--reload-exclude",
@@ -102,7 +102,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     multiple=True,
     help="Set glob patterns to exclude while watching for files. Includes "
     "'.*, .py[cod], .sw.*, ~*' by default; these defaults can be overridden "
-    "with `--reload-include`. This option has no effect unless watchgod is "
+    "with `--reload-include`. This option has no effect unless watchfiles is "
     "installed.",
 )
 @click.option(

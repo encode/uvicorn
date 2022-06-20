@@ -43,12 +43,12 @@ Options:
                                   for files. Includes '*.py' by default; these
                                   defaults can be overridden with `--reload-
                                   exclude`. This option has no effect unless
-                                  watchgod is installed.
+                                  watchfiles is installed.
   --reload-exclude TEXT           Set glob patterns to exclude while watching
                                   for files. Includes '.*, .py[cod], .sw.*,
                                   ~*' by default; these defaults can be
                                   overridden with `--reload-include`. This
-                                  option has no effect unless watchgod is
+                                  option has no effect unless watchfiles is
                                   installed.
   --reload-delay FLOAT            Delay between previous and next check if
                                   application needs to be. Defaults to 0.25s.

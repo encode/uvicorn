@@ -2,9 +2,10 @@ import logging
 import os
 import signal
 import threading
+from pathlib import Path
 from socket import socket
 from types import FrameType
-from typing import Callable, List, Optional
+from typing import Callable, Iterator, List, Optional
 
 import click
 
@@ -41,11 +42,26 @@ class BaseReload:
 
     def run(self) -> None:
         self.startup()
-        while not self.should_exit.wait(self.config.reload_delay):
-            if self.should_restart():
+        for changes in self:
+            if changes:
+                logger.warning(
+                    "%s detected changes in %s. Reloading...",
+                    self.reloader_name,
+                    ", ".join(map(_display_path, changes)),
+                )
                 self.restart()
 
         self.shutdown()
+
+    def pause(self) -> None:
+        if self.should_exit.wait(self.config.reload_delay):
+            raise StopIteration()
+
+    def __iter__(self) -> Iterator[Optional[List[Path]]]:
+        return self
+
+    def __next__(self) -> Optional[List[Path]]:
+        return self.should_restart()
 
     def startup(self) -> None:
         message = f"Started reloader process [{self.pid}] using {self.reloader_name}"
@@ -86,5 +102,12 @@ class BaseReload:
         )
         logger.info(message, extra={"color_message": color_message})
 
-    def should_restart(self) -> bool:
+    def should_restart(self) -> Optional[List[Path]]:
         raise NotImplementedError("Reload strategies should override should_restart()")
+
+
+def _display_path(path: Path) -> str:
+    try:
+        return f"'{path.relative_to(Path.cwd())}'"
+    except ValueError:
+        return f"'{path}'"

@@ -54,7 +54,7 @@ In this context, "Cython-based" means the following:
 Moreover, "optional extras" means that:
 
 - the websocket protocol will be handled by `websockets` (should you want to use `wsproto` you'd need to install it manually) if possible.
-- the `--reload` flag in development mode will use `watchgod`.
+- the `--reload` flag in development mode will use `watchfiles`.
 - windows users will have `colorama` installed for the colored logs.
 - `python-dotenv` will be installed should you want to use the `--env-file` option.
 - `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
@@ -110,12 +110,12 @@ Options:
                                   for files. Includes '*.py' by default; these
                                   defaults can be overridden with `--reload-
                                   exclude`. This option has no effect unless
-                                  watchgod is installed.
+                                  watchfiles is installed.
   --reload-exclude TEXT           Set glob patterns to exclude while watching
                                   for files. Includes '.*, .py[cod], .sw.*,
                                   ~*' by default; these defaults can be
                                   overridden with `--reload-include`. This
-                                  option has no effect unless watchgod is
+                                  option has no effect unless watchfiles is
                                   installed.
   --reload-delay FLOAT            Delay between previous and next check if
                                   application needs to be. Defaults to 0.25s.
