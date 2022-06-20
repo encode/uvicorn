@@ -814,68 +814,73 @@ def test_fragmentation():
     t.join()
 
 
-def test_huge_headers_h11protocol_failure(event_loop):
+@pytest.mark.anyio
+async def test_huge_headers_h11protocol_failure():
     app = Response("Hello, world", media_type="text/plain")
 
-    with get_connected_protocol(app, H11Protocol, event_loop) as protocol:
-        # Huge headers make h11 fail in it's default config
-        # h11 sends back a 400 in this case
-        protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
-        assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
-        assert b"Connection: close" in protocol.transport.buffer
-        assert b"Invalid HTTP request received." in protocol.transport.buffer
+    protocol = get_connected_protocol(app, H11Protocol)
+    # Huge headers make h11 fail in it's default config
+    # h11 sends back a 400 in this case
+    protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
+    assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
+    assert b"Connection: close" in protocol.transport.buffer
+    assert b"Invalid HTTP request received." in protocol.transport.buffer
 
 
+@pytest.mark.anyio
 @pytest.mark.skipif(HttpToolsProtocol is None, reason="httptools is not installed")
-def test_huge_headers_httptools_will_pass(event_loop):
+async def test_huge_headers_httptools_will_pass():
     app = Response("Hello, world", media_type="text/plain")
 
-    with get_connected_protocol(app, HttpToolsProtocol, event_loop) as protocol:
-        # Huge headers make h11 fail in it's default config
-        # httptools protocol will always pass
-        protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
-        protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
-        protocol.loop.run_one()
-        assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-        assert b"Hello, world" in protocol.transport.buffer
+    protocol = get_connected_protocol(app, HttpToolsProtocol)
+    # Huge headers make h11 fail in it's default config
+    # httptools protocol will always pass
+    protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
+    protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
 
 
-def test_huge_headers_h11protocol_failure_with_setting(event_loop):
+@pytest.mark.anyio
+async def test_huge_headers_h11protocol_failure_with_setting():
     app = Response("Hello, world", media_type="text/plain")
 
-    with get_connected_protocol(
-        app, H11Protocol, event_loop, h11_max_incomplete_event_size=20 * 1024
-    ) as protocol:
-        # Huge headers make h11 fail in it's default config
-        # h11 sends back a 400 in this case
-        protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
-        assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
-        assert b"Connection: close" in protocol.transport.buffer
-        assert b"Invalid HTTP request received." in protocol.transport.buffer
+    protocol = get_connected_protocol(
+        app, H11Protocol, h11_max_incomplete_event_size=20 * 1024
+    )
+    # Huge headers make h11 fail in it's default config
+    # h11 sends back a 400 in this case
+    protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
+    assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
+    assert b"Connection: close" in protocol.transport.buffer
+    assert b"Invalid HTTP request received." in protocol.transport.buffer
 
 
+@pytest.mark.anyio
 @pytest.mark.skipif(HttpToolsProtocol is None, reason="httptools is not installed")
-def test_huge_headers_httptools(event_loop):
+async def test_huge_headers_httptools():
     app = Response("Hello, world", media_type="text/plain")
 
-    with get_connected_protocol(app, HttpToolsProtocol, event_loop) as protocol:
-        # Huge headers make h11 fail in it's default config
-        # httptools protocol will always pass
-        protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
-        protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
-        protocol.loop.run_one()
-        assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-        assert b"Hello, world" in protocol.transport.buffer
+    protocol = get_connected_protocol(app, HttpToolsProtocol)
+    # Huge headers make h11 fail in it's default config
+    # httptools protocol will always pass
+    protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
+    protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
 
 
-def test_huge_headers_h11_max_incomplete(event_loop):
+@pytest.mark.anyio
+async def test_huge_headers_h11_max_incomplete():
     app = Response("Hello, world", media_type="text/plain")
 
-    with get_connected_protocol(
-        app, H11Protocol, event_loop, h11_max_incomplete_event_size=64 * 1024
-    ) as protocol:
-        protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
-        protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
-        protocol.loop.run_one()
-        assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-        assert b"Hello, world" in protocol.transport.buffer
+    protocol = get_connected_protocol(
+        app, H11Protocol, h11_max_incomplete_event_size=64 * 1024
+    )
+    protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
+    protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
