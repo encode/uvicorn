@@ -809,11 +809,10 @@ def test_fragmentation():
     t.join()
 
 
-@pytest.mark.parametrize("protocol_cls", [H11Protocol])
-def test_huge_headers_h11protocol_will_fail(protocol_cls, event_loop):
+def test_huge_headers_h11protocol_failure(event_loop):
     app = Response("Hello, world", media_type="text/plain")
 
-    with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
+    with get_connected_protocol(app, H11Protocol, event_loop) as protocol:
         # Huge headers make h11 fail in it's default config
         # h11 sends back a 400 in this case
         protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
@@ -822,10 +821,11 @@ def test_huge_headers_h11protocol_will_fail(protocol_cls, event_loop):
         assert b"Invalid HTTP request received." in protocol.transport.buffer
 
 
-def test_huge_headers_httptools_will_pass(event_loop, protocol_cls=HttpToolsProtocol):
+@pytest.mark.skipif(HttpToolsProtocol is None, reason="httptools is not installed")
+def test_huge_headers_httptools_will_pass(event_loop):
     app = Response("Hello, world", media_type="text/plain")
 
-    with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
+    with get_connected_protocol(app, HttpToolsProtocol, event_loop) as protocol:
         # Huge headers make h11 fail in it's default config
         # httptools protocol will always pass
         protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
@@ -835,12 +835,11 @@ def test_huge_headers_httptools_will_pass(event_loop, protocol_cls=HttpToolsProt
         assert b"Hello, world" in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", [H11Protocol])
-def test_huge_headers_h11protocol_will_fail_with_setting(protocol_cls, event_loop):
+def test_huge_headers_h11protocol_failure_with_setting(event_loop):
     app = Response("Hello, world", media_type="text/plain")
 
     with get_connected_protocol(
-        app, protocol_cls, event_loop, h11_max_incomplete_event_size=20 * 1024
+        app, H11Protocol, event_loop, h11_max_incomplete_event_size=20 * 1024
     ) as protocol:
         # Huge headers make h11 fail in it's default config
         # h11 sends back a 400 in this case
@@ -850,12 +849,11 @@ def test_huge_headers_h11protocol_will_fail_with_setting(protocol_cls, event_loo
         assert b"Invalid HTTP request received." in protocol.transport.buffer
 
 
-def test_huge_headers_httptools_will_pass_with_setting(
-    event_loop, protocol_cls=HttpToolsProtocol
-):
+@pytest.mark.skipif(HttpToolsProtocol is None, reason="httptools is not installed")
+def test_huge_headers_httptools(event_loop):
     app = Response("Hello, world", media_type="text/plain")
 
-    with get_connected_protocol(app, protocol_cls, event_loop) as protocol:
+    with get_connected_protocol(app, HttpToolsProtocol, event_loop) as protocol:
         # Huge headers make h11 fail in it's default config
         # httptools protocol will always pass
         protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
@@ -865,12 +863,11 @@ def test_huge_headers_httptools_will_pass_with_setting(
         assert b"Hello, world" in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-def test_huge_headers_h11_max_incomplete(protocol_cls, event_loop):
+def test_huge_headers_h11_max_incomplete(event_loop):
     app = Response("Hello, world", media_type="text/plain")
 
     with get_connected_protocol(
-        app, protocol_cls, event_loop, h11_max_incomplete_event_size=64 * 1024
+        app, H11Protocol, event_loop, h11_max_incomplete_event_size=64 * 1024
     ) as protocol:
         protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
         protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
