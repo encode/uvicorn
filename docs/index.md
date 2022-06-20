@@ -196,9 +196,26 @@ For more information, see the [settings documentation](settings.md).
 
 ### Running programmatically
 
-To run uvicorn directly from your application...
+There are several ways to run uvicorn directly from your application.
 
-**example.py**:
+#### `uvicorn.run`
+
+If you're looking for a programmatic equivalent of the `uvicorn` command line interface, use `uvicorn.run()`:
+
+```python
+# main.py
+import uvicorn
+
+async def app(scope, receive, send):
+    ...
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", port=5000, log_level="info")
+```
+
+#### `Config` and `Server` instances
+
+For more control over configuration and server lifecycle, use `uvicorn.Config` and `uvicorn.Server`:
 
 ```python
 import uvicorn
@@ -207,7 +224,27 @@ async def app(scope, receive, send):
     ...
 
 if __name__ == "__main__":
-    uvicorn.run("example:app", host="127.0.0.1", port=5000, log_level="info")
+    config = uvicorn.Config("main:app", port=5000, log_level="info")
+    server = uvicorn.Server(config)
+    server.run()
+```
+
+If you'd like to run Uvicorn from an already running async environment, use `uvicorn.Server.serve()` instead:
+
+```python
+import asyncio
+import uvicorn
+
+async def app(scope, receive, send):
+    ...
+
+async def main():
+    config = uvicorn.Config("main:app", port=5000, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ### Running with Gunicorn
