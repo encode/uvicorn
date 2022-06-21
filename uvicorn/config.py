@@ -280,7 +280,7 @@ class Config:
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
-        self.headers: List[List[str]] = headers or []
+        self.headers: List[Tuple[str, str]] = headers or []
         self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
 
