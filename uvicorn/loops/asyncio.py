@@ -14,8 +14,4 @@ def asyncio_setup(
         and sys.platform == "win32"
         and any([reload, workers])
     ):
-        if reload:
-            logger.warning(
-                "The --reload flag should not be used in production on Windows."
-            )
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
