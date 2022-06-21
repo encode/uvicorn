@@ -20,7 +20,10 @@ class HTMLResponse:
         self.status_code = status_code
 
     async def __call__(
-        self, scope: "WWWScope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
+        self,
+        scope: "WWWScope",
+        receive: "ASGIReceiveCallable",
+        send: "ASGISendCallable",
     ) -> None:
         response_start: "HTTPResponseStartEvent" = {
             "type": "http.response.start",
@@ -43,7 +46,10 @@ class PlainTextResponse:
         self.status_code = status_code
 
     async def __call__(
-        self, scope: "WWWScope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
+        self,
+        scope: "WWWScope",
+        receive: "ASGIReceiveCallable",
+        send: "ASGISendCallable",
     ) -> None:
         response_start: "HTTPResponseStartEvent" = {
             "type": "http.response.start",
@@ -76,7 +82,10 @@ class DebugMiddleware:
         self.app = app
 
     async def __call__(
-        self, scope: "WWWScope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
+        self,
+        scope: "WWWScope",
+        receive: "ASGIReceiveCallable",
+        send: "ASGISendCallable",
     ) -> None:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
