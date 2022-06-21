@@ -2,20 +2,10 @@ import asyncio
 import http
 import logging
 import sys
-from typing import Callable, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple, Union, cast
 from urllib.parse import unquote
 
 import h11
-from asgiref.typing import (
-    ASGI3Application,
-    ASGIReceiveEvent,
-    ASGISendEvent,
-    HTTPDisconnectEvent,
-    HTTPRequestEvent,
-    HTTPResponseBodyEvent,
-    HTTPResponseStartEvent,
-    HTTPScope,
-)
 
 from uvicorn._logging import TRACE_LOG_LEVEL
 from uvicorn.config import Config
@@ -38,6 +28,18 @@ if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
 else:  # pragma: py-lt-38
     from typing import Literal
+
+if TYPE_CHECKING:
+    from asgiref.typing import (
+        ASGI3Application,
+        ASGIReceiveEvent,
+        ASGISendEvent,
+        HTTPDisconnectEvent,
+        HTTPRequestEvent,
+        HTTPResponseBodyEvent,
+        HTTPResponseStartEvent,
+        HTTPScope,
+    )
 
 H11Event = Union[
     h11.Request,
@@ -360,7 +362,7 @@ class H11Protocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
-        scope: HTTPScope,
+        scope: "HTTPScope",
         conn: h11.Connection,
         transport: asyncio.Transport,
         flow: FlowControl,
@@ -396,7 +398,7 @@ class RequestResponseCycle:
         self.response_complete = False
 
     # ASGI exception wrapper
-    async def run_asgi(self, app: ASGI3Application) -> None:
+    async def run_asgi(self, app: "ASGI3Application") -> None:
         try:
             result = await app(self.scope, self.receive, self.send)
         except BaseException as exc:
@@ -423,7 +425,7 @@ class RequestResponseCycle:
             self.on_response = lambda: None
 
     async def send_500_response(self) -> None:
-        response_start_event: HTTPResponseStartEvent = {
+        response_start_event: "HTTPResponseStartEvent" = {
             "type": "http.response.start",
             "status": 500,
             "headers": [
@@ -432,7 +434,7 @@ class RequestResponseCycle:
             ],
         }
         await self.send(response_start_event)
-        response_body_event: HTTPResponseBodyEvent = {
+        response_body_event: "HTTPResponseBodyEvent" = {
             "type": "http.response.body",
             "body": b"Internal Server Error",
             "more_body": False,
@@ -440,7 +442,7 @@ class RequestResponseCycle:
         await self.send(response_body_event)
 
     # ASGI interface
-    async def send(self, message: ASGISendEvent) -> None:
+    async def send(self, message: "ASGISendEvent") -> None:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
@@ -454,7 +456,7 @@ class RequestResponseCycle:
             if message_type != "http.response.start":
                 msg = "Expected ASGI message 'http.response.start', but got '%s'."
                 raise RuntimeError(msg % message_type)
-            message = cast(HTTPResponseStartEvent, message)
+            message = cast("HTTPResponseStartEvent", message)
 
             self.response_started = True
             self.waiting_for_100_continue = False
@@ -524,7 +526,7 @@ class RequestResponseCycle:
                 self.transport.close()
             self.on_response()
 
-    async def receive(self) -> ASGIReceiveEvent:
+    async def receive(self) -> "ASGIReceiveEvent":
         if self.waiting_for_100_continue and not self.transport.is_closing():
             event = h11.InformationalResponse(
                 status_code=100, headers=[], reason="Continue"
@@ -538,7 +540,7 @@ class RequestResponseCycle:
             await self.message_event.wait()
             self.message_event.clear()
 
-        message: Union[HTTPDisconnectEvent, HTTPRequestEvent]
+        message: "Union[HTTPDisconnectEvent, HTTPRequestEvent]"
         if self.disconnected or self.response_complete:
             message = {"type": "http.disconnect"}
         else:

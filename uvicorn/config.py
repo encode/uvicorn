@@ -8,7 +8,17 @@ import socket
 import ssl
 import sys
 from pathlib import Path
-from typing import Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 from uvicorn._logging import TRACE_LOG_LEVEL
 
@@ -18,7 +28,6 @@ else:  # pragma: py-lt-38
     from typing import Literal
 
 import click
-from asgiref.typing import ASGIApplication
 
 try:
     import yaml
@@ -34,6 +43,9 @@ from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
+
+if TYPE_CHECKING:
+    from asgiref.typing import ASGIApplication
 
 HTTPProtocolType = Literal["auto", "h11", "httptools"]
 WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
@@ -194,7 +206,7 @@ def _normalize_dirs(dirs: Union[List[str], str, None]) -> List[str]:
 class Config:
     def __init__(
         self,
-        app: Union[ASGIApplication, Callable, str],
+        app: Union["ASGIApplication", Callable, str],
         host: str = "127.0.0.1",
         port: int = 8000,
         uds: Optional[str] = None,

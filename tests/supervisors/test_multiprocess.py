@@ -1,14 +1,17 @@
 import signal
 import socket
-from typing import List, Optional
-
-from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
+from typing import TYPE_CHECKING, List, Optional
 
 from uvicorn import Config
 from uvicorn.supervisors import Multiprocess
 
+if TYPE_CHECKING:
+    from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
-def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
+
+def app(
+    scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
+) -> None:
     pass  # pragma: no cover
 
 

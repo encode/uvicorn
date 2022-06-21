@@ -1,16 +1,17 @@
 import html
 import traceback
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
-from asgiref.typing import (
-    ASGI3Application,
-    ASGIReceiveCallable,
-    ASGISendCallable,
-    ASGISendEvent,
-    HTTPResponseBodyEvent,
-    HTTPResponseStartEvent,
-    WWWScope,
-)
+if TYPE_CHECKING:
+    from asgiref.typing import (
+        ASGI3Application,
+        ASGIReceiveCallable,
+        ASGISendCallable,
+        ASGISendEvent,
+        HTTPResponseBodyEvent,
+        HTTPResponseStartEvent,
+        WWWScope,
+    )
 
 
 class HTMLResponse:
@@ -19,16 +20,16 @@ class HTMLResponse:
         self.status_code = status_code
 
     async def __call__(
-        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: "WWWScope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
     ) -> None:
-        response_start: HTTPResponseStartEvent = {
+        response_start: "HTTPResponseStartEvent" = {
             "type": "http.response.start",
             "status": self.status_code,
             "headers": [(b"content-type", b"text/html; charset=utf-8")],
         }
         await send(response_start)
 
-        response_body: HTTPResponseBodyEvent = {
+        response_body: "HTTPResponseBodyEvent" = {
             "type": "http.response.body",
             "body": self.content.encode("utf-8"),
             "more_body": False,
@@ -42,16 +43,16 @@ class PlainTextResponse:
         self.status_code = status_code
 
     async def __call__(
-        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: "WWWScope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
     ) -> None:
-        response_start: HTTPResponseStartEvent = {
+        response_start: "HTTPResponseStartEvent" = {
             "type": "http.response.start",
             "status": self.status_code,
             "headers": [(b"content-type", b"text/plain; charset=utf-8")],
         }
         await send(response_start)
 
-        response_body: HTTPResponseBodyEvent = {
+        response_body: "HTTPResponseBodyEvent" = {
             "type": "http.response.body",
             "body": self.content.encode("utf-8"),
             "more_body": False,
@@ -59,7 +60,7 @@ class PlainTextResponse:
         await send(response_body)
 
 
-def get_accept_header(scope: WWWScope) -> str:
+def get_accept_header(scope: "WWWScope") -> str:
     accept = "*/*"
 
     for key, value in scope.get("headers", []):
@@ -71,18 +72,18 @@ def get_accept_header(scope: WWWScope) -> str:
 
 
 class DebugMiddleware:
-    def __init__(self, app: ASGI3Application):
+    def __init__(self, app: "ASGI3Application"):
         self.app = app
 
     async def __call__(
-        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: "WWWScope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
     ) -> None:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
 
         response_started = False
 
-        async def inner_send(message: ASGISendEvent) -> None:
+        async def inner_send(message: "ASGISendEvent") -> None:
             nonlocal response_started, send
 
             if message["type"] == "http.response.start":

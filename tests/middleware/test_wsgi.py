@@ -1,13 +1,15 @@
 import io
 import sys
-from typing import AsyncGenerator, List
+from typing import TYPE_CHECKING, AsyncGenerator, List
 
 import httpx
 import pytest
-from asgiref.typing import HTTPRequestEvent, HTTPScope
 
 from uvicorn._types import Environ, StartResponse
 from uvicorn.middleware.wsgi import WSGIMiddleware, build_environ
+
+if TYPE_CHECKING:
+    from asgiref.typing import HTTPRequestEvent, HTTPScope
 
 
 def hello_world(environ: Environ, start_response: StartResponse) -> List[bytes]:
@@ -114,7 +116,7 @@ async def test_wsgi_exc_info() -> None:
 
 
 def test_build_environ_encoding() -> None:
-    scope: HTTPScope = {
+    scope: "HTTPScope" = {
         "asgi": {"version": "3.0", "spec_version": "2.0"},
         "scheme": "http",
         "raw_path": b"/\xe6\x96\x87",
@@ -129,7 +131,7 @@ def test_build_environ_encoding() -> None:
         "headers": [(b"key", b"value1"), (b"key", b"value2")],
         "extensions": {},
     }
-    message: HTTPRequestEvent = {
+    message: "HTTPRequestEvent" = {
         "type": "http.request",
         "body": b"",
         "more_body": False,
