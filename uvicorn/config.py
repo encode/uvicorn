@@ -125,7 +125,7 @@ def create_ssl_context(
     ctx = ssl.SSLContext(ssl_version)
     get_password = (lambda: password) if password else None
     ctx.load_cert_chain(certfile, keyfile, get_password)
-    ctx.verify_mode = ssl.VerifyMode(cert_reqs)
+    ctx.verify_mode = cert_reqs
     if ca_certs:
         ctx.load_verify_locations(ca_certs)
     if ciphers:
@@ -174,7 +174,7 @@ def resolve_reload_patterns(
     for j in range(len(directories)):
         for k in range(j + 1, len(directories)):
             if directories[j] in directories[k].parents:
-                children.append(directories[k])  # pragma: py-darwin
+                children.append(directories[k])
             elif directories[k] in directories[j].parents:
                 children.append(directories[j])
 
@@ -238,7 +238,7 @@ class Config:
         ssl_cert_reqs: int = ssl.CERT_NONE,
         ssl_ca_certs: Optional[str] = None,
         ssl_ciphers: str = "TLSv1",
-        headers: Optional[List[Tuple[str, str]]] = None,
+        headers: Optional[List[List[str]]] = None,
         factory: bool = False,
     ):
         self.app = app
@@ -280,7 +280,7 @@ class Config:
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
-        self.headers: List[Tuple[str, str]] = headers or []
+        self.headers: List[List[str]] = headers or []
         self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
 
@@ -372,10 +372,6 @@ class Config:
     @property
     def is_ssl(self) -> bool:
         return bool(self.ssl_keyfile or self.ssl_certfile)
-
-    @property
-    def use_subprocess(self) -> bool:
-        return bool(self.reload or self.workers > 1)
 
     def configure_logging(self) -> None:
         logging.addLevelName(TRACE_LOG_LEVEL, "TRACE")
@@ -507,7 +503,7 @@ class Config:
     def setup_event_loop(self) -> None:
         loop_setup: Optional[Callable] = import_from_string(LOOP_SETUPS[self.loop])
         if loop_setup is not None:
-            loop_setup(use_subprocess=self.use_subprocess)
+            loop_setup(reload=self.reload, workers=self.workers)
 
     def bind_socket(self) -> socket.socket:
         logger_args: List[Union[str, int]]
