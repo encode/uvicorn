@@ -493,7 +493,7 @@ class RequestResponseCycle:
             if message_type != "http.response.body":
                 msg = "Expected ASGI message 'http.response.body', but got '%s'."
                 raise RuntimeError(msg % message_type)
-            message = cast(HTTPResponseBodyEvent, message)
+            message = cast("HTTPResponseBodyEvent", message)
 
             body = message.get("body", b"")
             more_body = message.get("more_body", False)

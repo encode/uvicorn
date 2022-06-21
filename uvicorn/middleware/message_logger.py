@@ -58,7 +58,7 @@ class MessageLoggerMiddleware:
         client = scope.get("client")
         prefix = "%s:%d - ASGI" % (client[0], client[1]) if client else "ASGI"
 
-        async def inner_receive() -> ASGIReceiveEvent:
+        async def inner_receive() -> "ASGIReceiveEvent":
             message = await receive()
             logged_message = message_with_placeholders(message)
             log_text = "%s [%d] Receive %s"
