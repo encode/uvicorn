@@ -15,6 +15,7 @@
 
 - Turn `raw_path` into bytes on both websockets implementations (#1487) 16/05/22
 - Revert log exception traceback in case of invalid HTTP request (#1518) 14/06/22
+- Set `asyncio.WindowsSelectorEventLoopPolicy()` when using multiple workers to avoid "WinError 87" (#1454) 22/06/22
 
 ## 0.17.6 - 2022-03-11
 
