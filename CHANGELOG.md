@@ -7,6 +7,10 @@
 - The `reload` flag prioritizes `watchfiles` instead of the deprecated `watchgod` (#1437) 18/06/22
 - Annotate `uvicorn.run()` function (#1423) 10/05/22
 
+### Removed
+
+- Remove `asgiref` dependency (#1532) 22/06/22
+
 ### Fixed
 
 - Turn `raw_path` into bytes on both websockets implementations (#1487) 16/05/22
