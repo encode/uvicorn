@@ -377,6 +377,10 @@ class Config:
     def is_ssl(self) -> bool:
         return bool(self.ssl_keyfile or self.ssl_certfile)
 
+    @property
+    def use_subprocess(self) -> bool:
+        return bool(self.reload or self.workers > 1)
+
     def configure_logging(self) -> None:
         logging.addLevelName(TRACE_LOG_LEVEL, "TRACE")
 
@@ -507,7 +511,7 @@ class Config:
     def setup_event_loop(self) -> None:
         loop_setup: Optional[Callable] = import_from_string(LOOP_SETUPS[self.loop])
         if loop_setup is not None:
-            loop_setup(reload=self.reload)
+            loop_setup(use_subprocess=self.use_subprocess)
 
     def bind_socket(self) -> socket.socket:
         logger_args: List[Union[str, int]]
