@@ -1,13 +1,15 @@
 import socket
 import sys
-from typing import List
+from typing import TYPE_CHECKING, List
 from unittest.mock import patch
 
 import pytest
-from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
 from uvicorn._subprocess import SpawnProcess, get_subprocess, subprocess_started
 from uvicorn.config import Config
+
+if TYPE_CHECKING:
+    from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
 
 def server_run(sockets: List[socket.socket]):  # pragma: no cover
@@ -15,7 +17,7 @@ def server_run(sockets: List[socket.socket]):  # pragma: no cover
 
 
 async def app(
-    scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
 ) -> None:  # pragma: no cover
     ...
 

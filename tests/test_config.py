@@ -7,14 +7,8 @@ import typing
 from pathlib import Path
 from unittest.mock import MagicMock
 
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
-
 import pytest
 import yaml
-from asgiref.typing import ASGIApplication, ASGIReceiveCallable, ASGISendCallable, Scope
 from pytest_mock import MockerFixture
 
 from tests.utils import as_cwd
@@ -24,6 +18,19 @@ from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
+
+if sys.version_info < (3, 8):  # pragma: py-gte-38
+    from typing_extensions import Literal
+else:  # pragma: py-lt-38
+    from typing import Literal
+
+if typing.TYPE_CHECKING:
+    from asgiref.typing import (
+        ASGIApplication,
+        ASGIReceiveCallable,
+        ASGISendCallable,
+        Scope,
+    )
 
 
 @pytest.fixture
@@ -42,7 +49,7 @@ def yaml_logging_config(logging_config: dict) -> str:
 
 
 async def asgi_app(
-    scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
 ) -> None:
     pass  # pragma: nocover
 
@@ -64,7 +71,7 @@ def test_debug_app() -> None:
     [(asgi_app, False), ("tests.test_config:asgi_app", True)],
 )
 def test_config_should_reload_is_set(
-    app: ASGIApplication, expected_should_reload: bool
+    app: "ASGIApplication", expected_should_reload: bool
 ) -> None:
     config_debug = Config(app=app, debug=True)
     assert config_debug.debug is True
@@ -269,7 +276,7 @@ def test_app_unimportable_other(caplog: pytest.LogCaptureFixture) -> None:
 
 
 def test_app_factory(caplog: pytest.LogCaptureFixture) -> None:
-    def create_app() -> ASGIApplication:
+    def create_app() -> "ASGIApplication":
         return asgi_app
 
     config = Config(app=create_app, factory=True, proxy_headers=False)
@@ -330,9 +337,9 @@ def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
     assert config.is_ssl is True
 
 
-def asgi2_app(scope: Scope) -> typing.Callable:
+def asgi2_app(scope: "Scope") -> typing.Callable:
     async def asgi(
-        receive: ASGIReceiveCallable, send: ASGISendCallable
+        receive: "ASGIReceiveCallable", send: "ASGISendCallable"
     ) -> None:  # pragma: nocover
         pass
 
@@ -343,7 +350,7 @@ def asgi2_app(scope: Scope) -> typing.Callable:
     "app, expected_interface", [(asgi_app, "3.0"), (asgi2_app, "2.0")]
 )
 def test_asgi_version(
-    app: ASGIApplication, expected_interface: Literal["2.0", "3.0"]
+    app: "ASGIApplication", expected_interface: Literal["2.0", "3.0"]
 ) -> None:
     config = Config(app=app)
     config.load()

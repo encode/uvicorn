@@ -6,7 +6,6 @@ import sys
 import typing
 
 import click
-from asgiref.typing import ASGIApplication
 from h11._connection import DEFAULT_MAX_INCOMPLETE_EVENT_SIZE
 
 import uvicorn
@@ -28,6 +27,9 @@ from uvicorn.config import (
 )
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
+
+if typing.TYPE_CHECKING:
+    from asgiref.typing import ASGIApplication
 
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
 HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
@@ -453,7 +455,7 @@ def main(
 
 
 def run(
-    app: typing.Union[ASGIApplication, str],
+    app: typing.Union["ASGIApplication", str],
     *,
     host: str = "127.0.0.1",
     port: int = 8000,

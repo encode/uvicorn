@@ -6,19 +6,9 @@ import sys
 import urllib
 from asyncio.events import TimerHandle
 from collections import deque
-from typing import Callable, Deque, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Callable, Deque, List, Optional, Tuple, Union, cast
 
 import httptools
-from asgiref.typing import (
-    ASGI3Application,
-    ASGIReceiveEvent,
-    ASGISendEvent,
-    HTTPDisconnectEvent,
-    HTTPRequestEvent,
-    HTTPResponseBodyEvent,
-    HTTPResponseStartEvent,
-    HTTPScope,
-)
 
 from uvicorn._logging import TRACE_LOG_LEVEL
 from uvicorn.config import Config
@@ -41,6 +31,18 @@ if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
 else:  # pragma: py-lt-38
     from typing import Literal
+
+if TYPE_CHECKING:
+    from asgiref.typing import (
+        ASGI3Application,
+        ASGIReceiveEvent,
+        ASGISendEvent,
+        HTTPDisconnectEvent,
+        HTTPRequestEvent,
+        HTTPResponseBodyEvent,
+        HTTPResponseStartEvent,
+        HTTPScope,
+    )
 
 HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")
@@ -356,7 +358,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
-        scope: HTTPScope,
+        scope: "HTTPScope",
         transport: asyncio.Transport,
         flow: FlowControl,
         logger: logging.Logger,
@@ -394,7 +396,7 @@ class RequestResponseCycle:
         self.expected_content_length = 0
 
     # ASGI exception wrapper
-    async def run_asgi(self, app: ASGI3Application) -> None:
+    async def run_asgi(self, app: "ASGI3Application") -> None:
         try:
             result = await app(self.scope, self.receive, self.send)
         except BaseException as exc:
@@ -421,7 +423,7 @@ class RequestResponseCycle:
             self.on_response = lambda: None
 
     async def send_500_response(self) -> None:
-        response_start_event: HTTPResponseStartEvent = {
+        response_start_event: "HTTPResponseStartEvent" = {
             "type": "http.response.start",
             "status": 500,
             "headers": [
@@ -430,7 +432,7 @@ class RequestResponseCycle:
             ],
         }
         await self.send(response_start_event)
-        response_body_event: HTTPResponseBodyEvent = {
+        response_body_event: "HTTPResponseBodyEvent" = {
             "type": "http.response.body",
             "body": b"Internal Server Error",
             "more_body": False,
@@ -438,7 +440,7 @@ class RequestResponseCycle:
         await self.send(response_body_event)
 
     # ASGI interface
-    async def send(self, message: ASGISendEvent) -> None:
+    async def send(self, message: "ASGISendEvent") -> None:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
@@ -452,7 +454,7 @@ class RequestResponseCycle:
             if message_type != "http.response.start":
                 msg = "Expected ASGI message 'http.response.start', but got '%s'."
                 raise RuntimeError(msg % message_type)
-            message = cast(HTTPResponseStartEvent, message)
+            message = cast("HTTPResponseStartEvent", message)
 
             self.response_started = True
             self.waiting_for_100_continue = False
@@ -548,7 +550,7 @@ class RequestResponseCycle:
             msg = "Unexpected ASGI message '%s' sent, after response already completed."
             raise RuntimeError(msg % message_type)
 
-    async def receive(self) -> ASGIReceiveEvent:
+    async def receive(self) -> "ASGIReceiveEvent":
         if self.waiting_for_100_continue and not self.transport.is_closing():
             self.transport.write(b"HTTP/1.1 100 Continue\r\n\r\n")
             self.waiting_for_100_continue = False
@@ -558,7 +560,7 @@ class RequestResponseCycle:
             await self.message_event.wait()
             self.message_event.clear()
 
-        message: Union[HTTPDisconnectEvent, HTTPRequestEvent]
+        message: "Union[HTTPDisconnectEvent, HTTPRequestEvent]"
         if self.disconnected or self.response_complete:
             message = {"type": "http.disconnect"}
         else:
