@@ -7,6 +7,7 @@ import typing
 
 import click
 from asgiref.typing import ASGIApplication
+from h11._connection import DEFAULT_MAX_INCOMPLETE_EVENT_SIZE
 
 import uvicorn
 from uvicorn.config import (
@@ -340,6 +341,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     " Defaults to the current working directory.",
 )
 @click.option(
+    "--h11-max-incomplete-event-size",
+    "h11_max_incomplete_event_size",
+    type=int,
+    default=None,
+    help="For h11, the maximum number of bytes to buffer of an incomplete event.",
+)
+@click.option(
     "--factory",
     is_flag=True,
     default=False,
@@ -391,6 +399,7 @@ def main(
     headers: typing.List[str],
     use_colors: bool,
     app_dir: str,
+    h11_max_incomplete_event_size: int,
     factory: bool,
 ) -> None:
     run(
@@ -439,6 +448,7 @@ def main(
         use_colors=use_colors,
         factory=factory,
         app_dir=app_dir,
+        h11_max_incomplete_event_size=h11_max_incomplete_event_size,
     )
 
 
@@ -489,6 +499,7 @@ def run(
     use_colors: typing.Optional[bool] = None,
     app_dir: typing.Optional[str] = None,
     factory: bool = False,
+    h11_max_incomplete_event_size: int = DEFAULT_MAX_INCOMPLETE_EVENT_SIZE,
 ) -> None:
     if app_dir is not None:
         sys.path.insert(0, app_dir)
@@ -538,6 +549,7 @@ def run(
         headers=headers,
         use_colors=use_colors,
         factory=factory,
+        h11_max_incomplete_event_size=h11_max_incomplete_event_size,
     )
     server = Server(config=config)
 

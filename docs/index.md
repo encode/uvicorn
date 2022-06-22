@@ -187,6 +187,9 @@ Options:
   --app-dir TEXT                  Look for APP in the specified directory, by
                                   adding this to the PYTHONPATH. Defaults to
                                   the current working directory.  [default: .]
+  --h11-max-incomplete-event-size INTEGER
+                                  For h11, the maximum number of bytes to
+                                  buffer of an incomplete event.
   --factory                       Treat APP as an application factory, i.e. a
                                   () -> <ASGI app> callable.
   --help                          Show this message and exit.
