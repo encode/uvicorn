@@ -551,3 +551,22 @@ def test_bind_fd_works_with_reload_or_workers(reload, workers):  # pragma: py-wi
     assert sock.getsockname() == ""
     sock.close()
     fdsock.close()
+
+
+@pytest.mark.parametrize(
+    "reload, workers, expected",
+    [
+        (True, 1, True),
+        (False, 2, True),
+        (False, 1, False),
+    ],
+    ids=[
+        "--reload=True --workers=1",
+        "--reload=False --workers=2",
+        "--reload=False --workers=1",
+    ],
+)
+def test_config_use_subprocess(reload, workers, expected):
+    config = Config(app=asgi_app, reload=reload, workers=workers)
+    config.load()
+    assert config.use_subprocess == expected
