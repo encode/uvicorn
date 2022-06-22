@@ -6,6 +6,7 @@
 
 - The `reload` flag prioritizes `watchfiles` instead of the deprecated `watchgod` (#1437) 18/06/22
 - Annotate `uvicorn.run()` function (#1423) 10/05/22
+- Allow configuring `max_incomplete_event_size` for `h11` implementation (#1514) 22/06/22
 
 ### Removed
 
