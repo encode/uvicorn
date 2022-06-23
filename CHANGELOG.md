@@ -1,5 +1,23 @@
 # Change Log
 
+## 0.18.0 - 2022-06-22
+
+### Added
+
+- The `reload` flag prioritizes `watchfiles` instead of the deprecated `watchgod` (#1437) 18/06/22
+- Annotate `uvicorn.run()` function (#1423) 10/05/22
+- Allow configuring `max_incomplete_event_size` for `h11` implementation (#1514) 22/06/22
+
+### Removed
+
+- Remove `asgiref` dependency (#1532) 22/06/22
+
+### Fixed
+
+- Turn `raw_path` into bytes on both websockets implementations (#1487) 16/05/22
+- Revert log exception traceback in case of invalid HTTP request (#1518) 14/06/22
+- Set `asyncio.WindowsSelectorEventLoopPolicy()` when using multiple workers to avoid "WinError 87" (#1454) 22/06/22
+
 ## 0.17.6 - 2022-03-11
 
 ### Changed
