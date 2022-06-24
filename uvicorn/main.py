@@ -478,7 +478,7 @@ def run(
     reload_delay: float = 0.25,
     workers: typing.Optional[int] = None,
     env_file: typing.Optional[str] = None,
-    log_config: typing.Optional[typing.Union[dict, str]] = None,
+    log_config: typing.Optional[typing.Union[dict, str]] = LOGGING_CONFIG,
     log_level: typing.Optional[str] = None,
     access_log: bool = True,
     proxy_headers: bool = True,
