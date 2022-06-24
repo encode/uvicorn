@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
+    Any,
     Awaitable,
     Callable,
     Dict,
@@ -91,7 +92,7 @@ INTERFACES: List[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
 SSL_PROTOCOL_VERSION: int = ssl.PROTOCOL_TLS_SERVER
 
 
-LOGGING_CONFIG: dict = {
+LOGGING_CONFIG: Dict[str, Any] = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
@@ -222,7 +223,7 @@ class Config:
         ws_per_message_deflate: Optional[bool] = True,
         lifespan: LifespanType = "auto",
         env_file: Optional[Union[str, os.PathLike]] = None,
-        log_config: Optional[Union[dict, str]] = LOGGING_CONFIG,
+        log_config: Optional[Union[Dict[str, Any], str]] = LOGGING_CONFIG,
         log_level: Optional[Union[str, int]] = None,
         access_log: bool = True,
         use_colors: Optional[bool] = None,
