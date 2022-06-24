@@ -1,11 +1,16 @@
 # Change Log
 
-## 0.18.1 - 2022-06-23
-
+## 0.18.2 - 2022-06-24
 
 ### Fixed
 
-- Use \`DEFAULT_MAX_INCOMPLETE_EVENT_SIZE\` as default to \`h11_max_incomplete_event_size\` on the CLI (#1534) 23/06/22
+- Add default `log_config` on `uvicorn.run()` (#1541) 24/06/22
+
+## 0.18.1 - 2022-06-23
+
+### Fixed
+
+- Use `DEFAULT_MAX_INCOMPLETE_EVENT_SIZE` as default to `h11_max_incomplete_event_size` on the CLI (#1534) 23/06/22
 
 ## 0.18.0 - 2022-06-23
 
