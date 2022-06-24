@@ -766,6 +766,7 @@ async def test_invalid_http_request(request_line, protocol_cls, caplog):
     assert b"Invalid HTTP request received." in protocol.transport.buffer
 
 
+@pytest.mark.skipif(HttpToolsProtocol is None, reason="httptools is not installed")
 def test_fragmentation():
     def receive_all(sock):
         chunks = []
