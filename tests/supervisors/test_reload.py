@@ -2,7 +2,7 @@ import logging
 import signal
 from pathlib import Path
 from time import sleep
-from typing import Type
+from typing import Optional, Type
 
 import pytest
 
@@ -10,8 +10,16 @@ from tests.utils import as_cwd
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload, _display_path
 from uvicorn.supervisors.statreload import StatReload
-from uvicorn.supervisors.watchfilesreload import WatchFilesReload
-from uvicorn.supervisors.watchgodreload import WatchGodReload
+
+try:
+    from uvicorn.supervisors.watchfilesreload import WatchFilesReload
+except ImportError:  # pragma: no cover
+    WatchFilesReload = None
+
+try:
+    from uvicorn.supervisors.watchgodreload import WatchGodReload
+except ImportError:  # pragma: no cover
+    WatchGodReload = None
 
 
 def run(sockets):
@@ -23,8 +31,10 @@ class TestBaseReload:
     def setup(
         self,
         reload_directory_structure: Path,
-        reloader_class: Type[BaseReload],
+        reloader_class: Optional[Type[BaseReload]],
     ):
+        if reloader_class is None:  # pragma: no cover
+            pytest.skip("Needed dependency not installed")
         self.reload_path = reload_directory_structure
         self.reloader_class = reloader_class
 
@@ -43,7 +53,7 @@ class TestBaseReload:
 
     def _reload_tester(self, touch_soon, reloader: BaseReload, *files: Path) -> bool:
         reloader.restart()
-        if isinstance(reloader, WatchFilesReload):
+        if WatchFilesReload is not None and isinstance(reloader, WatchFilesReload):
             touch_soon(*files)
         else:
             assert not next(reloader)
@@ -240,6 +250,7 @@ class TestBaseReload:
 
             reloader.shutdown()
 
+    @pytest.mark.skipif(WatchFilesReload is None, reason="watchfiles not available")
     @pytest.mark.parametrize("reloader_class", [WatchFilesReload])
     def test_watchfiles_no_changes(self) -> None:
         sub_dir = self.reload_path / "app" / "sub"
@@ -296,6 +307,7 @@ class TestBaseReload:
             reloader.shutdown()
 
 
+@pytest.mark.skipif(WatchFilesReload is None, reason="watchfiles not available")
 def test_should_watch_one_dir_cwd(mocker, reload_directory_structure):
     mock_watch = mocker.patch("uvicorn.supervisors.watchfilesreload.watch")
     app_dir = reload_directory_structure / "app"
@@ -312,6 +324,7 @@ def test_should_watch_one_dir_cwd(mocker, reload_directory_structure):
         assert mock_watch.call_args[0] == (Path.cwd(),)
 
 
+@pytest.mark.skipif(WatchFilesReload is None, reason="watchfiles not available")
 def test_should_watch_separate_dirs_outside_cwd(mocker, reload_directory_structure):
     mock_watch = mocker.patch("uvicorn.supervisors.watchfilesreload.watch")
     app_dir = reload_directory_structure / "app"
