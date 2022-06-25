@@ -2,7 +2,7 @@ import httpx
 import pytest
 
 from tests.middleware.test_logging import caplog_for_logger
-from uvicorn._logging import TRACE_LOG_LEVEL
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 
 
