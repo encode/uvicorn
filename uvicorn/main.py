@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import platform
@@ -455,33 +456,33 @@ def main(
 
 
 def run(
-    app: typing.Union["ASGIApplication", str],
+    app: typing.Union["ASGIApplication", typing.Callable, str],
     *,
     host: str = "127.0.0.1",
     port: int = 8000,
     uds: typing.Optional[str] = None,
     fd: typing.Optional[int] = None,
     loop: LoopSetupType = "auto",
-    http: HTTPProtocolType = "auto",
-    ws: WSProtocolType = "auto",
+    http: typing.Union[typing.Type[asyncio.Protocol], HTTPProtocolType] = "auto",
+    ws: typing.Union[typing.Type[asyncio.Protocol], WSProtocolType] = "auto",
     ws_max_size: int = 16777216,
-    ws_ping_interval: float = 20.0,
-    ws_ping_timeout: float = 20.0,
+    ws_ping_interval: typing.Optional[float] = 20.0,
+    ws_ping_timeout: typing.Optional[float] = 20.0,
     ws_per_message_deflate: bool = True,
     lifespan: LifespanType = "auto",
     interface: InterfaceType = "auto",
     debug: bool = False,
     reload: bool = False,
-    reload_dirs: typing.Optional[typing.List[str]] = None,
-    reload_includes: typing.Optional[typing.List[str]] = None,
-    reload_excludes: typing.Optional[typing.List[str]] = None,
+    reload_dirs: typing.Optional[typing.Union[typing.List[str], str]] = None,
+    reload_includes: typing.Optional[typing.Union[typing.List[str], str]] = None,
+    reload_excludes: typing.Optional[typing.Union[typing.List[str], str]] = None,
     reload_delay: float = 0.25,
     workers: typing.Optional[int] = None,
-    env_file: typing.Optional[str] = None,
+    env_file: typing.Optional[typing.Union[str, os.PathLike]] = None,
     log_config: typing.Optional[
         typing.Union[typing.Dict[str, typing.Any], str]
     ] = LOGGING_CONFIG,
-    log_level: typing.Optional[str] = None,
+    log_level: typing.Optional[typing.Union[str, int]] = None,
     access_log: bool = True,
     proxy_headers: bool = True,
     server_header: bool = True,
@@ -493,10 +494,10 @@ def run(
     limit_max_requests: typing.Optional[int] = None,
     timeout_keep_alive: int = 5,
     ssl_keyfile: typing.Optional[str] = None,
-    ssl_certfile: typing.Optional[str] = None,
+    ssl_certfile: typing.Optional[typing.Union[str, os.PathLike]] = None,
     ssl_keyfile_password: typing.Optional[str] = None,
-    ssl_version: int = int(SSL_PROTOCOL_VERSION),
-    ssl_cert_reqs: int = int(ssl.CERT_NONE),
+    ssl_version: int = SSL_PROTOCOL_VERSION,
+    ssl_cert_reqs: int = ssl.CERT_NONE,
     ssl_ca_certs: typing.Optional[str] = None,
     ssl_ciphers: str = "TLSv1",
     headers: typing.Optional[typing.List[typing.Tuple[str, str]]] = None,
