@@ -11,7 +11,7 @@ if TYPE_CHECKING:
         WWWScope,
     )
 
-from uvicorn._logging import TRACE_LOG_LEVEL
+from uvicorn.logging import TRACE_LOG_LEVEL
 
 PLACEHOLDER_FORMAT = {
     "body": "<{length} bytes>",

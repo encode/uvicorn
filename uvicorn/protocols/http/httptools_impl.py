@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Callable, Deque, List, Optional, Tuple, Union,
 
 import httptools
 
-from uvicorn._logging import TRACE_LOG_LEVEL
 from uvicorn.config import Config
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
     HIGH_WATER_LIMIT,

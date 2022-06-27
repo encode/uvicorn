@@ -23,7 +23,7 @@ from typing import (
 
 from h11._connection import DEFAULT_MAX_INCOMPLETE_EVENT_SIZE
 
-from uvicorn._logging import TRACE_LOG_LEVEL
+from uvicorn.logging import TRACE_LOG_LEVEL
 
 if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
@@ -97,12 +97,12 @@ LOGGING_CONFIG: Dict[str, Any] = {
     "disable_existing_loggers": False,
     "formatters": {
         "default": {
-            "()": "uvicorn._logging.DefaultFormatter",
+            "()": "uvicorn.logging.DefaultFormatter",
             "fmt": "%(levelprefix)s %(message)s",
             "use_colors": None,
         },
         "access": {
-            "()": "uvicorn._logging.AccessFormatter",
+            "()": "uvicorn.logging.AccessFormatter",
             "fmt": '%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',  # noqa: E501
         },
     },
