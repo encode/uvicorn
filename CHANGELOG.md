@@ -5,6 +5,7 @@
 ### Fixed
 
 - Add default `log_config` on `uvicorn.run()` (#1541) 24/06/22
+- Revert `logging` file name modification (#1543) 27/06/22
 
 ## 0.18.1 - 2022-06-23
 
