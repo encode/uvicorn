@@ -120,10 +120,10 @@ class Server:
         if self._main_task is not None:
             raise RuntimeError("cannot call serve on running server")
 
-        if sockets is not None and self._sockets is not None:
-            raise RuntimeError("cannot override already provided sockets list")
-
-        self._sockets = sockets
+        if sockets is not None:
+            if self._sockets is not None:
+                raise RuntimeError("cannot override already provided sockets list")
+            self._sockets = sockets
 
         self.install_signal_handlers()
         try:
