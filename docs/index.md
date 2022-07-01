@@ -556,7 +556,7 @@ Its most distinctive features are built-in support for dependency injection, aut
 
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
-[gunicorn]: http://gunicorn.org/
+[gunicorn]: https://gunicorn.org/
 [pypy]: https://pypy.org/
 [asgi]: https://asgi.readthedocs.io/en/latest/
 [asgi-http]: https://asgi.readthedocs.io/en/latest/specs/www.html
