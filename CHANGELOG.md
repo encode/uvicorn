@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.19.0 - <DATE>
+
+### Fixed
+
+- `reload_delay` default changed from `None` to `0.25` on `uvicorn.run()` and `Config`. `None` is not an acceptable value anymore. (#1545) 02/07/22
+
 ## 0.18.2 - 2022-06-27
 
 ### Fixed
@@ -41,8 +47,8 @@
 
 ### Fixed
 
-- Fix case where url is fragmented in httptools protocol (#1263) 2/16/22
-- Fix WSGI middleware not to explode quadratically in the case of a larger body (#1329) 2/16/16
+- Fix case where url is fragmented in httptools protocol (#1263) 16/02/22
+- Fix WSGI middleware not to explode quadratically in the case of a larger body (#1329) 16/02/16
 
 ### Changed
 
