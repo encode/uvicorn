@@ -218,9 +218,9 @@ class Config:
         http: Union[Type[asyncio.Protocol], HTTPProtocolType] = "auto",
         ws: Union[Type[asyncio.Protocol], WSProtocolType] = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
-        ws_ping_interval: Optional[float] = 20,
-        ws_ping_timeout: Optional[float] = 20,
-        ws_per_message_deflate: Optional[bool] = True,
+        ws_ping_interval: Optional[float] = 20.0,
+        ws_ping_timeout: Optional[float] = 20.0,
+        ws_per_message_deflate: bool = True,
         lifespan: LifespanType = "auto",
         env_file: Optional[Union[str, os.PathLike]] = None,
         log_config: Optional[Union[Dict[str, Any], str]] = LOGGING_CONFIG,
@@ -231,7 +231,7 @@ class Config:
         debug: bool = False,
         reload: bool = False,
         reload_dirs: Optional[Union[List[str], str]] = None,
-        reload_delay: Optional[float] = None,
+        reload_delay: float = 0.25,
         reload_includes: Optional[Union[List[str], str]] = None,
         reload_excludes: Optional[Union[List[str], str]] = None,
         workers: Optional[int] = None,
@@ -245,7 +245,7 @@ class Config:
         backlog: int = 2048,
         timeout_keep_alive: int = 5,
         timeout_notify: int = 30,
-        callback_notify: Callable[..., Awaitable[None]] = None,
+        callback_notify: Optional[Callable[..., Awaitable[None]]] = None,
         ssl_keyfile: Optional[str] = None,
         ssl_certfile: Optional[Union[str, os.PathLike]] = None,
         ssl_keyfile_password: Optional[str] = None,
@@ -277,7 +277,7 @@ class Config:
         self.interface = interface
         self.debug = debug
         self.reload = reload
-        self.reload_delay = reload_delay or 0.25
+        self.reload_delay = reload_delay
         self.workers = workers or 1
         self.proxy_headers = proxy_headers
         self.server_header = server_header
