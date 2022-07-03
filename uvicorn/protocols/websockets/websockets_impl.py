@@ -245,7 +245,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 await self.handshake_completed_event.wait()
                 self.transport.close()
 
-    async def asgi_send(self, message: ASGISendEvent) -> None:
+    async def asgi_send(self, message: "ASGISendEvent") -> None:
         message_type = message["type"]
 
         if not self.handshake_started_event.is_set():
@@ -317,7 +317,9 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
     async def asgi_receive(
         self,
-    ) -> Union[WebSocketDisconnectEvent, WebSocketConnectEvent, WebSocketReceiveEvent]:
+    ) -> Union[
+        "WebSocketDisconnectEvent", "WebSocketConnectEvent", "WebSocketReceiveEvent"
+    ]:
         if not self.connect_sent:
             self.connect_sent = True
             return {"type": "websocket.connect"}
