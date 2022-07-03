@@ -8,21 +8,24 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
-from typing import List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union, cast
 
-from asgiref.typing import (
-    ASGI3Application,
-    ASGIReceiveCallable,
-    ASGISendCallable,
-    HTTPScope,
-    Scope,
-    WebSocketScope,
-)
+if TYPE_CHECKING:
+    from asgiref.typing import (
+        ASGI3Application,
+        ASGIReceiveCallable,
+        ASGISendCallable,
+        HTTPScope,
+        Scope,
+        WebSocketScope,
+    )
 
 
 class ProxyHeadersMiddleware:
     def __init__(
-        self, app: ASGI3Application, trusted_hosts: Union[List[str], str] = "127.0.0.1"
+        self,
+        app: "ASGI3Application",
+        trusted_hosts: Union[List[str], str] = "127.0.0.1",
     ) -> None:
         self.app = app
         if isinstance(trusted_hosts, str):
@@ -44,10 +47,10 @@ class ProxyHeadersMiddleware:
         return None
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
     ) -> None:
         if scope["type"] in ("http", "websocket"):
-            scope = cast(Union[HTTPScope, WebSocketScope], scope)
+            scope = cast(Union["HTTPScope", "WebSocketScope"], scope)
             client_addr: Optional[Tuple[str, int]] = scope.get("client")
             client_host = client_addr[0] if client_addr else None
 
@@ -70,6 +73,6 @@ class ProxyHeadersMiddleware:
                     ]
                     host = self.get_trusted_client_host(x_forwarded_for_hosts)
                     port = 0
-                    scope["client"] = (host, port)  # type: ignore[index]
+                    scope["client"] = (host, port)  # type: ignore[arg-type]
 
         return await self.app(scope, receive, send)

@@ -17,10 +17,18 @@ class StatReload(BaseReload):
         sockets: List[socket],
     ) -> None:
         super().__init__(config, target, sockets)
-        self.reloader_name = "statreload"
+        self.reloader_name = "StatReload"
         self.mtimes: Dict[Path, float] = {}
 
-    def should_restart(self) -> bool:
+        if config.reload_excludes or config.reload_includes:
+            logger.warning(
+                "--reload-include and --reload-exclude have no effect unless "
+                "watchfiles is installed."
+            )
+
+    def should_restart(self) -> Optional[List[Path]]:
+        self.pause()
+
         for file in self.iter_py_files():
             try:
                 mtime = file.stat().st_mtime
@@ -32,15 +40,8 @@ class StatReload(BaseReload):
                 self.mtimes[file] = mtime
                 continue
             elif mtime > old_time:
-                display_path = str(file)
-                try:
-                    display_path = str(file.relative_to(Path.cwd()))
-                except ValueError:
-                    pass
-                message = "StatReload detected file change in '%s'. Reloading..."
-                logger.warning(message, display_path)
-                return True
-        return False
+                return [file]
+        return None
 
     def restart(self) -> None:
         self.mtimes = {}

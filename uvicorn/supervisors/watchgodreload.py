@@ -1,4 +1,5 @@
 import logging
+import warnings
 from pathlib import Path
 from socket import socket
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional
@@ -8,12 +9,12 @@ from watchgod import DefaultWatcher
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
 
-logger = logging.getLogger("uvicorn.error")
-
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     import os
 
     DirEntry = os.DirEntry[str]
+
+logger = logging.getLogger("uvicorn.error")
 
 
 class CustomWatcher(DefaultWatcher):
@@ -129,8 +130,13 @@ class WatchGodReload(BaseReload):
         target: Callable[[Optional[List[socket]]], None],
         sockets: List[socket],
     ) -> None:
+        warnings.warn(
+            '"watchgod" is depreciated, you should switch '
+            "to watchfiles (`pip install watchfiles`).",
+            DeprecationWarning,
+        )
         super().__init__(config, target, sockets)
-        self.reloader_name = "watchgod"
+        self.reloader_name = "WatchGod"
         self.watchers = []
         reload_dirs = []
         for directory in config.reload_dirs:
@@ -141,12 +147,12 @@ class WatchGodReload(BaseReload):
         for w in reload_dirs:
             self.watchers.append(CustomWatcher(w.resolve(), self.config))
 
-    def should_restart(self) -> bool:
+    def should_restart(self) -> Optional[List[Path]]:
+        self.pause()
+
         for watcher in self.watchers:
             change = watcher.check()
             if change != set():
-                message = "WatchGodReload detected file change in '%s'. Reloading..."
-                logger.warning(message, [c[1] for c in change])
-                return True
+                return list({Path(c[1]) for c in change})
 
-        return False
+        return None

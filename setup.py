@@ -44,7 +44,6 @@ env_marker_win = "sys_platform == 'win32'"
 env_marker_below_38 = "python_version < '3.8'"
 
 minimal_requirements = [
-    "asgiref>=3.4.0",
     "click>=7.0",
     "h11>=0.8",
     "typing-extensions;" + env_marker_below_38,
@@ -53,10 +52,10 @@ minimal_requirements = [
 
 extra_requirements = [
     "websockets>=10.0",
-    "httptools>=0.2.0,<0.4.0",
+    "httptools>=0.4.0",
     "uvloop>=0.14.0,!=0.15.0,!=0.15.1; " + env_marker_cpython,
     "colorama>=0.4;" + env_marker_win,
-    "watchgod>=0.6",
+    "watchfiles>=0.13",
     "python-dotenv>=0.13",
     "PyYAML>=5.1",
 ]
@@ -73,6 +72,7 @@ setup(
     author="Tom Christie",
     author_email="tom@tomchristie.com",
     packages=get_packages("uvicorn"),
+    python_requires=">=3.7",
     install_requires=minimal_requirements,
     extras_require={"standard": extra_requirements},
     include_package_data=True,
