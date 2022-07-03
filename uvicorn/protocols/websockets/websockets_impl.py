@@ -219,7 +219,7 @@ class WebSocketProtocol(websockets.WebSocketServerProtocol):
                 if "headers" in message:
                     self.extra_headers.extend(
                         # ASGI spec requires bytes
-                        # But for compability we need to convert it to strings
+                        # But for compatibility we need to convert it to strings
                         (name.decode("latin-1"), value.decode("latin-1"))
                         for name, value in message["headers"]
                     )
