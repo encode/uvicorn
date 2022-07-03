@@ -84,7 +84,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.closed_event = asyncio.Event()
         self.initial_response: Optional[HTTPResponse] = None
         self.connect_sent = False
-        self.accepted_subprotocol: Optional[str] = None
+        self.accepted_subprotocol: Optional[Subprotocol] = None
         self.transfer_data_task: asyncio.Task = None  # type: ignore[assignment]
 
         self.ws_server: Server = Server()  # type: ignore[assignment]
@@ -257,7 +257,9 @@ class WebSocketProtocol(WebSocketServerProtocol):
                     self.scope["path"],
                 )
                 self.initial_response = None
-                self.accepted_subprotocol = message.get("subprotocol")
+                self.accepted_subprotocol = cast(
+                    Optional[Subprotocol], message.get("subprotocol")
+                )
                 if "headers" in message:
                     self.extra_headers.extend(
                         # ASGI spec requires bytes
