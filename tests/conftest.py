@@ -17,7 +17,7 @@ from uvicorn.config import LOGGING_CONFIG
 
 # Note: We explicitly turn the propagate on just for tests, because pytest
 # caplog not able to capture no-propagate loggers.
-# 
+#
 # And the caplog_for_logger helper also not work on test config cases, because
 # when create Config object, Config.configure_logging will remove caplog.handler.
 #
