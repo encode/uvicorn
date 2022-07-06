@@ -7,7 +7,14 @@ from cryptography.hazmat.primitives import serialization
 
 from uvicorn.config import LOGGING_CONFIG
 
-# Workaround: pytest caplog not able to capture no-propagate loggers
+# Note: We explicitly turn the propagate on just for tests, because pytest
+# caplog not able to capture no-propagate loggers.
+# 
+# And the caplog_for_logger helper also not work on test config cases, because
+# when create Config object, Config.configure_logging will remove caplog.handler.
+#
+# The simple solution is set propagate=True before execute tests.
+#
 # See also: https://github.com/pytest-dev/pytest/issues/3697
 LOGGING_CONFIG["loggers"]["uvicorn"]["propagate"] = True
 
