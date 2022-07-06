@@ -1,8 +1,9 @@
 import asyncio
 import urllib.parse
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
-from asgiref.typing import WWWScope
+if TYPE_CHECKING:
+    from asgiref.typing import WWWScope
 
 
 def get_remote_addr(transport: asyncio.Transport) -> Optional[Tuple[str, int]]:
@@ -11,7 +12,7 @@ def get_remote_addr(transport: asyncio.Transport) -> Optional[Tuple[str, int]]:
         try:
             info = socket_info.getpeername()
             return (str(info[0]), int(info[1])) if isinstance(info, tuple) else None
-        except OSError:
+        except OSError:  # pragma: no cover
             # This case appears to inconsistently occur with uvloop
             # bound to a unix domain socket.
             return None
@@ -38,17 +39,15 @@ def is_ssl(transport: asyncio.Transport) -> bool:
     return bool(transport.get_extra_info("sslcontext"))
 
 
-def get_client_addr(scope: WWWScope) -> str:
+def get_client_addr(scope: "WWWScope") -> str:
     client = scope.get("client")
     if not client:
         return ""
     return "%s:%d" % client
 
 
-def get_path_with_query_string(scope: WWWScope) -> str:
-    path_with_query_string = urllib.parse.quote(
-        scope.get("root_path", "") + scope["path"]
-    )
+def get_path_with_query_string(scope: "WWWScope") -> str:
+    path_with_query_string = urllib.parse.quote(scope["path"])
     if scope["query_string"]:
         path_with_query_string = "{}?{}".format(
             path_with_query_string, scope["query_string"].decode("ascii")

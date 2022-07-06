@@ -122,19 +122,19 @@ def test_cli_incomplete_app_parameter() -> None:
     assert result.exit_code == 1
 
 
-def test_cli_reloader_incomplete_app_parameter(
-    capfd: pytest.CaptureFixture[str],
-) -> None:
+def test_cli_event_size() -> None:
     runner = CliRunner()
 
-    runner.invoke(cli, ["tests.test_cli", "--reload"])
+    with mock.patch.object(main, "run") as mock_run:
+        result = runner.invoke(
+            cli,
+            ["tests.test_cli:App", "--h11-max-incomplete-event-size", str(32 * 1024)],
+        )
 
-    captured = capfd.readouterr()
-
-    assert (
-        'Error loading ASGI app. Import string "tests.test_cli" '
-        'must be in format "<module>:<attribute>".'
-    ) in captured.err
+    assert result.output == ""
+    assert result.exit_code == 0
+    mock_run.assert_called_once()
+    assert mock_run.call_args[1]["h11_max_incomplete_event_size"] == 32768
 
 
 @pytest.fixture()

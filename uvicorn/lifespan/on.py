@@ -1,27 +1,29 @@
 import asyncio
 import logging
 from asyncio import Queue
-from typing import Union
-
-from asgiref.typing import (
-    LifespanScope,
-    LifespanShutdownCompleteEvent,
-    LifespanShutdownEvent,
-    LifespanShutdownFailedEvent,
-    LifespanStartupCompleteEvent,
-    LifespanStartupEvent,
-    LifespanStartupFailedEvent,
-)
+from typing import TYPE_CHECKING, Union
 
 from uvicorn import Config
 
-LifespanReceiveMessage = Union[LifespanStartupEvent, LifespanShutdownEvent]
-LifespanSendMessage = Union[
-    LifespanStartupFailedEvent,
-    LifespanShutdownFailedEvent,
-    LifespanStartupCompleteEvent,
-    LifespanShutdownCompleteEvent,
-]
+if TYPE_CHECKING:
+    from asgiref.typing import (
+        LifespanScope,
+        LifespanShutdownCompleteEvent,
+        LifespanShutdownEvent,
+        LifespanShutdownFailedEvent,
+        LifespanStartupCompleteEvent,
+        LifespanStartupEvent,
+        LifespanStartupFailedEvent,
+    )
+
+    LifespanReceiveMessage = Union[LifespanStartupEvent, LifespanShutdownEvent]
+    LifespanSendMessage = Union[
+        LifespanStartupFailedEvent,
+        LifespanShutdownFailedEvent,
+        LifespanStartupCompleteEvent,
+        LifespanShutdownCompleteEvent,
+    ]
+
 
 STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
 
@@ -97,7 +99,7 @@ class LifespanOn:
             self.startup_event.set()
             self.shutdown_event.set()
 
-    async def send(self, message: LifespanSendMessage) -> None:
+    async def send(self, message: "LifespanSendMessage") -> None:
         assert message["type"] in (
             "lifespan.startup.complete",
             "lifespan.startup.failed",
@@ -131,5 +133,5 @@ class LifespanOn:
             if message.get("message"):
                 self.logger.error(message["message"])
 
-    async def receive(self) -> LifespanReceiveMessage:
+    async def receive(self) -> "LifespanReceiveMessage":
         return await self.receive_queue.get()

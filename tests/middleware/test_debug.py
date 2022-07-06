@@ -4,7 +4,7 @@ import pytest
 from uvicorn.middleware.debug import DebugMiddleware
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_debug_text():
     async def app(scope, receive, send):
         raise RuntimeError("Something went wrong")
@@ -24,7 +24,7 @@ async def test_debug_text():
     assert "RuntimeError" in response.text
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_debug_html():
     async def app(scope, receive, send):
         raise RuntimeError("Something went wrong")
@@ -43,7 +43,7 @@ async def test_debug_html():
     assert "RuntimeError" in response.text
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_debug_after_response_sent():
     async def app(scope, receive, send):
         await send({"type": "http.response.start", "status": 204, "headers": []})
@@ -63,7 +63,7 @@ async def test_debug_after_response_sent():
     assert response.content == b""
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_debug_not_http():
     async def app(scope, send, receive):
         raise RuntimeError("Something went wrong")

@@ -1,3 +1,5 @@
+import inspect
+import socket
 from logging import WARNING
 
 import httpx
@@ -14,7 +16,7 @@ async def app(scope, receive, send):
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_return_close_header():
     config = Config(app=app, host="localhost", loop="asyncio", limit_max_requests=1)
     async with run_server(config):
@@ -29,13 +31,33 @@ async def test_return_close_header():
     )
 
 
-@pytest.mark.asyncio
+def _has_ipv6(host):
+    sock = None
+    has_ipv6 = False
+    if socket.has_ipv6:
+        try:
+            sock = socket.socket(socket.AF_INET6)
+            sock.bind((host, 0))
+            has_ipv6 = True
+        except Exception:  # pragma: no cover
+            pass
+    if sock:
+        sock.close()
+    return has_ipv6
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     "host, url",
     [
         pytest.param(None, "http://127.0.0.1:8000", id="default"),
         pytest.param("localhost", "http://127.0.0.1:8000", id="hostname"),
-        pytest.param("::1", "http://[::1]:8000", id="ipv6"),
+        pytest.param(
+            "::1",
+            "http://[::1]:8000",
+            id="ipv6",
+            marks=pytest.mark.skipif(not _has_ipv6("::1"), reason="IPV6 not enabled"),
+        ),
     ],
 )
 async def test_run(host, url):
@@ -46,7 +68,7 @@ async def test_run(host, url):
     assert response.status_code == 204
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_run_multiprocess():
     config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
     async with run_server(config):
@@ -55,7 +77,7 @@ async def test_run_multiprocess():
     assert response.status_code == 204
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_run_reload():
     config = Config(app=app, loop="asyncio", reload=True, limit_max_requests=1)
     async with run_server(config):
@@ -86,3 +108,17 @@ def test_run_startup_failure(caplog: pytest.LogCaptureFixture) -> None:
     with pytest.raises(SystemExit) as exit_exception:
         run(app, lifespan="on")
     assert exit_exception.value.code == 3
+
+
+def test_run_match_config_params() -> None:
+    config_params = {
+        key: repr(value)
+        for key, value in inspect.signature(Config.__init__).parameters.items()
+        if key not in ("self", "timeout_notify", "callback_notify")
+    }
+    run_params = {
+        key: repr(value)
+        for key, value in inspect.signature(run).parameters.items()
+        if key not in ("app_dir",)
+    }
+    assert config_params == run_params

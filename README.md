@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-<em>The lightning-fast ASGI server.</em>
+<em>An ASGI web server, for Python.</em>
 </p>
 
 ---
@@ -13,15 +13,15 @@
 
 **Documentation**: [https://www.uvicorn.org](https://www.uvicorn.org)
 
-**Requirements**: Python 3.6+ (For Python 3.5 support, install version 0.8.6.)
+**Requirements**: Python 3.7+ (For Python 3.6 support, install version 0.16.0.)
 
-Uvicorn is a lightning-fast ASGI server implementation, using [uvloop][uvloop] and [httptools][httptools].
+Uvicorn is an ASGI web server implementation for Python.
 
 Until recently Python has lacked a minimal low-level server/application interface for
-asyncio frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
-start building a common set of tooling usable across all asyncio frameworks.
+async frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
+start building a common set of tooling usable across all async frameworks.
 
-Uvicorn currently supports HTTP/1.1 and WebSockets. Support for HTTP/2 is planned.
+Uvicorn supports HTTP/1.1 and WebSockets.
 
 ## Quickstart
 
@@ -47,7 +47,7 @@ In this context, "Cython-based" means the following:
 Moreover, "optional extras" means that:
 
 - the websocket protocol will be handled by `websockets` (should you want to use `wsproto` you'd need to install it manually) if possible.
-- the `--reload` flag in development mode will use `watchgod`.
+- the `--reload` flag in development mode will use `watchfiles`.
 - windows users will have `colorama` installed for the colored logs.
 - `python-dotenv` will be installed should you want to use the `--env-file` option.
 - `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
@@ -79,8 +79,63 @@ $ uvicorn example:app
 
 ---
 
-<p align="center"><i>Uvicorn is <a href="https://github.com/encode/uvicorn/blob/master/LICENSE.md">BSD licensed</a> code.<br/>Designed & built in Brighton, England.</i><br/>&mdash; 🦄  &mdash;</p>
+## Why ASGI?
 
-[uvloop]: https://github.com/MagicStack/uvloop
-[httptools]: https://github.com/MagicStack/httptools
+Most well established Python Web frameworks started out as WSGI-based frameworks.
+
+WSGI applications are a single, synchronous callable that takes a request and returns a response.
+This doesn’t allow for long-lived connections, like you get with long-poll HTTP or WebSocket connections,
+which WSGI doesn't support well.
+
+Having an async concurrency model also allows for options such as lightweight background tasks,
+and can be less of a limiting factor for endpoints that have long periods being blocked on network
+I/O such as dealing with slow HTTP requests.
+
+---
+
+## Alternative ASGI servers
+
+A strength of the ASGI protocol is that it decouples the server implementation
+from the application framework. This allows for an ecosystem of interoperating
+webservers and application frameworks.
+
+### Daphne
+
+The first ASGI server implementation, originally developed to power Django Channels, is [the Daphne webserver][daphne].
+
+It is run widely in production, and supports HTTP/1.1, HTTP/2, and WebSockets.
+
+Any of the example applications given here can equally well be run using `daphne` instead.
+
+```
+$ pip install daphne
+$ daphne app:App
+```
+
+### Hypercorn
+
+[Hypercorn][hypercorn] was initially part of the Quart web framework, before
+being separated out into a standalone ASGI server.
+
+Hypercorn supports HTTP/1.1, HTTP/2, and WebSockets.
+
+It also supports [the excellent `trio` async framework][trio], as an alternative to `asyncio`.
+
+```
+$ pip install hypercorn
+$ hypercorn app:App
+```
+
+### Mangum
+
+[Mangum][mangum] is an adapter for using ASGI applications with AWS Lambda & API Gateway.
+
+---
+
+<p align="center"><i>Uvicorn is <a href="https://github.com/encode/uvicorn/blob/master/LICENSE.md">BSD licensed</a> code.<br/>Designed & crafted with care.</i><br/>&mdash; 🦄  &mdash;</p>
+
 [asgi]: https://asgi.readthedocs.io/en/latest/
+[daphne]: https://github.com/django/daphne
+[hypercorn]: https://gitlab.com/pgjones/hypercorn
+[mangum]: https://mangum.io
+[trio]: https://trio.readthedocs.io
