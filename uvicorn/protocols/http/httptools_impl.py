@@ -250,7 +250,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             path = urllib.parse.unquote(path)
         self.scope["path"] = path
         self.scope["raw_path"] = raw_path
-        self.scope["query_string"] = parsed_url.query if parsed_url.query else b""
+        self.scope["query_string"] = parsed_url.query or b""
 
         # Handle 503 responses when 'limit_concurrency' is exceeded.
         if self.limit_concurrency is not None and (
