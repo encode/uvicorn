@@ -2,11 +2,10 @@ import asyncio
 import http
 import logging
 import sys
-from typing import Any, List, Optional, Sequence, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, Union, cast
 from urllib.parse import unquote
 
 import websockets
-from trustme import TYPE_CHECKING
 from websockets.datastructures import Headers
 from websockets.exceptions import ConnectionClosed
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
@@ -104,8 +103,9 @@ class WebSocketProtocol(WebSocketServerProtocol):
             extra_headers=[],
         )
 
-    def connection_made(self, transport: asyncio.BaseTransport) -> None:
-        transport = cast(asyncio.Transport, transport)
+    def connection_made(  # type: ignore[override]
+        self, transport: asyncio.Transport
+    ) -> None:
         self.connections.add(self)
         self.transport = transport
         self.server = get_local_addr(transport)
@@ -113,7 +113,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.scheme = "wss" if is_ssl(transport) else "ws"
 
         if self.logger.isEnabledFor(TRACE_LOG_LEVEL):
-            prefix = "{}:{} - ".format(*self.client) if self.client else ""
+            prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection made", prefix)
 
         super().connection_made(transport)
@@ -122,7 +122,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.connections.remove(self)
 
         if self.logger.isEnabledFor(TRACE_LOG_LEVEL):
-            prefix = "{}:{} - ".format(*self.client) if self.client else ""
+            prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection lost", prefix)
 
         self.handshake_completed_event.set()
