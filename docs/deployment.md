@@ -166,6 +166,36 @@ Also note that in this case, you should put `uvicorn.run` into `if __name__ == '
 !!! note
     The `reload` and `workers` parameters are **mutually exclusive**.
 
+
+To run the server programmatically with the `reload` option, you should additionally use the `ChangeReload` supervisor. For example:
+
+**reload_example.py**:
+
+```python
+import os
+import uvicorn
+from uvicorn.supervisors import ChangeReload
+
+class App:
+    ...
+
+app = App()
+
+if __name__ == "__main__":
+    reload_dir = os.path.dirname(__file__)
+    config = uvicorn.Config(
+        "reload_example:app",
+        host="127.0.0.1",
+        port=5000,
+        log_level="info",
+        reload=True,
+        reload_dirs=[reload_dir]
+    )
+    server = uvicorn.Server(config)
+    sock = config.bind_socket()
+    ChangeReload(config, target=server.run, sockets=[sock]).run()
+```
+
 ## Using a process manager
 
 Running Uvicorn using a process manager ensures that you can run multiple processes in a resilient manner, and allows you to perform server upgrades without dropping requests.
