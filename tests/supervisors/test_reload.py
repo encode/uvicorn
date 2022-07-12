@@ -1,5 +1,6 @@
 import logging
 import signal
+import sys
 from pathlib import Path
 from time import sleep
 from typing import Type
@@ -12,6 +13,11 @@ from uvicorn.supervisors.basereload import BaseReload, _display_path
 from uvicorn.supervisors.statreload import StatReload
 from uvicorn.supervisors.watchfilesreload import WatchFilesReload
 from uvicorn.supervisors.watchgodreload import WatchGodReload
+
+pytestmark = pytest.mark.skipif(
+    any(module not in sys.modules for module in ("watchfiles", "watchgod")),
+    reason="watchfiles or watchgod not installed",
+)
 
 
 def run(sockets):
