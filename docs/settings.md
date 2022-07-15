@@ -68,7 +68,7 @@ For more nuanced control over which file modifications trigger reloads, install 
 * `--h11-max-incomplete-event-size <int>` - Set the maximum number of bytes to buffer of an incomplete event. Only available for `h11` HTTP protocol implementation. **Default:** *'16384'* (16 KB).
 
 !!! note
-    Selecting `websockets` as Websocket protocol doesn't adhere to `--no-server-header` settings of Uvicorn. This is a limitation. 
+    On selecting `websockets` as Websocket protocol, the server headers are not disabled even if `--no-server-header` settings is passed. This is a limitation. 
 
 ## Application Interface
 
