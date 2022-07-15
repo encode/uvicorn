@@ -260,13 +260,20 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 self.accepted_subprotocol = cast(
                     Optional[Subprotocol], message.get("subprotocol")
                 )
-                if "headers" in message:
-                    self.extra_headers.extend(
-                        # ASGI spec requires bytes
-                        # But for compatibility we need to convert it to strings
-                        (name.decode("latin-1"), value.decode("latin-1"))
-                        for name, value in message["headers"]
-                    )
+                headers = list(message.get("headers", [])) + self.default_headers
+                _added_names = []
+                for name, value in headers:
+                    if name.lower() in _added_names:
+                        continue
+                    _added_names.append(name.lower())
+                    self.extra_headers.append((name.decode("latin-1"), value.decode("latin-1")))
+#                 if "headers" in message:
+#                     self.extra_headers.extend(
+#                         # ASGI spec requires bytes
+#                         # But for compatibility we need to convert it to strings
+#                         (name.decode("latin-1"), value.decode("latin-1"))
+#                         for name, value in message["headers"]
+#                     )
                 self.handshake_started_event.set()
 
             elif message_type == "websocket.close":
