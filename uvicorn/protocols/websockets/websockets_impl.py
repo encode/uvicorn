@@ -69,6 +69,8 @@ class WebSocketProtocol(WebSocketServerProtocol):
         # Shared server state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
+        self.default_headers = server_state.default_headers
+
 
         # Connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
