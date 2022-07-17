@@ -1,9 +1,9 @@
 #!/bin/sh -e
 
-if [ -d 'venv' ] ; then
-    PREFIX="venv/bin/"
+if [ -d venv ]; then
+    PREFIX=venv/bin/
 else
-    PREFIX=""
+    PREFIX=
 fi
 
 set -x
