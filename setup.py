@@ -10,20 +10,33 @@ PACKAGE_NAME = "uvicorn"
 PACKAGE_INIT_FILENAME = "__init__.py"
 
 
+def read_utf8_file(filepath):
+    """
+    Return file contents read as UTF-8.
+    """
+    return open(filepath, encoding="utf8").read()
+
+
 def get_version():
     """
     Return package version as listed in `__version__` in `init.py`.
     """
-    path = os.path.join(PACKAGE_NAME, PACKAGE_INIT_FILENAME)
-    init_py = open(path, "r", encoding="utf8").read()
-    return re.search("__version__ = ['\"]([^'\"]+)['\"]", init_py).group(1)
+    return re.search(
+        r"__version__ = "
+        r"(['\"])"
+        r"(?P<version>[^'\"]+)"
+        r"\1",
+        read_utf8_file(
+            os.path.join(PACKAGE_NAME, PACKAGE_INIT_FILENAME),
+        ),
+    ).group("version")
 
 
 def get_long_description():
     """
-    Return the README.
+    Return contents of README file.
     """
-    return open("README.md", "r", encoding="utf8").read()
+    return read_utf8_file("README.md")
 
 
 def get_packages():
