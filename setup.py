@@ -10,11 +10,11 @@ PACKAGE_NAME = "uvicorn"
 PACKAGE_INIT_FILENAME = "__init__.py"
 
 
-def get_version(package):
+def get_version():
     """
     Return package version as listed in `__version__` in `init.py`.
     """
-    path = os.path.join(package, PACKAGE_INIT_FILENAME)
+    path = os.path.join(PACKAGE_NAME, PACKAGE_INIT_FILENAME)
     init_py = open(path, "r", encoding="utf8").read()
     return re.search("__version__ = ['\"]([^'\"]+)['\"]", init_py).group(1)
 
@@ -26,14 +26,14 @@ def get_long_description():
     return open("README.md", "r", encoding="utf8").read()
 
 
-def get_packages(package):
+def get_packages():
     """
     Return root package and all sub-packages.
     """
     return [
         dirpath
         for dirpath, _dirnames, filenames
-        in os.walk(package)
+        in os.walk(PACKAGE_NAME)
         if PACKAGE_INIT_FILENAME in filenames
     ]
 
@@ -67,7 +67,7 @@ extra_requirements = [
 
 setup(
     name=PACKAGE_NAME,
-    version=get_version(PACKAGE_NAME),
+    version=get_version(),
     url="https://www.uvicorn.org/",
     license="BSD",
     description="The lightning-fast ASGI server.",
@@ -75,7 +75,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Tom Christie",
     author_email="tom@tomchristie.com",
-    packages=get_packages(PACKAGE_NAME),
+    packages=get_packages(),
     python_requires=">=3.7",
     install_requires=minimal_requirements,
     extras_require={"standard": extra_requirements},
