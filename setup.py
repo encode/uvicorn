@@ -6,6 +6,8 @@ import re
 
 from setuptools import setup
 
+PACKAGE_NAME = "uvicorn"
+
 
 def get_version(package):
     """
@@ -63,8 +65,8 @@ extra_requirements = [
 
 
 setup(
-    name="uvicorn",
-    version=get_version("uvicorn"),
+    name=PACKAGE_NAME,
+    version=get_version(PACKAGE_NAME),
     url="https://www.uvicorn.org/",
     license="BSD",
     description="The lightning-fast ASGI server.",
@@ -72,7 +74,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Tom Christie",
     author_email="tom@tomchristie.com",
-    packages=get_packages("uvicorn"),
+    packages=get_packages(PACKAGE_NAME),
     python_requires=">=3.7",
     install_requires=minimal_requirements,
     extras_require={"standard": extra_requirements},
