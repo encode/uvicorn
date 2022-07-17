@@ -5,23 +5,24 @@ Look for a marker comment in docs pages, and place the output of
 import argparse
 import subprocess
 import sys
-import typing
 from pathlib import Path
+from typing import List
+from typing import Tuple
 
 
-def _get_usage_lines() -> typing.List[str]:
+def _get_usage_lines() -> List[str]:
     res = subprocess.run(["uvicorn", "--help"], stdout=subprocess.PIPE)
     help_text = res.stdout.decode("utf-8")
     return ["```", "$ uvicorn --help", *help_text.splitlines(), "```"]
 
 
-def _find_next_codefence_lineno(lines: typing.List[str], after: int) -> int:
+def _find_next_codefence_lineno(lines: List[str], after: int) -> int:
     return next(
         lineno for lineno, line in enumerate(lines[after:], after) if line == "```"
     )
 
 
-def _get_insert_location(lines: typing.List[str]) -> typing.Tuple[int, int]:
+def _get_insert_location(lines: List[str]) -> Tuple[int, int]:
     marker = lines.index("<!-- :cli_usage: -->")
     start = marker + 1
 
