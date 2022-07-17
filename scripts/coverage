@@ -8,4 +8,4 @@ export SOURCE_FILES="uvicorn tests"
 
 set -x
 
-${PREFIX}coverage report
+"$PREFIX"coverage report
