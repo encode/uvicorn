@@ -1,14 +1,8 @@
 import types
-import typing
+from typing import Any, Callable, Iterable, MutableMapping, Optional, Tuple, Type, Union
 
 # WSGI
-Environ = typing.MutableMapping[str, typing.Any]
-ExcInfo = typing.Tuple[
-    typing.Type[BaseException], BaseException, typing.Optional[types.TracebackType]
-]
-StartResponse = typing.Callable[
-    [str, typing.Iterable[typing.Tuple[str, str]], typing.Optional[ExcInfo]], None
-]
-WSGIApp = typing.Callable[
-    [Environ, StartResponse], typing.Union[typing.Iterable[bytes], BaseException]
-]
+Environ = MutableMapping[str, Any]
+ExcInfo = Tuple[Type[BaseException], BaseException, Optional[types.TracebackType]]
+StartResponse = Callable[[str, Iterable[Tuple[str, str]], Optional[ExcInfo]], None]
+WSGIApp = Callable[[Environ, StartResponse], Union[Iterable[bytes], BaseException]]
