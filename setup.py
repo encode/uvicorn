@@ -7,12 +7,14 @@ from setuptools import setup
 
 PACKAGE_NAME = "uvicorn"
 
+PACKAGE_INIT_FILENAME = "__init__.py"
+
 
 def get_version(package):
     """
     Return package version as listed in `__version__` in `init.py`.
     """
-    path = os.path.join(package, "__init__.py")
+    path = os.path.join(package, PACKAGE_INIT_FILENAME)
     init_py = open(path, "r", encoding="utf8").read()
     return re.search("__version__ = ['\"]([^'\"]+)['\"]", init_py).group(1)
 
@@ -32,7 +34,7 @@ def get_packages(package):
         dirpath
         for dirpath, _dirnames, filenames
         in os.walk(package)
-        if "__init__.py" in filenames
+        if PACKAGE_INIT_FILENAME in filenames
     ]
 
 
