@@ -1,11 +1,11 @@
 #!/bin/sh -e
 
-VERSION_FILE="uvicorn/__init__.py"
+VERSION_FILE=uvicorn/__init__.py
 
-if [ -d 'venv' ] ; then
-    PREFIX="venv/bin/"
+if [ -d venv ] ; then
+    PREFIX=venv/bin/
 else
-    PREFIX=""
+    PREFIX=
 fi
 
 if [ ! -z "$GITHUB_ACTIONS" ]; then
