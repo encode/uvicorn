@@ -51,9 +51,19 @@ class TestBaseReload:
         reloader.startup()
         return reloader
 
-    def _reload_tester(self, touch_soon, reloader: BaseReload, *files: Path) -> bool:
+    def _reload_tester(
+        self,
+        touch_soon,
+        reloader: BaseReload,
+        *files: Path,
+        force_polling: bool = False,
+    ) -> bool:
         reloader.restart()
-        if WatchFilesReload is not None and isinstance(reloader, WatchFilesReload):
+        if (
+            WatchFilesReload is not None
+            and isinstance(reloader, WatchFilesReload)
+            and not force_polling
+        ):
             touch_soon(*files)
         else:
             assert not next(reloader)
@@ -65,7 +75,8 @@ class TestBaseReload:
     @pytest.mark.parametrize(
         "reloader_class", [StatReload, WatchGodReload, WatchFilesReload]
     )
-    def test_reloader_should_initialize(self) -> None:
+    @pytest.mark.parametrize("reload_force_polling", [False, True])
+    def test_reloader_should_initialize(self, reload_force_polling) -> None:
         """
         A basic sanity check.
 
@@ -73,21 +84,35 @@ class TestBaseReload:
         quit immediately.
         """
         with as_cwd(self.reload_path):
-            config = Config(app="tests.test_config:asgi_app", reload=True)
+            config = Config(
+                app="tests.test_config:asgi_app",
+                reload=True,
+                reload_force_polling=reload_force_polling,
+            )
             reloader = self._setup_reloader(config)
             reloader.shutdown()
 
     @pytest.mark.parametrize(
         "reloader_class", [StatReload, WatchGodReload, WatchFilesReload]
     )
-    def test_reload_when_python_file_is_changed(self, touch_soon) -> None:
+    @pytest.mark.parametrize("reload_force_polling", [False, True])
+    def test_reload_when_python_file_is_changed(
+        self, reload_force_polling, touch_soon
+    ) -> None:
         file = self.reload_path / "main.py"
 
         with as_cwd(self.reload_path):
-            config = Config(app="tests.test_config:asgi_app", reload=True)
+            config = Config(
+                app="tests.test_config:asgi_app",
+                reload=True,
+                reload_force_polling=reload_force_polling,
+            )
             reloader = self._setup_reloader(config)
 
-            changes = self._reload_tester(touch_soon, reloader, file)
+            changes = self._reload_tester(
+                touch_soon, reloader, file, force_polling=reload_force_polling
+            )
+
             assert changes == [file]
 
             reloader.shutdown()

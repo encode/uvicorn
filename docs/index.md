@@ -120,6 +120,9 @@ Options:
   --reload-delay FLOAT            Delay between previous and next check if
                                   application needs to be. Defaults to 0.25s.
                                   [default: 0.25]
+  --reload-force-polling          Force auto-reload to use polling rather than
+                                  file system notifications. This option has
+                                  no effect unless watchfiles is installed.
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
                                   available, or 1. Not valid with --reload.

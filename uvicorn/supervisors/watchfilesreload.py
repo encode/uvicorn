@@ -72,10 +72,12 @@ class WatchFilesReload(BaseReload):
             self.reload_dirs.append(Path.cwd())
 
         self.watch_filter = FileFilter(config)
+        self.force_polling = config.reload_force_polling
         self.watcher = watch(
             *self.reload_dirs,
             watch_filter=None,
             stop_event=self.should_exit,
+            force_polling=self.force_polling,
             # using yield_on_timeout here mostly to make sure tests don't
             # hang forever, won't affect the class's behavior
             yield_on_timeout=True,

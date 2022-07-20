@@ -234,6 +234,7 @@ class Config:
         reload_delay: float = 0.25,
         reload_includes: Optional[Union[List[str], str]] = None,
         reload_excludes: Optional[Union[List[str], str]] = None,
+        reload_force_polling: Optional[bool] = None,
         workers: Optional[int] = None,
         proxy_headers: bool = True,
         server_header: bool = True,
@@ -278,6 +279,7 @@ class Config:
         self.debug = debug
         self.reload = reload
         self.reload_delay = reload_delay
+        self.reload_force_polling = reload_force_polling or False
         self.workers = workers or 1
         self.proxy_headers = proxy_headers
         self.server_header = server_header

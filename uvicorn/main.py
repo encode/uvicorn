@@ -117,6 +117,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     " Defaults to 0.25s.",
 )
 @click.option(
+    "--reload-force-polling",
+    is_flag=True,
+    default=False,
+    help="Force auto-reload to use polling rather than file system notifications. "
+    "This option has no effect unless watchfiles is installed.",
+)
+@click.option(
     "--workers",
     default=None,
     type=int,
@@ -378,6 +385,7 @@ def main(
     reload_includes: typing.List[str],
     reload_excludes: typing.List[str],
     reload_delay: float,
+    reload_force_polling: bool,
     workers: int,
     env_file: str,
     log_config: str,
@@ -430,6 +438,7 @@ def main(
         reload_includes=reload_includes or None,
         reload_excludes=reload_excludes or None,
         reload_delay=reload_delay,
+        reload_force_polling=reload_force_polling,
         workers=workers,
         proxy_headers=proxy_headers,
         server_header=server_header,
@@ -477,6 +486,7 @@ def run(
     reload_includes: typing.Optional[typing.Union[typing.List[str], str]] = None,
     reload_excludes: typing.Optional[typing.Union[typing.List[str], str]] = None,
     reload_delay: float = 0.25,
+    reload_force_polling: typing.Optional[bool] = None,
     workers: typing.Optional[int] = None,
     env_file: typing.Optional[typing.Union[str, os.PathLike]] = None,
     log_config: typing.Optional[
@@ -530,6 +540,7 @@ def run(
         reload_includes=reload_includes,
         reload_excludes=reload_excludes,
         reload_delay=reload_delay,
+        reload_force_polling=reload_force_polling,
         workers=workers,
         env_file=env_file,
         log_config=log_config,
