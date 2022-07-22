@@ -67,8 +67,6 @@ For more nuanced control over which file modifications trigger reloads, install 
 * `--lifespan <str>` - Set the Lifespan protocol implementation. **Options:** *'auto', 'on', 'off'.* **Default:** *'auto'*.
 * `--h11-max-incomplete-event-size <int>` - Set the maximum number of bytes to buffer of an incomplete event. Only available for `h11` HTTP protocol implementation. **Default:** *'16384'* (16 KB).
 
-!!! note
-    The `--no-server-header` flag doesn't have effect on the WebSockets implementations.
 
 ## Application Interface
 
@@ -84,6 +82,9 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 * `--forwarded-allow-ips` <comma-separated-list> Comma separated list of IPs to trust with proxy headers. Defaults to the `$FORWARDED_ALLOW_IPS` environment variable if available, or '127.0.0.1'. A wildcard '*' means always trust.
 * `--server-header` / `--no-server-header` - Enable/Disable default `Server` header.
 * `--date-header` / `--no-date-header` - Enable/Disable default `Date` header.
+
+!!! note
+    The `--no-server-header` flag doesn't have effect on the WebSockets implementations.
 
 ## HTTPS
 
