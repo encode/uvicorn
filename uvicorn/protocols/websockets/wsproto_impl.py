@@ -27,6 +27,8 @@ class WSProtocol(asyncio.Protocol):
         # Shared server state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
+        self.default_headers = server_state.default_headers
+
 
         # Connection state
         self.transport = None
@@ -133,6 +135,7 @@ class WSProtocol(asyncio.Protocol):
     def handle_connect(self, event):
         self.connect_event = event
         headers = [(b"host", event.host.encode())]
+        headers.extend(self.default_headers)
         headers += [(key.lower(), value) for key, value in event.extra_headers]
         raw_path, _, query_string = event.target.partition("?")
         self.scope = {
