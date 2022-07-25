@@ -29,7 +29,6 @@ class WSProtocol(asyncio.Protocol):
         self.tasks = server_state.tasks
         self.default_headers = server_state.default_headers
 
-
         # Connection state
         self.transport = None
         self.server = None
