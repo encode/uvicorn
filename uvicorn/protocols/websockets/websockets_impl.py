@@ -268,14 +268,11 @@ class WebSocketProtocol(WebSocketServerProtocol):
                     if name.lower() in _added_names:
                         continue
                     _added_names.append(name.lower())
-                    self.extra_headers.append((name.decode("latin-1"), value.decode("latin-1")))
-#                 if "headers" in message:
-#                     self.extra_headers.extend(
-#                         # ASGI spec requires bytes
-#                         # But for compatibility we need to convert it to strings
-#                         (name.decode("latin-1"), value.decode("latin-1"))
-#                         for name, value in message["headers"]
-#                     )
+                    self.extra_headers.append((
+                        # ASGI spec requires bytes
+                        # But for compatibility we need to convert it to strings
+                        name.decode("latin-1"), value.decode("latin-1"))
+                    )
                 self.handshake_started_event.set()
 
             elif message_type == "websocket.close":
