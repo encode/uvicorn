@@ -69,6 +69,8 @@ class WebSocketProtocol(WebSocketServerProtocol):
         # Shared server state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
+        self.default_headers = server_state.default_headers
+
 
         # Connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
@@ -260,12 +262,16 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 self.accepted_subprotocol = cast(
                     Optional[Subprotocol], message.get("subprotocol")
                 )
-                if "headers" in message:
-                    self.extra_headers.extend(
+                headers = list(message.get("headers", [])) + self.default_headers
+                _added_names = []
+                for name, value in headers:
+                    if name.lower() in _added_names:
+                        continue
+                    _added_names.append(name.lower())
+                    self.extra_headers.append((
                         # ASGI spec requires bytes
                         # But for compatibility we need to convert it to strings
-                        (name.decode("latin-1"), value.decode("latin-1"))
-                        for name, value in message["headers"]
+                        name.decode("latin-1"), value.decode("latin-1"))
                     )
                 self.handshake_started_event.set()
 
