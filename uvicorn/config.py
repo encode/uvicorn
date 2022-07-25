@@ -469,6 +469,7 @@ class Config:
 
         if isinstance(self.ws, str):
             import websockets.http
+
             websockets.http.USER_AGENT = ""
             ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
             self.ws_protocol_class: Optional[Type[asyncio.Protocol]] = ws_protocol_class
