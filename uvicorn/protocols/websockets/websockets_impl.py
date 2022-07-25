@@ -208,7 +208,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.handshake_started_event.set()
 
     async def ws_handler(  # type: ignore[override]
-        self, protocol: WebSocketServerProtocol, path: str
+            self, protocol: WebSocketServerProtocol, path: str
     ) -> Any:
         """
         This is the main handler function for the 'websockets' implementation
