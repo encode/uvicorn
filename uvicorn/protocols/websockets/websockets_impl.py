@@ -71,7 +71,6 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.tasks = server_state.tasks
         self.default_headers = server_state.default_headers
 
-
         # Connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
         self.server: Optional[Tuple[str, int]] = None
@@ -208,7 +207,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.handshake_started_event.set()
 
     async def ws_handler(  # type: ignore[override]
-            self, protocol: WebSocketServerProtocol, path: str
+        self, protocol: WebSocketServerProtocol, path: str
     ) -> Any:
         """
         This is the main handler function for the 'websockets' implementation
@@ -268,10 +267,13 @@ class WebSocketProtocol(WebSocketServerProtocol):
                     if name.lower() in _added_names:
                         continue
                     _added_names.append(name.lower())
-                    self.extra_headers.append((
-                        # ASGI spec requires bytes
-                        # But for compatibility we need to convert it to strings
-                        name.decode("latin-1"), value.decode("latin-1"))
+                    self.extra_headers.append(
+                        (
+                            # ASGI spec requires bytes
+                            # But for compatibility we need to convert it to strings
+                            name.decode("latin-1"),
+                            value.decode("latin-1"),
+                        )
                     )
                 self.handshake_started_event.set()
 
