@@ -87,10 +87,10 @@ class LifespanOn:
         try:
             app = self.config.loaded_app
             ctx = self.application_context
-            scope: LifespanScope = {
+            scope: LifespanScope = {  # type: ignore  # needs a spec in asgiref
                 "type": "lifespan",
                 "asgi": {"version": self.config.asgi_version, "spec_version": "2.0"},
-                "context": ctx,  # type: ignore  # needs a spec in asgiref
+                "context": ctx,
             }
             await app(scope, self.receive, self.send)
         except BaseException as exc:
