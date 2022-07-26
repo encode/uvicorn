@@ -91,6 +91,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.connections = server_state.connections
         self.tasks = server_state.tasks
         self.default_headers = server_state.default_headers
+        self.application_context = server_state.application_context
 
         # Per-connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
@@ -214,6 +215,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.url = b""
         self.expect_100_continue = False
         self.headers = []
+        request_context = self.server_state.application_context.new_child()
         self.scope = {  # type: ignore[typeddict-item]
             "type": "http",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
@@ -223,6 +225,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             "scheme": self.scheme,
             "root_path": self.root_path,
             "headers": self.headers,
+            "context": request_context,
         }
 
     # Parser callbacks

@@ -69,6 +69,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         # Shared server state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
+        self.application_context = server_state.application_context
 
         # Connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
@@ -161,6 +162,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             for name, value in headers.raw_items()
         ]
 
+        request_context = self.application_context.new_child()
         self.scope = {  # type: ignore[typeddict-item]
             "type": "websocket",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
@@ -174,6 +176,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             "query_string": query_string.encode("ascii"),
             "headers": asgi_headers,
             "subprotocols": subprotocols,
+            "context": request_context,
         }
         task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)

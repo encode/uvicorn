@@ -11,10 +11,11 @@ from wsproto.utilities import RemoteProtocolError
 
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+from uvicorn.server import ServerState
 
 
 class WSProtocol(asyncio.Protocol):
-    def __init__(self, config, server_state, _loop=None):
+    def __init__(self, config, server_state: ServerState, _loop=None):
         if not config.loaded:
             config.load()
 
@@ -27,6 +28,7 @@ class WSProtocol(asyncio.Protocol):
         # Shared server state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
+        self.application_context = server_state.application_context
 
         # Connection state
         self.transport = None
@@ -135,6 +137,7 @@ class WSProtocol(asyncio.Protocol):
         headers = [(b"host", event.host.encode())]
         headers += [(key.lower(), value) for key, value in event.extra_headers]
         raw_path, _, query_string = event.target.partition("?")
+        request_context = self.application_context.new_child()
         self.scope = {
             "type": "websocket",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
@@ -148,6 +151,7 @@ class WSProtocol(asyncio.Protocol):
             "query_string": query_string.encode("ascii"),
             "headers": headers,
             "subprotocols": event.subprotocols,
+            "context": request_context,
         }
         self.queue.put_nowait({"type": "websocket.connect"})
         task = self.loop.create_task(self.run_asgi())

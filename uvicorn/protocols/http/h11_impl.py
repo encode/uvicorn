@@ -93,6 +93,7 @@ class H11Protocol(asyncio.Protocol):
         self.connections = server_state.connections
         self.tasks = server_state.tasks
         self.default_headers = server_state.default_headers
+        self.application_context = server_state.application_context
 
         # Per-connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
@@ -185,6 +186,7 @@ class H11Protocol(asyncio.Protocol):
             elif event_type is h11.Request:
                 self.headers = [(key.lower(), value) for key, value in event.headers]
                 raw_path, _, query_string = event.target.partition(b"?")
+                request_context = self.server_state.application_context.new_child()
                 self.scope = {  # type: ignore[typeddict-item]
                     "type": "http",
                     "asgi": {
@@ -201,6 +203,7 @@ class H11Protocol(asyncio.Protocol):
                     "raw_path": raw_path,
                     "query_string": query_string,
                     "headers": self.headers,
+                    "context": request_context,
                 }
 
                 for name, value in self.headers:

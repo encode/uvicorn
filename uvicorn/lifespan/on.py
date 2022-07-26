@@ -1,7 +1,8 @@
 import asyncio
 import logging
 from asyncio import Queue
-from typing import TYPE_CHECKING, Union
+from collections import ChainMap
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from uvicorn import Config
 
@@ -29,10 +30,17 @@ STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
 
 
 class LifespanOn:
-    def __init__(self, config: Config) -> None:
+    application_context: ChainMap[str, Any]
+
+    def __init__(
+        self, config: Config, application_context: "Optional[ChainMap[str, Any]]" = None
+    ) -> None:
         if not config.loaded:
             config.load()
 
+        self.application_context = (
+            application_context if application_context is not None else ChainMap()
+        )
         self.config = config
         self.logger = logging.getLogger("uvicorn.error")
         self.startup_event = asyncio.Event()
@@ -79,9 +87,11 @@ class LifespanOn:
     async def main(self) -> None:
         try:
             app = self.config.loaded_app
+            ctx = self.application_context
             scope: LifespanScope = {
                 "type": "lifespan",
                 "asgi": {"version": self.config.asgi_version, "spec_version": "2.0"},
+                "context": ctx,  # type: ignore  # needs a spec in asgiref
             }
             await app(scope, self.receive, self.send)
         except BaseException as exc:
