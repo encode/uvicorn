@@ -8,10 +8,19 @@ import socket
 import sys
 import threading
 import time
-from collections import ChainMap
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Set, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ChainMap,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 import click
 
