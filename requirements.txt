@@ -19,7 +19,7 @@ pytest==7.1.2
 pytest-mock==3.8.2
 mypy==0.961
 types-click==7.1.8
-types-pyyaml==6.0.9
+types-pyyaml==6.0.11
 trustme==0.9.0
 cryptography==37.0.4
 coverage==6.4.2
