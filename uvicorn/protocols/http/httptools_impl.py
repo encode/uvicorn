@@ -576,7 +576,7 @@ class RequestResponseCycle:
             
             if not self.keep_alive:
                 self.transport.close()
-                self.on_response()
+            self.on_response()
 
         else:
             # Response already sent
