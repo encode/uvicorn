@@ -392,6 +392,7 @@ class RequestResponseCycle:
         # Response state
         self.response_started = False
         self.response_complete = False
+        self.trailers_expected = False
         self.chunked_encoding: Optional[bool] = None
         self.expected_content_length = 0
 
@@ -461,6 +462,8 @@ class RequestResponseCycle:
 
             status_code = message["status"]
             headers = self.default_headers + list(message.get("headers", []))
+
+            self.trailers_expected = message.get("trailers", False) and not self.scope["method"] == "HEAD"
 
             if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
                 headers = headers + [CLOSE_HEADER]
@@ -541,8 +544,38 @@ class RequestResponseCycle:
                     raise RuntimeError("Response content shorter than Content-Length")
                 self.response_complete = True
                 self.message_event.set()
-                if not self.keep_alive:
-                    self.transport.close()
+
+                if not self.trailers_expected:
+                    if not self.keep_alive:
+                        self.transport.close()
+                    self.on_response()
+
+        elif self.trailers_expected:
+            # Sending response body
+            if message_type != "http.response.trailers":
+                msg = "Expected ASGI message 'http.response.trailers', but got '%s'."
+                raise RuntimeError(msg % message_type)
+
+            trailers = message.get("trailers", [])
+            content = []
+
+            for name, value in trailers:
+                if HEADER_RE.search(name):
+                    raise RuntimeError("Invalid HTTP header name.")
+                if HEADER_VALUE_RE.search(value):
+                    raise RuntimeError("Invalid HTTP header value.")
+
+                name = name.lower()
+                if name == b"connection" and value.lower() == b"close":
+                    self.keep_alive = False
+                content.extend([name, b": ", value, b"\r\n"])
+
+            content.append(b"\r\n")
+            self.transport.write(b"".join(content))
+            self.trailers_expected = False
+            
+            if not self.keep_alive:
+                self.transport.close()
                 self.on_response()
 
         else:

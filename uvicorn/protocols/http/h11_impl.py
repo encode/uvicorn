@@ -396,6 +396,7 @@ class RequestResponseCycle:
         # Response state
         self.response_started = False
         self.response_complete = False
+        self.trailers_expected = False
 
     # ASGI exception wrapper
     async def run_asgi(self, app: "ASGI3Application") -> None:
@@ -467,6 +468,8 @@ class RequestResponseCycle:
             )
             headers = self.default_headers + message_headers
 
+            self.trailers_expected = message.get("trailers", False)
+
             if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
                 headers = headers + [CLOSE_HEADER]
 
@@ -510,16 +513,32 @@ class RequestResponseCycle:
             if not more_body:
                 self.response_complete = True
                 self.message_event.set()
-                event = h11.EndOfMessage()
-                output = self.conn.send(event)
-                self.transport.write(output)
+
+                if not self.trailers_expected:
+                    event = h11.EndOfMessage()
+                    output = self.conn.send(event)
+                    self.transport.write(output)
+
+        elif self.trailers_expected:
+            # Sending trailers
+            if message_type != "http.response.trailers":
+                msg = "Expected ASGI message 'http.response.trailers', but got '%s'."
+                raise RuntimeError(msg % message_type)
+
+            trailers = cast(
+                List[Tuple[bytes, bytes]],message.get("trailers", [])
+            )
+            event = h11.EndOfMessage(headers=trailers)
+            output = self.conn.send(event)
+            self.transport.write(output)
+            self.trailers_expected = False
 
         else:
             # Response already sent
             msg = "Unexpected ASGI message '%s' sent, after response already completed."
             raise RuntimeError(msg % message_type)
 
-        if self.response_complete:
+        if self.response_complete and not self.trailers_expected:
             if self.conn.our_state is h11.MUST_CLOSE or not self.keep_alive:
                 event = h11.ConnectionClosed()
                 self.conn.send(event)
