@@ -551,7 +551,7 @@ class RequestResponseCycle:
                     self.on_response()
 
         elif self.trailers_expected:
-            # Sending response body
+            # Sending trailers
             if message_type != "http.response.trailers":
                 msg = "Expected ASGI message 'http.response.trailers', but got '%s'."
                 raise RuntimeError(msg % message_type)
