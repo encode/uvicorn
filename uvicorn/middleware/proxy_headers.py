@@ -38,7 +38,7 @@ class ProxyHeadersMiddleware:
         self, x_forwarded_for_hosts: List[str]
     ) -> Optional[str]:
         if self.always_trust:
-            return x_forwarded_for_hosts[0]
+            return x_forwarded_for_hosts[-1]
 
         for host in reversed(x_forwarded_for_hosts):
             if host not in self.trusted_hosts:
