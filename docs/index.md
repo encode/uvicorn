@@ -459,6 +459,47 @@ async def app(scope, receive, send):
     })
 ```
 
+### HTTP Trailers
+
+You can send [HTTP Trailers](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Trailer) by sending a `http.response.trailers` message to
+the `send` coroutine. Your initial `http.response.start` message must have `'trailers' = True` then after your final `http.response.body` where `'more_body': False`
+you can send a `http.response.trailers` message.
+
+```python
+import asyncio
+
+
+async def app(scope, receive, send):
+    """
+    Send a slowly streaming HTTP response back to the client.
+    """
+    await send({
+        'type': 'http.response.start',
+        'status': 200,
+        'trailers': True,
+        'headers': [
+            [b'content-type', b'text/plain'],
+        ]
+    })
+    for chunk in [b'Hello', b', ', b'world!']:
+        await send({
+            'type': 'http.response.body',
+            'body': chunk,
+            'more_body': True
+        })
+        await asyncio.sleep(1)
+    await send({
+        'type': 'http.response.body',
+        'body': b'',
+    })
+    await send({
+        'type': 'http.response.trailers',
+        'trailers': [
+            [b'x-trailer-test', b'test'],
+        ]
+    })
+```
+
 ---
 
 ## Why ASGI?
