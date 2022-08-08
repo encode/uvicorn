@@ -188,6 +188,7 @@ async def test_get_request(protocol_cls):
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
 
+
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 async def test_get_request_with_trailers(protocol_cls):
@@ -195,7 +196,7 @@ async def test_get_request_with_trailers(protocol_cls):
         "Hello, world",
         media_type="text/plain",
         headers={"trailers": "x-trailer-test"},
-        trailers={"x-trailer-test": "test"}
+        trailers={"x-trailer-test": "test"},
     )
 
     protocol = get_connected_protocol(app, protocol_cls)
@@ -204,6 +205,7 @@ async def test_get_request_with_trailers(protocol_cls):
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
     assert b"x-trailer-test: test" in protocol.transport.buffer
+
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("path", ["/", "/?foo", "/?foo=bar", "/?foo=bar&baz=1"])
@@ -242,7 +244,7 @@ async def test_head_request_with_trailers(protocol_cls):
         "Hello, world",
         media_type="text/plain",
         headers={"trailers": "x-trailer-test"},
-        trailers={"x-trailer-test": "test"}
+        trailers={"x-trailer-test": "test"},
     )
 
     protocol = get_connected_protocol(app, protocol_cls)
@@ -251,6 +253,7 @@ async def test_head_request_with_trailers(protocol_cls):
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" not in protocol.transport.buffer
     assert b"x-trailer-test: test" not in protocol.transport.buffer
+
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
@@ -327,6 +330,7 @@ async def test_chunked_encoding(protocol_cls):
     assert b"0\r\n\r\n" in protocol.transport.buffer
     assert not protocol.transport.is_closing()
 
+
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 async def test_chunked_encoding_with_trailer(protocol_cls):
@@ -334,7 +338,7 @@ async def test_chunked_encoding_with_trailer(protocol_cls):
         b"Hello, world!",
         status_code=200,
         headers={"transfer-encoding": "chunked", "trailers": "x-trailer-test"},
-        trailers={"x-trailer-test": "test"}
+        trailers={"x-trailer-test": "test"},
     )
 
     protocol = get_connected_protocol(app, protocol_cls)
@@ -545,7 +549,12 @@ async def test_trailer_message(protocol_cls):
         await send({"type": "http.response.start", "status": 200, "trailers": True})
         await send({"type": "http.response.body", "body": b"", "more_body": True})
         await send({"type": "http.response.body", "body": b"", "more_body": False})
-        await send({"type": "http.response.trailers", "trailers": [(b"x-trailer-test", b"test")]})
+        await send(
+            {
+                "type": "http.response.trailers",
+                "trailers": [(b"x-trailer-test", b"test")],
+            }
+        )
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -561,7 +570,12 @@ async def test_trailer_before_body_complete(protocol_cls):
     async def app(scope, receive, send):
         await send({"type": "http.response.start", "status": 200, "trailers": True})
         await send({"type": "http.response.body", "body": b"", "more_body": True})
-        await send({"type": "http.response.trailers", "trailers": [(b"x-trailer-test", b"test")]})
+        await send(
+            {
+                "type": "http.response.trailers",
+                "trailers": [(b"x-trailer-test", b"test")],
+            }
+        )
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)

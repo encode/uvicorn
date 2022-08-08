@@ -525,9 +525,7 @@ class RequestResponseCycle:
                 msg = "Expected ASGI message 'http.response.trailers', but got '%s'."
                 raise RuntimeError(msg % message_type)
 
-            trailers = cast(
-                List[Tuple[bytes, bytes]],message.get("trailers", [])
-            )
+            trailers = cast(List[Tuple[bytes, bytes]], message.get("trailers", []))
             event = h11.EndOfMessage(headers=trailers)
             output = self.conn.send(event)
             self.transport.write(output)

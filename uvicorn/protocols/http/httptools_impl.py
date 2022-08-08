@@ -463,7 +463,9 @@ class RequestResponseCycle:
             status_code = message["status"]
             headers = self.default_headers + list(message.get("headers", []))
 
-            self.trailers_expected = message.get("trailers", False) and not self.scope["method"] == "HEAD"
+            self.trailers_expected = (
+                message.get("trailers", False) and not self.scope["method"] == "HEAD"
+            )
 
             if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
                 headers = headers + [CLOSE_HEADER]
@@ -573,7 +575,7 @@ class RequestResponseCycle:
             content.append(b"\r\n")
             self.transport.write(b"".join(content))
             self.trailers_expected = False
-            
+
             if not self.keep_alive:
                 self.transport.close()
             self.on_response()

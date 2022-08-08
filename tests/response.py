@@ -1,7 +1,9 @@
 class Response:
     charset = "utf-8"
 
-    def __init__(self, content, status_code=200, headers=None, trailers=None, media_type=None):
+    def __init__(
+        self, content, status_code=200, headers=None, trailers=None, media_type=None
+    ):
         self.body = self.render(content)
         self.status_code = status_code
         self.headers = headers or {}
@@ -19,7 +21,7 @@ class Response:
                     [key.encode(), value.encode()]
                     for key, value in self.headers.items()
                 ],
-                "trailers": bool(self.trailers)
+                "trailers": bool(self.trailers),
             }
         )
         await send({"type": "http.response.body", "body": self.body})
@@ -31,7 +33,7 @@ class Response:
                     "trailers": [
                         [key.encode(), value.encode()]
                         for key, value in self.trailers.items()
-                    ]
+                    ],
                 }
             )
 
