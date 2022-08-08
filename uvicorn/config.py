@@ -209,7 +209,7 @@ def _normalize_dirs(dirs: Union[List[str], str, None]) -> List[str]:
 class Config:
     def __init__(
         self,
-        app: Union["ASGIApplication", Callable, str],
+        app: Union["ASGIApplication", Callable[..., Optional["ASGIApplication"]], str],
         host: str = "127.0.0.1",
         port: int = 8000,
         uds: Optional[str] = None,

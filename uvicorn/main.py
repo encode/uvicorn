@@ -456,7 +456,9 @@ def main(
 
 
 def run(
-    app: typing.Union["ASGIApplication", typing.Callable, str],
+    app: typing.Union[
+        "ASGIApplication", typing.Callable[..., typing.Optional["ASGIApplication"]], str
+    ],
     *,
     host: str = "127.0.0.1",
     port: int = 8000,
