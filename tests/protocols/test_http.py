@@ -540,17 +540,36 @@ async def test_message_after_body_complete(protocol_cls):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-async def test_trailer_before_body_complete(protocol_cls):
+async def test_trailer_message(protocol_cls):
     async def app(scope, receive, send):
         await send({"type": "http.response.start", "status": 200, "trailers": True})
         await send({"type": "http.response.body", "body": b"", "more_body": True})
-        await send({"type": "http.response.trailer", "trailers": [(b"x-trailer-test", b"test")]})
+        await send({"type": "http.response.body", "body": b"", "more_body": False})
+        await send({"type": "http.response.trailers", "trailers": [(b"x-trailer-test", b"test")]})
 
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"x-trailer-test" in protocol.transport.buffer
+    assert not protocol.transport.is_closing()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+async def test_trailer_before_body_complete(protocol_cls):
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200, "trailers": True})
+        await send({"type": "http.response.body", "body": b"", "more_body": True})
+        await send({"type": "http.response.trailers", "trailers": [(b"x-trailer-test", b"test")]})
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"x-trailer-test" not in protocol.transport.buffer
     assert protocol.transport.is_closing()
+
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
