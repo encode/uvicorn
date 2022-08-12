@@ -67,9 +67,6 @@ For more nuanced control over which file modifications trigger reloads, install 
 * `--lifespan <str>` - Set the Lifespan protocol implementation. **Options:** *'auto', 'on', 'off'.* **Default:** *'auto'*.
 * `--h11-max-incomplete-event-size <int>` - Set the maximum number of bytes to buffer of an incomplete event. Only available for `h11` HTTP protocol implementation. **Default:** *'16384'* (16 KB).
 
-!!! note
-    Selecting `websockets` as Websocket protocol doesn't adhere to `--no-server-header` settings of Uvicorn. This is a limitation. 
-
 ## Application Interface
 
 * `--interface` - Select ASGI3, ASGI2, or WSGI as the application interface.
@@ -86,7 +83,7 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 * `--date-header` / `--no-date-header` - Enable/Disable default `Date` header.
 
 !!! note
-    The `--no-server-header` flag doesn't have effect on the WebSockets implementations.
+    The `--no-server-header` and `--no-date-header`  doesn't have effect on the WebSockets implementations.
 
 ## HTTPS
 
