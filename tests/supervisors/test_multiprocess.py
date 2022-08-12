@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
 
-def app(
+async def app(
     scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
 ) -> None:
     pass  # pragma: no cover
