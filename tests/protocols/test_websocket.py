@@ -667,9 +667,7 @@ async def test_server_can_read_messages_in_buffer_after_close(
 async def test_default_server_headers(ws_protocol_cls, http_protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
-            await self.send(
-                {"type": "websocket.accept"}
-            )
+            await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
         async with websockets.connect(url) as websocket:
@@ -678,7 +676,7 @@ async def test_default_server_headers(ws_protocol_cls, http_protocol_cls):
     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
     async with run_server(config):
         headers = await open_connection("ws://127.0.0.1:8000")
-        assert (headers.get("server") == "uvicorn" and "date" in headers)
+        assert headers.get("server") == "uvicorn" and "date" in headers
 
 
 @pytest.mark.anyio
@@ -687,15 +685,19 @@ async def test_default_server_headers(ws_protocol_cls, http_protocol_cls):
 async def test_no_server_headers(ws_protocol_cls, http_protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
-            await self.send(
-                {"type": "websocket.accept"}
-            )
+            await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
         async with websockets.connect(url) as websocket:
             return websocket.response_headers
 
-    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", server_header=False)
+    config = Config(
+        app=App,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        server_header=False,
+    )
     async with run_server(config):
         headers = await open_connection("ws://127.0.0.1:8000")
         assert "server" not in headers
@@ -707,15 +709,19 @@ async def test_no_server_headers(ws_protocol_cls, http_protocol_cls):
 async def test_no_date_header(ws_protocol_cls, http_protocol_cls):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
-            await self.send(
-                {"type": "websocket.accept"}
-            )
+            await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
         async with websockets.connect(url) as websocket:
             return websocket.response_headers
 
-    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", date_header=False)
+    config = Config(
+        app=App,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        date_header=False,
+    )
     async with run_server(config):
         headers = await open_connection("ws://127.0.0.1:8000")
         assert "date" not in headers
