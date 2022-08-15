@@ -261,7 +261,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 self.accepted_subprotocol = cast(
                     Optional[Subprotocol], message.get("subprotocol")
                 )
-                headers = list(message.get("headers", [])) + self.default_headers
+                headers = list(message.get("headers", []))
                 _added_names = []
                 for name, value in headers:
                     if name.lower() in _added_names:
