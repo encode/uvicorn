@@ -249,15 +249,7 @@ class WSProtocol(asyncio.Protocol):
                 )
                 self.handshake_complete = True
                 subprotocol = message.get("subprotocol")
-                headers = list(message.get("headers", [])) + self.default_headers
-                extra_headers = []
-                _added_names = []
-                for name, value in headers:
-                    if name.lower() in _added_names:
-                        continue
-                    _added_names.append(name.lower())
-                    extra_headers.append((name, value))
-
+                extra_headers = list(message.get("headers", [])) + self.default_headers
                 extensions = []
                 if self.config.ws_per_message_deflate:
                     extensions.append(PerMessageDeflate())
