@@ -65,7 +65,7 @@ class WSProtocol(asyncio.Protocol):
 
     def connection_lost(self, exc):
         if exc is not None:
-            self.queue.put_nowait({"type": "websocket.disconnect", "code": 1000})
+            self.queue.put_nowait({"type": "websocket.disconnect", "code": 1005})
         self.connections.remove(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
@@ -263,7 +263,7 @@ class WSProtocol(asyncio.Protocol):
 
             elif message_type == "websocket.close":
                 self.queue.put_nowait(
-                    {"type": "websocket.disconnect", "code": message.get("code", 1000)}
+                    {"type": "websocket.disconnect", "code": message.get("code", 1005)}
                 )
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
