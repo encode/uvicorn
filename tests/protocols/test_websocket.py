@@ -18,7 +18,6 @@ except ImportError:  # pragma: nocover
     WebSocketProtocol = None
     ClientPerMessageDeflateFactory = None
 
-
 ONLY_WEBSOCKETPROTOCOL = [p for p in [WebSocketProtocol] if p is not None]
 WS_PROTOCOLS = [p for p in [WSProtocol, WebSocketProtocol] if p is not None]
 ONLY_WS_PROTOCOL = [p for p in [WSProtocol] if p is not None]
@@ -725,3 +724,36 @@ async def test_no_date_header(ws_protocol_cls, http_protocol_cls):
     async with run_server(config):
         headers = await open_connection("ws://127.0.0.1:8000")
         assert "date" not in headers
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", ONLY_WS_PROTOCOL)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_multiple_server_header(ws_protocol_cls, http_protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send(
+                {
+                    "type": "websocket.accept",
+                    "headers": [
+                        (b"Server", b"over-ridden"),
+                        (b"Server", b"another-value"),
+                    ],
+                }
+            )
+
+    async def open_connection(url):
+        async with websockets.connect(url) as websocket:
+            return websocket.response_headers
+
+    config = Config(
+        app=App,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+    )
+    async with run_server(config):
+        headers = await open_connection("ws://127.0.0.1:8000")
+        assert all(
+            x in headers.get_all("Server") for x in ["over-ridden", "another-value"]
+        )
