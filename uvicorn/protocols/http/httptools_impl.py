@@ -138,6 +138,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         if exc is None:
             self.transport.close()
 
+        self.parser = None
+
     def eof_received(self) -> None:
         pass
 
