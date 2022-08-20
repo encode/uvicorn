@@ -26,10 +26,13 @@ else:
 if TYPE_CHECKING:
     from asgiref.typing import (
         ASGISendEvent,
+        WebSocketAcceptEvent,
+        WebSocketCloseEvent,
         WebSocketConnectEvent,
         WebSocketDisconnectEvent,
         WebSocketReceiveEvent,
         WebSocketScope,
+        WebSocketSendEvent,
     )
 
 
