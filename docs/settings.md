@@ -83,7 +83,7 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 * `--date-header` / `--no-date-header` - Enable/Disable default `Date` header.
 
 !!! note
-    The `--no-server-header` flag doesn't have effect on the WebSockets implementations.
+    The `--no-server-header` and `--no-date-header` flags doesn't have effect on the WebSockets implementations.
 
 ## HTTPS
 

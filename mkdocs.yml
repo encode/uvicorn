@@ -16,6 +16,8 @@ theme:
       toggle:
         icon: "material/lightbulb-outline"
         name: "Switch to light mode"
+  features:
+    - content.tooltips
 
 repo_name: encode/uvicorn
 repo_url: https://github.com/encode/uvicorn
@@ -24,12 +26,18 @@ edit_uri: ""
 nav:
   - Introduction: "index.md"
   - Settings: "settings.md"
-  - Deployment: "deployment.md"
+  - Deployment:
+      - Getting Started: deployment/getting-started.md
+      - Running in Production: deployment/run-in-prod.md
+      - Deploying in Production: deployment/deploy-in-prod
+
   - Server Behavior: "server-behavior.md"
   - Contributing: "contributing.md"
 
 markdown_extensions:
   - admonition
+  - pymdownx.details
+  - pymdownx.superfences
   - codehilite:
       css_class: highlight
   - toc:
