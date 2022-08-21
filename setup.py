@@ -51,7 +51,7 @@ minimal_requirements = [
 
 
 extra_requirements = [
-    "git+https://github.com/aaugustin/websockets.git",
+    "websockets @ git+https://github.com/aaugustin/websockets.git",
     "httptools>=0.4.0",
     "uvloop>=0.14.0,!=0.15.0,!=0.15.1; " + env_marker_cpython,
     "colorama>=0.4;" + env_marker_win,
