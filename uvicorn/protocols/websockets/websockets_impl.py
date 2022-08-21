@@ -15,7 +15,12 @@ from websockets.typing import Subprotocol
 
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
-from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl, get_server_header
+from uvicorn.protocols.utils import (
+    get_local_addr,
+    get_remote_addr,
+    get_server_header,
+    is_ssl,
+)
 from uvicorn.server import ServerState
 
 if sys.version_info < (3, 8):
@@ -68,7 +73,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         if self.config.server_header:
             self.server_header = get_server_header(
                 default_headers=server_state.default_headers,
-                override=websockets.server.USER_AGENT
+                override=websockets.server.USER_AGENT,
             )
         else:
             self.server_header = None
