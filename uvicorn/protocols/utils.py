@@ -1,6 +1,6 @@
 import asyncio
 import urllib.parse
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple, List
 
 if TYPE_CHECKING:
     from asgiref.typing import WWWScope
@@ -53,3 +53,7 @@ def get_path_with_query_string(scope: "WWWScope") -> str:
             path_with_query_string, scope["query_string"].decode("ascii")
         )
     return path_with_query_string
+
+
+def get_server_header(default_headers: List[Tuple[bytes, bytes]], override: str) -> str:
+    return next((i for i in default_headers if i[0] in (b"Server", b"server")), [override.encode()])[-1].decode()

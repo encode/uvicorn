@@ -10,6 +10,7 @@ from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 try:
     import websockets
+    import websockets.exceptions
     from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
 
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
@@ -661,7 +662,7 @@ async def test_server_can_read_messages_in_buffer_after_close(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", ONLY_WS_PROTOCOL)
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_default_server_headers(ws_protocol_cls, http_protocol_cls):
     class App(WebSocketResponse):
@@ -679,7 +680,7 @@ async def test_default_server_headers(ws_protocol_cls, http_protocol_cls):
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", ONLY_WS_PROTOCOL)
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_no_server_headers(ws_protocol_cls, http_protocol_cls):
     class App(WebSocketResponse):

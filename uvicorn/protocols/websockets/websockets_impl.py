@@ -15,7 +15,7 @@ from websockets.typing import Subprotocol
 
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
-from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl
+from uvicorn.protocols.utils import get_local_addr, get_remote_addr, is_ssl, get_server_header
 from uvicorn.server import ServerState
 
 if sys.version_info < (3, 8):
@@ -65,6 +65,13 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
         self.root_path = config.root_path
+        if self.config.server_header:
+            self.server_header = get_server_header(
+                default_headers=server_state.default_headers,
+                override=websockets.server.USER_AGENT
+            )
+        else:
+            self.server_header = None
 
         # Shared server state
         self.connections = server_state.connections
@@ -99,6 +106,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             max_size=self.config.ws_max_size,
             ping_interval=self.config.ws_ping_interval,
             ping_timeout=self.config.ws_ping_timeout,
+            server_header=self.server_header,
             extensions=extensions,
             logger=logging.getLogger("uvicorn.error"),
             extra_headers=[],
