@@ -48,7 +48,9 @@ async def test_proxy_headers_trusted_hosts(
     trusted_hosts: Union[List[str], str], response_text: str
 ) -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts=trusted_hosts)
-    async with httpx.AsyncClient(app=app_with_middleware, base_url="http://testserver") as client:
+    async with httpx.AsyncClient(
+        app=app_with_middleware, base_url="http://testserver"
+    ) as client:
         headers = {"X-Forwarded-Proto": "https", "X-Forwarded-For": "1.2.3.4"}
         response = await client.get("/", headers=headers)
 
@@ -82,7 +84,9 @@ async def test_proxy_headers_multiple_proxies(
     trusted_hosts: Union[List[str], str], response_text: str
 ) -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts=trusted_hosts)
-    async with httpx.AsyncClient(app=app_with_middleware, base_url="http://testserver") as client:
+    async with httpx.AsyncClient(
+        app=app_with_middleware, base_url="http://testserver"
+    ) as client:
         headers = {
             "X-Forwarded-Proto": "https",
             "X-Forwarded-For": "1.2.3.4, 10.0.2.1, 192.168.0.2",
@@ -96,7 +100,9 @@ async def test_proxy_headers_multiple_proxies(
 @pytest.mark.anyio
 async def test_proxy_headers_invalid_x_forwarded_for() -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts="*")
-    async with httpx.AsyncClient(app=app_with_middleware, base_url="http://testserver") as client:
+    async with httpx.AsyncClient(
+        app=app_with_middleware, base_url="http://testserver"
+    ) as client:
         headers = httpx.Headers(
             {
                 "X-Forwarded-Proto": "https",
@@ -115,7 +121,9 @@ async def test_proxy_headers_empty_x_forwarded_for() -> None:
     # https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts="*")
     transport = httpx.ASGITransport(app=app_with_middleware, client=("1.2.3.4", 8080))
-    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://testserver"
+    ) as client:
         headers = httpx.Headers(
             {
                 "X-Forwarded-Proto": "https",
