@@ -4,12 +4,7 @@
 
 ### What is a Process Manager?
 
-In modern computers and operating systems, the processor helps execute multiple programs which are arranged by the process manager. 
-In other words, the **process manager** arranges the execution of the processes or programs by making schedule for to 
-ensure efficient use of the resources which includes both software and hardware.
-
-A process manager will handle the socket setup, start-up multiple server processes, monitor process aliveness, and 
-listen for signals to provide for processes restarts, shutdowns, or dialing up and down the number of running processes.
+Computers can run multiple programs in parallel using processes. The OS provides primitives for creating a new process and running a program in it, but it does not know what that program is doing. The OS cannot for example realize that your web app is crashing and needs to be restarted. That's where process managers come in. Within the context of a web server, a process manager is a program that monitors the health of multiple server processes and coordinates killing and spinning up of new processes to keep the application online and healthy.
 
 
 
