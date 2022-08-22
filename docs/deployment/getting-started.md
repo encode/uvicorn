@@ -12,7 +12,10 @@ As a general rule, you probably want to:
 
 ## Quick Start
 
-In the Quick Start section, we will cover how to start serving your application. The application mentioned here is any ASGI compatible application. For instance if an app that was built using a framework like `Starlette` or `FastAPI`.
+This section is meant to get you started serving an ASGI application as quick as possible. ASGI applications are applications that adhere to the [ASGI Specification], which is the contract between the ASGI server (Uvicorn) and the ASGI application. Starlette  is just one ASGI framework amongst many, see [awesome-asgi] for a listing of some of the others.
+
+[ASGI Specification]: https://asgi.readthedocs.io/en/latest/
+[awesome-asgi]: https://github.com/florimondmanca/awesome-asgi
 
 The following are ideal for running your application in a development environment.
 
