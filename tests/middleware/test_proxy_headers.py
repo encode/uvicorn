@@ -42,12 +42,14 @@ async def app(
         (["127.0.0.1", "10.0.0.1"], "Remote: https://1.2.3.4:0"),
         ("127.0.0.1, 10.0.0.1", "Remote: https://1.2.3.4:0"),
         # trusted proxy network
+        # https://github.com/encode/uvicorn/issues/1068#issuecomment-1004813267
         ("127.0.0.0/24, 10.0.0.1", "Remote: https://1.2.3.4:0"),
         # request from untrusted proxy
         ("192.168.0.1", "Remote: http://127.0.0.1:123"),
         # request from untrusted proxy network
         ("192.168.0.0/16", "Remote: http://127.0.0.1:123"),
-        # request from client running on proxy server
+        # request from client running on proxy server itself
+        # https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
         (["127.0.0.1", "1.2.3.4"], "Remote: https://1.2.3.4:0"),
     ],
 )
@@ -148,3 +150,24 @@ async def test_proxy_headers_websocket_x_forwarded_proto(
         async with websockets.client.connect(url, extra_headers=headers) as websocket:
             data = await websocket.recv()
             assert data == "wss://1.2.3.4:0"
+
+
+@pytest.mark.anyio
+async def test_proxy_headers_empty_x_forwarded_for() -> None:
+    # fallback to the default behavior if x-forwarded-for is an empty list for some reason
+    # https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
+    app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts="*")
+    transport = httpx.ASGITransport(app=app_with_middleware, client=("1.2.3.4", 8080))
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://testserver"
+    ) as client:
+        headers = httpx.Headers(
+            {
+                "X-Forwarded-Proto": "https",
+                "X-Forwarded-For": "",
+            },
+            encoding="latin-1",
+        )
+        response = await client.get("/", headers=headers)
+    assert response.status_code == 200
+    assert response.text == "Remote: https://1.2.3.4:8080"
