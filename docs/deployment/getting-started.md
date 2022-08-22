@@ -17,7 +17,6 @@ This section is meant to get you started serving an ASGI application as quick as
 [ASGI Specification]: https://asgi.readthedocs.io/en/latest/
 [awesome-asgi]: https://github.com/florimondmanca/awesome-asgi
 
-The following are ideal for running your application in a development environment.
 
 ### Running from the command line
 
