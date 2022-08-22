@@ -43,7 +43,7 @@ class _TrustedHosts:
                 except ValueError:
                     self.trusted_literals.add(host)
 
-    def __contains__(self, item: str):
+    def __contains__(self, item: Optional[str]) -> bool:
         if self.always_trust:
             return True
 
@@ -66,6 +66,7 @@ class _TrustedHosts:
         # See https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
         if host in self:
             return x_forwarded_for_hosts[0]
+        return host
 
 
 class ProxyHeadersMiddleware:
