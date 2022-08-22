@@ -36,8 +36,9 @@ class _TrustedHosts:
                 trusted_hosts = _parse_raw_hosts(trusted_hosts)
             for host in trusted_hosts:
                 try:
-                    # Try parsing the trusted host as an IPv4Network to allow checking a whole range.
-                    # See https://github.com/encode/uvicorn/issues/1068#issuecomment-1004813267
+                    # Try parsing the trusted host as an IPv4Network
+                    # to allow checking a whole range.
+                    # https://github.com/encode/uvicorn/issues/1068
                     self.trusted_networks.add(ipaddress.IPv4Network(host))
                 except ValueError:
                     self.trusted_literals.add(host)
@@ -107,8 +108,9 @@ class ProxyHeadersMiddleware:
                     x_forwarded_for = headers[b"x-forwarded-for"].decode("latin1")
                     host = self.trusted_hosts.get_trusted_client_host(x_forwarded_for)
 
-                    # Host is None or an empty string if the x-forwarded-for header is empty.
-                    # See https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
+                    # Host is None or an empty string
+                    # if the x-forwarded-for header is empty.
+                    # See https://github.com/encode/uvicorn/issues/1068
                     if host:
                         port = 0
                         scope["client"] = (host, port)  # type: ignore[arg-type]
