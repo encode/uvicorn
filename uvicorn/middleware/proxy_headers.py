@@ -16,7 +16,9 @@ if TYPE_CHECKING:
         ASGI3Application,
         ASGIReceiveCallable,
         ASGISendCallable,
+        HTTPScope,
         Scope,
+        WebSocketScope,
     )
 
 
