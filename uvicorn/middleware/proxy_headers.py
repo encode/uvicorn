@@ -28,7 +28,6 @@ class _TrustedHosts:
     def __init__(self, trusted_hosts: Union[List[str], str]) -> None:
         self.trusted_networks: Set[ipaddress.IPv4Network] = set()
         self.trusted_literals: Set[str] = set()
-
         self.always_trust = trusted_hosts == "*"
 
         if not self.always_trust:
@@ -36,6 +35,8 @@ class _TrustedHosts:
                 trusted_hosts = _parse_raw_hosts(trusted_hosts)
             for host in trusted_hosts:
                 try:
+                    # Try parsing the trusted host as an IPv4Network to allow checking a whole range.
+                    # See https://github.com/encode/uvicorn/issues/1068#issuecomment-1004813267
                     self.trusted_networks.add(ipaddress.IPv4Network(host))
                 except ValueError:
                     self.trusted_literals.add(host)
@@ -60,6 +61,7 @@ class _TrustedHosts:
             if host not in self:
                 return host
         # The request came from a client on the proxy itself. Trust it.
+        # See https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
         if host in self:
             return x_forwarded_for_hosts[0]
 
@@ -96,7 +98,11 @@ class ProxyHeadersMiddleware:
                     # information by now, so only include the host.
                     x_forwarded_for = headers[b"x-forwarded-for"].decode("latin1")
                     host = self.trusted_hosts.get_trusted_client_host(x_forwarded_for)
-                    port = 0
-                    scope["client"] = (host, port)  # type: ignore[arg-type]
+
+                    # Host is None or an empty string if the x-forwarded-for header is empty.
+                    # See https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
+                    if host:
+                        port = 0
+                        scope["client"] = (host, port)  # type: ignore[arg-type]
 
         return await self.app(scope, receive, send)
