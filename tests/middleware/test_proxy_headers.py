@@ -117,7 +117,7 @@ async def test_proxy_headers_invalid_x_forwarded_for() -> None:
 
 @pytest.mark.anyio
 async def test_proxy_headers_empty_x_forwarded_for() -> None:
-    # fallback to the default behavior if x-forwarded-for is an empty list for some reason
+    # fallback to the default behavior if x-forwarded-for is an empty list
     # https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts="*")
     transport = httpx.ASGITransport(app=app_with_middleware, client=("1.2.3.4", 8080))
