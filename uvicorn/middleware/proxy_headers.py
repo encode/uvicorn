@@ -8,7 +8,8 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
-from typing import List, Optional, Tuple, Union, cast
+import ipaddress
+from typing import List, Optional, Tuple, Union, Set, cast
 
 from uvicorn._types import (
     ASGI3Application,
@@ -20,6 +21,50 @@ from uvicorn._types import (
 )
 
 
+def _parse_raw_hosts(value: str) -> List[str]:
+    return [item.strip() for item in value.split(",")]
+
+
+class _TrustedHosts:
+    def __init__(self, trusted_hosts: Union[List[str], str]) -> None:
+        self.trusted_networks: Set[ipaddress.IPv4Network] = set()
+        self.trusted_literals: Set[str] = set()
+
+        self.always_trust = trusted_hosts == "*"
+
+        if not self.always_trust:
+            if isinstance(trusted_hosts, str):
+                trusted_hosts = _parse_raw_hosts(trusted_hosts)
+            for host in trusted_hosts:
+                try:
+                    self.trusted_networks.add(ipaddress.IPv4Network(host))
+                except ValueError:
+                    self.trusted_literals.add(host)
+
+    def __contains__(self, item: str):
+        if self.always_trust:
+            return True
+
+        try:
+            ip = ipaddress.IPv4Address(item)
+            return any(ip in net for net in self.trusted_networks)
+        except ValueError:
+            return item in self.trusted_literals
+
+    def get_trusted_client_host(self, x_forwarded_for: str) -> Optional[str]:
+        x_forwarded_for_hosts = _parse_raw_hosts(x_forwarded_for)
+        if self.always_trust:
+            return x_forwarded_for_hosts[0]
+
+        host = None
+        for host in reversed(x_forwarded_for_hosts):
+            if host not in self:
+                return host
+        # The request came from a client on the proxy itself. Trust it.
+        if host in self:
+            return x_forwarded_for_hosts[0]
+
+
 class ProxyHeadersMiddleware:
     def __init__(
         self,
@@ -27,23 +72,7 @@ class ProxyHeadersMiddleware:
         trusted_hosts: Union[List[str], str] = "127.0.0.1",
     ) -> None:
         self.app = app
-        if isinstance(trusted_hosts, str):
-            self.trusted_hosts = {item.strip() for item in trusted_hosts.split(",")}
-        else:
-            self.trusted_hosts = set(trusted_hosts)
-        self.always_trust = "*" in self.trusted_hosts
-
-    def get_trusted_client_host(
-        self, x_forwarded_for_hosts: List[str]
-    ) -> Optional[str]:
-        if self.always_trust:
-            return x_forwarded_for_hosts[0]
-
-        for host in reversed(x_forwarded_for_hosts):
-            if host not in self.trusted_hosts:
-                return host
-
-        return None
+        self.trusted_hosts = _TrustedHosts(trusted_hosts)
 
     async def __call__(
         self, scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
@@ -53,7 +82,7 @@ class ProxyHeadersMiddleware:
             client_addr: Optional[Tuple[str, int]] = scope.get("client")
             client_host = client_addr[0] if client_addr else None
 
-            if self.always_trust or client_host in self.trusted_hosts:
+            if client_host in self.trusted_hosts:
                 headers = dict(scope["headers"])
 
                 if b"x-forwarded-proto" in headers:
@@ -74,10 +103,7 @@ class ProxyHeadersMiddleware:
                     # X-Forwarded-For header. We've lost the connecting client's port
                     # information by now, so only include the host.
                     x_forwarded_for = headers[b"x-forwarded-for"].decode("latin1")
-                    x_forwarded_for_hosts = [
-                        item.strip() for item in x_forwarded_for.split(",")
-                    ]
-                    host = self.get_trusted_client_host(x_forwarded_for_hosts)
+                    host = self.trusted_hosts.get_trusted_client_host(x_forwarded_for)
                     port = 0
                     scope["client"] = (host, port)  # type: ignore[arg-type]
 

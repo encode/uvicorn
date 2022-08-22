@@ -41,8 +41,14 @@ async def app(
         # trusted proxy list
         (["127.0.0.1", "10.0.0.1"], "Remote: https://1.2.3.4:0"),
         ("127.0.0.1, 10.0.0.1", "Remote: https://1.2.3.4:0"),
+        # trusted proxy network
+        ("127.0.0.0/24, 10.0.0.1", "Remote: https://1.2.3.4:0"),
         # request from untrusted proxy
         ("192.168.0.1", "Remote: http://127.0.0.1:123"),
+        # request from untrusted proxy network
+        ("192.168.0.0/16", "Remote: http://127.0.0.1:123"),
+        # request from client running on proxy server
+        (["127.0.0.1", "1.2.3.4"], "Remote: https://1.2.3.4:0"),
     ],
 )
 async def test_proxy_headers_trusted_hosts(
