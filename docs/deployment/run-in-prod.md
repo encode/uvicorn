@@ -5,9 +5,6 @@
 ### What is a Process Manager?
 
 Computers can run multiple programs in parallel using processes. The OS provides primitives for creating a new process and running a program in it, but it does not know what that program is doing. The OS cannot for example realize that your web app is crashing and needs to be restarted. That's where process managers come in. Within the context of a web server, a process manager is a program that monitors the health of multiple server processes and coordinates killing and spinning up of new processes to keep the application online and healthy.
-
-
-
 ### Using a process manager
 Running Uvicorn using a process manager ensures that you can run multiple processes in a resilient manner, and 
 allows you to perform server upgrades without dropping requests.
