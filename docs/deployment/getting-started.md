@@ -178,5 +178,5 @@ The set of configuration options available is the same as for the options listed
 
     Also note that in this case, you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main module.
 
-    The `reload` and `workers` parameters are **mutually exclusive**.
+    Remember, the `reload` and `workers` parameters are **mutually exclusive**.
 
