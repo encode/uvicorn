@@ -9,15 +9,10 @@ the connecting client, rather that the connecting proxy.
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
 import ipaddress
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union, cast, Set
+from typing import TYPE_CHECKING, List, Optional, Set, Tuple, Union, cast
 
 if TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGI3Application,
-        ASGIReceiveCallable,
-        ASGISendCallable,
-        Scope,
-    )
+    from asgiref.typing import ASGI3Application, ASGIReceiveCallable, ASGISendCallable, Scope
 
 
 def _parse_raw_hosts(value: str) -> List[str]:
