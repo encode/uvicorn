@@ -5,7 +5,7 @@ asgiref==3.5.2
 
 # Explicit optionals
 wsproto==1.1.0
-
+git+https://github.com/aaugustin/websockets.git@main
 # Packaging
 build==0.8.0
 twine==4.0.1
