@@ -7,8 +7,8 @@ asgiref==3.5.2
 wsproto==1.1.0
 
 # Packaging
+build==0.8.0
 twine==4.0.1
-wheel==0.37.1
 
 # Testing
 autoflake==1.4
