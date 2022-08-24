@@ -1,9 +1,10 @@
 # Change Log
 
-## 0.19.0 - <DATE>
+## 0.19.0 - 2022-08-24
 
 ### Fixed
 
+- Remove cyclic references on HTTP implementations. (#1604) 24/08/22
 - `reload_delay` default changed from `None` to `0.25` on `uvicorn.run()` and `Config`. `None` is not an acceptable value anymore. (#1545) 02/07/22
 
 ## 0.18.2 - 2022-06-27
