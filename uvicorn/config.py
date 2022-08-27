@@ -238,7 +238,7 @@ class Config:
         proxy_headers: bool = True,
         server_header: bool = True,
         date_header: bool = True,
-        forwarded_allow_ips: Optional[str] = None,
+        forwarded_allow_ips: Optional[Union[List[str], str]] = None,
         root_path: str = "",
         limit_concurrency: Optional[int] = None,
         limit_max_requests: Optional[int] = None,
@@ -370,6 +370,7 @@ class Config:
         if workers is None and "WEB_CONCURRENCY" in os.environ:
             self.workers = int(os.environ["WEB_CONCURRENCY"])
 
+        self.forwarded_allow_ips: Union[List[str], str]
         if forwarded_allow_ips is None:
             self.forwarded_allow_ips = os.environ.get(
                 "FORWARDED_ALLOW_IPS", "127.0.0.1"
