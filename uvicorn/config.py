@@ -370,7 +370,7 @@ class Config:
         if workers is None and "WEB_CONCURRENCY" in os.environ:
             self.workers = int(os.environ["WEB_CONCURRENCY"])
 
-        self.forwarded_allow_ips: Union[List[str], str]  # help mypy
+        self.forwarded_allow_ips: Union[List[str], str]
         if forwarded_allow_ips is None:
             self.forwarded_allow_ips = os.environ.get(
                 "FORWARDED_ALLOW_IPS", "127.0.0.1"
