@@ -487,7 +487,7 @@ def run(
     proxy_headers: bool = True,
     server_header: bool = True,
     date_header: bool = True,
-    forwarded_allow_ips: typing.Optional[str] = None,
+    forwarded_allow_ips: typing.Optional[typing.Union[typing.List[str], str]] = None,
     root_path: str = "",
     limit_concurrency: typing.Optional[int] = None,
     backlog: int = 2048,
