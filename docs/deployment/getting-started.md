@@ -12,7 +12,7 @@ As a general rule, you probably want to:
 
 ## Quick Start
 
-This section is meant to get you started serving an ASGI application as quick as possible. ASGI applications are applications that adhere to the [ASGI Specification], which is the contract between the ASGI server (Uvicorn) and the ASGI application. Starlette  is just one ASGI framework amongst many, see [awesome-asgi] for a listing of some of the others.
+This section is meant to get you started serving an ASGI application as quick as possible.
 
 [ASGI Specification]: https://asgi.readthedocs.io/en/latest/
 [awesome-asgi]: https://github.com/florimondmanca/awesome-asgi
