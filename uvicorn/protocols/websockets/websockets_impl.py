@@ -83,6 +83,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.closed_event = asyncio.Event()
         self.initial_response: Optional[HTTPResponse] = None
         self.connect_sent = False
+        self.close_frame_sent = False
         self.accepted_subprotocol: Optional[Subprotocol] = None
         self.transfer_data_task: asyncio.Task = None  # type: ignore[assignment]
 
@@ -303,6 +304,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 reason = message.get("reason", "") or ""
                 await self.close(code, reason)
                 self.closed_event.set()
+                self.close_frame_sent = True
 
             else:
                 msg = (
@@ -326,10 +328,13 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
         await self.handshake_completed_event.wait()
 
-        if self.closed_event.is_set():
+        if self.closed_event.is_set() and not self.close_frame_sent:
             # If client disconnected, use WebSocketServerProtocol.close_code property.
             # If the handshake failed or the app closed before handshake completion,
             # use 1006 Abnormal Closure.
+            #
+            # If server disconnected, make sure server can still read remaining
+            # messages from websockets read queue.
             return {"type": "websocket.disconnect", "code": self.close_code or 1006}
 
         try:
