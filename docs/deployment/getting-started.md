@@ -29,7 +29,7 @@ $ uvicorn example:app --reload --port 5000
 The ASGI application should be specified in the form `path.to.module:instance.path`
 
 Use `--reload` to turn on auto-reloading. 
-???+ note
+!!! note
     `--reload` is recommended only for local use, during the development phase.
     
     The `--reload` and `--workers` arguments are **mutually exclusive**.
