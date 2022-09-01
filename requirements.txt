@@ -4,7 +4,7 @@
 asgiref==3.5.2
 
 # Explicit optionals
-wsproto==1.1.0
+wsproto==1.2.0
 
 # Packaging
 build==0.8.0
