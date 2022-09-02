@@ -9,7 +9,9 @@ description = "The lightning-fast ASGI server."
 readme = "README.md"
 license = "BSD-3-Clause"
 requires-python = ">=3.7"
-authors = [{ name = "Tom Christie", email = "tom@tomchristie.com" }]
+authors = [
+    { name = "Tom Christie", email = "tom@tomchristie.com" },
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Web Environment",
@@ -21,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Internet :: WWW/HTTP",
@@ -55,7 +58,9 @@ Source = "https://github.com/encode/uvicorn"
 path = "uvicorn/__init__.py"
 
 [tool.hatch.build.targets.sdist]
-include = ["/uvicorn"]
+include = [
+    "/uvicorn",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
