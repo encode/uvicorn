@@ -54,7 +54,7 @@ class LifespanOn:
         await self.receive_queue.put(startup_event)
         await self.startup_event.wait()
 
-        if self.startup_failed or (self.error_occured and self.config.lifespan == "on"):
+        if self.startup_failed or (self.error_occured and self.config.lifespan == "on" and not self.config.interface == "wsgi"):
             self.logger.error("Application startup failed. Exiting.")
             self.should_exit = True
         else:
@@ -89,7 +89,7 @@ class LifespanOn:
             self.error_occured = True
             if self.startup_failed or self.shutdown_failed:
                 return
-            if self.config.lifespan == "auto":
+            if self.config.lifespan == "auto" or self.config.interface == "wsgi":
                 msg = "ASGI 'lifespan' protocol appears unsupported."
                 self.logger.info(msg)
             else:
