@@ -5,7 +5,7 @@ asgiref==3.5.2
 
 # Explicit optionals
 wsproto==1.2.0
-uvloop @ git+https://github.com/MagicStack/uvloop.git@master
+uvloop @ git+https://github.com/MagicStack/uvloop.git@master; sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')
 
 # Packaging
 build==0.8.0
