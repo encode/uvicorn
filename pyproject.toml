@@ -9,9 +9,7 @@ description = "The lightning-fast ASGI server."
 readme = "README.md"
 license = "BSD-3-Clause"
 requires-python = ">=3.7"
-authors = [
-    { name = "Tom Christie", email = "tom@tomchristie.com" },
-]
+authors = [{ name = "Tom Christie", email = "tom@tomchristie.com" }]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Web Environment",
@@ -39,7 +37,7 @@ standard = [
     "httptools>=0.4.0",
     "python-dotenv>=0.13",
     "PyYAML>=5.1",
-    "uvloop>=0.14.0,!=0.15.0,!=0.15.1; sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')",
+    "uvloop @ git+https://github.com/MagicStack/uvloop.git@master ; sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')",
     "watchfiles>=0.13",
     "websockets>=10.0",
 ]
@@ -57,6 +55,7 @@ Source = "https://github.com/encode/uvicorn"
 path = "uvicorn/__init__.py"
 
 [tool.hatch.build.targets.sdist]
-include = [
-    "/uvicorn",
-]
+include = ["/uvicorn"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
