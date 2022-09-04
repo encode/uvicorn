@@ -34,9 +34,6 @@ Use `--reload` to turn on auto-reloading.
     
     The `--reload` and `--workers` arguments are **mutually exclusive**.
 
-
-
-
 To see the complete set of available options, use `uvicorn --help`:
 
 <!-- :cli_usage: -->
