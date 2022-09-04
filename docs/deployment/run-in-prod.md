@@ -112,20 +112,13 @@ Then run `circusd circus.ini`.
 
 ## Run using Docker Containers
 
-A container is a standard unit of software that packages up code and all its dependencies so the application runs quickly and reliably from one computing environment to another. A Docker container image is a lightweight, standalone, executable package of software that includes everything needed to run an application: code, runtime, system tools, system libraries and settings.
-
-In this section we will see how to run your application using a docker container.
-
-### What is docker?
-
-[Docker](https://docs.docker.com/get-started/overview/) is an open platform for developing, shipping, and running applications. Docker enables you to separate your applications from your infrastructure, so you can deliver software quickly. With Docker, you can manage your infrastructure in the same ways you manage your applications. By taking advantage of Docker’s methodologies for shipping, testing, and deploying code quickly, you can significantly reduce the delay between writing code and running it in production.
+In this section we will see how to run your application using Docker.
 
 ### Creating Docker Image
 
 Before getting started, make sure you have installed Docker in your environment. If not, follow the guide from [official documentation](https://docs.docker.com/get-started/#download-and-install-docker) to install.    
-To get started, the first thing is to build an image. Docker images normally includes in its metadata the default program or command that should be run when the container is started and the parameters to be passed to that program
 
-While building an image, the folder structure is very important. The following tutorial is using a structure like this:
+While building a Docker image, the folder structure is very important. The following tutorial is using a structure like this:
 ```
 .
 ├── app
@@ -135,19 +128,7 @@ While building an image, the folder structure is very important. The following t
 └── requirements.txt
 ```
 
-Okay, let's get building.
-
-Create a file called `Dockerfile` in root of your project/repo.
-
-```commandline
-touch Dockerfile
-```
-
-!!! note
-    Notice that `Dockerfile` does not have an extension. Text editors, mainly in Windows OS might add `txt`. It is important to remove them before saving. 
-
-Let's edit the file we created and add the following. You can use your favorite text editor.
-
+Dockerfile:
 ```commandline
 FROM python:3.9
 
@@ -171,34 +152,4 @@ The above Dockerfile should be ideal for most of the application. It uses base p
     
     Using a healthcheck instruction in your Dockerfile is considered a best practice to enable Docker to terminate containers which are not responding correctly, and instantiate new ones.
     It is suggested to extend this basic healthcheck. Make sure to use the right port. For further information you can look at the official [Docker healthcheck documentation](https://docs.docker.com/engine/reference/builder/#healthcheck). 
-
-
-Now that all the files are in place, let's build the container image.
-
-- Go to the project directory (in where your Dockerfile is, containing your app directory).
-- Build your image:
-
-```commandline
-docker build -t my_app .
-```
-
-!!! tip
-    Notice the `.` at the end, it's equivalent to `./`, it tells Docker the directory to use to build the container image. In this case, it's the same current directory `.`.
-
-The build time varies depending upon how big your application is, and number of requirements in your `requirements.txt`. However, it should not be too long. You can leverage Docker cache to speed up your build process!
-
-### Start the Docker Container
-
-To run the image you built, it's simple.
-
-```commandline
-docker run -d --name mycontainer -p 80:80 my_app
-```
-
-`-p` argument specifies which port to expose. This is important, without this, you will not be able to access your container from your host.
-
-Docker provides various [options](https://docs.docker.com/engine/reference/commandline/run/#options) which you can use while starting your app.
-
-Congratulations! You have successfully built a Docker Image and started a container. Just hop on to the web-browser and you should be able to access your app using the IP of your host or `localhost` (if the browser is in same host).
-
 
