@@ -11,8 +11,8 @@ build==0.8.0
 twine==4.0.1
 
 # Testing
-autoflake==1.4
-black==22.6.0
+autoflake==1.5.2
+black==22.8.0
 flake8==3.9.2
 isort==5.10.1
 pytest==7.1.2
@@ -22,11 +22,11 @@ types-click==7.1.8
 types-pyyaml==6.0.11
 trustme==0.9.0
 cryptography==37.0.4
-coverage==6.4.2
+coverage==6.4.4
 coverage-conditional-plugin==0.5.0
 httpx==0.23.0
 watchgod==0.8.2
 
 # Documentation
 mkdocs==1.3.1
-mkdocs-material==8.3.9
+mkdocs-material==8.4.2
