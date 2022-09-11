@@ -17,10 +17,10 @@ from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import (
     get_local_addr,
+    get_path_with_query_string,
     get_remote_addr,
     get_server_header,
     is_ssl,
-    get_path_with_query_string,
 )
 from uvicorn.server import ServerState
 
