@@ -20,6 +20,7 @@ from uvicorn.protocols.utils import (
     get_remote_addr,
     get_server_header,
     is_ssl,
+    get_path_with_query_string,
 )
 from uvicorn.server import ServerState
 
@@ -268,7 +269,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
                     self.scope["client"],
-                    self.scope["path"],
+                    get_path_with_query_string(self.scope),
                 )
                 self.initial_response = None
                 self.accepted_subprotocol = cast(
@@ -295,7 +296,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
                     self.scope["client"],
-                    self.scope["path"],
+                    get_path_with_query_string(self.scope),
                 )
                 self.initial_response = (http.HTTPStatus.FORBIDDEN, [], b"")
                 self.handshake_started_event.set()
