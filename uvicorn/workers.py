@@ -72,6 +72,10 @@ class UvicornWorker(Worker):
         for s in self.SIGNALS:
             signal.signal(s, signal.SIG_DFL)
 
+        signal.signal(signal.SIGUSR1, self.handle_usr1)
+        # Don't let SIGUSR1 disturb active requests by interrupting system calls
+        signal.siginterrupt(signal.SIGUSR1, False)
+
     async def _serve(self) -> None:
         self.config.app = self.wsgi
         server = Server(config=self.config)

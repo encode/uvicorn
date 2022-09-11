@@ -54,7 +54,7 @@ In this context, "Cython-based" means the following:
 Moreover, "optional extras" means that:
 
 - the websocket protocol will be handled by `websockets` (should you want to use `wsproto` you'd need to install it manually) if possible.
-- the `--reload` flag in development mode will use `watchgod`.
+- the `--reload` flag in development mode will use `watchfiles`.
 - windows users will have `colorama` installed for the colored logs.
 - `python-dotenv` will be installed should you want to use the `--env-file` option.
 - `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
@@ -110,12 +110,12 @@ Options:
                                   for files. Includes '*.py' by default; these
                                   defaults can be overridden with `--reload-
                                   exclude`. This option has no effect unless
-                                  watchgod is installed.
+                                  watchfiles is installed.
   --reload-exclude TEXT           Set glob patterns to exclude while watching
                                   for files. Includes '.*, .py[cod], .sw.*,
                                   ~*' by default; these defaults can be
                                   overridden with `--reload-include`. This
-                                  option has no effect unless watchgod is
+                                  option has no effect unless watchfiles is
                                   installed.
   --reload-delay FLOAT            Delay between previous and next check if
                                   application needs to be. Defaults to 0.25s.
@@ -155,7 +155,7 @@ Options:
                                   Enable/Disable default Server header.
   --date-header / --no-date-header
                                   Enable/Disable default Date header.
-  --forwarded-allow-ips TEXT      Comma seperated list of IPs to trust with
+  --forwarded-allow-ips TEXT      Comma separated list of IPs to trust with
                                   proxy headers. Defaults to the
                                   $FORWARDED_ALLOW_IPS environment variable if
                                   available, or '127.0.0.1'.
@@ -187,8 +187,11 @@ Options:
   --app-dir TEXT                  Look for APP in the specified directory, by
                                   adding this to the PYTHONPATH. Defaults to
                                   the current working directory.  [default: .]
+  --h11-max-incomplete-event-size INTEGER
+                                  For h11, the maximum number of bytes to
+                                  buffer of an incomplete event.
   --factory                       Treat APP as an application factory, i.e. a
-                                  () -> <ASGI app> callable.  [default: False]
+                                  () -> <ASGI app> callable.
   --help                          Show this message and exit.
 ```
 
@@ -196,9 +199,26 @@ For more information, see the [settings documentation](settings.md).
 
 ### Running programmatically
 
-To run uvicorn directly from your application...
+There are several ways to run uvicorn directly from your application.
 
-**example.py**:
+#### `uvicorn.run`
+
+If you're looking for a programmatic equivalent of the `uvicorn` command line interface, use `uvicorn.run()`:
+
+```python
+# main.py
+import uvicorn
+
+async def app(scope, receive, send):
+    ...
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", port=5000, log_level="info")
+```
+
+#### `Config` and `Server` instances
+
+For more control over configuration and server lifecycle, use `uvicorn.Config` and `uvicorn.Server`:
 
 ```python
 import uvicorn
@@ -207,7 +227,27 @@ async def app(scope, receive, send):
     ...
 
 if __name__ == "__main__":
-    uvicorn.run("example:app", host="127.0.0.1", port=5000, log_level="info")
+    config = uvicorn.Config("main:app", port=5000, log_level="info")
+    server = uvicorn.Server(config)
+    server.run()
+```
+
+If you'd like to run Uvicorn from an already running async environment, use `uvicorn.Server.serve()` instead:
+
+```python
+import asyncio
+import uvicorn
+
+async def app(scope, receive, send):
+    ...
+
+async def main():
+    config = uvicorn.Config("main:app", port=5000, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ### Running with Gunicorn
@@ -509,10 +549,14 @@ Its most distinctive features are built-in support for dependency injection, aut
 
 [Falcon](https://falconframework.org) is a minimalist REST and app backend framework for Python, with a focus on reliability, correctness, and performance at scale.
 
+### Muffin
+
+[Muffin](https://github.com/klen/muffin) is a fast, lightweight and asynchronous ASGI web-framework for Python 3.
+
 
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
-[gunicorn]: http://gunicorn.org/
+[gunicorn]: https://gunicorn.org/
 [pypy]: https://pypy.org/
 [asgi]: https://asgi.readthedocs.io/en/latest/
 [asgi-http]: https://asgi.readthedocs.io/en/latest/specs/www.html

@@ -149,7 +149,7 @@ class WSProtocol(asyncio.Protocol):
             "client": self.client,
             "root_path": self.root_path,
             "path": unquote(raw_path),
-            "raw_path": raw_path,
+            "raw_path": raw_path.encode("ascii"),
             "query_string": query_string.encode("ascii"),
             "headers": headers,
             "subprotocols": event.subprotocols,

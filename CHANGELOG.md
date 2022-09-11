@@ -1,17 +1,64 @@
 # Change Log
 
-### 0.17.5 - 2022-02-16
+## 0.18.3 - 2022-08-24
 
 ### Fixed
 
-- Fix case where url is fragmented in httptools protocol (#1263) 2/16/22
-- Fix WSGI middleware not to explode quadratically in the case of a larger body (#1329) 2/16/16
+- Remove cyclic references on HTTP implementations. (#1604) 24/08/22
+
+### Changed
+
+- `reload_delay` default changed from `None` to `0.25` on `uvicorn.run()` and `Config`. `None` is not an acceptable value anymore. (#1545) 02/07/22
+
+## 0.18.2 - 2022-06-27
+
+### Fixed
+
+- Add default `log_config` on `uvicorn.run()` (#1541) 24/06/22
+- Revert `logging` file name modification (#1543) 27/06/22
+
+## 0.18.1 - 2022-06-23
+
+### Fixed
+
+- Use `DEFAULT_MAX_INCOMPLETE_EVENT_SIZE` as default to `h11_max_incomplete_event_size` on the CLI (#1534) 23/06/22
+
+## 0.18.0 - 2022-06-23
+
+### Added
+
+- The `reload` flag prioritizes `watchfiles` instead of the deprecated `watchgod` (#1437) 18/06/22
+- Annotate `uvicorn.run()` function (#1423) 10/05/22
+- Allow configuring `max_incomplete_event_size` for `h11` implementation (#1514) 22/06/22
+
+### Removed
+
+- Remove `asgiref` dependency (#1532) 22/06/22
+
+### Fixed
+
+- Turn `raw_path` into bytes on both websockets implementations (#1487) 16/05/22
+- Revert log exception traceback in case of invalid HTTP request (#1518) 14/06/22
+- Set `asyncio.WindowsSelectorEventLoopPolicy()` when using multiple workers to avoid "WinError 87" (#1454) 22/06/22
+
+## 0.17.6 - 2022-03-11
+
+### Changed
+
+- Change `httptools` range to `>=0.4.0` (#1400) 11/03/22
+
+## 0.17.5 - 2022-02-16
+
+### Fixed
+
+- Fix case where url is fragmented in httptools protocol (#1263) 16/02/22
+- Fix WSGI middleware not to explode quadratically in the case of a larger body (#1329) 16/02/16
 
 ### Changed
 
 - Send HTTP 400 response for invalid request (#1352) 2/11/22
 
-### 0.17.4 - 2022-02-04
+## 0.17.4 - 2022-02-04
 
 ### Fixed
 
@@ -77,7 +124,7 @@
 - Allow WebSocket close event to receive reason being None from ASGI app. (#1259) 23/11/21
 - Fix a bug in `WebSocketProtocol.asgi_receive` on which we returned a close frame even if there were data messages before that frame in the read queue. (#1252) 25/11/21
 - The option `--reload-dirs` was splitting a string into single character directories. (#1267) 25/11/21
-- Only second SIGINT is able to forcelly shutdown the server (#1269) 28/11/21
+- Only second SIGINT is able to forcefully shutdown the server (#1269) 28/11/21
 - Allow app-dir parameter on the run() function (#1271) 06/12/21
 
 
@@ -191,7 +238,7 @@
 ### Fixed
 - Fixes watchgod with common prefixes (#817) 10/14/20 1b32f997
 - Fix reload with ipv6 host (#803) 10/14/20 5acaee5b
-- Added cli suport for headers containing colon (#813) 10/12/20 68732899
+- Added cli support for headers containing colon (#813) 10/12/20 68732899
 - Sharing socket across workers on windows (#802) 10/12/20 103167a0
 - Note the need to configure trusted "ips" when using unix sockets (#796) 10/4/20 a504c569
 
