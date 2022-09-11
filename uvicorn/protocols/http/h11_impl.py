@@ -207,8 +207,7 @@ class H11Protocol(asyncio.Protocol):
                 for name, value in self.headers:
                     if name == b"connection":
                         tokens = [token.lower().strip() for token in value.split(b",")]
-                        if b"upgrade" in tokens:
-                            self.handle_upgrade(event)
+                        if b"upgrade" in tokens and self.handle_upgrade(event):
                             return
 
                 # Handle 503 responses when 'limit_concurrency' is exceeded.
@@ -254,14 +253,15 @@ class H11Protocol(asyncio.Protocol):
                 self.cycle.more_body = False
                 self.cycle.message_event.set()
 
-    def handle_upgrade(self, event: H11Event) -> None:
+    def handle_upgrade(self, event: H11Event) -> bool:
         upgrade_value = None
         for name, value in self.headers:
             if name == b"upgrade":
                 upgrade_value = value.lower()
-
-        if upgrade_value != b"websocket" or self.ws_protocol_class is None:
-            msg = "Unsupported upgrade request."
+        if upgrade_value == b"h2c":
+            return False
+        elif upgrade_value != b"websocket" or self.ws_protocol_class is None:
+            msg = "Unsupported upgrade request. h11:" + upgrade_value.decode()
             self.logger.warning(msg)
             from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
 
@@ -269,7 +269,7 @@ class H11Protocol(asyncio.Protocol):
                 msg = "No supported WebSocket library detected. Please use 'pip install uvicorn[standard]', or install 'websockets' or 'wsproto' manually."  # noqa: E501
                 self.logger.warning(msg)
             self.send_400_response(msg)
-            return
+            return True
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
@@ -286,6 +286,7 @@ class H11Protocol(asyncio.Protocol):
         protocol.connection_made(self.transport)
         protocol.data_received(b"".join(output))
         self.transport.set_protocol(protocol)
+        return True
 
     def send_400_response(self, msg: str) -> None:
 

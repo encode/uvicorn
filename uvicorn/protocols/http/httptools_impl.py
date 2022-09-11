@@ -162,13 +162,15 @@ class HttpToolsProtocol(asyncio.Protocol):
         except httptools.HttpParserUpgrade:
             self.handle_upgrade()
 
+
     def handle_upgrade(self) -> None:
         upgrade_value = None
         for name, value in self.headers:
             if name == b"upgrade":
                 upgrade_value = value.lower()
-
-        if upgrade_value != b"websocket" or self.ws_protocol_class is None:
+        if upgrade_value == b"h2c":
+            return
+        elif upgrade_value != b"websocket" or self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
             from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
@@ -245,7 +247,15 @@ class HttpToolsProtocol(asyncio.Protocol):
         if http_version != "1.1":
             self.scope["http_version"] = http_version
         if self.parser.should_upgrade():
-            return
+            upgrade_http2 = False
+            for name, value in self.headers:
+                if name == b"upgrade":
+                    upgrade_value = value.lower()
+                    if upgrade_value == b"h2c":
+                        upgrade_http2 = True
+                        break
+            if not upgrade_http2:
+                return
         parsed_url = httptools.parse_url(self.url)
         raw_path = parsed_url.path
         path = raw_path.decode("ascii")
