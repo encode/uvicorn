@@ -717,7 +717,7 @@ async def test_unsupported_upgrade_request(protocol_cls):
     assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
     assert b"Unsupported upgrade request." in protocol.transport.buffer
 
-    
+
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 async def test_ignore_http_upgrade_request(protocol_cls):
@@ -728,7 +728,6 @@ async def test_ignore_http_upgrade_request(protocol_cls):
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
-
 
 
 @pytest.mark.anyio

@@ -261,7 +261,7 @@ class H11Protocol(asyncio.Protocol):
         if upgrade_value == b"h2c":
             return False
         elif upgrade_value != b"websocket" or self.ws_protocol_class is None:
-            msg = "Unsupported upgrade request. h11:" + upgrade_value.decode()
+            msg = "Unsupported upgrade request."
             self.logger.warning(msg)
             from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
 

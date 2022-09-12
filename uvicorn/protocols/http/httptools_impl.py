@@ -9,7 +9,6 @@ from collections import deque
 from typing import TYPE_CHECKING, Callable, Deque, List, Optional, Tuple, Union, cast
 
 import httptools
-
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import (
@@ -161,7 +160,6 @@ class HttpToolsProtocol(asyncio.Protocol):
             return
         except httptools.HttpParserUpgrade:
             self.handle_upgrade()
-
 
     def handle_upgrade(self) -> None:
         upgrade_value = None
