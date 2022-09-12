@@ -9,6 +9,7 @@ from collections import deque
 from typing import TYPE_CHECKING, Callable, Deque, List, Optional, Tuple, Union, cast
 
 import httptools
+
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import (
