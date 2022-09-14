@@ -276,11 +276,9 @@ class WebSocketProtocol(WebSocketServerProtocol):
                     Optional[Subprotocol], message.get("subprotocol")
                 )
                 headers = list(message.get("headers", []))
-                _added_names = []
                 for name, value in headers:
-                    if name.lower() in _added_names:
+                    if name.lower() in [b"server"]:
                         continue
-                    _added_names.append(name.lower())
                     self.extra_headers.append(
                         (
                             # ASGI spec requires bytes
