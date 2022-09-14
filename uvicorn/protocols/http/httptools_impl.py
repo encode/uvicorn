@@ -246,14 +246,11 @@ class HttpToolsProtocol(asyncio.Protocol):
         if http_version != "1.1":
             self.scope["http_version"] = http_version
         if self.parser.should_upgrade():
-            upgrade_http2 = False
-            for name, value in self.headers:
-                if name == b"upgrade":
-                    upgrade_value = value.lower()
-                    if upgrade_value == b"h2c":
-                        upgrade_http2 = True
-                        break
-            if not upgrade_http2:
+            http2 = any(
+                name == b"upgrade" and value.lower() == b"h2c"
+                for name, value in self.headers
+            )
+            if not http2:
                 return
         parsed_url = httptools.parse_url(self.url)
         raw_path = parsed_url.path

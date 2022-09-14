@@ -204,11 +204,19 @@ class H11Protocol(asyncio.Protocol):
                     "headers": self.headers,
                 }
 
-                for name, value in self.headers:
-                    if name == b"connection":
-                        tokens = [token.lower().strip() for token in value.split(b",")]
-                        if b"upgrade" in tokens and self.handle_upgrade(event):
-                            return
+                is_connection_upgrade = any(
+                    name == b"connection"
+                    and b"upgrade"
+                    in [token.lower().strip() for token in value.split(b",")]
+                    for name, value in self.headers
+                )
+                is_http2 = any(
+                    name == b"upgrade" and value == b"h2c"
+                    for name, value in self.headers
+                )
+                if is_connection_upgrade and not is_http2:
+                    self.handle_upgrade(event)
+                    return
 
                 # Handle 503 responses when 'limit_concurrency' is exceeded.
                 if self.limit_concurrency is not None and (
@@ -253,14 +261,13 @@ class H11Protocol(asyncio.Protocol):
                 self.cycle.more_body = False
                 self.cycle.message_event.set()
 
-    def handle_upgrade(self, event: H11Event) -> bool:
+    def handle_upgrade(self, event: H11Event) -> None:
         upgrade_value = None
         for name, value in self.headers:
             if name == b"upgrade":
                 upgrade_value = value.lower()
-        if upgrade_value == b"h2c":
-            return False
-        elif upgrade_value != b"websocket" or self.ws_protocol_class is None:
+
+        if upgrade_value != b"websocket" or self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
             from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
@@ -269,7 +276,7 @@ class H11Protocol(asyncio.Protocol):
                 msg = "No supported WebSocket library detected. Please use 'pip install uvicorn[standard]', or install 'websockets' or 'wsproto' manually."  # noqa: E501
                 self.logger.warning(msg)
             self.send_400_response(msg)
-            return True
+            return
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
@@ -286,7 +293,6 @@ class H11Protocol(asyncio.Protocol):
         protocol.connection_made(self.transport)
         protocol.data_received(b"".join(output))
         self.transport.set_protocol(protocol)
-        return True
 
     def send_400_response(self, msg: str) -> None:
 
