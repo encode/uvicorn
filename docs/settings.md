@@ -38,8 +38,11 @@ If Uvicorn _cannot_ load [watchfiles](https://pypi.org/project/watchfiles/) at r
 
 ### Reloading with watchfiles
 
-For more nuanced control over which file modifications trigger reloads, install `uvicorn[standard]`, which includes watchfiles as a dependency. Alternatively, install [watchfiles](https://pypi.org/project/watchfiles/) where Uvicorn can see it. This will enable the following options (which are otherwise ignored).
+For more nuanced control over which file modifications trigger reloads, install `uvicorn[standard]`, which includes watchfiles as a dependency. Alternatively, install [watchfiles](https://pypi.org/project/watchfiles/) where Uvicorn can see it.
 
+Note that if you use Uvicorn through [WSL](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux), for example when running a Docker container on Windows, you have to set the environment variable `WATCHFILES_FORCE_POLLING` to `True`, otherwise reloading will silently fail.
+
+Using Uvicorn with watchfiles will enable the following options (which are otherwise ignored).
 * `--reload-include <glob-pattern>` - Specify a glob pattern to match files or directories which will be watched. May be used multiple times. By default the following patterns are included: `*.py`. These defaults can be overwritten by including them in `--reload-exclude`.
 * `--reload-exclude <glob-pattern>` - Specify a glob pattern to match files or directories which will excluded from watching. May be used multiple times. By default the following patterns are excluded: `.*, .py[cod], .sw.*, ~*`. These defaults can be overwritten by including them in `--reload-include`.
 
