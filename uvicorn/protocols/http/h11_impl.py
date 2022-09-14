@@ -204,12 +204,19 @@ class H11Protocol(asyncio.Protocol):
                     "headers": self.headers,
                 }
 
-                for name, value in self.headers:
-                    if name == b"connection":
-                        tokens = [token.lower().strip() for token in value.split(b",")]
-                        if b"upgrade" in tokens:
-                            self.handle_upgrade(event)
-                            return
+                is_connection_upgrade = any(
+                    name == b"connection"
+                    and b"upgrade"
+                    in [token.lower().strip() for token in value.split(b",")]
+                    for name, value in self.headers
+                )
+                is_http2 = any(
+                    name == b"upgrade" and value == b"h2c"
+                    for name, value in self.headers
+                )
+                if is_connection_upgrade and not is_http2:
+                    self.handle_upgrade(event)
+                    return
 
                 # Handle 503 responses when 'limit_concurrency' is exceeded.
                 if self.limit_concurrency is not None and (
