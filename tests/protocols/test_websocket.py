@@ -763,7 +763,9 @@ async def test_multiple_server_header(ws_protocol_cls, http_protocol_cls):
 @pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_multiple_arbitrary_headers_with_same_name(ws_protocol_cls, http_protocol_cls):
+async def test_multiple_arbitrary_headers_with_same_name(
+    ws_protocol_cls, http_protocol_cls
+):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
             await self.send(
@@ -788,6 +790,4 @@ async def test_multiple_arbitrary_headers_with_same_name(ws_protocol_cls, http_p
     )
     async with run_server(config):
         headers = await open_connection("ws://127.0.0.1:8000")
-        assert all(
-            x in headers.get_all("Potato") for x in ["cool", "super-cool"]
-        )
+        assert all(x in headers.get_all("Potato") for x in ["cool", "super-cool"])
