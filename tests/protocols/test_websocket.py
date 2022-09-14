@@ -790,4 +790,6 @@ async def test_multiple_arbitrary_headers_with_same_name(
     )
     async with run_server(config):
         headers = await open_connection("ws://127.0.0.1:8000")
-        assert all(x in headers.get_all("Potato") for x in ["cool-potato", "super-cool-potato"])
+        assert all(
+            x in headers.get_all("Potato") for x in ["cool-potato", "super-cool-potato"]
+        )
