@@ -1,3 +1,6 @@
+import asyncio
+import datetime as dt
+
 import httpx
 import pytest
 
@@ -18,6 +21,24 @@ async def test_default_default_headers():
         async with httpx.AsyncClient() as client:
             response = await client.get("http://127.0.0.1:8000")
             assert response.headers["server"] == "uvicorn" and response.headers["date"]
+
+
+@pytest.mark.anyio
+async def test_date_headers_update():
+    config = Config(app=app, loop="asyncio")
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            response = await client.get("http://127.0.0.1:8000")
+            date = response.headers["date"]
+            first_date = dt.datetime.strptime(date, "%a, %d %b %Y %H:%M:%S %Z")
+
+            await asyncio.sleep(1)
+
+            response = await client.get("http://127.0.0.1:8000")
+            date = response.headers["date"]
+            second_date = dt.datetime.strptime(date, "%a, %d %b %Y %H:%M:%S %Z")
+
+            assert second_date - first_date == dt.timedelta(seconds=1)
 
 
 @pytest.mark.anyio
