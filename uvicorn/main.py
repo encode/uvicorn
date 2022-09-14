@@ -79,9 +79,6 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 @click.option(
     "--fd", type=int, default=None, help="Bind to socket from this file descriptor."
 )
-@click.option(
-    "--debug", is_flag=True, default=False, help="Enable debug mode.", hidden=True
-)
 @click.option("--reload", is_flag=True, default=False, help="Enable auto-reload.")
 @click.option(
     "--reload-dir",
@@ -372,7 +369,6 @@ def main(
     ws_per_message_deflate: bool,
     lifespan: LifespanType,
     interface: InterfaceType,
-    debug: bool,
     reload: bool,
     reload_dirs: typing.List[str],
     reload_includes: typing.List[str],
@@ -424,7 +420,6 @@ def main(
         log_level=log_level,
         access_log=access_log,
         interface=interface,
-        debug=debug,
         reload=reload,
         reload_dirs=reload_dirs or None,
         reload_includes=reload_includes or None,
@@ -471,7 +466,6 @@ def run(
     ws_per_message_deflate: bool = True,
     lifespan: LifespanType = "auto",
     interface: InterfaceType = "auto",
-    debug: bool = False,
     reload: bool = False,
     reload_dirs: typing.Optional[typing.Union[typing.List[str], str]] = None,
     reload_includes: typing.Optional[typing.Union[typing.List[str], str]] = None,
@@ -524,7 +518,6 @@ def run(
         ws_per_message_deflate=ws_per_message_deflate,
         lifespan=lifespan,
         interface=interface,
-        debug=debug,
         reload=reload,
         reload_dirs=reload_dirs,
         reload_includes=reload_includes,
