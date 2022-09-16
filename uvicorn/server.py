@@ -50,7 +50,7 @@ class Server:
         self.config = config
         self.server_state = ServerState()
 
-        self.started = False
+        self.started = asyncio.Event()
         self.should_exit = False
         self.force_exit = False
         self.last_notified = 0.0
@@ -169,7 +169,7 @@ class Server:
             # logged by `config.bind_socket()`.
             pass
 
-        self.started = True
+        self.started.set()
 
     def _log_started_message(self, listeners: Sequence[socket.SocketType]) -> None:
         config = self.config
