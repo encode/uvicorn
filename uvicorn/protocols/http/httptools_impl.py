@@ -168,6 +168,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         for name, value in self.headers:
             if name == b"upgrade":
                 upgrade_value = value.lower()
+
         if upgrade_value == b"h2c":
             return
         elif upgrade_value != b"websocket" or self.ws_protocol_class is None:
