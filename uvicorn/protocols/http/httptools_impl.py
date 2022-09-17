@@ -104,6 +104,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.scope: HTTPScope = None  # type: ignore[assignment]
         self.headers: List[Tuple[bytes, bytes]] = None  # type: ignore[assignment]
         self.expect_100_continue = False
+        self.is_http2 = False
         self.cycle: RequestResponseCycle = None  # type: ignore[assignment]
 
     # Protocol interface
@@ -237,6 +238,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         name = name.lower()
         if name == b"expect" and value.lower() == b"100-continue":
             self.expect_100_continue = True
+        elif name == b"upgrade" and value == b"h2c":
+            self.is_http2 = True
         self.headers.append((name, value))
 
     def on_headers_complete(self) -> None:
@@ -245,13 +248,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.scope["method"] = method.decode("ascii")
         if http_version != "1.1":
             self.scope["http_version"] = http_version
-        if self.parser.should_upgrade():
-            http2 = any(
-                name == b"upgrade" and value.lower() == b"h2c"
-                for name, value in self.headers
-            )
-            if not http2:
-                return
+        if self.parser.should_upgrade() and not self.is_http2:
+            return
         parsed_url = httptools.parse_url(self.url)
         raw_path = parsed_url.path
         path = raw_path.decode("ascii")
