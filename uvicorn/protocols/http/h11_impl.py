@@ -204,17 +204,16 @@ class H11Protocol(asyncio.Protocol):
                     "headers": self.headers,
                 }
 
-                is_connection_upgrade = any(
-                    name == b"connection"
-                    and b"upgrade"
-                    in [token.lower().strip() for token in value.split(b",")]
-                    for name, value in self.headers
-                )
-                is_http2 = any(
-                    name == b"upgrade" and value == b"h2c"
-                    for name, value in self.headers
-                )
-                if is_connection_upgrade and not is_http2:
+                is_upgrade, is_http2 = False, False
+                for name, value in self.headers:
+                    if name == b"connection":
+                        tokens = [token.lower().strip() for token in value.split(b",")]
+                        if b"upgrade" in tokens:
+                            is_upgrade = True
+                    elif name == b"upgrade" and value == b"h2c":
+                        is_http2 = True
+
+                if is_upgrade and not is_http2:
                     self.handle_upgrade(event)
                     return
 

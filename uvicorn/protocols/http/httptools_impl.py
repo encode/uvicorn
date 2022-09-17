@@ -104,6 +104,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.scope: HTTPScope = None  # type: ignore[assignment]
         self.headers: List[Tuple[bytes, bytes]] = None  # type: ignore[assignment]
         self.expect_100_continue = False
+        self.is_http2 = False
         self.cycle: RequestResponseCycle = None  # type: ignore[assignment]
 
     # Protocol interface
@@ -167,8 +168,9 @@ class HttpToolsProtocol(asyncio.Protocol):
         for name, value in self.headers:
             if name == b"upgrade":
                 upgrade_value = value.lower()
-
-        if upgrade_value != b"websocket" or self.ws_protocol_class is None:
+        if upgrade_value == b"h2c":
+            return
+        elif upgrade_value != b"websocket" or self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
             from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
@@ -236,6 +238,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         name = name.lower()
         if name == b"expect" and value.lower() == b"100-continue":
             self.expect_100_continue = True
+        elif name == b"upgrade" and value == b"h2c":
+            self.is_http2 = True
         self.headers.append((name, value))
 
     def on_headers_complete(self) -> None:
@@ -244,17 +248,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.scope["method"] = method.decode("ascii")
         if http_version != "1.1":
             self.scope["http_version"] = http_version
-        if self.parser.should_upgrade():
-<<<<<<< HEAD
+        if self.parser.should_upgrade() and not self.is_http2:
             return
-=======
-            http2 = any(
-                name == b"upgrade" and value.lower() == b"h2c"
-                for name, value in self.headers
-            )
-            if not http2:
-                return
->>>>>>> 7a22ba8 (Alternative work)
         parsed_url = httptools.parse_url(self.url)
         raw_path = parsed_url.path
         path = raw_path.decode("ascii")
