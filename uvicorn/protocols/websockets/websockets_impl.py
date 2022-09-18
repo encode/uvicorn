@@ -4,7 +4,7 @@ import asyncio
 import http
 import logging
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from urllib.parse import unquote
 
 import websockets
@@ -26,6 +26,8 @@ from uvicorn.protocols.utils import (
 from uvicorn.server import ServerState
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from asgiref.typing import (
         ASGISendEvent,
         WebSocketAcceptEvent,

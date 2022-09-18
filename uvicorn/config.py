@@ -11,7 +11,7 @@ import ssl
 import sys
 from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 import click
 from h11._connection import DEFAULT_MAX_INCOMPLETE_EVENT_SIZE
@@ -33,6 +33,8 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from asgiref.typing import ASGIApplication
 
 HTTPProtocolType = Literal["auto", "h11", "httptools"]

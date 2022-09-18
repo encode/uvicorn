@@ -8,7 +8,7 @@ import urllib
 from asyncio.events import TimerHandle
 from collections import deque
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Deque, Literal, Union, cast
+from typing import TYPE_CHECKING, Deque, Union, cast
 
 import httptools
 
@@ -30,6 +30,8 @@ from uvicorn.protocols.utils import (
 from uvicorn.server import ServerState
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from asgiref.typing import (
         ASGI3Application,
         ASGIReceiveEvent,

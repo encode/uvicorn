@@ -7,7 +7,6 @@ import socket
 import sys
 import typing
 from pathlib import Path
-from typing import Literal
 from unittest.mock import MagicMock
 
 import pytest
@@ -22,6 +21,8 @@ from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
 
 if typing.TYPE_CHECKING:
+    from typing import Literal
+
     from asgiref.typing import (
         ASGIApplication,
         ASGIReceiveCallable,
