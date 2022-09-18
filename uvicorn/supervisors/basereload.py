@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import logging
 import os
 import signal
 import threading
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from socket import socket
 from types import FrameType
-from typing import Callable, Iterator, List, Optional
 
 import click
 
@@ -24,17 +26,17 @@ class BaseReload:
     def __init__(
         self,
         config: Config,
-        target: Callable[[Optional[List[socket]]], None],
-        sockets: List[socket],
+        target: Callable[[list[socket] | None], None],
+        sockets: list[socket],
     ) -> None:
         self.config = config
         self.target = target
         self.sockets = sockets
         self.should_exit = threading.Event()
         self.pid = os.getpid()
-        self.reloader_name: Optional[str] = None
+        self.reloader_name: str | None = None
 
-    def signal_handler(self, sig: int, frame: Optional[FrameType]) -> None:
+    def signal_handler(self, sig: int, frame: FrameType | None) -> None:
         """
         A signal handler that is registered with the parent process.
         """
@@ -57,10 +59,10 @@ class BaseReload:
         if self.should_exit.wait(self.config.reload_delay):
             raise StopIteration()
 
-    def __iter__(self) -> Iterator[Optional[List[Path]]]:
+    def __iter__(self) -> Iterator[list[Path] | None]:
         return self
 
-    def __next__(self) -> Optional[List[Path]]:
+    def __next__(self) -> list[Path] | None:
         return self.should_restart()
 
     def startup(self) -> None:
@@ -96,13 +98,13 @@ class BaseReload:
         for sock in self.sockets:
             sock.close()
 
-        message = "Stopping reloader process [{}]".format(str(self.pid))
+        message = f"Stopping reloader process [{str(self.pid)}]"
         color_message = "Stopping reloader process [{}]".format(
             click.style(str(self.pid), fg="cyan", bold=True)
         )
         logger.info(message, extra={"color_message": color_message})
 
-    def should_restart(self) -> Optional[List[Path]]:
+    def should_restart(self) -> list[Path] | None:
         raise NotImplementedError("Reload strategies should override should_restart()")
 
 

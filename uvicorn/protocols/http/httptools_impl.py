@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 import asyncio
 import http
 import logging
 import re
-import sys
 import urllib
 from asyncio.events import TimerHandle
 from collections import deque
-from typing import TYPE_CHECKING, Callable, Deque, List, Optional, Tuple, Union, cast
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Deque, Literal, Union, cast
 
 import httptools
 
@@ -26,11 +28,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
 
 if TYPE_CHECKING:
     from asgiref.typing import (
@@ -66,7 +63,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
-        _loop: Optional[asyncio.AbstractEventLoop] = None,
+        _loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         if not config.loaded:
             config.load()
@@ -83,7 +80,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.limit_concurrency = config.limit_concurrency
 
         # Timeouts
-        self.timeout_keep_alive_task: Optional[TimerHandle] = None
+        self.timeout_keep_alive_task: TimerHandle | None = None
         self.timeout_keep_alive = config.timeout_keep_alive
 
         # Global state
@@ -95,14 +92,14 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Per-connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
         self.flow: FlowControl = None  # type: ignore[assignment]
-        self.server: Optional[Tuple[str, int]] = None
-        self.client: Optional[Tuple[str, int]] = None
-        self.scheme: Optional[Literal["http", "https"]] = None
-        self.pipeline: Deque[Tuple[RequestResponseCycle, ASGI3Application]] = deque()
+        self.server: tuple[str, int] | None = None
+        self.client: tuple[str, int] | None = None
+        self.scheme: Literal["http", "https"] | None = None
+        self.pipeline: Deque[tuple[RequestResponseCycle, ASGI3Application]] = deque()
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
-        self.headers: List[Tuple[bytes, bytes]] = None  # type: ignore[assignment]
+        self.headers: list[tuple[bytes, bytes]] = None  # type: ignore[assignment]
         self.expect_100_continue = False
         self.cycle: RequestResponseCycle = None  # type: ignore[assignment]
 
@@ -122,7 +119,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sHTTP connection made", prefix)
 
-    def connection_lost(self, exc: Optional[Exception]) -> None:
+    def connection_lost(self, exc: Exception | None) -> None:
         self.connections.discard(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
@@ -361,13 +358,13 @@ class HttpToolsProtocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
-        scope: "HTTPScope",
+        scope: HTTPScope,
         transport: asyncio.Transport,
         flow: FlowControl,
         logger: logging.Logger,
         access_logger: logging.Logger,
         access_log: bool,
-        default_headers: List[Tuple[bytes, bytes]],
+        default_headers: list[tuple[bytes, bytes]],
         message_event: asyncio.Event,
         expect_100_continue: bool,
         keep_alive: bool,
@@ -395,7 +392,7 @@ class RequestResponseCycle:
         # Response state
         self.response_started = False
         self.response_complete = False
-        self.chunked_encoding: Optional[bool] = None
+        self.chunked_encoding: bool | None = None
         self.expected_content_length = 0
 
     # ASGI exception wrapper
@@ -428,7 +425,7 @@ class RequestResponseCycle:
             self.on_response = lambda: None
 
     async def send_500_response(self) -> None:
-        response_start_event: "HTTPResponseStartEvent" = {
+        response_start_event: HTTPResponseStartEvent = {
             "type": "http.response.start",
             "status": 500,
             "headers": [
@@ -437,7 +434,7 @@ class RequestResponseCycle:
             ],
         }
         await self.send(response_start_event)
-        response_body_event: "HTTPResponseBodyEvent" = {
+        response_body_event: HTTPResponseBodyEvent = {
             "type": "http.response.body",
             "body": b"Internal Server Error",
             "more_body": False,
@@ -565,7 +562,7 @@ class RequestResponseCycle:
             await self.message_event.wait()
             self.message_event.clear()
 
-        message: "Union[HTTPDisconnectEvent, HTTPRequestEvent]"
+        message: Union[HTTPDisconnectEvent, HTTPRequestEvent]
         if self.disconnected or self.response_complete:
             message = {"type": "http.disconnect"}
         else:

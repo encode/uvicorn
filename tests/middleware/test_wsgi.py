@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import io
 import sys
-from typing import TYPE_CHECKING, AsyncGenerator, List
+from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING
 
 import httpx
 import pytest
@@ -12,7 +15,7 @@ if TYPE_CHECKING:
     from asgiref.typing import HTTPRequestEvent, HTTPScope
 
 
-def hello_world(environ: Environ, start_response: StartResponse) -> List[bytes]:
+def hello_world(environ: Environ, start_response: StartResponse) -> list[bytes]:
     status = "200 OK"
     output = b"Hello World!\n"
     headers = [
@@ -23,7 +26,7 @@ def hello_world(environ: Environ, start_response: StartResponse) -> List[bytes]:
     return [output]
 
 
-def echo_body(environ: Environ, start_response: StartResponse) -> List[bytes]:
+def echo_body(environ: Environ, start_response: StartResponse) -> list[bytes]:
     status = "200 OK"
     output = environ["wsgi.input"].read()
     headers = [
@@ -38,7 +41,7 @@ def raise_exception(environ: Environ, start_response: StartResponse) -> RuntimeE
     raise RuntimeError("Something went wrong")
 
 
-def return_exc_info(environ: Environ, start_response: StartResponse) -> List[bytes]:
+def return_exc_info(environ: Environ, start_response: StartResponse) -> list[bytes]:
     try:
         raise RuntimeError("Something went wrong")
     except RuntimeError:
@@ -116,7 +119,7 @@ async def test_wsgi_exc_info() -> None:
 
 
 def test_build_environ_encoding() -> None:
-    scope: "HTTPScope" = {
+    scope: HTTPScope = {
         "asgi": {"version": "3.0", "spec_version": "2.0"},
         "scheme": "http",
         "raw_path": b"/\xe6\x96\x87",
@@ -131,11 +134,11 @@ def test_build_environ_encoding() -> None:
         "headers": [(b"key", b"value1"), (b"key", b"value2")],
         "extensions": {},
     }
-    message: "HTTPRequestEvent" = {
+    message: HTTPRequestEvent = {
         "type": "http.request",
         "body": b"",
         "more_body": False,
     }
     environ = build_environ(scope, message, io.BytesIO(b""))
-    assert environ["PATH_INFO"] == "/文".encode("utf8").decode("latin-1")
+    assert environ["PATH_INFO"] == "/文".encode().decode("latin-1")
     assert environ["HTTP_KEY"] == "value1,value2"

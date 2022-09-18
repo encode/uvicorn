@@ -1,6 +1,8 @@
+from __future__ import annotations
+
+from collections.abc import Callable
 from pathlib import Path
 from socket import socket
-from typing import Callable, List, Optional
 
 from watchfiles import watch
 
@@ -59,8 +61,8 @@ class WatchFilesReload(BaseReload):
     def __init__(
         self,
         config: Config,
-        target: Callable[[Optional[List[socket]]], None],
-        sockets: List[socket],
+        target: Callable[[list[socket] | None], None],
+        sockets: list[socket],
     ) -> None:
         super().__init__(config, target, sockets)
         self.reloader_name = "WatchFiles"
@@ -81,7 +83,7 @@ class WatchFilesReload(BaseReload):
             yield_on_timeout=True,
         )
 
-    def should_restart(self) -> Optional[List[Path]]:
+    def should_restart(self) -> list[Path] | None:
         changes = next(self.watcher)
         if changes:
             unique_paths = {Path(c[1]) for c in changes}

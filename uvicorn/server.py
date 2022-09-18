@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import functools
 import logging
@@ -8,9 +10,10 @@ import socket
 import sys
 import threading
 import time
+from collections.abc import Sequence
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, List, Optional, Sequence, Set, Tuple, Union
+from typing import TYPE_CHECKING, Union
 
 import click
 
@@ -40,9 +43,9 @@ class ServerState:
 
     def __init__(self) -> None:
         self.total_requests = 0
-        self.connections: Set["Protocols"] = set()
-        self.tasks: Set[asyncio.Task] = set()
-        self.default_headers: List[Tuple[bytes, bytes]] = []
+        self.connections: set[Protocols] = set()
+        self.tasks: set[asyncio.Task] = set()
+        self.default_headers: list[tuple[bytes, bytes]] = []
 
 
 class Server:
@@ -55,11 +58,11 @@ class Server:
         self.force_exit = False
         self.last_notified = 0.0
 
-    def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
+    def run(self, sockets: list[socket.socket] | None = None) -> None:
         self.config.setup_event_loop()
         return asyncio.run(self.serve(sockets=sockets))
 
-    async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
+    async def serve(self, sockets: list[socket.socket] | None = None) -> None:
         process_id = os.getpid()
 
         config = self.config
@@ -249,7 +252,7 @@ class Server:
             return self.server_state.total_requests >= self.config.limit_max_requests
         return False
 
-    async def shutdown(self, sockets: Optional[List[socket.socket]] = None) -> None:
+    async def shutdown(self, sockets: list[socket.socket] | None = None) -> None:
         logger.info("Shutting down")
 
         # Stop accepting new connections.
@@ -298,7 +301,7 @@ class Server:
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)
 
-    def handle_exit(self, sig: int, frame: Optional[FrameType]) -> None:
+    def handle_exit(self, sig: int, frame: FrameType | None) -> None:
 
         if self.should_exit and sig == signal.SIGINT:
             self.force_exit = True

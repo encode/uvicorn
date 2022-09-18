@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import logging
 import signal
 from pathlib import Path
 from time import sleep
-from typing import Optional, Type
 
 import pytest
 
@@ -31,7 +32,7 @@ class TestBaseReload:
     def setup(
         self,
         reload_directory_structure: Path,
-        reloader_class: Optional[Type[BaseReload]],
+        reloader_class: type[BaseReload] | None,
     ):
         if reloader_class is None:  # pragma: no cover
             pytest.skip("Needed dependency not installed")

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 def auto_loop_setup(use_subprocess: bool = False) -> None:
     try:
         import uvloop  # noqa

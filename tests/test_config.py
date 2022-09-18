@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -5,6 +7,7 @@ import socket
 import sys
 import typing
 from pathlib import Path
+from typing import Literal
 from unittest.mock import MagicMock
 
 import pytest
@@ -17,11 +20,6 @@ from uvicorn.config import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
 
 if typing.TYPE_CHECKING:
     from asgiref.typing import (
@@ -62,7 +60,7 @@ def wsgi_app(environ: Environ, start_response: StartResponse) -> None:
     [(asgi_app, False), ("tests.test_config:asgi_app", True)],
 )
 def test_config_should_reload_is_set(
-    app: "ASGIApplication", expected_should_reload: bool
+    app: ASGIApplication, expected_should_reload: bool
 ) -> None:
     config = Config(app=app, reload=True)
     assert config.reload is True
@@ -263,7 +261,7 @@ def test_app_unimportable_other(caplog: pytest.LogCaptureFixture) -> None:
 
 
 def test_app_factory(caplog: pytest.LogCaptureFixture) -> None:
-    def create_app() -> "ASGIApplication":
+    def create_app() -> ASGIApplication:
         return asgi_app
 
     config = Config(app=create_app, factory=True, proxy_headers=False)
@@ -324,7 +322,7 @@ def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
     assert config.is_ssl is True
 
 
-def asgi2_app(scope: "Scope") -> typing.Callable:
+def asgi2_app(scope: Scope) -> typing.Callable:
     async def asgi(
         receive: "ASGIReceiveCallable", send: "ASGISendCallable"
     ) -> None:  # pragma: nocover
@@ -337,7 +335,7 @@ def asgi2_app(scope: "Scope") -> typing.Callable:
     "app, expected_interface", [(asgi_app, "3.0"), (asgi2_app, "2.0")]
 )
 def test_asgi_version(
-    app: "ASGIApplication", expected_interface: Literal["2.0", "3.0"]
+    app: ASGIApplication, expected_interface: Literal["2.0", "3.0"]
 ) -> None:
     config = Config(app=app)
     config.load()
@@ -355,8 +353,8 @@ def test_asgi_version(
 )
 def test_log_config_default(
     mocked_logging_config_module: MagicMock,
-    use_colors: typing.Optional[bool],
-    expected: typing.Optional[bool],
+    use_colors: bool | None,
+    expected: bool | None,
     logging_config,
 ) -> None:
     """

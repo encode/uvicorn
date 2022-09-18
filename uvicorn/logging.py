@@ -1,15 +1,12 @@
+from __future__ import annotations
+
 import http
 import logging
 import sys
 from copy import copy
-from typing import Optional
+from typing import Literal
 
 import click
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
 
 TRACE_LOG_LEVEL = 5
 
@@ -36,10 +33,10 @@ class ColourizedFormatter(logging.Formatter):
 
     def __init__(
         self,
-        fmt: Optional[str] = None,
-        datefmt: Optional[str] = None,
+        fmt: str | None = None,
+        datefmt: str | None = None,
         style: Literal["%", "{", "$"] = "%",
-        use_colors: Optional[bool] = None,
+        use_colors: bool | None = None,
     ):
         if use_colors in (True, False):
             self.use_colors = use_colors
@@ -89,7 +86,7 @@ class AccessFormatter(ColourizedFormatter):
             status_phrase = http.HTTPStatus(status_code).phrase
         except ValueError:
             status_phrase = ""
-        status_and_phrase = "%s %s" % (status_code, status_phrase)
+        status_and_phrase = "{} {}".format(status_code, status_phrase)
         if self.use_colors:
 
             def default(code: int) -> str:
@@ -109,7 +106,7 @@ class AccessFormatter(ColourizedFormatter):
             status_code,
         ) = recordcopy.args  # type: ignore[misc]
         status_code = self.get_status_code(int(status_code))  # type: ignore[arg-type]
-        request_line = "%s %s HTTP/%s" % (method, full_path, http_version)
+        request_line = "{} {} HTTP/{}".format(method, full_path, http_version)
         if self.use_colors:
             request_line = click.style(request_line, bold=True)
         recordcopy.__dict__.update(

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import signal
@@ -20,7 +22,7 @@ class UvicornWorker(Worker):
     CONFIG_KWARGS = {"loop": "auto", "http": "auto"}
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super(UvicornWorker, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         logger = logging.getLogger("uvicorn.error")
         logger.handlers = self.log.error_log.handlers
@@ -63,7 +65,7 @@ class UvicornWorker(Worker):
 
     def init_process(self) -> None:
         self.config.setup_event_loop()
-        super(UvicornWorker, self).init_process()
+        super().init_process()
 
     def init_signals(self) -> None:
         # Reset signals so Gunicorn doesn't swallow subprocess return codes

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import socket
 import threading
@@ -194,7 +196,7 @@ async def test_get_request(protocol_cls):
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 async def test_request_logging(path, protocol_cls, caplog):
     get_request_with_query_string = b"\r\n".join(
-        ["GET {} HTTP/1.1".format(path).encode("ascii"), b"Host: example.org", b"", b""]
+        [f"GET {path} HTTP/1.1".encode("ascii"), b"Host: example.org", b"", b""]
     )
     caplog.set_level(logging.INFO, logger="uvicorn.access")
     logging.getLogger("uvicorn.access").propagate = True
@@ -204,7 +206,7 @@ async def test_request_logging(path, protocol_cls, caplog):
     protocol = get_connected_protocol(app, protocol_cls, log_config=None)
     protocol.data_received(get_request_with_query_string)
     await protocol.loop.run_one()
-    assert '"GET {} HTTP/1.1" 200'.format(path) in caplog.records[0].message
+    assert f'"GET {path} HTTP/1.1" 200' in caplog.records[0].message
 
 
 @pytest.mark.anyio

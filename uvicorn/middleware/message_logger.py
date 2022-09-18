@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -36,7 +38,7 @@ def message_with_placeholders(message: Any) -> Any:
 
 
 class MessageLoggerMiddleware:
-    def __init__(self, app: "ASGI3Application"):
+    def __init__(self, app: ASGI3Application):
         self.task_counter = 0
         self.app = app
         self.logger = logging.getLogger("uvicorn.asgi")

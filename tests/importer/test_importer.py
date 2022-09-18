@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from uvicorn.importer import ImportFromStringError, import_from_string

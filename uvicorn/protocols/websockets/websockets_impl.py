@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 import http
 import logging
-import sys
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, Union, cast
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union, cast
 from urllib.parse import unquote
 
 import websockets
@@ -22,11 +24,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
-if sys.version_info < (3, 8):
-    from typing_extensions import Literal
-else:
-    from typing import Literal
 
 if TYPE_CHECKING:
     from asgiref.typing import (
@@ -55,13 +52,13 @@ class Server:
 
 
 class WebSocketProtocol(WebSocketServerProtocol):
-    extra_headers: List[Tuple[str, str]]
+    extra_headers: list[tuple[str, str]]
 
     def __init__(
         self,
         config: Config,
         server_state: ServerState,
-        _loop: Optional[asyncio.AbstractEventLoop] = None,
+        _loop: asyncio.AbstractEventLoop | None = None,
     ):
         if not config.loaded:
             config.load()
@@ -77,8 +74,8 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
         # Connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
-        self.server: Optional[Tuple[str, int]] = None
-        self.client: Optional[Tuple[str, int]] = None
+        self.server: tuple[str, int] | None = None
+        self.client: tuple[str, int] | None = None
         self.scheme: Literal["wss", "ws"] = None  # type: ignore[assignment]
 
         # Connection events
@@ -86,9 +83,9 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.handshake_started_event = asyncio.Event()
         self.handshake_completed_event = asyncio.Event()
         self.closed_event = asyncio.Event()
-        self.initial_response: Optional[HTTPResponse] = None
+        self.initial_response: HTTPResponse | None = None
         self.connect_sent = False
-        self.accepted_subprotocol: Optional[Subprotocol] = None
+        self.accepted_subprotocol: Subprotocol | None = None
         self.transfer_data_task: asyncio.Task = None  # type: ignore[assignment]
 
         self.ws_server: Server = Server()  # type: ignore[assignment]
@@ -123,7 +120,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
         super().connection_made(transport)
 
-    def connection_lost(self, exc: Optional[Exception]) -> None:
+    def connection_lost(self, exc: Exception | None) -> None:
         self.connections.remove(self)
 
         if self.logger.isEnabledFor(TRACE_LOG_LEVEL):
@@ -142,9 +139,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
     def on_task_complete(self, task: asyncio.Task) -> None:
         self.tasks.discard(task)
 
-    async def process_request(
-        self, path: str, headers: Headers
-    ) -> Optional[HTTPResponse]:
+    async def process_request(self, path: str, headers: Headers) -> HTTPResponse | None:
         """
         This hook is called to determine if the websocket should return
         an HTTP response and close.
@@ -187,8 +182,8 @@ class WebSocketProtocol(WebSocketServerProtocol):
         return self.initial_response
 
     def process_subprotocol(
-        self, headers: Headers, available_subprotocols: Optional[Sequence[Subprotocol]]
-    ) -> Optional[Subprotocol]:
+        self, headers: Headers, available_subprotocols: Sequence[Subprotocol] | None
+    ) -> Subprotocol | None:
         """
         We override the standard 'process_subprotocol' behavior here so that
         we return whatever subprotocol is sent in the 'accept' message.

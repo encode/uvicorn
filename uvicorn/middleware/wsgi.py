@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import asyncio
 import concurrent.futures
 import io
 import sys
 from collections import deque
-from typing import TYPE_CHECKING, Deque, Iterable, Optional, Tuple
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Deque
 
 if TYPE_CHECKING:
     from asgiref.typing import (
@@ -21,7 +24,7 @@ from uvicorn._types import Environ, ExcInfo, StartResponse, WSGIApp
 
 
 def build_environ(
-    scope: "HTTPScope", message: "ASGIReceiveEvent", body: io.BytesIO
+    scope: HTTPScope, message: ASGIReceiveEvent, body: io.BytesIO
 ) -> Environ:
     """
     Builds a scope and request message into a WSGI environ object.
@@ -94,7 +97,7 @@ class WSGIResponder:
         self,
         app: WSGIApp,
         executor: concurrent.futures.ThreadPoolExecutor,
-        scope: "HTTPScope",
+        scope: HTTPScope,
     ):
         self.app = app
         self.executor = executor
@@ -102,10 +105,10 @@ class WSGIResponder:
         self.status = None
         self.response_headers = None
         self.send_event = asyncio.Event()
-        self.send_queue: Deque[Optional["ASGISendEvent"]] = deque()
+        self.send_queue: Deque[ASGISendEvent | None] = deque()
         self.loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
         self.response_started = False
-        self.exc_info: Optional[ExcInfo] = None
+        self.exc_info: ExcInfo | None = None
 
     async def __call__(
         self, receive: "ASGIReceiveCallable", send: "ASGISendCallable"
@@ -116,7 +119,7 @@ class WSGIResponder:
         if more_body:
             body.seek(0, io.SEEK_END)
             while more_body:
-                body_message: "HTTPRequestEvent" = (
+                body_message: HTTPRequestEvent = (
                     await receive()  # type: ignore[assignment]
                 )
                 body.write(body_message.get("body", b""))
@@ -151,8 +154,8 @@ class WSGIResponder:
     def start_response(
         self,
         status: str,
-        response_headers: Iterable[Tuple[str, str]],
-        exc_info: Optional[ExcInfo] = None,
+        response_headers: Iterable[tuple[str, str]],
+        exc_info: ExcInfo | None = None,
     ) -> None:
         self.exc_info = exc_info
         if not self.response_started:

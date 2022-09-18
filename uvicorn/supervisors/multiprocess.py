@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import logging
 import os
 import signal
 import threading
+from collections.abc import Callable
 from multiprocessing.context import SpawnProcess
 from socket import socket
 from types import FrameType
-from typing import Callable, List, Optional
 
 import click
 
@@ -24,17 +26,17 @@ class Multiprocess:
     def __init__(
         self,
         config: Config,
-        target: Callable[[Optional[List[socket]]], None],
-        sockets: List[socket],
+        target: Callable[[list[socket] | None], None],
+        sockets: list[socket],
     ) -> None:
         self.config = config
         self.target = target
         self.sockets = sockets
-        self.processes: List[SpawnProcess] = []
+        self.processes: list[SpawnProcess] = []
         self.should_exit = threading.Event()
         self.pid = os.getpid()
 
-    def signal_handler(self, sig: int, frame: Optional[FrameType]) -> None:
+    def signal_handler(self, sig: int, frame: FrameType | None) -> None:
         """
         A signal handler that is registered with the parent process.
         """
@@ -46,7 +48,7 @@ class Multiprocess:
         self.shutdown()
 
     def startup(self) -> None:
-        message = "Started parent process [{}]".format(str(self.pid))
+        message = f"Started parent process [{str(self.pid)}]"
         color_message = "Started parent process [{}]".format(
             click.style(str(self.pid), fg="cyan", bold=True)
         )
@@ -67,7 +69,7 @@ class Multiprocess:
             process.terminate()
             process.join()
 
-        message = "Stopping parent process [{}]".format(str(self.pid))
+        message = f"Stopping parent process [{str(self.pid)}]"
         color_message = "Stopping parent process [{}]".format(
             click.style(str(self.pid), fg="cyan", bold=True)
         )

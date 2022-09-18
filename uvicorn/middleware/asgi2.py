@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import typing
 
 if typing.TYPE_CHECKING:
@@ -10,7 +12,7 @@ if typing.TYPE_CHECKING:
 
 
 class ASGI2Middleware:
-    def __init__(self, app: "ASGI2Application"):
+    def __init__(self, app: ASGI2Application):
         self.app = app
 
     async def __call__(

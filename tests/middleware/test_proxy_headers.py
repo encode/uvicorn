@@ -1,4 +1,4 @@
-from typing import List, Union
+from __future__ import annotations
 
 import httpx
 import pytest
@@ -37,7 +37,7 @@ async def app(
     ],
 )
 async def test_proxy_headers_trusted_hosts(
-    trusted_hosts: Union[List[str], str], response_text: str
+    trusted_hosts: list[str] | str, response_text: str
 ) -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts=trusted_hosts)
     async with httpx.AsyncClient(
@@ -71,7 +71,7 @@ async def test_proxy_headers_trusted_hosts(
     ],
 )
 async def test_proxy_headers_multiple_proxies(
-    trusted_hosts: Union[List[str], str], response_text: str
+    trusted_hosts: list[str] | str, response_text: str
 ) -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts=trusted_hosts)
     async with httpx.AsyncClient(

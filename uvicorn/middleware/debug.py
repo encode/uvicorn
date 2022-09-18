@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import html
 import traceback
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from asgiref.typing import (
@@ -25,14 +27,14 @@ class HTMLResponse:
         receive: "ASGIReceiveCallable",
         send: "ASGISendCallable",
     ) -> None:
-        response_start: "HTTPResponseStartEvent" = {
+        response_start: HTTPResponseStartEvent = {
             "type": "http.response.start",
             "status": self.status_code,
             "headers": [(b"content-type", b"text/html; charset=utf-8")],
         }
         await send(response_start)
 
-        response_body: "HTTPResponseBodyEvent" = {
+        response_body: HTTPResponseBodyEvent = {
             "type": "http.response.body",
             "body": self.content.encode("utf-8"),
             "more_body": False,
@@ -51,14 +53,14 @@ class PlainTextResponse:
         receive: "ASGIReceiveCallable",
         send: "ASGISendCallable",
     ) -> None:
-        response_start: "HTTPResponseStartEvent" = {
+        response_start: HTTPResponseStartEvent = {
             "type": "http.response.start",
             "status": self.status_code,
             "headers": [(b"content-type", b"text/plain; charset=utf-8")],
         }
         await send(response_start)
 
-        response_body: "HTTPResponseBodyEvent" = {
+        response_body: HTTPResponseBodyEvent = {
             "type": "http.response.body",
             "body": self.content.encode("utf-8"),
             "more_body": False,
@@ -66,7 +68,7 @@ class PlainTextResponse:
         await send(response_body)
 
 
-def get_accept_header(scope: "WWWScope") -> str:
+def get_accept_header(scope: WWWScope) -> str:
     accept = "*/*"
 
     for key, value in scope.get("headers", []):
@@ -78,7 +80,7 @@ def get_accept_header(scope: "WWWScope") -> str:
 
 
 class DebugMiddleware:
-    def __init__(self, app: "ASGI3Application"):
+    def __init__(self, app: ASGI3Application):
         self.app = app
 
     async def __call__(
@@ -106,7 +108,7 @@ class DebugMiddleware:
                 raise exc from None
 
             accept = get_accept_header(scope)
-            response: Union[HTMLResponse, PlainTextResponse]
+            response: HTMLResponse | PlainTextResponse
             if "text/html" in accept:
                 exc_html = html.escape(traceback.format_exc())
                 content = (

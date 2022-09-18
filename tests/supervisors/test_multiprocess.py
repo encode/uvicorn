@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import signal
 import socket
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from uvicorn import Config
 from uvicorn.supervisors import Multiprocess
@@ -15,7 +17,7 @@ async def app(
     pass  # pragma: no cover
 
 
-def run(sockets: Optional[List[socket.socket]]) -> None:
+def run(sockets: list[socket.socket] | None) -> None:
     pass  # pragma: no cover
 
 

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import socket
 import sys
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -12,7 +14,7 @@ if TYPE_CHECKING:
     from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
 
-def server_run(sockets: List[socket.socket]):  # pragma: no cover
+def server_run(sockets: list[socket.socket]):  # pragma: no cover
     ...
 
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import typing
 
@@ -50,7 +52,7 @@ class FlowControl:
 async def service_unavailable(
     scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
 ) -> None:
-    response_start: "HTTPResponseStartEvent" = {
+    response_start: HTTPResponseStartEvent = {
         "type": "http.response.start",
         "status": 503,
         "headers": [
@@ -60,7 +62,7 @@ async def service_unavailable(
     }
     await send(response_start)
 
-    response_body: "HTTPResponseBodyEvent" = {
+    response_body: HTTPResponseBodyEvent = {
         "type": "http.response.body",
         "body": b"Service Unavailable",
         "more_body": False,

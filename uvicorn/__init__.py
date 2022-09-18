@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from uvicorn.config import Config
 from uvicorn.main import Server, main, run
 
