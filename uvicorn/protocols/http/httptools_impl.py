@@ -296,7 +296,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.pipeline.appendleft((self.cycle, app))
 
     def on_body(self, body: bytes) -> None:
-        if self.parser.should_upgrade() or self.cycle.response_complete:
+        if (self.parser.should_upgrade() and not self.is_http2) or self.cycle.response_complete:
             return
         self.cycle.body += body
         if len(self.cycle.body) > HIGH_WATER_LIMIT:
@@ -304,7 +304,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.cycle.message_event.set()
 
     def on_message_complete(self) -> None:
-        if self.parser.should_upgrade() or self.cycle.response_complete:
+        if (self.parser.should_upgrade() and not self.is_http2) or self.cycle.response_complete:
             return
         self.cycle.more_body = False
         self.cycle.message_event.set()
