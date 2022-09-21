@@ -149,8 +149,20 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
 
-    def _should_upgrade(self) -> bool:
-        return not self.config.ws_ignore_upgrade
+    def _should_upgrade(self, headers: List[Tuple[bytes, bytes]]) -> bool:
+        connection = []
+        upgrade = None
+        for name, value in headers:
+            if name == b"connection":
+                connection = [token.lower().strip() for token in value.split(b",")]
+            if name == b"upgrade":
+                upgrade = value.lower().strip()
+
+        return (
+            b"upgrade" in connection
+            and upgrade == b"websocket"
+            and not self.config.ws_ignore_upgrade
+        )
 
     def data_received(self, data: bytes) -> None:
         self._unset_keepalive_if_required()
@@ -163,7 +175,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.send_400_response(msg)
             return
         except httptools.HttpParserUpgrade:
-            if self._should_upgrade():
+            if self._should_upgrade(self.headers):
                 self.handle_upgrade()
 
     def handle_upgrade(self) -> None:
@@ -248,7 +260,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.scope["method"] = method.decode("ascii")
         if http_version != "1.1":
             self.scope["http_version"] = http_version
-        if self.parser.should_upgrade() and self._should_upgrade():
+        if self.parser.should_upgrade() and self._should_upgrade(self.headers):
             return
         parsed_url = httptools.parse_url(self.url)
         raw_path = parsed_url.path
@@ -296,7 +308,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 
     def on_body(self, body: bytes) -> None:
         if (
-            self.parser.should_upgrade() and self._should_upgrade()
+            self.parser.should_upgrade() and self._should_upgrade(self.headers)
         ) or self.cycle.response_complete:
             return
         self.cycle.body += body
@@ -306,7 +318,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 
     def on_message_complete(self) -> None:
         if (
-            self.parser.should_upgrade() and self._should_upgrade()
+            self.parser.should_upgrade() and self._should_upgrade(self.headers)
         ) or self.cycle.response_complete:
             return
         self.cycle.more_body = False

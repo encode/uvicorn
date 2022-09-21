@@ -155,8 +155,22 @@ class H11Protocol(asyncio.Protocol):
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
 
-    def _should_upgrade(self, event: H11Event) -> bool:
-        return not self.config.ws_ignore_upgrade
+    def _should_upgrade(
+        self, headers: List[Tuple[bytes, bytes]], event: H11Event
+    ) -> bool:
+        connection = []
+        upgrade = None
+        for name, value in headers:
+            if name == b"connection":
+                connection = [token.lower().strip() for token in value.split(b",")]
+            if name == b"upgrade":
+                upgrade = value.lower().strip()
+
+        return (
+            b"upgrade" in connection
+            and upgrade == b"websocket"
+            and not self.config.ws_ignore_upgrade
+        )
 
     def data_received(self, data: bytes) -> None:
         self._unset_keepalive_if_required()
@@ -207,12 +221,9 @@ class H11Protocol(asyncio.Protocol):
                     "headers": self.headers,
                 }
 
-                for name, value in self.headers:
-                    if name == b"connection":
-                        tokens = [token.lower().strip() for token in value.split(b",")]
-                        if b"upgrade" in tokens and self._should_upgrade(event):
-                            self.handle_upgrade(event)
-                            return
+                if self._should_upgrade(self.headers, event):
+                    self.handle_upgrade(event)
+                    return
 
                 # Handle 503 responses when 'limit_concurrency' is exceeded.
                 if self.limit_concurrency is not None and (

@@ -76,6 +76,18 @@ UPGRADE_REQUEST = b"\r\n".join(
     ]
 )
 
+UPGRADE_HTTP2_REQUEST = b"\r\n".join(
+    [
+        b"GET / HTTP/1.1",
+        b"Host: example.org",
+        b"Connection: upgrade",
+        b"Upgrade: h2c",
+        b"Sec-WebSocket-Version: 11",
+        b"",
+        b"",
+    ]
+)
+
 INVALID_REQUEST_TEMPLATE = b"\r\n".join(
     [
         b"%s",
@@ -718,13 +730,27 @@ async def test_supported_upgrade_request(protocol_cls):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-async def test_ignored_upgrade_request(protocol_cls):
+async def test_ignored_ws_upgrade_request(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(
         app, protocol_cls, ws="wsproto", ws_ignore_upgrade=True
     )
     protocol.data_received(UPGRADE_REQUEST)
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+async def test_http2_upgrade_request(protocol_cls):
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(
+        app, protocol_cls, ws="wsproto", ws_ignore_upgrade=True
+    )
+    protocol.data_received(UPGRADE_HTTP2_REQUEST)
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
