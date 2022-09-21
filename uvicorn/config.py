@@ -220,6 +220,7 @@ class Config:
         ws_ping_interval: Optional[float] = 20.0,
         ws_ping_timeout: Optional[float] = 20.0,
         ws_per_message_deflate: bool = True,
+        ws_ignore_upgrade: bool = False,
         lifespan: LifespanType = "auto",
         env_file: Optional[Union[str, os.PathLike]] = None,
         log_config: Optional[Union[Dict[str, Any], str]] = LOGGING_CONFIG,
@@ -267,6 +268,7 @@ class Config:
         self.ws_ping_interval = ws_ping_interval
         self.ws_ping_timeout = ws_ping_timeout
         self.ws_per_message_deflate = ws_per_message_deflate
+        self.ws_ignore_upgrade = ws_ignore_upgrade
         self.lifespan = lifespan
         self.log_config = log_config
         self.log_level = log_level

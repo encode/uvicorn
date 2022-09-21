@@ -155,6 +155,9 @@ class H11Protocol(asyncio.Protocol):
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
 
+    def _should_upgrade(self, event: H11Event) -> bool:
+        return not self.config.ws_ignore_upgrade
+
     def data_received(self, data: bytes) -> None:
         self._unset_keepalive_if_required()
 
@@ -207,7 +210,7 @@ class H11Protocol(asyncio.Protocol):
                 for name, value in self.headers:
                     if name == b"connection":
                         tokens = [token.lower().strip() for token in value.split(b",")]
-                        if b"upgrade" in tokens:
+                        if b"upgrade" in tokens and self._should_upgrade(event):
                             self.handle_upgrade(event)
                             return
 
