@@ -219,7 +219,7 @@ class H11Protocol(asyncio.Protocol):
                     "headers": self.headers,
                 }
 
-                if self._should_upgrade(event):
+                if self._should_upgrade():
                     self.handle_websocket_upgrade(event)
                     return
 
