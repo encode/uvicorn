@@ -155,7 +155,7 @@ class H11Protocol(asyncio.Protocol):
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
 
-    def _should_upgrade(self, event: H11Event) -> bool:
+    def _should_upgrade(self) -> bool:
         connection = []
         upgrade = None
         for name, value in self.headers:
