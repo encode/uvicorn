@@ -220,7 +220,7 @@ class H11Protocol(asyncio.Protocol):
                 }
 
                 if self._should_upgrade(event):
-                    self.handle_upgrade(event)
+                    self.handle_websocket_upgrade(event)
                     return
 
                 # Handle 503 responses when 'limit_concurrency' is exceeded.
@@ -266,7 +266,7 @@ class H11Protocol(asyncio.Protocol):
                 self.cycle.more_body = False
                 self.cycle.message_event.set()
 
-    def handle_upgrade(self, event: H11Event) -> None:
+    def handle_websocket_upgrade(self, event: H11Event) -> None:
         if self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)

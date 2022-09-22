@@ -176,9 +176,9 @@ class HttpToolsProtocol(asyncio.Protocol):
             return
         except httptools.HttpParserUpgrade:
             if self._should_upgrade():
-                self.handle_upgrade()
+                self.handle_websocket_upgrade()
 
-    def handle_upgrade(self) -> None:
+    def handle_websocket_upgrade(self) -> None:
         if self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
