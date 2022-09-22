@@ -173,7 +173,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--ws-ignore-upgrade",
     type=bool,
     default=False,
-    help="Upgrade requests will be ignored and answered with normal HTTP responses",
+    help="Upgrade requests will be ignored, and HTTP/1.1 will continue to be used",
     show_default=True,
     is_flag=True,
 )

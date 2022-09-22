@@ -69,8 +69,8 @@ Options:
   --ws-per-message-deflate BOOLEAN
                                   WebSocket per-message-deflate compression
                                   [default: True]
-  --ws-ignore-upgrade             Upgrade requests will be ignored and
-                                  answered with normal HTTP responses
+  --ws-ignore-upgrade             Upgrade requests will be ignored, and
+                                  HTTP/1.1 will continue to be used
   --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
   --interface [auto|asgi3|asgi2|wsgi]
                                   Select ASGI3, ASGI2, or WSGI as the
