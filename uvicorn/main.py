@@ -175,6 +175,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     default=False,
     help="Upgrade requests will be ignored and answered with normal HTTP responses",
     show_default=True,
+    is_flag=True,
 )
 @click.option(
     "--lifespan",

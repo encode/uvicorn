@@ -164,7 +164,7 @@ class H11Protocol(asyncio.Protocol):
             if name == b"connection":
                 connection = [token.lower().strip() for token in value.split(b",")]
             if name == b"upgrade":
-                upgrade = value.lower().strip()
+                upgrade = value.lower()
 
         return (
             b"upgrade" in connection
@@ -269,12 +269,7 @@ class H11Protocol(asyncio.Protocol):
                 self.cycle.message_event.set()
 
     def handle_upgrade(self, event: H11Event) -> None:
-        upgrade_value = None
-        for name, value in self.headers:
-            if name == b"upgrade":
-                upgrade_value = value.lower()
-
-        if upgrade_value != b"websocket" or self.ws_protocol_class is None:
+        if self.ws_protocol_class is None:
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
             from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
