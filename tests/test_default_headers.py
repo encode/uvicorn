@@ -42,8 +42,8 @@ async def test_date_headers_update():
             async def sleep_and_cancel(tg: anyio.abc.TaskGroup):
                 nonlocal cancelled
                 await asyncio.sleep(2)
-                cancelled = True
-                await tg.cancel_scope.cancel()
+                cancelled = True  # pragma: no cover
+                await tg.cancel_scope.cancel()  # pragma: no cover
 
             async def ensure_different_date(tg: anyio.abc.TaskGroup):
                 nonlocal second_date
