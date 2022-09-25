@@ -1,15 +1,8 @@
-import asyncio
-import datetime as dt
-
-import anyio
-import anyio.abc
 import httpx
 import pytest
 
 from tests.utils import run_server
 from uvicorn import Config
-
-DATE_FORMAT = "%a, %d %b %Y %H:%M:%S GMT"
 
 
 async def app(scope, receive, send):
@@ -25,41 +18,6 @@ async def test_default_default_headers():
         async with httpx.AsyncClient() as client:
             response = await client.get("http://127.0.0.1:8000")
             assert response.headers["server"] == "uvicorn" and response.headers["date"]
-
-
-@pytest.mark.anyio
-async def test_date_headers_update():
-    config = Config(app=app, loop="asyncio")
-    async with run_server(config):
-        async with httpx.AsyncClient() as client:
-            response = await client.get("http://127.0.0.1:8000")
-            date = response.headers["date"]
-            first_date = dt.datetime.strptime(date, DATE_FORMAT)
-            second_date = first_date
-
-            cancelled = False
-
-            async def sleep_and_cancel(tg: anyio.abc.TaskGroup):
-                nonlocal cancelled
-                await asyncio.sleep(2)
-                cancelled = True  # pragma: no cover
-                await tg.cancel_scope.cancel()  # pragma: no cover
-
-            async def ensure_different_date(tg: anyio.abc.TaskGroup):
-                nonlocal second_date
-                async with httpx.AsyncClient() as client:
-                    while second_date == first_date:
-                        response = await client.get("http://127.0.0.1:8000")
-                        date = response.headers["date"]
-                        second_date = dt.datetime.strptime(date, DATE_FORMAT)
-                tg.cancel_scope.cancel()
-
-            async with anyio.create_task_group() as tg:
-                tg.start_soon(sleep_and_cancel, tg)
-                tg.start_soon(ensure_different_date, tg)
-
-            assert not cancelled
-            assert second_date - first_date == dt.timedelta(seconds=1)
 
 
 @pytest.mark.anyio
