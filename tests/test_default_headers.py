@@ -26,7 +26,7 @@ async def test_default_default_headers():
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="Unexpected behavior on MacOS.")
 @pytest.mark.anyio
-async def test_date_headers_update():
+async def test_date_headers_update():  # pragma: py-darwin
     config = Config(app=app, loop="asyncio")
     async with run_server(config):
         async with httpx.AsyncClient() as client:
