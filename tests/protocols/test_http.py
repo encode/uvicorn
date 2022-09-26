@@ -744,11 +744,12 @@ async def test_ignored_ws_upgrade_request(protocol_cls):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-async def test_http2_upgrade_request(protocol_cls):
+@pytest.mark.parametrize("ws_ignore_upgrade", [True, False])
+async def test_http2_upgrade_request(protocol_cls, ws_ignore_upgrade):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(
-        app, protocol_cls, ws="wsproto", ws_ignore_upgrade=True
+        app, protocol_cls, ws="wsproto", ws_ignore_upgrade=ws_ignore_upgrade
     )
     protocol.data_received(UPGRADE_HTTP2_REQUEST)
     await protocol.loop.run_one()
