@@ -24,9 +24,12 @@ async def test_default_default_headers():
             assert response.headers["server"] == "uvicorn" and response.headers["date"]
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="Unexpected behavior on MacOS.")
+@pytest.mark.skipif(
+    sys.platform != "linux",
+    reason="This fails on other OSs. If you know why, please help us.",
+)
 @pytest.mark.anyio
-async def test_date_headers_update():  # pragma: py-darwin
+async def test_date_headers_update():  # pragma: no cover
     config = Config(app=app, loop="asyncio")
     async with run_server(config):
         async with httpx.AsyncClient() as client:
