@@ -228,7 +228,7 @@ class Server:
             current_time = time.time()
             current_date = formatdate(current_time, usegmt=True).encode()
             current_date1 = datetime.datetime.fromtimestamp(current_time)
-            print(f"\non_tick: {current_date}")
+            print(f"\non_tick: {current_date!r}")
             print(f"\non_tick1: {current_date1}")
 
             if self.config.date_header:
