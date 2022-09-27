@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import datetime as dt
-import sys
 
 import httpx
 import pytest
