@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import datetime as dt
+import time
 
 import httpx
 import pytest
@@ -35,7 +36,8 @@ async def test_date_headers_update():  # pragma: no cover
             first_date = dt.datetime.strptime(date, "%a, %d %b %Y %H:%M:%S %Z")
             print(first_date)
 
-            await asyncio.sleep(1)
+            # await asyncio.sleep(1)
+            time.sleep(1)
 
             response = await client.get("http://127.0.0.1:8000")
             date = response.headers["date"]
