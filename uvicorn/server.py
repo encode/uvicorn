@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import functools
 import logging
 import os
@@ -226,6 +227,7 @@ class Server:
         if counter % 10 == 0:
             current_time = time.time()
             current_date = formatdate(current_time, usegmt=True).encode()
+            print(f"\non_tick: {datetime.datetime.fromtimestamp(current_time)}")
 
             if self.config.date_header:
                 date_header = [(b"date", current_date)]
