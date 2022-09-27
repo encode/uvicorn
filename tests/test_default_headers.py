@@ -25,10 +25,6 @@ async def test_default_default_headers():
             assert response.headers["server"] == "uvicorn" and response.headers["date"]
 
 
-@pytest.mark.skipif(
-    sys.platform != "linux",
-    reason="This fails on other OSs. If you know why, please help us.",
-)
 @pytest.mark.anyio
 async def test_date_headers_update():  # pragma: no cover
     print(f"\ntest: {datetime.datetime.utcnow()}")
