@@ -170,14 +170,6 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
-    "--ws-ignore-upgrade",
-    type=bool,
-    default=False,
-    help="Upgrade requests will be ignored, and HTTP/1.1 will continue to be used.",
-    show_default=True,
-    is_flag=True,
-)
-@click.option(
     "--lifespan",
     type=LIFESPAN_CHOICES,
     default="auto",
@@ -375,7 +367,6 @@ def main(
     ws_ping_interval: float,
     ws_ping_timeout: float,
     ws_per_message_deflate: bool,
-    ws_ignore_upgrade: bool,
     lifespan: LifespanType,
     interface: InterfaceType,
     reload: bool,
@@ -423,7 +414,6 @@ def main(
         ws_ping_interval=ws_ping_interval,
         ws_ping_timeout=ws_ping_timeout,
         ws_per_message_deflate=ws_per_message_deflate,
-        ws_ignore_upgrade=ws_ignore_upgrade,
         lifespan=lifespan,
         env_file=env_file,
         log_config=LOGGING_CONFIG if log_config is None else log_config,
@@ -474,7 +464,6 @@ def run(
     ws_ping_interval: typing.Optional[float] = 20.0,
     ws_ping_timeout: typing.Optional[float] = 20.0,
     ws_per_message_deflate: bool = True,
-    ws_ignore_upgrade: bool = False,
     lifespan: LifespanType = "auto",
     interface: InterfaceType = "auto",
     reload: bool = False,
@@ -527,7 +516,6 @@ def run(
         ws_ping_interval=ws_ping_interval,
         ws_ping_timeout=ws_ping_timeout,
         ws_per_message_deflate=ws_per_message_deflate,
-        ws_ignore_upgrade=ws_ignore_upgrade,
         lifespan=lifespan,
         interface=interface,
         reload=reload,

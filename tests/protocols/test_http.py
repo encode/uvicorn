@@ -2,12 +2,13 @@ import logging
 import socket
 import threading
 import time
+from typing import List
 
 import pytest
 
 from tests.response import Response
 from uvicorn import Server
-from uvicorn.config import Config
+from uvicorn.config import WS_PROTOCOLS, Config
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
 
@@ -18,6 +19,7 @@ except ImportError:  # pragma: nocover
 
 
 HTTP_PROTOCOLS = [p for p in [H11Protocol, HttpToolsProtocol] if p is not None]
+WEBSOCKET_PROTOCOLS = WS_PROTOCOLS.keys()
 
 SIMPLE_GET_REQUEST = b"\r\n".join([b"GET / HTTP/1.1", b"Host: example.org", b"", b""])
 
@@ -172,6 +174,15 @@ class MockLoop:
             else:
                 later.append((delay, callback, args))
         self._later = later
+
+
+class MockLogger(logging.Logger):
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.warnings: List[str] = []
+
+    def warning(self, msg: str):
+        self.warnings += [msg]
 
 
 class MockTask:
@@ -709,17 +720,6 @@ async def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-async def test_unsupported_upgrade_request(protocol_cls):
-    app = Response("Hello, world", media_type="text/plain")
-
-    protocol = get_connected_protocol(app, protocol_cls, ws="none")
-    protocol.data_received(UPGRADE_REQUEST)
-    assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
-    assert b"Unsupported upgrade request." in protocol.transport.buffer
-
-
-@pytest.mark.anyio
-@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 async def test_supported_upgrade_request(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -730,12 +730,10 @@ async def test_supported_upgrade_request(protocol_cls):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-async def test_ignored_ws_upgrade_request(protocol_cls):
+async def test_unsupported_ws_upgrade_request(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(
-        app, protocol_cls, ws="wsproto", ws_ignore_upgrade=True
-    )
+    protocol = get_connected_protocol(app, protocol_cls, ws="none")
     protocol.data_received(UPGRADE_REQUEST)
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
@@ -744,13 +742,28 @@ async def test_ignored_ws_upgrade_request(protocol_cls):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-@pytest.mark.parametrize("ws_ignore_upgrade", [True, False])
-async def test_http2_upgrade_request(protocol_cls, ws_ignore_upgrade):
+async def test_unsupported_ws_upgrade_request_warn_on_auto(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(
-        app, protocol_cls, ws="wsproto", ws_ignore_upgrade=ws_ignore_upgrade
-    )
+    protocol = get_connected_protocol(app, protocol_cls, ws="auto")
+    protocol.ws_protocol_class = None
+    protocol.logger = MockLogger(protocol.logger.name)
+    protocol.data_received(UPGRADE_REQUEST)
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
+    assert "Unsupported upgrade request." in protocol.logger.warnings
+    msg = "No supported WebSocket library detected. Please use 'pip install uvicorn[standard]', or install 'websockets' or 'wsproto' manually."  # noqa: E501
+    assert msg in protocol.logger.warnings
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+@pytest.mark.parametrize("ws", WEBSOCKET_PROTOCOLS)
+async def test_http2_upgrade_request(protocol_cls, ws):
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, protocol_cls, ws=ws)
     protocol.data_received(UPGRADE_HTTP2_REQUEST)
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
