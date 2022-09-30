@@ -2,7 +2,6 @@ import logging
 import socket
 import threading
 import time
-from typing import List
 
 import pytest
 
@@ -174,15 +173,6 @@ class MockLoop:
             else:
                 later.append((delay, callback, args))
         self._later = later
-
-
-class MockLogger(logging.Logger):
-    def __init__(self, name: str):
-        super().__init__(name)
-        self.warnings: List[str] = []
-
-    def warning(self, msg: str):
-        self.warnings += [msg]
 
 
 class MockTask:
@@ -742,19 +732,26 @@ async def test_unsupported_ws_upgrade_request(protocol_cls):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-async def test_unsupported_ws_upgrade_request_warn_on_auto(protocol_cls):
+async def test_unsupported_ws_upgrade_request_warn_on_auto(
+    caplog: pytest.LogCaptureFixture, protocol_cls
+):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls, ws="auto")
     protocol.ws_protocol_class = None
-    protocol.logger = MockLogger(protocol.logger.name)
     protocol.data_received(UPGRADE_REQUEST)
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
-    assert "Unsupported upgrade request." in protocol.logger.warnings
+    warnings = [
+        record.msg
+        for record in filter(
+            lambda record: record.levelname == "WARNING", caplog.records
+        )
+    ]
+    assert "Unsupported upgrade request." in warnings
     msg = "No supported WebSocket library detected. Please use 'pip install uvicorn[standard]', or install 'websockets' or 'wsproto' manually."  # noqa: E501
-    assert msg in protocol.logger.warnings
+    assert msg in warnings
 
 
 @pytest.mark.anyio
