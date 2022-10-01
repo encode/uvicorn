@@ -240,13 +240,13 @@ class HttpToolsProtocol(asyncio.Protocol):
         name = name.lower()
         if name == b"expect" and value.lower() == b"100-continue":
             self.expect_100_continue = True
-        self.headers.append((name, value))
         if self.config.limit_request_header_size and (
             len(name) > self.config.limit_request_header_size
             or len(value) > self.config.limit_request_header_size
         ):
             self.header_too_big = True
             raise httptools.HttpParserCallbackError()
+        self.headers.append((name, value))
 
     def on_headers_complete(self) -> None:
         http_version = self.parser.get_http_version()
