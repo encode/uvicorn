@@ -262,7 +262,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--limit-request-header-size",
     type=int,
     default=8190,
-    help="Maximum allowed size of an HTTP request header field",
+    help="Maximum allowed size of an HTTP request header field. Defaults to 8190",
 )
 @click.option(
     "--backlog",
