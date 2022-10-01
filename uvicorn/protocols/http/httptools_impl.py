@@ -105,6 +105,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.headers: List[Tuple[bytes, bytes]] = None  # type: ignore[assignment]
         self.expect_100_continue = False
         self.cycle: RequestResponseCycle = None  # type: ignore[assignment]
+        self.header_too_big: bool = False
 
     # Protocol interface
     def connection_made(  # type: ignore[override]
@@ -155,7 +156,10 @@ class HttpToolsProtocol(asyncio.Protocol):
         try:
             self.parser.feed_data(data)
         except httptools.HttpParserError:
-            msg = "Invalid HTTP request received."
+            if self.header_too_big:
+                msg = "Header size exceeds limit"
+            else:
+                msg = "Invalid HTTP request received."
             self.logger.warning(msg)
             self.send_400_response(msg)
             return
@@ -237,6 +241,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         if name == b"expect" and value.lower() == b"100-continue":
             self.expect_100_continue = True
         self.headers.append((name, value))
+        if len(name + value) > self.config.limit_request_header_size:
+            raise httptools.HttpParserCallbackError()
 
     def on_headers_complete(self) -> None:
         http_version = self.parser.get_http_version()

@@ -259,6 +259,12 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     " HTTP 503 responses.",
 )
 @click.option(
+    "--limit-request-header-size",
+    type=int,
+    default=8190,
+    help="Maximum allowed size of an HTTP request header field",
+)
+@click.option(
     "--backlog",
     type=int,
     default=2048,
