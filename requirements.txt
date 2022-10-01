@@ -15,7 +15,7 @@ autoflake==1.5.2
 black==22.8.0
 flake8==3.9.2
 isort==5.10.1
-pytest==7.1.2
+pytest==7.1.3
 pytest-mock==3.8.2
 mypy==0.971
 types-click==7.1.8
