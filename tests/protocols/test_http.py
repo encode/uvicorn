@@ -16,7 +16,6 @@ try:
 except ImportError:  # pragma: nocover
     HttpToolsProtocol = None
 
-
 HTTP_PROTOCOLS = [p for p in [H11Protocol, HttpToolsProtocol] if p is not None]
 
 SIMPLE_GET_REQUEST = b"\r\n".join([b"GET / HTTP/1.1", b"Host: example.org", b"", b""])
@@ -95,6 +94,18 @@ GET_REQUEST_HUGE_HEADERS = [
     ),
     b"".join([b"x" * 32 * 1024 + b"\r\n", b"\r\n", b"\r\n"]),
 ]
+
+
+def get_request_headers_with_size(size: int = 8190):
+    return b"".join(
+        [
+            b"GET / HTTP/1.1\r\n",
+            b"Host: example.org\r\n",
+            b"Big: " + b"x" * size + b"\r\n",
+            b"\r\n",
+            b"\r\n",
+        ]
+    )
 
 
 class MockTransport:
@@ -885,3 +896,32 @@ async def test_huge_headers_h11_max_incomplete():
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
+
+
+@pytest.mark.anyio
+async def test_limit_request_header_size_default():
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, HttpToolsProtocol)
+    protocol.data_received(get_request_headers_with_size(8190))  # default is 8190
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
+
+
+@pytest.mark.anyio
+async def test_limit_request_header_size_default():
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, HttpToolsProtocol)
+    protocol.data_received(get_request_headers_with_size(8190))  # default is 8190
+    assert b"" == protocol.transport.buffer
+
+
+@pytest.mark.anyio
+async def test_limit_request_header_size_exceed():
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, HttpToolsProtocol)
+    protocol.data_received(get_request_headers_with_size(8191))  # default is 8190
+    assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
+    assert b"Header size exceeds limit" in protocol.transport.buffer
