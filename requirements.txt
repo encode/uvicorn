@@ -11,7 +11,7 @@ build==0.8.0
 twine==4.0.1
 
 # Testing
-autoflake==1.5.2
+autoflake==1.6.1
 black==22.8.0
 flake8==3.9.2
 isort==5.10.1
