@@ -242,6 +242,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.expect_100_continue = True
         self.headers.append((name, value))
         if len(name + value) > self.config.limit_request_header_size:
+            self.header_too_big = True
             raise httptools.HttpParserCallbackError()
 
     def on_headers_complete(self) -> None:
