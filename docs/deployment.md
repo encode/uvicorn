@@ -97,6 +97,8 @@ Options:
   --limit-concurrency INTEGER     Maximum number of concurrent connections or
                                   tasks to allow, before issuing HTTP 503
                                   responses.
+  --limit-request-header-count INTEGER
+                                  Maximum number of HTTP headers to accept.
   --backlog INTEGER               Maximum number of connections to hold in
                                   backlog
   --limit-max-requests INTEGER    Maximum number of requests to service before
