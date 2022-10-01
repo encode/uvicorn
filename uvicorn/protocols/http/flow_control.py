@@ -1,14 +1,4 @@
 import asyncio
-import typing
-
-if typing.TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGIReceiveCallable,
-        ASGISendCallable,
-        HTTPResponseBodyEvent,
-        HTTPResponseStartEvent,
-        Scope,
-    )
 
 CLOSE_HEADER = (b"connection", b"close")
 
@@ -45,24 +35,3 @@ class FlowControl:
         if self.write_paused:
             self.write_paused = False
             self._is_writable_event.set()
-
-
-async def service_unavailable(
-    scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
-) -> None:
-    response_start: "HTTPResponseStartEvent" = {
-        "type": "http.response.start",
-        "status": 503,
-        "headers": [
-            (b"content-type", b"text/plain; charset=utf-8"),
-            (b"connection", b"close"),
-        ],
-    }
-    await send(response_start)
-
-    response_body: "HTTPResponseBodyEvent" = {
-        "type": "http.response.body",
-        "body": b"Service Unavailable",
-        "more_body": False,
-    }
-    await send(response_body)

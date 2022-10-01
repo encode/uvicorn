@@ -2,6 +2,7 @@ import logging
 import socket
 import threading
 import time
+from typing import Type, TypeVar
 
 import pytest
 
@@ -96,6 +97,16 @@ GET_REQUEST_HUGE_HEADERS = [
     b"".join([b"x" * 32 * 1024 + b"\r\n", b"\r\n", b"\r\n"]),
 ]
 
+TOO_MANY_HEADERS = b"\r\n".join(
+    [
+        b"GET / HTTP/1.1",
+        b"Host: example.org",
+        *[f"{a}: {a}".encode() for a in range(101)],
+        b"",
+        b"",
+    ]
+)
+
 
 class MockTransport:
     def __init__(self, sockname=None, peername=None, sslcontext=False):
@@ -167,7 +178,12 @@ class MockTask:
         pass
 
 
-def get_connected_protocol(app, protocol_cls, **kwargs):
+HTTPProtocol = TypeVar("HTTPProtocol", HttpToolsProtocol, H11Protocol)
+
+
+def get_connected_protocol(
+    app, protocol_cls: Type[HTTPProtocol], **kwargs
+) -> HTTPProtocol:
     loop = MockLoop()
     transport = MockTransport()
     config = Config(app=app, **kwargs)
@@ -885,3 +901,15 @@ async def test_huge_headers_h11_max_incomplete():
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+async def test_too_many_headers(protocol_cls):
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(TOO_MANY_HEADERS)
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
+    assert b"Too many headers in request." in protocol.transport.buffer

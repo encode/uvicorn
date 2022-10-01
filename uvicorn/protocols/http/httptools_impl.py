@@ -12,11 +12,11 @@ import httptools
 
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
+from uvicorn.protocols.http.app_factory import create_app
 from uvicorn.protocols.http.flow_control import (
     CLOSE_HEADER,
     HIGH_WATER_LIMIT,
     FlowControl,
-    service_unavailable,
 )
 from uvicorn.protocols.utils import (
     get_client_addr,
@@ -259,9 +259,13 @@ class HttpToolsProtocol(asyncio.Protocol):
             len(self.connections) >= self.limit_concurrency
             or len(self.tasks) >= self.limit_concurrency
         ):
-            app = service_unavailable
+            app = create_app(503, "Service Unavailable")
             message = "Exceeded concurrency limit."
             self.logger.warning(message)
+        elif len(self.headers) >= self.config.limit_request_header_count:
+            message = "Too many headers in request."
+            self.logger.warning(message)
+            app = create_app(400, message)
         else:
             app = self.app
 

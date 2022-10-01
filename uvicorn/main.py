@@ -256,6 +256,12 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     " HTTP 503 responses.",
 )
 @click.option(
+    "--limit-request-header-count",
+    type=int,
+    default=100,
+    help="Maximum number of HTTP headers to accept.",
+)
+@click.option(
     "--backlog",
     type=int,
     default=2048,
@@ -385,6 +391,7 @@ def main(
     forwarded_allow_ips: str,
     root_path: str,
     limit_concurrency: int,
+    limit_request_header_count: int,
     backlog: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
@@ -432,6 +439,7 @@ def main(
         forwarded_allow_ips=forwarded_allow_ips,
         root_path=root_path,
         limit_concurrency=limit_concurrency,
+        limit_request_header_count=limit_request_header_count,
         backlog=backlog,
         limit_max_requests=limit_max_requests,
         timeout_keep_alive=timeout_keep_alive,
@@ -484,6 +492,7 @@ def run(
     forwarded_allow_ips: typing.Optional[typing.Union[typing.List[str], str]] = None,
     root_path: str = "",
     limit_concurrency: typing.Optional[int] = None,
+    limit_request_header_count: int = 100,
     backlog: int = 2048,
     limit_max_requests: typing.Optional[int] = None,
     timeout_keep_alive: int = 5,
@@ -534,6 +543,7 @@ def run(
         forwarded_allow_ips=forwarded_allow_ips,
         root_path=root_path,
         limit_concurrency=limit_concurrency,
+        limit_request_header_count=limit_request_header_count,
         backlog=backlog,
         limit_max_requests=limit_max_requests,
         timeout_keep_alive=timeout_keep_alive,

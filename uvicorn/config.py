@@ -14,6 +14,7 @@ from typing import (
     Awaitable,
     Callable,
     Dict,
+    Final,
     List,
     Optional,
     Tuple,
@@ -87,7 +88,9 @@ LOOP_SETUPS: Dict[LoopSetupType, Optional[str]] = {
 }
 INTERFACES: List[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
 
-
+# Use the same value as gunicorn
+# https://github.com/benoitc/gunicorn/blob/cf55d2cec277f220ebd605989ce78ad1bb553c46/gunicorn/http/message.py#L21
+MAX_HEADERS: Final = 32768
 SSL_PROTOCOL_VERSION: int = ssl.PROTOCOL_TLS_SERVER
 
 
@@ -240,6 +243,7 @@ class Config:
         root_path: str = "",
         limit_concurrency: Optional[int] = None,
         limit_max_requests: Optional[int] = None,
+        limit_request_header_count: int = 100,
         backlog: int = 2048,
         timeout_keep_alive: int = 5,
         timeout_notify: int = 30,
@@ -282,6 +286,7 @@ class Config:
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests
+        self.limit_request_header_count = min(limit_request_header_count, MAX_HEADERS)
         self.backlog = backlog
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
