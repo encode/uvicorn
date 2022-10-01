@@ -14,7 +14,6 @@ from typing import (
     Awaitable,
     Callable,
     Dict,
-    Final,
     List,
     Optional,
     Tuple,
@@ -90,7 +89,7 @@ INTERFACES: List[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
 
 # Use the same value as gunicorn
 # https://github.com/benoitc/gunicorn/blob/cf55d2cec277f220ebd605989ce78ad1bb553c46/gunicorn/http/message.py#L21
-MAX_HEADERS: Final = 32768
+MAX_HEADERS = 32768
 SSL_PROTOCOL_VERSION: int = ssl.PROTOCOL_TLS_SERVER
 
 
