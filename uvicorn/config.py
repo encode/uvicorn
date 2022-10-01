@@ -287,7 +287,9 @@ class Config:
         self.date_header = date_header
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
-        self.limit_request_header_size = min(limit_request_header_size, DEFAULT_MAX_HEADERFIELD_SIZE)
+        self.limit_request_header_size = min(
+            limit_request_header_size, DEFAULT_MAX_HEADERFIELD_SIZE
+        )
         self.limit_max_requests = limit_max_requests
         self.backlog = backlog
         self.timeout_keep_alive = timeout_keep_alive
