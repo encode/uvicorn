@@ -99,7 +99,7 @@ Options:
                                   responses.
   --limit-request-header-size INTEGER
                                   Maximum allowed size of an HTTP request
-                                  header field. Defaults to 8190
+                                  header field. Pass 0 to disable the check
   --backlog INTEGER               Maximum number of connections to hold in
                                   backlog
   --limit-max-requests INTEGER    Maximum number of requests to service before

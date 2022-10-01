@@ -241,7 +241,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         if name == b"expect" and value.lower() == b"100-continue":
             self.expect_100_continue = True
         self.headers.append((name, value))
-        if (
+        if self.config.limit_request_header_size and (
             len(name) > self.config.limit_request_header_size
             or len(value) > self.config.limit_request_header_size
         ):

@@ -88,9 +88,6 @@ LOOP_SETUPS: Dict[LoopSetupType, Optional[str]] = {
 }
 INTERFACES: List[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
 
-DEFAULT_MAX_HEADERFIELD_SIZE = 8190
-
-
 SSL_PROTOCOL_VERSION: int = ssl.PROTOCOL_TLS_SERVER
 
 
@@ -244,7 +241,7 @@ class Config:
         root_path: str = "",
         limit_concurrency: Optional[int] = None,
         limit_max_requests: Optional[int] = None,
-        limit_request_header_size: int = 8190,
+        limit_request_header_size: int = 0,
         backlog: int = 2048,
         timeout_keep_alive: int = 5,
         timeout_notify: int = 30,
@@ -287,9 +284,7 @@ class Config:
         self.date_header = date_header
         self.root_path = root_path
         self.limit_concurrency = limit_concurrency
-        self.limit_request_header_size = min(
-            limit_request_header_size, DEFAULT_MAX_HEADERFIELD_SIZE
-        )
+        self.limit_request_header_size = limit_request_header_size
         self.limit_max_requests = limit_max_requests
         self.backlog = backlog
         self.timeout_keep_alive = timeout_keep_alive

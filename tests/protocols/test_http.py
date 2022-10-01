@@ -903,15 +903,34 @@ async def test_limit_request_header_size_default():
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, HttpToolsProtocol)
-    protocol.data_received(get_request_headers_with_size(8190))  # default is 8190
-    assert b"" == protocol.transport.buffer
+    protocol.data_received(
+        get_request_headers_with_size(10000)
+    )  # default is to not check
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
 
 
 @pytest.mark.anyio
 async def test_limit_request_header_size_exceed():
     app = Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(app, HttpToolsProtocol)
+    protocol = get_connected_protocol(
+        app, HttpToolsProtocol, limit_request_header_size=8190
+    )
     protocol.data_received(get_request_headers_with_size(8191))  # default is 8190
     assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
     assert b"Header size exceeds limit" in protocol.transport.buffer
+
+
+@pytest.mark.anyio
+async def test_limit_request_header_size_set_to_zero():
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(
+        app, HttpToolsProtocol, limit_request_header_size=0
+    )
+    protocol.data_received(get_request_headers_with_size(10000))  # default is 8190
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
