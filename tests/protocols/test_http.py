@@ -96,6 +96,16 @@ GET_REQUEST_HUGE_HEADERS = [
     b"".join([b"x" * 32 * 1024 + b"\r\n", b"\r\n", b"\r\n"]),
 ]
 
+TOO_MANY_HEADERS = b"\r\n".join(
+    [
+        b"GET / HTTP/1.1",
+        b"Host: example.org",
+        *[f"{a}: {a}".encode() for a in range(101)],
+        b"",
+        b"",
+    ]
+)
+
 
 class MockTransport:
     def __init__(self, sockname=None, peername=None, sslcontext=False):
@@ -885,3 +895,13 @@ async def test_huge_headers_h11_max_incomplete():
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
+
+
+@pytest.mark.anyio
+async def test_too_many_headers():
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, HttpToolsProtocol)
+    protocol.data_received(TOO_MANY_HEADERS)
+    assert b"HTTP/1.1 400 Bad Request" in protocol.transport.buffer
+    assert b"Too many headers in request." in protocol.transport.buffer
