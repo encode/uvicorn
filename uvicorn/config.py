@@ -42,7 +42,6 @@ except ImportError:  # pragma: no cover
 
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
-from uvicorn.middleware.debug import DebugMiddleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
@@ -227,7 +226,6 @@ class Config:
         access_log: bool = True,
         use_colors: Optional[bool] = None,
         interface: InterfaceType = "auto",
-        debug: bool = False,
         reload: bool = False,
         reload_dirs: Optional[Union[List[str], str]] = None,
         reload_delay: float = 0.25,
@@ -275,7 +273,6 @@ class Config:
         self.access_log = access_log
         self.use_colors = use_colors
         self.interface = interface
-        self.debug = debug
         self.reload = reload
         self.reload_delay = reload_delay
         self.workers = workers or 1
@@ -512,8 +509,6 @@ class Config:
         elif self.interface == "asgi2":
             self.loaded_app = ASGI2Middleware(self.loaded_app)
 
-        if self.debug:
-            self.loaded_app = DebugMiddleware(self.loaded_app)
         if logger.level <= TRACE_LOG_LEVEL:
             self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
@@ -590,4 +585,4 @@ class Config:
 
     @property
     def should_reload(self) -> bool:
-        return isinstance(self.app, str) and (self.debug or self.reload)
+        return isinstance(self.app, str) and self.reload

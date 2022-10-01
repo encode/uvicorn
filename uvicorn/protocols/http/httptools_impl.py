@@ -90,7 +90,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.server_state = server_state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
-        self.default_headers = server_state.default_headers
 
         # Per-connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
@@ -203,7 +202,7 @@ class HttpToolsProtocol(asyncio.Protocol):
     def send_400_response(self, msg: str) -> None:
 
         content = [STATUS_LINE[400]]
-        for name, value in self.default_headers:
+        for name, value in self.server_state.default_headers:
             content.extend([name, b": ", value, b"\r\n"])
         content.extend(
             [
@@ -284,7 +283,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             logger=self.logger,
             access_logger=self.access_logger,
             access_log=self.access_log,
-            default_headers=self.default_headers,
+            default_headers=self.server_state.default_headers,
             message_event=asyncio.Event(),
             expect_100_continue=self.expect_100_continue,
             keep_alive=http_version != "1.0",
