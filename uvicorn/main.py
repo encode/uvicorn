@@ -264,7 +264,8 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     default=0,
     is_flag=False,
     flag_value=8190,
-    help="Maximum allowed size of an HTTP request header field. Pass 0 to disable the check",
+    help="Maximum allowed size of an HTTP request header field. "
+         "Pass 0 to disable the check",
 )
 @click.option(
     "--backlog",
