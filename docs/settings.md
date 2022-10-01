@@ -100,6 +100,13 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 * `--limit-concurrency <int>` - Maximum number of concurrent connections or tasks to allow, before issuing HTTP 503 responses. Useful for ensuring known memory usage patterns even under over-resourced loads.
 * `--limit-max-requests <int>` - Maximum number of requests to service before terminating the process. Useful when running together with a process manager, for preventing memory leaks from impacting long-running processes.
 * `--backlog <int>` - Maximum number of connections to hold in backlog. Relevant for heavy incoming traffic. **Default:** *2048*
+* `--limit-request-header-size` Maximum allowed size (*in bytes*) of an HTTP request header field. Pass 0 to disable the check. Simply passing the flag will default to *8190*.
+!!! note
+    `--limit-request-header-size` is applicable only for `httptools` implementation. 
+     
+     This parameter defaults to 0, which means unlimited value. Setting this parameter to a very high or unlimited value can open up for DDOS attacks. 
+     
+     For `H11` implementation, use `--h11-max-incomplete-event-size`. 
 
 ## Timeouts
 
