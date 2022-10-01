@@ -241,6 +241,7 @@ class Config:
         limit_concurrency: Optional[int] = None,
         limit_max_requests: Optional[int] = None,
         backlog: int = 2048,
+        timeout_request_start: int = 10,
         timeout_keep_alive: int = 5,
         timeout_notify: int = 30,
         callback_notify: Optional[Callable[..., Awaitable[None]]] = None,
@@ -283,6 +284,7 @@ class Config:
         self.limit_concurrency = limit_concurrency
         self.limit_max_requests = limit_max_requests
         self.backlog = backlog
+        self.timeout_request_start = timeout_request_start
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
         self.callback_notify = callback_notify

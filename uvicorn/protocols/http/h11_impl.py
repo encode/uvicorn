@@ -85,6 +85,8 @@ class H11Protocol(asyncio.Protocol):
         self.limit_concurrency = config.limit_concurrency
 
         # Timeouts
+        self.timeout_request_start_task: Optional[asyncio.TimerHandle] = None
+        self.timeout_request_start = config.timeout_request_start
         self.timeout_keep_alive_task: Optional[asyncio.TimerHandle] = None
         self.timeout_keep_alive = config.timeout_keep_alive
 
@@ -104,6 +106,7 @@ class H11Protocol(asyncio.Protocol):
         self.scope: HTTPScope = None  # type: ignore[assignment]
         self.headers: List[Tuple[bytes, bytes]] = None  # type: ignore[assignment]
         self.cycle: RequestResponseCycle = None  # type: ignore[assignment]
+        self.timeout_request_start_task_called = False
 
     # Protocol interface
     def connection_made(  # type: ignore[override]
@@ -120,6 +123,11 @@ class H11Protocol(asyncio.Protocol):
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sHTTP connection made", prefix)
+
+        print(self.loop.time())
+        self.timeout_request_start_task = self.loop.call_later(
+            self.config.timeout_request_start, self.timeout_request_start_handler
+        )
 
     def connection_lost(self, exc: Optional[Exception]) -> None:
         self.connections.discard(self)
@@ -153,6 +161,11 @@ class H11Protocol(asyncio.Protocol):
         if self.timeout_keep_alive_task is not None:
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
+
+    def _unset_request_start_if_required(self) -> None:
+        if self.timeout_request_start_task is not None:
+            self.timeout_request_start_task.cancel()
+            self.timeout_request_start_task = None
 
     def data_received(self, data: bytes) -> None:
         self._unset_keepalive_if_required()
@@ -357,6 +370,9 @@ class H11Protocol(asyncio.Protocol):
             event = h11.ConnectionClosed()
             self.conn.send(event)
             self.transport.close()
+
+    def timeout_request_start_handler(self) -> None:
+        self.timeout_request_start_task_called = True
 
 
 class RequestResponseCycle:

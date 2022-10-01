@@ -83,6 +83,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.limit_concurrency = config.limit_concurrency
 
         # Timeouts
+        self.timeout_request_start_task: Optional[TimerHandle] = None
+        self.timeout_request_start = config.timeout_request_start
         self.timeout_keep_alive_task: Optional[TimerHandle] = None
         self.timeout_keep_alive = config.timeout_keep_alive
 
@@ -103,6 +105,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.scope: HTTPScope = None  # type: ignore[assignment]
         self.headers: List[Tuple[bytes, bytes]] = None  # type: ignore[assignment]
         self.expect_100_continue = False
+        self.timeout_request_start_task_called = False
         self.cycle: RequestResponseCycle = None  # type: ignore[assignment]
 
     # Protocol interface
@@ -120,6 +123,11 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sHTTP connection made", prefix)
+
+        print(self.loop.time())
+        self.timeout_request_start_task = self.loop.call_later(
+            self.config.timeout_request_start, self.timeout_request_start_handler
+        )
 
     def connection_lost(self, exc: Optional[Exception]) -> None:
         self.connections.discard(self)
@@ -148,8 +156,19 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
 
+    def _unset_request_start_if_required(self) -> None:
+        if self.timeout_request_start_task is not None:
+            self.timeout_request_start_task.cancel()
+            self.timeout_request_start_task = None
+
     def data_received(self, data: bytes) -> None:
         self._unset_keepalive_if_required()
+
+        if self.timeout_request_start_task_called:
+            msg = "Timeout on request headers."
+            self.logger.warning(msg)
+            self.send_400_response(msg)
+            return
 
         try:
             self.parser.feed_data(data)
@@ -196,7 +215,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.transport.set_protocol(protocol)
 
     def send_400_response(self, msg: str) -> None:
-
         content = [STATUS_LINE[400]]
         for name, value in self.server_state.default_headers:
             content.extend([name, b": ", value, b"\r\n"])
@@ -238,6 +256,10 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.headers.append((name, value))
 
     def on_headers_complete(self) -> None:
+        if self.timeout_request_start_task_called:
+            return
+        self._unset_request_start_if_required()
+
         http_version = self.parser.get_http_version()
         method = self.parser.get_method()
         self.scope["method"] = method.decode("ascii")
@@ -355,6 +377,9 @@ class HttpToolsProtocol(asyncio.Protocol):
         """
         if not self.transport.is_closing():
             self.transport.close()
+
+    def timeout_request_start_handler(self) -> None:
+        self.timeout_request_start_task_called = True
 
 
 class RequestResponseCycle:

@@ -268,6 +268,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     help="Maximum number of requests to service before terminating the process.",
 )
 @click.option(
+    "--timeout-request-start",
+    type=int,
+    default=10,
+    help="Timeout unless request headers complete within this time.",
+    show_default=True,
+)
+@click.option(
     "--timeout-keep-alive",
     type=int,
     default=5,
@@ -387,6 +394,7 @@ def main(
     limit_concurrency: int,
     backlog: int,
     limit_max_requests: int,
+    timeout_request_start: int,
     timeout_keep_alive: int,
     ssl_keyfile: str,
     ssl_certfile: str,
@@ -434,6 +442,7 @@ def main(
         limit_concurrency=limit_concurrency,
         backlog=backlog,
         limit_max_requests=limit_max_requests,
+        timeout_request_start=timeout_request_start,
         timeout_keep_alive=timeout_keep_alive,
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
@@ -486,6 +495,7 @@ def run(
     limit_concurrency: typing.Optional[int] = None,
     backlog: int = 2048,
     limit_max_requests: typing.Optional[int] = None,
+    timeout_request_start: int = 10,
     timeout_keep_alive: int = 5,
     ssl_keyfile: typing.Optional[str] = None,
     ssl_certfile: typing.Optional[typing.Union[str, os.PathLike]] = None,
@@ -536,6 +546,7 @@ def run(
         limit_concurrency=limit_concurrency,
         backlog=backlog,
         limit_max_requests=limit_max_requests,
+        timeout_request_start=timeout_request_start,
         timeout_keep_alive=timeout_keep_alive,
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
