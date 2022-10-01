@@ -904,16 +904,6 @@ async def test_limit_request_header_size_default():
 
     protocol = get_connected_protocol(app, HttpToolsProtocol)
     protocol.data_received(get_request_headers_with_size(8190))  # default is 8190
-    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-    assert b"Hello, world" in protocol.transport.buffer
-
-
-@pytest.mark.anyio
-async def test_limit_request_header_size_default():
-    app = Response("Hello, world", media_type="text/plain")
-
-    protocol = get_connected_protocol(app, HttpToolsProtocol)
-    protocol.data_received(get_request_headers_with_size(8190))  # default is 8190
     assert b"" == protocol.transport.buffer
 
 
