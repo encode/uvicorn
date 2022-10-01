@@ -65,10 +65,10 @@ STATUS_PHRASES = {
 
 class H11Protocol(asyncio.Protocol):
     def __init__(
-        self,
-        config: Config,
-        server_state: ServerState,
-        _loop: Optional[asyncio.AbstractEventLoop] = None,
+            self,
+            config: Config,
+            server_state: ServerState,
+            _loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         if not config.loaded:
             config.load()
@@ -92,6 +92,7 @@ class H11Protocol(asyncio.Protocol):
         self.server_state = server_state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
+        self.default_headers = server_state.default_headers
 
         # Per-connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
@@ -107,7 +108,7 @@ class H11Protocol(asyncio.Protocol):
 
     # Protocol interface
     def connection_made(  # type: ignore[override]
-        self, transport: asyncio.Transport
+            self, transport: asyncio.Transport
     ) -> None:
         self.connections.add(self)
 
@@ -183,7 +184,16 @@ class H11Protocol(asyncio.Protocol):
                 break
 
             elif event_type is h11.Request:
-                self.headers = [(key.lower(), value) for key, value in event.headers]
+                self.headers = []
+                for key, value in event.headers:
+                    if self.config.limit_request_header_size and (
+                            len(key) > self.config.limit_request_header_size
+                            or len(value) > self.config.limit_request_header_size
+                    ):
+                        self.send_400_response(msg="Header too big")
+                        raise h11.RemoteProtocolError("Header too big")
+
+                    self.headers.append((key.lower(), value))
                 raw_path, _, query_string = event.target.partition(b"?")
                 self.scope = {  # type: ignore[typeddict-item]
                     "type": "http",
@@ -212,8 +222,8 @@ class H11Protocol(asyncio.Protocol):
 
                 # Handle 503 responses when 'limit_concurrency' is exceeded.
                 if self.limit_concurrency is not None and (
-                    len(self.connections) >= self.limit_concurrency
-                    or len(self.tasks) >= self.limit_concurrency
+                        len(self.connections) >= self.limit_concurrency
+                        or len(self.tasks) >= self.limit_concurrency
                 ):
                     app = service_unavailable
                     message = "Exceeded concurrency limit."
@@ -229,7 +239,7 @@ class H11Protocol(asyncio.Protocol):
                     logger=self.logger,
                     access_logger=self.access_logger,
                     access_log=self.access_log,
-                    default_headers=self.server_state.default_headers,
+                    default_headers=self.default_headers,
                     message_event=asyncio.Event(),
                     on_response=self.on_response_complete,
                 )
@@ -361,17 +371,17 @@ class H11Protocol(asyncio.Protocol):
 
 class RequestResponseCycle:
     def __init__(
-        self,
-        scope: "HTTPScope",
-        conn: h11.Connection,
-        transport: asyncio.Transport,
-        flow: FlowControl,
-        logger: logging.Logger,
-        access_logger: logging.Logger,
-        access_log: bool,
-        default_headers: List[Tuple[bytes, bytes]],
-        message_event: asyncio.Event,
-        on_response: Callable[..., None],
+            self,
+            scope: "HTTPScope",
+            conn: h11.Connection,
+            transport: asyncio.Transport,
+            flow: FlowControl,
+            logger: logging.Logger,
+            access_logger: logging.Logger,
+            access_log: bool,
+            default_headers: List[Tuple[bytes, bytes]],
+            message_event: asyncio.Event,
+            on_response: Callable[..., None],
     ) -> None:
         self.scope = scope
         self.conn = conn
