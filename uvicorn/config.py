@@ -251,6 +251,7 @@ class Config:
         ssl_cert_reqs: int = ssl.CERT_NONE,
         ssl_ca_certs: Optional[str] = None,
         ssl_ciphers: str = "TLSv1",
+        ssl_options: Optional[List[ssl.Options]]= None,
         headers: Optional[List[Tuple[str, str]]] = None,
         factory: bool = False,
         h11_max_incomplete_event_size: int = DEFAULT_MAX_INCOMPLETE_EVENT_SIZE,
@@ -293,6 +294,7 @@ class Config:
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
+        self.ssl_options = ssl_options
         self.headers: List[Tuple[str, str]] = headers or []
         self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
@@ -446,6 +448,8 @@ class Config:
                 ca_certs=self.ssl_ca_certs,
                 ciphers=self.ssl_ciphers,
             )
+            for each_option in self.ssl_options:
+                self.ssl.options |= each_option
         else:
             self.ssl = None
 
