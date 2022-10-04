@@ -114,6 +114,7 @@ Options:
   --ssl-ca-certs TEXT             CA certificates file
   --ssl-ciphers TEXT              Ciphers to use (see stdlib ssl module's)
                                   [default: TLSv1]
+  --ssl-options LIST              Options to set on ssl context
   --header TEXT                   Specify custom default HTTP response headers
                                   as a Name:Value pair
   --version                       Display the uvicorn version and exit.
