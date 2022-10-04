@@ -320,6 +320,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
+    "--ssl-options",
+    type=list,
+    default=None,
+    help="Options to set on ssl context",
+    show_default=True,
+)
+@click.option(
     "--header",
     "headers",
     multiple=True,

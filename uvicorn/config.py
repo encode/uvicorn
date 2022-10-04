@@ -448,8 +448,9 @@ class Config:
                 ca_certs=self.ssl_ca_certs,
                 ciphers=self.ssl_ciphers,
             )
-            for each_option in self.ssl_options:
-                self.ssl.options |= each_option
+            if (self.ssl_options):
+                for each_option in self.ssl_options:
+                    self.ssl.options |= each_option
         else:
             self.ssl = None
 

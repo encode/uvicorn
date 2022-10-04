@@ -6,7 +6,7 @@ import sys
 import typing
 from pathlib import Path
 from unittest.mock import MagicMock
-
+import ssl
 import pytest
 import yaml
 from pytest_mock import MockerFixture
@@ -313,6 +313,23 @@ def test_ssl_config(
 
     assert config.is_ssl is True
 
+def test_ssl_config_with_options() -> None:
+
+    list_options = [ssl.OP_NO_RENEGOTIATION, ssl.OP_NO_TLSv1_2]
+    config = Config(
+        app=asgi_app,
+        ssl_options = list_options 
+    )
+    config.load()
+    assert ssl.OP_NO_RENEGOTIATION in config.ssl_options
+    assert ssl.OP_NO_TLSv1_2 in config.ssl_options
+
+def test_ssl_config_with_empty_options() -> None:
+    config = Config(
+        app=asgi_app,
+    )
+    config.load()
+    assert not config.ssl_options
 
 def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
     config = Config(
