@@ -135,6 +135,7 @@ def create_ssl_context(
     cert_reqs: int,
     ca_certs: Optional[Union[str, os.PathLike]],
     ciphers: Optional[str],
+    options: Optional[List[ssl.Options]],
 ) -> ssl.SSLContext:
     ctx = ssl.SSLContext(ssl_version)
     get_password = (lambda: password) if password else None
@@ -144,6 +145,9 @@ def create_ssl_context(
         ctx.load_verify_locations(ca_certs)
     if ciphers:
         ctx.set_ciphers(ciphers)
+    if options:
+        for each_option in options:
+            ctx.options |= each_option
     return ctx
 
 
@@ -447,10 +451,8 @@ class Config:
                 cert_reqs=self.ssl_cert_reqs,
                 ca_certs=self.ssl_ca_certs,
                 ciphers=self.ssl_ciphers,
+                options=self.ssl_options,
             )
-            if self.ssl_options:
-                for each_option in self.ssl_options:
-                    self.ssl.options |= each_option
         else:
             self.ssl = None
 

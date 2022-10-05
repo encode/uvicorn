@@ -323,14 +323,6 @@ def test_ssl_config_with_options() -> None:
         assert ssl.OP_NO_TLSv1_2 in config.ssl_options
 
 
-def test_ssl_config_with_empty_options() -> None:
-    config = Config(
-        app=asgi_app,
-    )
-    config.load()
-    assert not config.ssl_options
-
-
 def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
     config = Config(
         app=asgi_app,
