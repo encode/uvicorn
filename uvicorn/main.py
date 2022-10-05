@@ -323,7 +323,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--ssl-options",
     type=list,
     default=None,
-    help="Options to set on ssl context",
+    help="Options to set on ssl context, check for file ssl.pyi - Options",
     show_default=True,
 )
 @click.option(
