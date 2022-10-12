@@ -44,7 +44,7 @@ class BaseReload:
         self.startup()
         for changes in self:
             if changes:
-                logger.warning(
+                logger.info(
                     "%s detected changes in %s. Reloading...",
                     self.reloader_name,
                     ", ".join(map(_display_path, changes)),
