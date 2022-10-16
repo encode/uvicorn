@@ -28,6 +28,9 @@ if TYPE_CHECKING:
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
+    # Handling SIGQUIT Fixes
+    #    - https://github.com/encode/uvicorn/issues/1116
+    #    - https://github.com/benoitc/gunicorn/issues/2604
     signal.SIGQUIT,
 )
 
