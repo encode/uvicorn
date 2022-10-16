@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
+    signal.SIGQUIT,
 )
 
 logger = logging.getLogger("uvicorn.error")
