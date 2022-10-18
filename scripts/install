@@ -12,7 +12,7 @@ if [ -z "$GITHUB_ACTIONS" ]; then
     "$PYTHON" -m venv "$VENV"
     PIP="$VENV/bin/pip"
 else
-    PIP="pip"
+    PIP="$PYTHON -m pip"
 fi
 
 "$PIP" install -U pip
