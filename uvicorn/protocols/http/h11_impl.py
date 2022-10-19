@@ -92,7 +92,6 @@ class H11Protocol(asyncio.Protocol):
         self.server_state = server_state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
-        self.default_headers = server_state.default_headers
 
         # Per-connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
@@ -250,7 +249,7 @@ class H11Protocol(asyncio.Protocol):
                     logger=self.logger,
                     access_logger=self.access_logger,
                     access_log=self.access_log,
-                    default_headers=self.default_headers,
+                    default_headers=self.server_state.default_headers,
                     message_event=asyncio.Event(),
                     on_response=self.on_response_complete,
                 )
