@@ -87,9 +87,7 @@ LOOP_SETUPS: Dict[LoopSetupType, Optional[str]] = {
 }
 INTERFACES: List[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
 
-
 SSL_PROTOCOL_VERSION: int = ssl.PROTOCOL_TLS_SERVER
-
 
 LOGGING_CONFIG: Dict[str, Any] = {
     "version": 1,
@@ -159,7 +157,6 @@ def is_dir(path: Path) -> bool:
 def resolve_reload_patterns(
     patterns_list: List[str], directories_list: List[str]
 ) -> Tuple[List[str], List[Path]]:
-
     directories: List[Path] = list(set(map(Path, directories_list.copy())))
     patterns: List[str] = patterns_list.copy()
 
