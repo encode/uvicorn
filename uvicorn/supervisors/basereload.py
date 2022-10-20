@@ -96,7 +96,7 @@ class BaseReload:
         for sock in self.sockets:
             sock.close()
 
-        message = "Stopping reloader process [{}]".format(str(self.pid))
+        message = f"Stopping reloader process [{str(self.pid)}]"
         color_message = "Stopping reloader process [{}]".format(
             click.style(str(self.pid), fg="cyan", bold=True)
         )

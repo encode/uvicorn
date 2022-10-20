@@ -46,7 +46,7 @@ class Multiprocess:
         self.shutdown()
 
     def startup(self) -> None:
-        message = "Started parent process [{}]".format(str(self.pid))
+        message = f"Started parent process [{str(self.pid)}]"
         color_message = "Started parent process [{}]".format(
             click.style(str(self.pid), fg="cyan", bold=True)
         )
@@ -67,7 +67,7 @@ class Multiprocess:
             process.terminate()
             process.join()
 
-        message = "Stopping parent process [{}]".format(str(self.pid))
+        message = f"Stopping parent process [{str(self.pid)}]"
         color_message = "Stopping parent process [{}]".format(
             click.style(str(self.pid), fg="cyan", bold=True)
         )

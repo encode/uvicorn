@@ -89,7 +89,7 @@ class AccessFormatter(ColourizedFormatter):
             status_phrase = http.HTTPStatus(status_code).phrase
         except ValueError:
             status_phrase = ""
-        status_and_phrase = "%s %s" % (status_code, status_phrase)
+        status_and_phrase = f"{status_code} {status_phrase}"
         if self.use_colors:
 
             def default(code: int) -> str:
@@ -109,7 +109,7 @@ class AccessFormatter(ColourizedFormatter):
             status_code,
         ) = recordcopy.args  # type: ignore[misc]
         status_code = self.get_status_code(int(status_code))  # type: ignore[arg-type]
-        request_line = "%s %s HTTP/%s" % (method, full_path, http_version)
+        request_line = f"{method} {full_path} HTTP/{http_version}"
         if self.use_colors:
             request_line = click.style(request_line, bold=True)
         recordcopy.__dict__.update(
