@@ -3,7 +3,7 @@
 Use the following options to configure Uvicorn, when running from the command line.
 
 If you're running programmatically, using `uvicorn.run(...)`, then use
-equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=True, access_log=False)`.
+equivalent keyword arguments, eg. `uvicorn.run("example:app", port=5000, reload=True, access_log=False)`. It's worth to mention that for three of them  `--reload-dir`, `--reload-include` and `--reload-exclude` you have to use plural forms `reload_dirs`, `reload_includes` and `reload_excludes` accordingly.
 Please note that in this case, if you use `reload=True` or `workers=NUM`,
 you should put `uvicorn.run` into `if __name__ == '__main__'` clause in the main module.
 
