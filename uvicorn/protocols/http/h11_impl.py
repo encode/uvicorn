@@ -154,7 +154,7 @@ class H11Protocol(asyncio.Protocol):
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
 
-    def _get_upgrade(self) -> Optional[bytes]:
+    def _get_upgrade(self) -> Optional[bytes]:  # type: ignore[return]
         connection = []
         upgrade = None
         for name, value in self.headers:
@@ -164,7 +164,6 @@ class H11Protocol(asyncio.Protocol):
                 upgrade = value.lower()
         if b"upgrade" in connection:
             return upgrade
-        return None
 
     def _should_upgrade_to_ws(self) -> bool:
         if self.ws_protocol_class is None:
@@ -274,7 +273,7 @@ class H11Protocol(asyncio.Protocol):
                 self.cycle.message_event.set()
 
     def handle_websocket_upgrade(self, event: H11Event) -> None:
-        if self.logger.level <= TRACE_LOG_LEVEL:
+        if self.logger.level <= TRACE_LOG_LEVEL:  # pragma: no cover
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sUpgrading to WebSocket", prefix)
 
@@ -340,19 +339,19 @@ class H11Protocol(asyncio.Protocol):
         else:
             self.cycle.keep_alive = False
 
-    def pause_writing(self) -> None:
+    def pause_writing(self) -> None:  # pragma: no cover
         """
         Called by the transport when the write buffer exceeds the high water mark.
         """
         self.flow.pause_writing()
 
-    def resume_writing(self) -> None:
+    def resume_writing(self) -> None:  # pragma: no cover
         """
         Called by the transport when the write buffer drops below the low water mark.
         """
         self.flow.resume_writing()
 
-    def timeout_keep_alive_handler(self) -> None:
+    def timeout_keep_alive_handler(self) -> None:  # pragma: no cover
         """
         Called on a keep-alive connection if no new data is received after a short
         delay.
@@ -451,10 +450,10 @@ class RequestResponseCycle:
     async def send(self, message: "ASGISendEvent") -> None:
         message_type = message["type"]
 
-        if self.flow.write_paused and not self.disconnected:
+        if self.flow.write_paused and not self.disconnected:  # pragma: no cover
             await self.flow.drain()
 
-        if self.disconnected:
+        if self.disconnected:  # pragma: no cover
             return
 
         if not self.response_started:
@@ -473,7 +472,9 @@ class RequestResponseCycle:
             )
             headers = self.default_headers + message_headers
 
-            if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
+            if (
+                CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers
+            ):  # pragma: no cover
                 headers = headers + [CLOSE_HEADER]
 
             if self.access_log:
