@@ -25,7 +25,7 @@ from uvicorn.protocols.utils import (
 from uvicorn.server import ServerState
 
 if sys.version_info < (3, 8):
-    from typing_extensions import Literal
+    from typing_extensions import Literal  # pragma: no cover
 else:
     from typing import Literal
 
