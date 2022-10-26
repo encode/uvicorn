@@ -43,6 +43,7 @@ class ServerState:
         self.connections: Set["Protocols"] = set()
         self.tasks: Set[asyncio.Task] = set()
         self.default_headers: List[Tuple[bytes, bytes]] = []
+        self.port = 0
 
 
 class Server:
