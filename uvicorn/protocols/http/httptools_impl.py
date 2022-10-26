@@ -148,7 +148,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
 
-    def _get_upgrade(self) -> Optional[bytes]:
+    def _get_upgrade(self) -> Optional[bytes]:  # type: ignore[return]
         connection = []
         upgrade = None
         for name, value in self.headers:
