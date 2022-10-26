@@ -73,8 +73,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.root_path = config.root_path
         if self.config.server_header:
             self.server_header = get_server_header(
-                default_headers=server_state.default_headers,
-                override="uvicorn"
+                default_headers=server_state.default_headers, override="uvicorn"
             )
         else:
             self.server_header = None
