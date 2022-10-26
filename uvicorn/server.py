@@ -47,6 +47,8 @@ class ServerState:
 
 class Server:
     def __init__(self, config: Config) -> None:
+        self.servers = None
+        self.lifespan = None
         self.config = config
         self.server_state = ServerState()
 
@@ -164,10 +166,6 @@ class Server:
 
         if sockets is None:
             self._log_started_message(listeners)
-        else:
-            # We're most likely running multiple workers, so a message has already been
-            # logged by `config.bind_socket()`.
-            pass
 
         self.started = True
 

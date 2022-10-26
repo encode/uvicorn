@@ -158,7 +158,6 @@ class HttpToolsProtocol(asyncio.Protocol):
                 upgrade = value.lower()
         if b"upgrade" in connection:
             return upgrade
-        return None
 
     def _should_upgrade_to_ws(self, upgrade: Optional[bytes]) -> bool:
         if upgrade == b"websocket" and self.ws_protocol_class is not None:
@@ -352,13 +351,13 @@ class HttpToolsProtocol(asyncio.Protocol):
         else:
             self.cycle.keep_alive = False
 
-    def pause_writing(self) -> None:
+    def pause_writing(self) -> None:  # pragma: no cover
         """
         Called by the transport when the write buffer exceeds the high water mark.
         """
         self.flow.pause_writing()
 
-    def resume_writing(self) -> None:
+    def resume_writing(self) -> None:  # pragma: no cover
         """
         Called by the transport when the write buffer drops below the low water mark.
         """

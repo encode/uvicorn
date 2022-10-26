@@ -23,26 +23,26 @@ class FlowControl:
         self._is_writable_event = asyncio.Event()
         self._is_writable_event.set()
 
-    async def drain(self) -> None:
+    async def drain(self) -> None:  # pragma: no cover
         await self._is_writable_event.wait()
 
     def pause_reading(self) -> None:
-        if not self.read_paused:
+        if not self.read_paused:  # pragma: no cover
             self.read_paused = True
             self._transport.pause_reading()
 
     def resume_reading(self) -> None:
-        if self.read_paused:
+        if self.read_paused:  # pragma: no cover
             self.read_paused = False
             self._transport.resume_reading()
 
     def pause_writing(self) -> None:
-        if not self.write_paused:
+        if not self.write_paused:  # pragma: no cover
             self.write_paused = True
             self._is_writable_event.clear()
 
     def resume_writing(self) -> None:
-        if self.write_paused:
+        if self.write_paused:  # pragma: no cover
             self.write_paused = False
             self._is_writable_event.set()
 
