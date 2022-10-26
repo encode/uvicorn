@@ -47,8 +47,6 @@ class ServerState:
 
 class Server:
     def __init__(self, config: Config) -> None:
-        self.servers = None
-        self.lifespan = None
         self.config = config
         self.server_state = ServerState()
 
