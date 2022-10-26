@@ -74,7 +74,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         if self.config.server_header:
             self.server_header = get_server_header(
                 default_headers=server_state.default_headers,
-                override=websockets.server.USER_AGENT,
+                override="uvicorn"
             )
         else:
             self.server_header = None
