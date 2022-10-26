@@ -34,9 +34,6 @@ dependencies = [
     "typing-extensions;python_version < '3.8'",
 ]
 
-[tool.hatch.metadata]
-allow-direct-references = true
-
 [project.optional-dependencies]
 standard = [
     "colorama>=0.4;sys_platform == 'win32'",
@@ -44,7 +41,8 @@ standard = [
     "python-dotenv>=0.13",
     "PyYAML>=5.1",
     "uvloop>=0.14.0,!=0.15.0,!=0.15.1; sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')",
-    "watchfiles>=0.13"
+    "watchfiles>=0.13",
+    "websockets>=10.4",
 ]
 
 [project.scripts]
@@ -63,4 +61,3 @@ path = "uvicorn/__init__.py"
 include = [
     "/uvicorn",
 ]
-
