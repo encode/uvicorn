@@ -5,6 +5,7 @@ import pytest
 
 from tests.protocols.test_http import HTTP_PROTOCOLS
 from tests.utils import run_server
+from uvicorn import Server
 from uvicorn.config import Config
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
@@ -825,3 +826,31 @@ async def test_multiple_server_header_in_websockets(ws_protocol_cls, http_protoc
         headers = await open_connection("ws://127.0.0.1:8000")
         assert len(headers.get_all("Server")) == 1
         assert headers.get("Server") == "uvicorn"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", ONLY_WEBSOCKETPROTOCOL)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_server_shutdown_when_connection_active_in_websockets(
+    ws_protocol_cls, http_protocol_cls
+):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+    config = Config(
+        app=App,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+    )
+    server = Server(config=config)
+    cancel_handle = asyncio.ensure_future(server.serve(sockets=None))
+    await asyncio.sleep(0.1)
+    async with websockets.connect("ws://127.0.0.1:8000"):
+        ws_conn = list(server.server_state.connections)[0]
+        ws_conn.shutdown()
+        assert ws_conn.ws_server.closing is True
+        assert ws_conn.transport.is_closing()
+    await server.shutdown()
+    cancel_handle.cancel()
