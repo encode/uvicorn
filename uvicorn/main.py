@@ -568,7 +568,10 @@ def run(
     else:
         server.run()
     if config.uds:
-        os.remove(config.uds)  # pragma: py-win32
+        try:
+            os.remove(config.uds)  # pragma: py-win32
+        except FileNotFoundError:
+            pass
 
     if not server.started and not config.should_reload and config.workers == 1:
         sys.exit(STARTUP_FAILURE)
