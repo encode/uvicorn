@@ -1,5 +1,6 @@
 import logging
 import signal
+import socket
 from pathlib import Path
 from time import sleep
 from typing import Optional, Type
@@ -397,3 +398,13 @@ def test_base_reloader_should_exit(tmp_path):
     assert reloader.should_exit.is_set()
     with pytest.raises(StopIteration):
         reloader.pause()
+
+
+def test_base_reloader_closes_sockets_on_shutdown():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    config = Config(app="tests.test_config:asgi_app", reload=True)
+    reloader = BaseReload(config, target=run, sockets=[sock])
+    reloader.startup()
+    assert sock.fileno() != -1
+    reloader.shutdown()
+    assert sock.fileno() == -1
