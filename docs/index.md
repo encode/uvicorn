@@ -59,9 +59,9 @@ Moreover, "optional extras" means that:
 - `python-dotenv` will be installed should you want to use the `--env-file` option.
 - `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
 
-Create an application, in `example.py`:
+Create an application:
 
-```python
+```py title="example.py"
 async def app(scope, receive, send):
     assert scope['type'] == 'http'
 
@@ -205,8 +205,7 @@ There are several ways to run uvicorn directly from your application.
 
 If you're looking for a programmatic equivalent of the `uvicorn` command line interface, use `uvicorn.run()`:
 
-```python
-# main.py
+```py title="example.py"
 import uvicorn
 
 async def app(scope, receive, send):

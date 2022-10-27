@@ -24,12 +24,18 @@ edit_uri: ""
 nav:
   - Introduction: "index.md"
   - Settings: "settings.md"
+  - Logging: "logging.md"
   - Deployment: "deployment.md"
   - Server Behavior: "server-behavior.md"
   - Contributing: "contributing.md"
 
 markdown_extensions:
   - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
   - codehilite:
       css_class: highlight
   - toc:
