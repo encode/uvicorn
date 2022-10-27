@@ -567,11 +567,8 @@ def run(
         Multiprocess(config, target=server.run, sockets=[sock]).run()
     else:
         server.run()
-    if config.uds:
-        try:
-            os.remove(config.uds)  # pragma: py-win32
-        except FileNotFoundError:
-            pass
+    if config.uds and os.path.exists(config.uds):
+        os.remove(config.uds)  # pragma: py-win32
 
     if not server.started and not config.should_reload and config.workers == 1:
         sys.exit(STARTUP_FAILURE)
