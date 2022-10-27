@@ -205,8 +205,7 @@ There are several ways to run uvicorn directly from your application.
 
 If you're looking for a programmatic equivalent of the `uvicorn` command line interface, use `uvicorn.run()`:
 
-```python
-# main.py
+```py title="main.py"
 import uvicorn
 
 async def app(scope, receive, send):
@@ -275,9 +274,7 @@ For more information, see the [deployment documentation](deployment.md).
 
 The `--factory` flag allows loading the application from a factory function, rather than an application instance directly. The factory will be called with no arguments and should return an ASGI application.
 
-**example.py**:
-
-```python
+```py title="example.py"
 def create_app():
     app = ...
     return app
