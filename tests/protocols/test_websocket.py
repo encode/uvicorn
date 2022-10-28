@@ -758,34 +758,3 @@ async def test_multiple_server_header(ws_protocol_cls, http_protocol_cls):
         assert headers.get_all("Server") == ["uvicorn", "over-ridden", "another-value"]
 
 
-@pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_multiple_arbitrary_headers_with_same_name(
-    ws_protocol_cls, http_protocol_cls
-):
-    class App(WebSocketResponse):
-        async def websocket_connect(self, message):
-            await self.send(
-                {
-                    "type": "websocket.accept",
-                    "headers": [
-                        (b"Potato", b"cool-potato"),
-                        (b"Potato", b"super-cool-potato"),
-                    ],
-                }
-            )
-
-    async def open_connection(url):
-        async with websockets.connect(url) as websocket:
-            return websocket.response_headers
-
-    config = Config(
-        app=App,
-        ws=ws_protocol_cls,
-        http=http_protocol_cls,
-        lifespan="off",
-    )
-    async with run_server(config):
-        headers = await open_connection("ws://127.0.0.1:8000")
-        assert headers.get_all("Potato") == ["cool-potato", "super-cool-potato"]
