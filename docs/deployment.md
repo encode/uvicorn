@@ -135,9 +135,7 @@ See the [settings documentation](settings.md) for more details on the supported 
 
 To run directly from within a Python program, you should use `uvicorn.run(app, **config)`. For example:
 
-**example.py**:
-
-```python
+```py title="main.py"
 import uvicorn
 
 class App:
@@ -146,7 +144,7 @@ class App:
 app = App()
 
 if __name__ == "__main__":
-    uvicorn.run("example:app", host="127.0.0.1", port=5000, log_level="info")
+    uvicorn.run("main:app", host="127.0.0.1", port=5000, log_level="info")
 ```
 
 The set of configuration options is the same as for the command line tool.
@@ -169,9 +167,7 @@ Also note that in this case, you should put `uvicorn.run` into `if __name__ == '
 
 To run the server programmatically with the `reload` option, you should additionally use the `ChangeReload` supervisor. For example:
 
-**reload_example.py**:
-
-```python
+```py title="main.py"
 import os
 import uvicorn
 from uvicorn.supervisors import ChangeReload
@@ -184,7 +180,7 @@ app = App()
 if __name__ == "__main__":
     reload_dir = os.path.dirname(__file__)
     config = uvicorn.Config(
-        "reload_example:app",
+        "main:app",
         host="127.0.0.1",
         port=5000,
         log_level="info",
