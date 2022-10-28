@@ -19,14 +19,13 @@ from uvicorn.protocols.utils import (
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
-    get_server_header,
     is_ssl,
 )
 from uvicorn.server import ServerState
 
-if sys.version_info < (3, 8):
-    from typing_extensions import Literal  # pragma: no cover
-else:
+if sys.version_info < (3, 8):  # pragma: py-gte-38
+    from typing_extensions import Literal
+else:  # pragma: py-lt-38
     from typing import Literal
 
 if TYPE_CHECKING:
@@ -71,17 +70,10 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
         self.root_path = config.root_path
-        if self.config.server_header:
-            self.server_header = get_server_header(
-                default_headers=server_state.default_headers, override="uvicorn"
-            )
-        else:
-            self.server_header = None
 
         # Shared server state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
-        self.default_headers = server_state.default_headers
 
         # Connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
@@ -111,10 +103,13 @@ class WebSocketProtocol(WebSocketServerProtocol):
             max_size=self.config.ws_max_size,
             ping_interval=self.config.ws_ping_interval,
             ping_timeout=self.config.ws_ping_timeout,
-            server_header=self.server_header,
+            server_header=None,
             extensions=extensions,
             logger=logging.getLogger("uvicorn.error"),
-            extra_headers=[],
+            extra_headers=[
+                (name.decode("latin-1"), value.decode("latin-1"))
+                for name, value in server_state.default_headers
+            ],
         )
 
     def connection_made(  # type: ignore[override]
@@ -274,17 +269,12 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 self.accepted_subprotocol = cast(
                     Optional[Subprotocol], message.get("subprotocol")
                 )
-                headers = list(message.get("headers", []))
-                for name, value in headers:
-                    if name.lower() in [b"server"]:
-                        continue
-                    self.extra_headers.append(
-                        (
-                            # ASGI spec requires bytes
-                            # But for compatibility we need to convert it to strings
-                            name.decode("latin-1"),
-                            value.decode("latin-1"),
-                        )
+                if "headers" in message:
+                    self.extra_headers.extend(
+                        # ASGI spec requires bytes
+                        # But for compatibility we need to convert it to strings
+                        (name.decode("latin-1"), value.decode("latin-1"))
+                        for name, value in message["headers"]
                     )
                 self.handshake_started_event.set()
 
