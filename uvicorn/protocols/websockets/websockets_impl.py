@@ -23,9 +23,9 @@ from uvicorn.protocols.utils import (
 )
 from uvicorn.server import ServerState
 
-if sys.version_info < (3, 8):
+if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
-else:
+else:  # pragma: py-lt-38
     from typing import Literal
 
 if TYPE_CHECKING:
@@ -103,9 +103,13 @@ class WebSocketProtocol(WebSocketServerProtocol):
             max_size=self.config.ws_max_size,
             ping_interval=self.config.ws_ping_interval,
             ping_timeout=self.config.ws_ping_timeout,
+            server_header=None,
             extensions=extensions,
             logger=logging.getLogger("uvicorn.error"),
-            extra_headers=[],
+            extra_headers=[
+                (name.decode("latin-1"), value.decode("latin-1"))
+                for name, value in server_state.default_headers
+            ],
         )
 
     def connection_made(  # type: ignore[override]
