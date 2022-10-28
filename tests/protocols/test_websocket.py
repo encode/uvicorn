@@ -5,7 +5,6 @@ import pytest
 
 from tests.protocols.test_http import HTTP_PROTOCOLS
 from tests.utils import run_server
-from uvicorn import Server
 from uvicorn.config import Config
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
