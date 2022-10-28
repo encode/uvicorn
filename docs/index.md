@@ -59,9 +59,9 @@ Moreover, "optional extras" means that:
 - `python-dotenv` will be installed should you want to use the `--env-file` option.
 - `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
 
-Create an application, in `example.py`:
+Create an application:
 
-```python
+```py title="main.py"
 async def app(scope, receive, send):
     assert scope['type'] == 'http'
 
@@ -81,7 +81,7 @@ async def app(scope, receive, send):
 Run the server:
 
 ```shell
-$ uvicorn example:app
+$ uvicorn main:app
 ```
 
 ---
@@ -205,8 +205,7 @@ There are several ways to run uvicorn directly from your application.
 
 If you're looking for a programmatic equivalent of the `uvicorn` command line interface, use `uvicorn.run()`:
 
-```python
-# main.py
+```py title="main.py"
 import uvicorn
 
 async def app(scope, receive, send):
@@ -220,7 +219,7 @@ if __name__ == "__main__":
 
 For more control over configuration and server lifecycle, use `uvicorn.Config` and `uvicorn.Server`:
 
-```python
+```py title="main.py"
 import uvicorn
 
 async def app(scope, receive, send):
@@ -234,7 +233,7 @@ if __name__ == "__main__":
 
 If you'd like to run Uvicorn from an already running async environment, use `uvicorn.Server.serve()` instead:
 
-```python
+```py title="main.py"
 import asyncio
 import uvicorn
 
@@ -275,16 +274,14 @@ For more information, see the [deployment documentation](deployment.md).
 
 The `--factory` flag allows loading the application from a factory function, rather than an application instance directly. The factory will be called with no arguments and should return an ASGI application.
 
-**example.py**:
-
-```python
+```py title="main.py"
 def create_app():
     app = ...
     return app
 ```
 
 ```shell
-$ uvicorn --factory example:create_app
+$ uvicorn --factory main:create_app
 ```
 
 ## The ASGI interface

@@ -52,9 +52,9 @@ Moreover, "optional extras" means that:
 - `python-dotenv` will be installed should you want to use the `--env-file` option.
 - `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
 
-Create an application, in `example.py`:
+Create an application:
 
-```python
+```py title="main.py"
 async def app(scope, receive, send):
     assert scope['type'] == 'http'
 
@@ -74,7 +74,7 @@ async def app(scope, receive, send):
 Run the server:
 
 ```shell
-$ uvicorn example:app
+$ uvicorn main:app
 ```
 
 ---
