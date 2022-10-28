@@ -137,7 +137,9 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
     def shutdown(self) -> None:
         self.ws_server.closing = True
-        self.transport.close()
+        task = asyncio.create_task(self.close(code=1012))
+        task.add_done_callback(self.on_task_complete)
+        self.tasks.add(task)
 
     def on_task_complete(self, task: asyncio.Task) -> None:
         self.tasks.discard(task)

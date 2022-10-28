@@ -679,7 +679,7 @@ async def test_server_shutdown_when_connection_active_in_ws(
         lifespan="off",
     )
     server = Server(config=config)
-    cancel_handle = asyncio.ensure_future(server.serve(sockets=None))
+    task = asyncio.create_task(server.serve(sockets=None))
     await asyncio.sleep(0.1)
     async with websockets.connect("ws://127.0.0.1:8000") as websocket:
         ws_conn = list(server.server_state.connections)[0]
@@ -688,4 +688,4 @@ async def test_server_shutdown_when_connection_active_in_ws(
         assert websocket.close_code == 1012
         assert ws_conn.transport.is_closing()
     await server.shutdown()
-    cancel_handle.cancel()
+    task.cancel()
