@@ -252,11 +252,12 @@ class Server:
     async def shutdown(self, sockets: Optional[List[socket.socket]] = None) -> None:
         logger.info("Shutting down")
 
+        # Close the sockets first before closing the servers
+        for sock in sockets or []:
+            sock.close()
         # Stop accepting new connections.
         for server in self.servers:
             server.close()
-        for sock in sockets or []:
-            sock.close()
         for server in self.servers:
             await server.wait_closed()
 
