@@ -32,6 +32,7 @@ class WSProtocol(asyncio.Protocol):
         # Shared server state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
+        self.default_headers = server_state.default_headers
 
         # Connection state
         self.transport = None
@@ -253,7 +254,7 @@ class WSProtocol(asyncio.Protocol):
                 )
                 self.handshake_complete = True
                 subprotocol = message.get("subprotocol")
-                extra_headers = message.get("headers", [])
+                extra_headers = self.default_headers + list(message.get("headers", []))
                 extensions = []
                 if self.config.ws_per_message_deflate:
                     extensions.append(PerMessageDeflate())

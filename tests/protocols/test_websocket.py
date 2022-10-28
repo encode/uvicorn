@@ -10,6 +10,7 @@ from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 try:
     import websockets
+    import websockets.exceptions
     from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
 
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
@@ -18,8 +19,8 @@ except ImportError:  # pragma: nocover
     WebSocketProtocol = None
     ClientPerMessageDeflateFactory = None
 
-
 ONLY_WEBSOCKETPROTOCOL = [p for p in [WebSocketProtocol] if p is not None]
+ONLY_WS_PROTOCOL = [p for p in [WSProtocol] if p is not None]
 WS_PROTOCOLS = [p for p in [WSProtocol, WebSocketProtocol] if p is not None]
 pytestmark = pytest.mark.skipif(
     websockets is None, reason="This test needs the websockets module"
@@ -658,3 +659,100 @@ async def test_server_can_read_messages_in_buffer_after_close(
         await send_text("ws://127.0.0.1:8000")
 
     assert frames == [b"abc", b"abc", b"abc"]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_default_server_headers(ws_protocol_cls, http_protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+    async def open_connection(url):
+        async with websockets.connect(url) as websocket:
+            return websocket.response_headers
+
+    config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        headers = await open_connection("ws://127.0.0.1:8000")
+        assert headers.get("server") == "uvicorn" and "date" in headers
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_no_server_headers(ws_protocol_cls, http_protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+    async def open_connection(url):
+        async with websockets.connect(url) as websocket:
+            return websocket.response_headers
+
+    config = Config(
+        app=App,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        server_header=False,
+    )
+    async with run_server(config):
+        headers = await open_connection("ws://127.0.0.1:8000")
+        assert "server" not in headers
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", ONLY_WS_PROTOCOL)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_no_date_header(ws_protocol_cls, http_protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+    async def open_connection(url):
+        async with websockets.connect(url) as websocket:
+            return websocket.response_headers
+
+    config = Config(
+        app=App,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        date_header=False,
+    )
+    async with run_server(config):
+        headers = await open_connection("ws://127.0.0.1:8000")
+        assert "date" not in headers
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_multiple_server_header(ws_protocol_cls, http_protocol_cls):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send(
+                {
+                    "type": "websocket.accept",
+                    "headers": [
+                        (b"Server", b"over-ridden"),
+                        (b"Server", b"another-value"),
+                    ],
+                }
+            )
+
+    async def open_connection(url):
+        async with websockets.connect(url) as websocket:
+            return websocket.response_headers
+
+    config = Config(
+        app=App,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+    )
+    async with run_server(config):
+        headers = await open_connection("ws://127.0.0.1:8000")
+        assert headers.get_all("Server") == ["uvicorn", "over-ridden", "another-value"]
