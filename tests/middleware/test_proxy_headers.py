@@ -34,6 +34,8 @@ async def app(
         ("127.0.0.1, 10.0.0.1", "Remote: https://1.2.3.4:0"),
         # request from untrusted proxy
         ("192.168.0.1", "Remote: http://127.0.0.1:123"),
+        # check when trusted host is same as x-forward-for
+        (["127.0.0.1", "1.2.3.4"], "Remote: https://None:0"),
     ],
 )
 async def test_proxy_headers_trusted_hosts(
