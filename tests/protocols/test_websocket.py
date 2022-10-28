@@ -762,7 +762,7 @@ async def test_multiple_server_header(ws_protocol_cls, http_protocol_cls):
 @pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_server_shutdown_when_connection_active_in_ws(
+async def test_server_shutdown_when_connection_active(
     ws_protocol_cls, http_protocol_cls
 ):
     class App(WebSocketResponse):
