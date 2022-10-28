@@ -3,7 +3,6 @@ import logging
 import signal
 import sys
 from typing import Any
-import threading
 
 from gunicorn.arbiter import Arbiter
 from gunicorn.workers.base import Worker
@@ -82,9 +81,6 @@ class UvicornWorker(Worker):
         - https://github.com/encode/uvicorn/issues/1116
         - https://github.com/benoitc/gunicorn/issues/2604
         """
-        if threading.current_thread() is not threading.main_thread():
-            # Signals can only be listened to from the main thread.
-            return
 
         loop = asyncio.get_running_loop()
         loop.add_signal_handler(signal.SIGQUIT, self.handle_exit, signal.SIGQUIT, None)
