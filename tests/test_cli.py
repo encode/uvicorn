@@ -95,6 +95,7 @@ def test_cli_call_multiprocess_run() -> None:
 def test_cli_uds(tmp_path: Path) -> None:  # pragma: py-win32
     runner = CliRunner()
     uds_file = tmp_path / "uvicorn.sock"
+    uds_file.touch(exist_ok=True)
 
     with mock.patch.object(Config, "bind_socket") as mock_bind_socket:
         with mock.patch.object(Multiprocess, "run") as mock_run:
