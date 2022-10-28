@@ -756,5 +756,3 @@ async def test_multiple_server_header(ws_protocol_cls, http_protocol_cls):
     async with run_server(config):
         headers = await open_connection("ws://127.0.0.1:8000")
         assert headers.get_all("Server") == ["uvicorn", "over-ridden", "another-value"]
-
-
