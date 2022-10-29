@@ -1,6 +1,5 @@
 import asyncio
 import os
-import traceback
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 
@@ -14,8 +13,6 @@ async def run_server(config: Config, sockets=None):
     await asyncio.sleep(0.1)
     try:
         yield server
-    except BaseException:  # pragma: no cover
-        traceback.print_exc()
     finally:
         await server.shutdown()
         task.cancel()
