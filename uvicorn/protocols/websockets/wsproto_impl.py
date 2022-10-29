@@ -91,7 +91,9 @@ class WSProtocol(asyncio.Protocol):
                 self.transport.write(self.conn.send(err.event_hint))
                 self.transport.close()
             else:
-                self.handle_no_connect(events.CloseConnection(code=1007))
+                # Response with the "1002 Protocol Error" code.
+                # See https://www.iana.org/assignments/websocket/websocket.xhtml#close-code-number
+                self.handle_no_connect(events.CloseConnection(code=1002))
         else:
             self.handle_events()
 
