@@ -1,5 +1,12 @@
+import asyncio
 import contextlib
 import logging
+import os
+import sys
+from hashlib import md5
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from uuid import uuid4
 
 import httpx
 import pytest
@@ -34,6 +41,41 @@ async def app(scope, receive, send):
     assert scope["type"] == "http"
     await send({"type": "http.response.start", "status": 204, "headers": []})
     await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+
+@pytest.fixture
+def short_socket_name(tmp_path, tmp_path_factory):  # pragma: py-win32
+    max_sock_len = 100
+    socket_filename = "my.sock"
+    identifier = f"{uuid4()}-"
+    identifier_len = len(identifier.encode())
+    tmp_dir = Path("/tmp").resolve()
+    os_tmp_dir = Path(os.getenv("TMPDIR", "/tmp")).resolve()
+    basetemp = Path(
+        str(tmp_path_factory.getbasetemp()),
+    ).resolve()
+    hash_basetemp = md5(
+        str(basetemp).encode(),
+    ).hexdigest()
+
+    def make_tmp_dir(base_dir):
+        return TemporaryDirectory(
+            dir=str(base_dir),
+            prefix="p-",
+            suffix=f"-{hash_basetemp}",
+        )
+
+    paths = basetemp, os_tmp_dir, tmp_dir
+    for num, tmp_dir_path in enumerate(paths, 1):
+        with make_tmp_dir(tmp_dir_path) as tmpd:
+            tmpd = Path(tmpd).resolve()
+            sock_path = str(tmpd / socket_filename)
+            sock_path_len = len(sock_path.encode())
+            if sock_path_len <= max_sock_len:
+                if max_sock_len - sock_path_len >= identifier_len:  # pragma: no cover
+                    sock_path = str(tmpd / "".join((identifier, socket_filename)))
+                yield sock_path
+                return
 
 
 @pytest.mark.anyio
@@ -152,6 +194,29 @@ async def test_default_logging(use_colors, caplog, logging_config):
         assert "Application startup complete" in messages.pop(0)
         assert "Uvicorn running on http://127.0.0.1:8000" in messages.pop(0)
         assert '"GET / HTTP/1.1" 204' in messages.pop(0)
+        assert "Shutting down" in messages.pop(0)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("use_colors", [(True), (False)])
+@pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
+async def test_default_logging_with_uds(
+    use_colors, caplog, logging_config, short_socket_name
+):
+    config = Config(
+        app=app, use_colors=use_colors, log_config=logging_config, uds=short_socket_name
+    )
+    with caplog_for_logger(caplog, "uvicorn.access"):
+        async with run_server(config):
+            await asyncio.sleep(0.1)
+        messages = [
+            record.message for record in caplog.records if "uvicorn" in record.name
+        ]
+        assert "Started server process" in messages.pop(0)
+        assert "Waiting for application startup" in messages.pop(0)
+        assert "ASGI 'lifespan' protocol appears unsupported" in messages.pop(0)
+        assert "Application startup complete" in messages.pop(0)
+        assert "Uvicorn running on unix socket " + short_socket_name in messages.pop(0)
         assert "Shutting down" in messages.pop(0)
 
 
