@@ -1,4 +1,3 @@
-import asyncio
 import contextlib
 import logging
 import os
@@ -208,7 +207,11 @@ async def test_default_logging_with_uds(
     )
     with caplog_for_logger(caplog, "uvicorn.access"):
         async with run_server(config):
-            await asyncio.sleep(0.1)
+            transport = httpx.AsyncHTTPTransport(uds=short_socket_name)
+            async with httpx.AsyncClient(transport=transport) as client:
+                response = await client.get("http://my")
+        assert response.status_code == 204
+
         messages = [
             record.message for record in caplog.records if "uvicorn" in record.name
         ]
@@ -217,6 +220,7 @@ async def test_default_logging_with_uds(
         assert "ASGI 'lifespan' protocol appears unsupported" in messages.pop(0)
         assert "Application startup complete" in messages.pop(0)
         assert "Uvicorn running on unix socket " + short_socket_name in messages.pop(0)
+        assert '"GET / HTTP/1.1" 204' in messages.pop(0)
         assert "Shutting down" in messages.pop(0)
 
 
