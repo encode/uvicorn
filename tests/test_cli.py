@@ -92,7 +92,9 @@ def test_cli_call_multiprocess_run() -> None:
 
 
 @pytest.fixture(params=(True, False))
-def uds_file(tmp_path: Path, request: pytest.FixtureRequest) -> Path:
+def uds_file(
+    tmp_path: Path, request: pytest.FixtureRequest
+) -> Path:  # pragma: py-win32
     file = tmp_path / "uvicorn.sock"
     should_create_file = request.param
     if should_create_file:
