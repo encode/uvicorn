@@ -507,7 +507,10 @@ def test_ws_max_size() -> None:
 )
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
 def test_bind_unix_socket_works_with_reload_or_workers(
-    tmp_path, reload, workers, short_socket_name,
+    tmp_path,
+    reload,
+    workers,
+    short_socket_name,
     caplog: pytest.LogCaptureFixture,
 ):  # pragma: py-win32
     config = Config(app=asgi_app, uds=short_socket_name, reload=reload, workers=workers)
