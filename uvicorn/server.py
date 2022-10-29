@@ -174,14 +174,14 @@ class Server:
     def _log_started_message(self, listeners: Sequence[socket.SocketType]) -> None:
         config = self.config
 
-        if config.fd is not None:
+        if config.fd is not None:  # pragma: py-win32
             sock = listeners[0]
             logger.info(
                 "Uvicorn running on socket %s (Press CTRL+C to quit)",
                 sock.getsockname(),
             )
 
-        elif config.uds is not None:
+        elif config.uds is not None:  # pragma: py-win32
             logger.info(
                 "Uvicorn running on unix socket %s (Press CTRL+C to quit)", config.uds
             )
