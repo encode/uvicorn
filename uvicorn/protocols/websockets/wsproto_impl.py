@@ -87,13 +87,8 @@ class WSProtocol(asyncio.Protocol):
         try:
             self.conn.receive_data(data)
         except RemoteProtocolError as err:
-            if err.event_hint is not None:
-                self.transport.write(self.conn.send(err.event_hint))
-                self.transport.close()
-            else:
-                # Response with the "1002 Protocol Error" code.
-                # See https://www.iana.org/assignments/websocket/websocket.xhtml#close-code-number
-                self.handle_no_connect(events.CloseConnection(code=1002))
+            self.transport.write(self.conn.send(err.event_hint))
+            self.transport.close()
         else:
             self.handle_events()
 
