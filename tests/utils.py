@@ -14,7 +14,7 @@ async def run_server(config: Config, sockets=None):
     await asyncio.sleep(0.1)
     try:
         yield server
-    except BaseException:
+    except BaseException:  # pragma: no cover
         traceback.print_exc()
     finally:
         await server.shutdown()

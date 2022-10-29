@@ -581,6 +581,38 @@ async def test_not_accept_on_connection_lost(ws_protocol_cls, http_protocol_cls)
 @pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_send_close_on_server_shutdown(ws_protocol_cls, http_protocol_cls):
+    disconnect_message = {}
+
+    async def app(scope, receive, send):
+        nonlocal disconnect_message
+        while True:
+            message = await receive()
+            if message["type"] == "websocket.connect":
+                await send({"type": "websocket.accept"})
+            elif message["type"] == "websocket.disconnect":
+                disconnect_message = message
+                break
+
+    async def websocket_session(uri):
+        async with websockets.client.connect(uri):
+            while True:
+                await asyncio.sleep(0.1)
+
+    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        task = asyncio.create_task(websocket_session("ws://127.0.0.1:8000"))
+        await asyncio.sleep(0.1)
+        disconnect_message_before_shutdown = disconnect_message
+
+    assert disconnect_message_before_shutdown == {}
+    assert disconnect_message == {"type": "websocket.disconnect", "code": 1012}
+    task.cancel()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 @pytest.mark.parametrize("subprotocol", ["proto1", "proto2"])
 async def test_subprotocols(ws_protocol_cls, http_protocol_cls, subprotocol):
     class App(WebSocketResponse):
