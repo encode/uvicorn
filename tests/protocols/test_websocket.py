@@ -528,7 +528,6 @@ async def test_client_connection_lost(ws_protocol_cls, http_protocol_cls):
         while True:
             message = await receive()
             if message["type"] == "websocket.connect":
-                print("accepted")
                 await send({"type": "websocket.accept"})
             elif message["type"] == "websocket.disconnect":
                 break
@@ -549,6 +548,34 @@ async def test_client_connection_lost(ws_protocol_cls, http_protocol_cls):
             got_disconnect_event_before_shutdown = got_disconnect_event
 
     assert got_disconnect_event_before_shutdown is True
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_not_accept_on_connection_lost(ws_protocol_cls, http_protocol_cls):
+    send_accept_task = asyncio.Event()
+
+    async def app(scope, receive, send):
+        while True:
+            message = await receive()
+            if message["type"] == "websocket.connect":
+                await send_accept_task.wait()
+                await send({"type": "websocket.accept"})
+            elif message["type"] == "websocket.disconnect":
+                break
+
+    async def websocket_session(uri):
+        async with websockets.client.connect(uri):
+            while True:
+                await asyncio.sleep(0.1)
+
+    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
+    async with run_server(config):
+        task = asyncio.create_task(websocket_session("ws://127.0.0.1:8000"))
+        await asyncio.sleep(0.1)
+        task.cancel()
+        send_accept_task.set()
 
 
 @pytest.mark.anyio
