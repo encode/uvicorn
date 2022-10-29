@@ -29,6 +29,7 @@ nav:
   - Contributing: "contributing.md"
 
 markdown_extensions:
+  - pymdownx.superfences
   - admonition
   - codehilite:
       css_class: highlight

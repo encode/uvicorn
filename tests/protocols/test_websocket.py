@@ -11,6 +11,7 @@ from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 try:
     import websockets
+    import websockets.client
     import websockets.exceptions
     from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
 
@@ -65,7 +66,6 @@ async def test_invalid_upgrade(ws_protocol_cls, http_protocol_cls):
                     "connection": "upgrade",
                     "sec-webSocket-version": "11",
                 },
-                timeout=5,
             )
         if response.status_code == 426:
             # response.text == ""
@@ -516,6 +516,40 @@ async def test_client_close(ws_protocol_cls, http_protocol_cls):
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
     async with run_server(config):
         await websocket_session("ws://127.0.0.1:8000")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_client_connection_lost(ws_protocol_cls, http_protocol_cls):
+    got_disconnect_event = False
+
+    async def app(scope, receive, send):
+        nonlocal got_disconnect_event
+        while True:
+            message = await receive()
+            if message["type"] == "websocket.connect":
+                print("accepted")
+                await send({"type": "websocket.accept"})
+            elif message["type"] == "websocket.disconnect":
+                break
+
+        got_disconnect_event = True
+
+    config = Config(
+        app=app,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        ws_ping_interval=0.0,
+    )
+    async with run_server(config):
+        async with websockets.client.connect("ws://127.0.0.1:8000") as websocket:
+            websocket.transport.close()
+            await asyncio.sleep(0.1)
+            got_disconnect_event_before_shutdown = got_disconnect_event
+
+    assert got_disconnect_event_before_shutdown is True
 
 
 @pytest.mark.anyio
