@@ -533,8 +533,8 @@ class RequestResponseCycle:
 
     async def receive(self) -> "ASGIReceiveEvent":
         if self.waiting_for_100_continue and not self.transport.is_closing():
-            event = h11.InformationalResponse(  # type: ignore[arg-type]
-                status_code=100, headers=[], reason="Continue"
+            event = h11.InformationalResponse(
+                status_code=100, headers=[], reason="Continue"  # type: ignore[arg-type]
             )
             output = self.conn.send(event)
             self.transport.write(output)
