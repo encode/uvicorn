@@ -26,6 +26,7 @@ cryptography==38.0.1
 coverage==6.5.0
 coverage-conditional-plugin==0.7.0
 httpx==0.23.0
+httpcore @ git+https://github.com/encode/httpcore.git
 watchgod==0.8.2
 
 # Documentation

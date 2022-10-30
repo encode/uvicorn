@@ -30,7 +30,7 @@ classifiers = [
 ]
 dependencies = [
     "click>=7.0",
-    "h11>=0.8",
+    "h11 @ git+https://github.com/pgjones/h11.git@master",
     "typing-extensions;python_version < '3.8'",
 ]
 
@@ -61,3 +61,6 @@ path = "uvicorn/__init__.py"
 include = [
     "/uvicorn",
 ]
+
+[tool.hatch.metadata]
+allow-direct-references = true

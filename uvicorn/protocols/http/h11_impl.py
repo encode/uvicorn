@@ -193,10 +193,10 @@ class H11Protocol(asyncio.Protocol):
                 return
             event_type = type(event)
 
-            if event_type is h11.NEED_DATA:
+            if event is h11.NEED_DATA:
                 break
 
-            elif event_type is h11.PAUSED:
+            elif event is h11.PAUSED:
                 # This case can occur in HTTP pipelining, so we need to
                 # stop reading any more data, and ensure that at the end
                 # of the active request/response cycle we handle any
@@ -205,6 +205,7 @@ class H11Protocol(asyncio.Protocol):
                 break
 
             elif event_type is h11.Request:
+                event = cast(h11.Request, event)
                 self.headers = [(key.lower(), value) for key, value in event.headers]
                 raw_path, _, query_string = event.target.partition(b"?")
                 self.scope = {  # type: ignore[typeddict-item]
@@ -258,6 +259,7 @@ class H11Protocol(asyncio.Protocol):
                 self.tasks.add(task)
 
             elif event_type is h11.Data:
+                event = cast(h11.Data, event)
                 if self.conn.our_state is h11.DONE:
                     continue
                 self.cycle.body += event.data
@@ -266,6 +268,7 @@ class H11Protocol(asyncio.Protocol):
                 self.cycle.message_event.set()
 
             elif event_type is h11.EndOfMessage:
+                event = cast(h11.EndOfMessage, event)
                 if self.conn.our_state is h11.DONE:
                     self.transport.resume_reading()
                     self.conn.start_next_cycle()
@@ -273,7 +276,7 @@ class H11Protocol(asyncio.Protocol):
                 self.cycle.more_body = False
                 self.cycle.message_event.set()
 
-    def handle_websocket_upgrade(self, event: H11Event) -> None:
+    def handle_websocket_upgrade(self, event: h11.Request) -> None:
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sUpgrading to WebSocket", prefix)
@@ -300,11 +303,9 @@ class H11Protocol(asyncio.Protocol):
         event = h11.Response(status_code=400, headers=headers, reason=reason)
         output = self.conn.send(event)
         self.transport.write(output)
-        event = h11.Data(data=msg.encode("ascii"))
-        output = self.conn.send(event)
+        output = self.conn.send(h11.Data(data=msg.encode("ascii")))
         self.transport.write(output)
-        event = h11.EndOfMessage()
-        output = self.conn.send(event)
+        output = self.conn.send(h11.EndOfMessage())
         self.transport.write(output)
         self.transport.close()
 
@@ -506,18 +507,17 @@ class RequestResponseCycle:
 
             # Write response body
             if self.scope["method"] == "HEAD":
-                event = h11.Data(data=b"")
+                data = b""
             else:
-                event = h11.Data(data=body)
-            output = self.conn.send(event)
+                data = body
+            output = self.conn.send(h11.Data(data=data))
             self.transport.write(output)
 
             # Handle response completion
             if not more_body:
                 self.response_complete = True
                 self.message_event.set()
-                event = h11.EndOfMessage()
-                output = self.conn.send(event)
+                output = self.conn.send(h11.EndOfMessage())
                 self.transport.write(output)
 
         else:
@@ -527,14 +527,13 @@ class RequestResponseCycle:
 
         if self.response_complete:
             if self.conn.our_state is h11.MUST_CLOSE or not self.keep_alive:
-                event = h11.ConnectionClosed()
-                self.conn.send(event)
+                self.conn.send(h11.ConnectionClosed())
                 self.transport.close()
             self.on_response()
 
     async def receive(self) -> "ASGIReceiveEvent":
         if self.waiting_for_100_continue and not self.transport.is_closing():
-            event = h11.InformationalResponse(
+            event = h11.InformationalResponse(  # type: ignore[arg-type]
                 status_code=100, headers=[], reason="Continue"
             )
             output = self.conn.send(event)
