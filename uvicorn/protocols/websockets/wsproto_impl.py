@@ -87,11 +87,8 @@ class WSProtocol(asyncio.Protocol):
         try:
             self.conn.receive_data(data)
         except RemoteProtocolError as err:
-            if err.event_hint is not None:
-                self.transport.write(self.conn.send(err.event_hint))
-                self.transport.close()
-            else:
-                self.handle_no_connect(events.CloseConnection())
+            self.transport.write(self.conn.send(err.event_hint))
+            self.transport.close()
         else:
             self.handle_events()
 
