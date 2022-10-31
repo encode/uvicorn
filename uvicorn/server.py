@@ -120,7 +120,7 @@ class Server:
                 self.servers.append(server)
             listeners = sockets
 
-        elif config.fd is not None:
+        elif config.fd is not None:  # pragma: py-win32
             # Use an existing socket, from a file descriptor.
             sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
             server = await loop.create_server(
@@ -130,7 +130,7 @@ class Server:
             listeners = server.sockets
             self.servers = [server]
 
-        elif config.uds is not None:
+        elif config.uds is not None:  # pragma: py-win32
             # Create a socket using UNIX domain socket.
             uds_perms = 0o666
             if os.path.exists(config.uds):
