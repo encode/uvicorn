@@ -306,8 +306,8 @@ async def test_keepalive_timeout_concurrency(protocol_cls):
 
     # Assume we have two request(A, B), receiving data at the same time. A completes quickly,
     # B takes more than keepalive_timeout(=5s) to await
-    protocol.data_received(SIMPLE_GET_REQUEST) # request A
-    protocol.data_received(SIMPLE_GET_REQUEST) # request B
+    protocol.data_received(SIMPLE_GET_REQUEST)  # request A
+    protocol.data_received(SIMPLE_GET_REQUEST)  # request B
 
     await protocol.loop.run_one()
     assert not protocol.transport.is_closing()
