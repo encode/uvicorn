@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import socket
 import threading
@@ -160,24 +161,39 @@ class MockLoop:
         return MockTask()
 
     def call_later(self, delay, callback, *args):
-        self._later.insert(0, (delay, callback, args))
+        task = MockTimerHandle(callback, *args)
+        self._later.insert(0, (delay, task))
+        return task
 
     async def run_one(self):
         return await self._tasks.pop()
 
     def run_later(self, with_delay):
         later = []
-        for delay, callback, args in self._later:
+        for delay, task in self._later:
             if with_delay >= delay:
-                callback(*args)
+                task()
             else:
-                later.append((delay, callback, args))
+                later.append((delay, task))
         self._later = later
 
 
 class MockTask:
     def add_done_callback(self, callback):
         pass
+
+
+class MockTimerHandle:
+    def __init__(self, cb, *args):
+        self.todo = (cb, args)
+        self.cancelled = False
+
+    def cancel(self):
+        self.cancelled = True
+
+    def __call__(self):
+        if not self.cancelled:
+            self.todo[0](*self.todo[1])
 
 
 def get_connected_protocol(app, protocol_cls, **kwargs):
@@ -277,6 +293,33 @@ async def test_keepalive_timeout(protocol_cls):
     assert not protocol.transport.is_closing()
     protocol.loop.run_later(with_delay=1)
     assert not protocol.transport.is_closing()
+    protocol.loop.run_later(with_delay=5)
+    assert protocol.transport.is_closing()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+async def test_keepalive_timeout_concurrency(protocol_cls):
+    app = Response(b"", status_code=204)
+
+    protocol = get_connected_protocol(app, protocol_cls)
+
+    # Assume we have two request(A, B), receiving data at the same time. A completes quickly,
+    # B takes more than keepalive_timeout(=5s) to await
+    protocol.data_received(SIMPLE_GET_REQUEST) # request A
+    protocol.data_received(SIMPLE_GET_REQUEST) # request B
+
+    await protocol.loop.run_one()
+    assert not protocol.transport.is_closing()
+
+    # Connection will NOT be closed after 5 seconds, because the timeout_keep_alive_task
+    # is cancelled when request B starts to handle.
+    protocol.loop.run_later(with_delay=5)
+    assert not protocol.transport.is_closing()
+
+    # When B complete, timeout_keep_alive_task start and the connection will be closed
+    # after 5 seconds.
+    await protocol.loop.run_one()
     protocol.loop.run_later(with_delay=5)
     assert protocol.transport.is_closing()
 

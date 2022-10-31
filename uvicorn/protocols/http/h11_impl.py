@@ -177,7 +177,6 @@ class H11Protocol(asyncio.Protocol):
         return True
 
     def data_received(self, data: bytes) -> None:
-        self._unset_keepalive_if_required()
 
         self.conn.receive_data(data)
         self.handle_events()
@@ -253,6 +252,7 @@ class H11Protocol(asyncio.Protocol):
                     message_event=asyncio.Event(),
                     on_response=self.on_response_complete,
                 )
+                self._unset_keepalive_if_required()
                 task = self.loop.create_task(self.cycle.run_asgi(app))
                 task.add_done_callback(self.tasks.discard)
                 self.tasks.add(task)

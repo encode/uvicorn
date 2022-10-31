@@ -175,7 +175,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         return self._should_upgrade_to_ws(upgrade)
 
     def data_received(self, data: bytes) -> None:
-        self._unset_keepalive_if_required()
 
         try:
             self.parser.feed_data(data)
@@ -291,6 +290,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             keep_alive=http_version != "1.0",
             on_response=self.on_response_complete,
         )
+        self._unset_keepalive_if_required()
         if existing_cycle is None or existing_cycle.response_complete:
             # Standard case - start processing the request.
             task = self.loop.create_task(self.cycle.run_asgi(app))
