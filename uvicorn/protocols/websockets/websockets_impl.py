@@ -108,9 +108,9 @@ class WebSocketProtocol(WebSocketServerProtocol):
         )
         self.server_header = None
         self.extra_headers = [
-                (name.decode("latin-1"), value.decode("latin-1"))
-                for name, value in server_state.default_headers
-            ]
+            (name.decode("latin-1"), value.decode("latin-1"))
+            for name, value in server_state.default_headers
+        ]
 
     def connection_made(  # type: ignore[override]
         self, transport: asyncio.Transport
