@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import socket
 import threading
@@ -304,8 +303,8 @@ async def test_keepalive_timeout_concurrency(protocol_cls):
 
     protocol = get_connected_protocol(app, protocol_cls)
 
-    # Assume we have two request(A, B), receiving data at the same time. A completes quickly,
-    # B takes more than keepalive_timeout(=5s) to await
+    # Assume we have two request(A, B), receiving data at the same time.
+    # A completes quickly, B takes more than keepalive_timeout(=5s) to await
     protocol.data_received(SIMPLE_GET_REQUEST)  # request A
     protocol.data_received(SIMPLE_GET_REQUEST)  # request B
 
