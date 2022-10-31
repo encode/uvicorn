@@ -103,14 +103,14 @@ class WebSocketProtocol(WebSocketServerProtocol):
             max_size=self.config.ws_max_size,
             ping_interval=self.config.ws_ping_interval,
             ping_timeout=self.config.ws_ping_timeout,
-            server_header=None,
             extensions=extensions,
             logger=logging.getLogger("uvicorn.error"),
-            extra_headers=[
+        )
+        self.server_header = None
+        self.extra_headers = [
                 (name.decode("latin-1"), value.decode("latin-1"))
                 for name, value in server_state.default_headers
-            ],
-        )
+            ]
 
     def connection_made(  # type: ignore[override]
         self, transport: asyncio.Transport
