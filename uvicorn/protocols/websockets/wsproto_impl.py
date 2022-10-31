@@ -122,9 +122,12 @@ class WSProtocol(asyncio.Protocol):
         self.writable.set()
 
     def shutdown(self):
-        self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
-        output = self.conn.send(wsproto.events.CloseConnection(code=1012))
-        self.transport.write(output)
+        if self.handshake_complete:
+            self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
+            output = self.conn.send(wsproto.events.CloseConnection(code=1012))
+            self.transport.write(output)
+        else:
+            self.send_500_response()
         self.transport.close()
 
     def on_task_complete(self, task):
@@ -219,9 +222,8 @@ class WSProtocol(asyncio.Protocol):
     async def run_asgi(self):
         try:
             result = await self.app(self.scope, self.receive, self.send)
-        except BaseException as exc:
-            msg = "Exception in ASGI application\n"
-            self.logger.error(msg, exc_info=exc)
+        except BaseException:
+            self.logger.exception("Exception in ASGI application\n")
             if not self.handshake_complete:
                 self.send_500_response()
             self.transport.close()
@@ -254,14 +256,15 @@ class WSProtocol(asyncio.Protocol):
                 extensions = []
                 if self.config.ws_per_message_deflate:
                     extensions.append(PerMessageDeflate())
-                output = self.conn.send(
-                    wsproto.events.AcceptConnection(
-                        subprotocol=subprotocol,
-                        extensions=extensions,
-                        extra_headers=extra_headers,
+                if not self.transport.is_closing():
+                    output = self.conn.send(
+                        wsproto.events.AcceptConnection(
+                            subprotocol=subprotocol,
+                            extensions=extensions,
+                            extra_headers=extra_headers,
+                        )
                     )
-                )
-                self.transport.write(output)
+                    self.transport.write(output)
 
             elif message_type == "websocket.close":
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": None})

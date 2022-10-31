@@ -345,6 +345,8 @@ class WebSocketProtocol(WebSocketServerProtocol):
             data = await self.recv()
         except ConnectionClosed as exc:
             self.closed_event.set()
+            if self.ws_server.closing:
+                return {"type": "websocket.disconnect", "code": 1012}
             return {"type": "websocket.disconnect", "code": exc.code}
 
         msg: WebSocketReceiveEvent = {  # type: ignore[typeddict-item]
