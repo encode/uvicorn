@@ -2,7 +2,7 @@ import asyncio
 import logging
 import signal
 import sys
-from typing import Any
+from typing import Any, Dict
 
 from gunicorn.arbiter import Arbiter
 from gunicorn.workers.base import Worker
@@ -17,7 +17,7 @@ class UvicornWorker(Worker):
     rather than a WSGI callable.
     """
 
-    CONFIG_KWARGS = {"loop": "auto", "http": "auto"}
+    CONFIG_KWARGS: Dict[str, Any] = {"loop": "auto", "http": "auto"}
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(UvicornWorker, self).__init__(*args, **kwargs)
