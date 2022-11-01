@@ -88,6 +88,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.closed_event = asyncio.Event()
         self.initial_response: Optional[HTTPResponse] = None
         self.connect_sent = False
+        self.lost_connection_before_handshake = False
         self.accepted_subprotocol: Optional[Subprotocol] = None
         self.transfer_data_task: asyncio.Task = None  # type: ignore[assignment]
 
@@ -134,6 +135,9 @@ class WebSocketProtocol(WebSocketServerProtocol):
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection lost", prefix)
 
+        self.lost_connection_before_handshake = (
+            not self.handshake_completed_event.is_set()
+        )
         self.handshake_completed_event.set()
         super().connection_lost(exc)
         if exc is None:
@@ -335,11 +339,13 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
         await self.handshake_completed_event.wait()
 
-        if self.closed_event.is_set():
-            # If client disconnected, use WebSocketServerProtocol.close_code property.
+        if self.lost_connection_before_handshake:
             # If the handshake failed or the app closed before handshake completion,
             # use 1006 Abnormal Closure.
-            return {"type": "websocket.disconnect", "code": self.close_code or 1006}
+            return {"type": "websocket.disconnect", "code": 1006}
+
+        if self.closed_event.is_set():
+            return {"type": "websocket.disconnect", "code": 1005}
 
         try:
             data = await self.recv()

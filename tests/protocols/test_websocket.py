@@ -553,7 +553,9 @@ async def test_client_connection_lost(ws_protocol_cls, http_protocol_cls):
 @pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_not_accept_on_connection_lost(ws_protocol_cls, http_protocol_cls):
+async def test_connection_lost_before_handshake_complete(
+    ws_protocol_cls, http_protocol_cls
+):
     send_accept_task = asyncio.Event()
     disconnect_message = {}
 

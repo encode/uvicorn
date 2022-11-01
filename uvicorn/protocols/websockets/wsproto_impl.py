@@ -70,13 +70,15 @@ class WSProtocol(asyncio.Protocol):
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection made", prefix)
 
     def connection_lost(self, exc):
-        self.queue.put_nowait({"type": "websocket.disconnect", "code": 1005})
+        code = 1005 if self.handshake_complete else 1006
+        self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
         self.connections.remove(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % tuple(self.client) if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection lost", prefix)
 
+        self.handshake_complete = True
         if exc is None:
             self.transport.close()
 
@@ -250,13 +252,13 @@ class WSProtocol(asyncio.Protocol):
                     self.scope["client"],
                     get_path_with_query_string(self.scope),
                 )
-                self.handshake_complete = True
                 subprotocol = message.get("subprotocol")
                 extra_headers = self.default_headers + list(message.get("headers", []))
                 extensions = []
                 if self.config.ws_per_message_deflate:
                     extensions.append(PerMessageDeflate())
                 if not self.transport.is_closing():
+                    self.handshake_complete = True
                     output = self.conn.send(
                         wsproto.events.AcceptConnection(
                             subprotocol=subprotocol,
