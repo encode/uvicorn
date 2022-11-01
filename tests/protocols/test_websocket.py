@@ -555,15 +555,15 @@ async def test_client_connection_lost(ws_protocol_cls, http_protocol_cls):
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_not_accept_on_connection_lost(ws_protocol_cls, http_protocol_cls):
     send_accept_task = asyncio.Event()
+    disconnect_message = {}
 
     async def app(scope, receive, send):
-        while True:
-            message = await receive()
-            if message["type"] == "websocket.connect":
-                await send_accept_task.wait()
-                await send({"type": "websocket.accept"})
-            elif message["type"] == "websocket.disconnect":
-                break
+        nonlocal disconnect_message
+        message = await receive()
+        if message["type"] == "websocket.connect":
+            await send_accept_task.wait()
+            await send({"type": "websocket.accept"})
+        disconnect_message = await receive()
 
     async def websocket_session(uri):
         async with websockets.client.connect(uri):
@@ -576,6 +576,8 @@ async def test_not_accept_on_connection_lost(ws_protocol_cls, http_protocol_cls)
         await asyncio.sleep(0.1)
         task.cancel()
         send_accept_task.set()
+
+    assert disconnect_message == {"type": "websocket.disconnect", "code": 1006}
 
 
 @pytest.mark.anyio
@@ -729,6 +731,7 @@ async def test_server_can_read_messages_in_buffer_after_close(
     ws_protocol_cls, http_protocol_cls
 ):
     frames = []
+    client_close_connection = asyncio.Event()
 
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -736,7 +739,7 @@ async def test_server_can_read_messages_in_buffer_after_close(
             # Ensure server doesn't start reading frames from read buffer until
             # after client has sent close frame, but server is still able to
             # read these frames
-            await asyncio.sleep(0.2)
+            await client_close_connection.wait()
 
         async def websocket_receive(self, message):
             frames.append(message.get("bytes"))
@@ -750,6 +753,7 @@ async def test_server_can_read_messages_in_buffer_after_close(
     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
     async with run_server(config):
         await send_text("ws://127.0.0.1:8000")
+        client_close_connection.set()
 
     assert frames == [b"abc", b"abc", b"abc"]
 
