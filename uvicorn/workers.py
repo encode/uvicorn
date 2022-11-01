@@ -77,7 +77,8 @@ class UvicornWorker(Worker):
         signal.siginterrupt(signal.SIGUSR1, False)
 
     def _install_sigquit_handler(self) -> None:
-        """Workaround to install a SIGQUIT handler on workers.
+        """Install a SIGQUIT handler on workers.
+
         - https://github.com/encode/uvicorn/issues/1116
         - https://github.com/benoitc/gunicorn/issues/2604
         """
