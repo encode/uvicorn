@@ -568,9 +568,7 @@ async def test_connection_lost_before_handshake_complete(
         disconnect_message = await receive()
 
     async def websocket_session(uri):
-        async with websockets.client.connect(uri):
-            while True:
-                await asyncio.sleep(0.1)
+        await websockets.client.connect(uri)
 
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
     async with run_server(config):
