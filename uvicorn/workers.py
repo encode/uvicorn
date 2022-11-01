@@ -76,9 +76,20 @@ class UvicornWorker(Worker):
         # Don't let SIGUSR1 disturb active requests by interrupting system calls
         signal.siginterrupt(signal.SIGUSR1, False)
 
+    def _install_sigquit_handler(self) -> None:
+        """Install a SIGQUIT handler on workers.
+
+        - https://github.com/encode/uvicorn/issues/1116
+        - https://github.com/benoitc/gunicorn/issues/2604
+        """
+
+        loop = asyncio.get_running_loop()
+        loop.add_signal_handler(signal.SIGQUIT, self.handle_exit, signal.SIGQUIT, None)
+
     async def _serve(self) -> None:
         self.config.app = self.wsgi
         server = Server(config=self.config)
+        self._install_sigquit_handler()
         await server.serve(sockets=self.sockets)
         if not server.started:
             sys.exit(Arbiter.WORKER_BOOT_ERROR)
