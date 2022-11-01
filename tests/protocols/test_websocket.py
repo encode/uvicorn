@@ -731,7 +731,7 @@ async def test_server_can_read_messages_in_buffer_after_close(
     ws_protocol_cls, http_protocol_cls
 ):
     frames = []
-    client_close_connection = asyncio.Event()
+    disconnect_message = {}
 
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -739,7 +739,11 @@ async def test_server_can_read_messages_in_buffer_after_close(
             # Ensure server doesn't start reading frames from read buffer until
             # after client has sent close frame, but server is still able to
             # read these frames
-            await client_close_connection.wait()
+            await asyncio.sleep(0.2)
+
+        async def websocket_disconnect(self, message):
+            nonlocal disconnect_message
+            disconnect_message = message
 
         async def websocket_receive(self, message):
             frames.append(message.get("bytes"))
@@ -753,9 +757,9 @@ async def test_server_can_read_messages_in_buffer_after_close(
     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off")
     async with run_server(config):
         await send_text("ws://127.0.0.1:8000")
-        client_close_connection.set()
 
     assert frames == [b"abc", b"abc", b"abc"]
+    assert disconnect_message == {"type": "websocket.disconnect", "code": 1000}
 
 
 @pytest.mark.anyio
