@@ -102,7 +102,9 @@ class Server:
             # Explicitly passed a list of open sockets.
             # We use this when the server is run from a Gunicorn worker.
 
-            def _share_socket(sock: socket.SocketType) -> socket.SocketType:
+            def _share_socket(
+                sock: socket.SocketType,
+            ) -> socket.SocketType:  # pragma py-linux pragma: py-darwin
                 # Windows requires the socket be explicitly shared across
                 # multiple workers (processes).
                 from socket import fromshare  # type: ignore
@@ -113,7 +115,7 @@ class Server:
             self.servers = []
             for sock in sockets:
                 if config.workers > 1 and platform.system() == "Windows":
-                    sock = _share_socket(sock)
+                    sock = _share_socket(sock)  # pragma py-linux pragma: py-darwin
                 server = await loop.create_server(
                     create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
                 )
