@@ -66,6 +66,11 @@ $ scripts/install
 We use custom shell scripts to automate testing, linting,
 and documentation building workflow.
 
+Activate virtual environment before testing:
+```shell
+$ source venv/bin/activate
+```
+
 To run the tests, use:
 
 ```shell
