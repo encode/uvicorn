@@ -1,5 +1,7 @@
 import contextlib
 import logging
+import socket
+import sys
 
 import httpx
 import pytest
@@ -153,6 +155,35 @@ async def test_default_logging(use_colors, caplog, logging_config):
         assert "Uvicorn running on http://127.0.0.1:8000" in messages.pop(0)
         assert '"GET / HTTP/1.1" 204' in messages.pop(0)
         assert "Shutting down" in messages.pop(0)
+
+
+@pytest.mark.anyio
+@pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
+async def test_running_log_using_uds(caplog, short_socket_name):  # pragma: py-win32
+    config = Config(app=app, uds=short_socket_name)
+    with caplog_for_logger(caplog, "uvicorn.access"):
+        async with run_server(config):
+            ...
+
+    messages = [record.message for record in caplog.records if "uvicorn" in record.name]
+    assert (
+        f"Uvicorn running on unix socket {short_socket_name} (Press CTRL+C to quit)"
+        in messages
+    )
+
+
+@pytest.mark.anyio
+@pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
+async def test_running_log_using_fd(caplog):  # pragma: py-win32
+    with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+        fd = sock.fileno()
+        config = Config(app=app, fd=fd)
+        with caplog_for_logger(caplog, "uvicorn.access"):
+            async with run_server(config):
+                ...
+        sockname = sock.getsockname()
+    messages = [record.message for record in caplog.records if "uvicorn" in record.name]
+    assert f"Uvicorn running on socket {sockname} (Press CTRL+C to quit)" in messages
 
 
 @pytest.mark.anyio

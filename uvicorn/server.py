@@ -102,7 +102,9 @@ class Server:
             # Explicitly passed a list of open sockets.
             # We use this when the server is run from a Gunicorn worker.
 
-            def _share_socket(sock: socket.SocketType) -> socket.SocketType:
+            def _share_socket(
+                sock: socket.SocketType,
+            ) -> socket.SocketType:  # pragma py-linux pragma: py-darwin
                 # Windows requires the socket be explicitly shared across
                 # multiple workers (processes).
                 from socket import fromshare  # type: ignore
@@ -113,14 +115,14 @@ class Server:
             self.servers = []
             for sock in sockets:
                 if config.workers > 1 and platform.system() == "Windows":
-                    sock = _share_socket(sock)
+                    sock = _share_socket(sock)  # pragma py-linux pragma: py-darwin
                 server = await loop.create_server(
                     create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
                 )
                 self.servers.append(server)
             listeners = sockets
 
-        elif config.fd is not None:
+        elif config.fd is not None:  # pragma: py-win32
             # Use an existing socket, from a file descriptor.
             sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
             server = await loop.create_server(
@@ -130,7 +132,7 @@ class Server:
             listeners = server.sockets
             self.servers = [server]
 
-        elif config.uds is not None:
+        elif config.uds is not None:  # pragma: py-win32
             # Create a socket using UNIX domain socket.
             uds_perms = 0o666
             if os.path.exists(config.uds):
@@ -174,14 +176,14 @@ class Server:
     def _log_started_message(self, listeners: Sequence[socket.SocketType]) -> None:
         config = self.config
 
-        if config.fd is not None:
+        if config.fd is not None:  # pragma: py-win32
             sock = listeners[0]
             logger.info(
                 "Uvicorn running on socket %s (Press CTRL+C to quit)",
                 sock.getsockname(),
             )
 
-        elif config.uds is not None:
+        elif config.uds is not None:  # pragma: py-win32
             logger.info(
                 "Uvicorn running on unix socket %s (Press CTRL+C to quit)", config.uds
             )
