@@ -1,4 +1,3 @@
-import asyncio
 import contextlib
 import logging
 import socket
