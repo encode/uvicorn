@@ -1,3 +1,4 @@
+import asyncio
 import contextlib
 import logging
 import socket
@@ -206,3 +207,24 @@ async def test_unknown_status_code(caplog):
             if record.name == "uvicorn.access"
         ]
         assert '"GET / HTTP/1.1" 599' in messages.pop()
+
+
+@pytest.mark.anyio
+async def test_server_start_with_port_zero(caplog):
+    config = Config(app=app, port=0)
+    with caplog_for_logger(caplog, "uvicorn.access"):
+        async with run_server(config) as server:
+            while not server.started:
+                await asyncio.sleep(0.1)
+            for s in server.servers:
+                for sock in s.sockets:
+                    host, port = sock.getsockname()
+        messages = [
+            record.message for record in caplog.records if "uvicorn" in record.name
+        ]
+        assert "Started server process" in messages.pop(0)
+        assert "Waiting for application startup" in messages.pop(0)
+        assert "ASGI 'lifespan' protocol appears unsupported" in messages.pop(0)
+        assert "Application startup complete" in messages.pop(0)
+        assert f"Uvicorn running on http://{host}:{port}" in messages.pop(0)
+        assert "Shutting down" in messages.pop(0)
