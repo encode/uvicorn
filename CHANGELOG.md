@@ -1,5 +1,26 @@
 # Change Log
 
+## 0.19.0 - 2022-10-19
+
+### Added
+
+- Support Python 3.11 (#1652) 16/09/22
+- Bump minimal `httptools` version to `0.5.0` (#1645) 13/09/22
+- Ignore HTTP/2 upgrade and optionally ignore WebSocket upgrade (#1661) 19/10/22
+- Add `py.typed` to comply with PEP 561 (#1687) 07/10/22
+
+### Fixed
+
+- Set `propagate` to `False` on "uvicorn" logger (#1288) 08/10/22
+- USR1 signal is now handled correctly on `UvicornWorker`. (#1565) 26/08/22
+- Use path with query string on `WebSockets` logs (#1385) 11/09/22
+- Fix behavior on which "Date" headers were not updated on the same connection (#1706) 19/10/22 
+
+### Removed
+
+- Remove the `--debug` flag (#1640) 14/09/22
+- Remove the `DebugMiddleware` (#1697) 07/10/22
+
 ## 0.18.3 - 2022-08-24
 
 ### Fixed

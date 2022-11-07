@@ -23,9 +23,9 @@ from uvicorn.protocols.utils import (
 )
 from uvicorn.server import ServerState
 
-if sys.version_info < (3, 8):
+if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
-else:
+else:  # pragma: py-lt-38
     from typing import Literal
 
 if TYPE_CHECKING:
@@ -105,8 +105,12 @@ class WebSocketProtocol(WebSocketServerProtocol):
             ping_timeout=self.config.ws_ping_timeout,
             extensions=extensions,
             logger=logging.getLogger("uvicorn.error"),
-            extra_headers=[],
         )
+        self.server_header = None
+        self.extra_headers = [
+            (name.decode("latin-1"), value.decode("latin-1"))
+            for name, value in server_state.default_headers
+        ]
 
     def connection_made(  # type: ignore[override]
         self, transport: asyncio.Transport
@@ -341,6 +345,8 @@ class WebSocketProtocol(WebSocketServerProtocol):
             data = await self.recv()
         except ConnectionClosed as exc:
             self.closed_event.set()
+            if self.ws_server.closing:
+                return {"type": "websocket.disconnect", "code": 1012}
             return {"type": "websocket.disconnect", "code": exc.code}
 
         msg: WebSocketReceiveEvent = {  # type: ignore[typeddict-item]

@@ -566,3 +566,12 @@ def test_config_use_subprocess(reload, workers, expected):
     config = Config(app=asgi_app, reload=reload, workers=workers)
     config.load()
     assert config.use_subprocess == expected
+
+
+def test_warn_when_using_reload_and_workers(caplog: pytest.LogCaptureFixture) -> None:
+    Config(app=asgi_app, reload=True, workers=2)
+    assert len(caplog.records) == 1
+    assert (
+        '"workers" flag is ignored when reloading is enabled.'
+        in caplog.records[0].message
+    )
