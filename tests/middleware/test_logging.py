@@ -206,3 +206,14 @@ async def test_unknown_status_code(caplog):
             if record.name == "uvicorn.access"
         ]
         assert '"GET / HTTP/1.1" 599' in messages.pop()
+
+
+@pytest.mark.anyio
+async def test_server_start_with_port_zero(caplog: pytest.LogCaptureFixture):
+    config = Config(app=app, port=0)
+    async with run_server(config) as server:
+        server = server.servers[0]
+        sock = server.sockets[0]
+        host, port = sock.getsockname()
+    messages = [record.message for record in caplog.records if "uvicorn" in record.name]
+    assert f"Uvicorn running on http://{host}:{port} (Press CTRL+C to quit)" in messages
