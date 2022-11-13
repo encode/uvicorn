@@ -195,7 +195,7 @@ class HttparseProtocol(asyncio.Protocol):
     def _attempt_to_parse_request(self) -> None:
         try:
             parsed = self.parser.parse(self._buffer)
-        except httparse._httparse.ParsingError:
+        except httparse.ParsingError:
             return
 
         if parsed is None:
