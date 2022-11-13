@@ -1,5 +1,8 @@
 -e .[standard]
 
+# Experimental
+httparse==0.1.1
+
 # Type annotation
 asgiref==3.5.2
 

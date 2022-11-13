@@ -14,6 +14,11 @@ except ImportError:  # pragma: no cover
     uvloop = None
 
 try:
+    import httparse
+except ImportError:  # pragma: no cover
+    httparse = None
+
+try:
     import httptools
 except ImportError:  # pragma: no cover
     httptools = None
@@ -46,7 +51,11 @@ async def test_http_auto():
     config = Config(app=app)
     server_state = ServerState()
     protocol = AutoHTTPProtocol(config=config, server_state=server_state)
-    expected_http = "H11Protocol" if httptools is None else "HttpToolsProtocol"
+    expected_http = (
+        "H11Protocol"
+        if httptools is None
+        else ("HttpToolsProtocol" if httparse is None else "HttparseProtocol")
+    )
     assert type(protocol).__name__ == expected_http
 
 

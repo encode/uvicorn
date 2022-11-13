@@ -49,7 +49,7 @@ from uvicorn.middleware.wsgi import WSGIMiddleware
 if TYPE_CHECKING:
     from asgiref.typing import ASGIApplication
 
-HTTPProtocolType = Literal["auto", "h11", "httptools"]
+HTTPProtocolType = Literal["auto", "h11", "httptools", "httparse"]
 WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
 LifespanType = Literal["auto", "on", "off"]
 LoopSetupType = Literal["none", "auto", "asyncio", "uvloop"]
@@ -67,6 +67,7 @@ HTTP_PROTOCOLS: Dict[HTTPProtocolType, str] = {
     "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
     "h11": "uvicorn.protocols.http.h11_impl:H11Protocol",
     "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
+    "httparse": "uvicorn.protocols.http.httparse_impl:HttparseProtocol",
 }
 WS_PROTOCOLS: Dict[WSProtocolType, Optional[str]] = {
     "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",

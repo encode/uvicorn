@@ -18,11 +18,14 @@ from uvicorn.config import Config
 
 if TYPE_CHECKING:
     from uvicorn.protocols.http.h11_impl import H11Protocol
+    from uvicorn.protocols.http.httparse_impl import HttparseProtocol
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
-    Protocols = Union[H11Protocol, HttpToolsProtocol, WSProtocol, WebSocketProtocol]
+    Protocols = Union[
+        H11Protocol, HttpToolsProtocol, HttparseProtocol, WSProtocol, WebSocketProtocol
+    ]
 
 
 HANDLED_SIGNALS = (
