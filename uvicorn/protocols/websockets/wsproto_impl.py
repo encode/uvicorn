@@ -100,10 +100,6 @@ class WSProtocol(asyncio.Protocol):
                 self.handle_text(event)
             elif isinstance(event, events.BytesMessage):
                 self.handle_bytes(event)
-            elif isinstance(event, events.RejectConnection):
-                self.handle_no_connect(event)
-            elif isinstance(event, events.RejectData):
-                self.handle_no_connect(event)
             elif isinstance(event, events.CloseConnection):
                 self.handle_close(event)
             elif isinstance(event, events.Ping):
@@ -158,20 +154,6 @@ class WSProtocol(asyncio.Protocol):
         task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)
         self.tasks.add(task)
-
-    def handle_no_connect(self, event):
-        headers = [
-            (b"content-type", b"text/plain; charset=utf-8"),
-            (b"connection", b"close"),
-        ]
-        msg = h11.Response(status_code=400, headers=headers, reason="Bad Request")
-        output = self.conn.send(msg)
-        msg = h11.Data(data=event.reason.encode("utf-8"))
-        output += self.conn.send(msg)
-        msg = h11.EndOfMessage()
-        output += self.conn.send(msg)
-        self.transport.write(output)
-        self.transport.close()
 
     def handle_text(self, event):
         self.text += event.data
