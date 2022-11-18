@@ -292,9 +292,19 @@ class Server:
 
         loop = asyncio.get_event_loop()
 
+        def _composed_handler(previous_handler):
+            def _inner_handler(*args, **kwargs):
+                previous_handler(*args, **kwargs)
+                self.handle_exit(*args, **kwargs)
+
+            return _inner_handler
+
         try:
             for sig in HANDLED_SIGNALS:
-                loop.add_signal_handler(sig, self.handle_exit, sig, None)
+                handler = loop._signal_handlers[sig]
+                if handler is not None:
+                    handler = _composed_handler(handler)
+                loop.add_signal_handler(sig, handler, sig, None)
         except NotImplementedError:  # pragma: no cover
             # Windows
             for sig in HANDLED_SIGNALS:
