@@ -1,5 +1,26 @@
 # Change Log
 
+## 0.20.0 - 2022-11-20
+
+### Added
+
+- Check if handshake is completed before sending frame on `wsproto` shutdown (#1737)
+- Add default headers to WebSockets implementations (#1606 & #1747) 28/10/22
+- Warn user when `reload` and `workers` flag are used together (#1731) 31/10/22
+
+### Fixed
+
+- Use correct `WebSocket` error codes on `close` (#1753) 20/11/22
+- Send disconnect event on connection lost for `wsproto` (#996) 29/10/22
+- Add `SIGQUIT` handler to `UvicornWorker` (#1710) 01/11/22
+- Fix crash on exist with "--uds" if socket doesn't exist (#1725) 27/10/22
+- Annotate `CONFIG_KWARGS` in `UvicornWorker` class (#1746) 31/10/22
+
+### Removed
+
+- Remove conditional on `RemoteProtocolError.event_hint` on `wsproto` (#1486) 31/10/22
+- Remove unused `handle_no_connect` on `wsproto` implementation (#1759) 17/11/22
+
 ## 0.19.0 - 2022-10-19
 
 ### Added
@@ -14,7 +35,7 @@
 - Set `propagate` to `False` on "uvicorn" logger (#1288) 08/10/22
 - USR1 signal is now handled correctly on `UvicornWorker`. (#1565) 26/08/22
 - Use path with query string on `WebSockets` logs (#1385) 11/09/22
-- Fix behavior on which "Date" headers were not updated on the same connection (#1706) 19/10/22 
+- Fix behavior on which "Date" headers were not updated on the same connection (#1706) 19/10/22
 
 ### Removed
 
