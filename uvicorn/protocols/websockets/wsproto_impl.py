@@ -24,10 +24,12 @@ if typing.TYPE_CHECKING:
     from asgiref.typing import (
         ASGISendEvent,
         WebSocketAcceptEvent,
+        WebSocketCloseEvent,
         WebSocketConnectEvent,
         WebSocketDisconnectEvent,
         WebSocketReceiveEvent,
         WebSocketScope,
+        WebSocketSendEvent,
     )
 
     WebSocketEvent = typing.Union[
@@ -308,14 +310,18 @@ class WSProtocol(asyncio.Protocol):
 
         elif not self.close_sent:
             if message_type == "websocket.send":
+                message = typing.cast("WebSocketSendEvent", message)
                 bytes_data = message.get("bytes")
                 text_data = message.get("text")
                 data = text_data if bytes_data is None else bytes_data
-                output = self.conn.send(wsproto.events.Message(data=data))
+                output = self.conn.send(
+                    wsproto.events.Message(data=data)  # type: ignore[type-var]
+                )
                 if not self.transport.is_closing():
                     self.transport.write(output)
 
             elif message_type == "websocket.close":
+                message = typing.cast("WebSocketCloseEvent", message)
                 self.close_sent = True
                 code = message.get("code", 1000)
                 reason = message.get("reason", "") or ""
