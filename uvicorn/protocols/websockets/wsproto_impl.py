@@ -23,6 +23,7 @@ from uvicorn.server import ServerState
 if typing.TYPE_CHECKING:
     from asgiref.typing import (
         ASGISendEvent,
+        WebSocketAcceptEvent,
         WebSocketConnectEvent,
         WebSocketDisconnectEvent,
         WebSocketReceiveEvent,
@@ -262,6 +263,7 @@ class WSProtocol(asyncio.Protocol):
 
         if not self.handshake_complete:
             if message_type == "websocket.accept":
+                message = typing.cast("WebSocketAcceptEvent", message)
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
                     self.scope["client"],
