@@ -7,7 +7,7 @@ import h11
 import wsproto
 from wsproto import ConnectionType, events
 from wsproto.connection import ConnectionState
-from wsproto.extensions import PerMessageDeflate, Extension
+from wsproto.extensions import Extension, PerMessageDeflate
 from wsproto.utilities import RemoteProtocolError
 
 from uvicorn.config import Config
@@ -294,8 +294,8 @@ class WSProtocol(asyncio.Protocol):
                 )
                 self.handshake_complete = True
                 self.close_sent = True
-                msg = events.RejectConnection(status_code=403, headers=[])
-                output = self.conn.send(msg)
+                event = events.RejectConnection(status_code=403, headers=[])
+                output = self.conn.send(event)
                 self.transport.write(output)
                 self.transport.close()
 
