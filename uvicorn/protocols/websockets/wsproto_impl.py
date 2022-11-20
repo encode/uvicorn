@@ -182,10 +182,14 @@ class WSProtocol(asyncio.Protocol):
         task.add_done_callback(self.on_task_complete)
         self.tasks.add(task)
 
-    def handle_text(self, event):
+    def handle_text(self, event: events.TextMessage) -> None:
         self.text += event.data
         if event.message_finished:
-            self.queue.put_nowait({"type": "websocket.receive", "text": self.text})
+            msg: "WebSocketReceiveEvent" = {  # type: ignore[typeddict-item]
+                "type": "websocket.receive",
+                "text": self.text,
+            }
+            self.queue.put_nowait(msg)
             self.text = ""
             if not self.read_paused:
                 self.read_paused = True
@@ -195,7 +199,11 @@ class WSProtocol(asyncio.Protocol):
         self.bytes += event.data
         # todo: we may want to guard the size of self.bytes and self.text
         if event.message_finished:
-            self.queue.put_nowait({"type": "websocket.receive", "bytes": self.bytes})
+            msg: "WebSocketReceiveEvent" = {  # type: ignore[typeddict-item]
+                "type": "websocket.receive",
+                "bytes": self.bytes,
+            }
+            self.queue.put_nowait(msg)
             self.bytes = b""
             if not self.read_paused:
                 self.read_paused = True
