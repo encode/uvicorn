@@ -7,7 +7,7 @@ import h11
 import wsproto
 from wsproto import ConnectionType, events
 from wsproto.connection import ConnectionState
-from wsproto.extensions import PerMessageDeflate
+from wsproto.extensions import PerMessageDeflate, Extension
 from wsproto.utilities import RemoteProtocolError
 
 from uvicorn.config import Config
@@ -271,7 +271,7 @@ class WSProtocol(asyncio.Protocol):
                 )
                 subprotocol = message.get("subprotocol")
                 extra_headers = self.default_headers + list(message.get("headers", []))
-                extensions = []
+                extensions: typing.List[Extension] = []
                 if self.config.ws_per_message_deflate:
                     extensions.append(PerMessageDeflate())
                 if not self.transport.is_closing():
