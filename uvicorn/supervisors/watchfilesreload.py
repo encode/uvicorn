@@ -2,7 +2,7 @@ from pathlib import Path
 from socket import socket
 from typing import Callable, List, Optional
 
-from watchfiles import watch
+from watchfiles import Change, watch
 
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
@@ -40,7 +40,8 @@ class FileFilter:
                 self.excludes.append(e)
         self.excludes = list(set(self.excludes))
 
-    def __call__(self, path: Path) -> bool:
+    def __call__(self, change: Change, path_string: str) -> bool:
+        path = Path(path_string)
         for include_pattern in self.includes:
             if path.match(include_pattern):
                 for exclude_dir in self.exclude_dirs:
@@ -74,7 +75,7 @@ class WatchFilesReload(BaseReload):
         self.watch_filter = FileFilter(config)
         self.watcher = watch(
             *self.reload_dirs,
-            watch_filter=None,
+            watch_filter=self.watch_filter,
             stop_event=self.should_exit,
             # using yield_on_timeout here mostly to make sure tests don't
             # hang forever, won't affect the class's behavior
@@ -84,6 +85,6 @@ class WatchFilesReload(BaseReload):
     def should_restart(self) -> Optional[List[Path]]:
         changes = next(self.watcher)
         if changes:
-            unique_paths = {Path(c[1]) for c in changes}
-            return [p for p in unique_paths if self.watch_filter(p)]
+            unique_paths = {Path(c[1]) for c in changes if self.watch_filter(*c)}
+            return [p for p in unique_paths]
         return None
