@@ -1,6 +1,6 @@
 # Change Log
 
-## 0.20.0 - <DATE SHOULD BE HERE!!!>
+## 0.20.0 - 2022-11-20
 
 ### Added
 
@@ -10,6 +10,7 @@
 
 ### Fixed
 
+- Use correct `WebSocket` error codes on `close` (#1753) 20/11/22
 - Send disconnect event on connection lost for `wsproto` (#996) 29/10/22
 - Add `SIGQUIT` handler to `UvicornWorker` (#1710) 01/11/22
 - Fix crash on exist with "--uds" if socket doesn't exist (#1725) 27/10/22
@@ -18,6 +19,7 @@
 ### Removed
 
 - Remove conditional on `RemoteProtocolError.event_hint` on `wsproto` (#1486) 31/10/22
+- Remove unused `handle_no_connect` on `wsproto` implementation (#1759) 17/11/22
 
 ## 0.19.0 - 2022-10-19
 
