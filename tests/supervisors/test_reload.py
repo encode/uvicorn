@@ -279,6 +279,26 @@ class TestBaseReload:
 
             reloader.shutdown()
 
+    @pytest.mark.skipif(WatchFilesReload is None, reason="watchfiles not available")
+    @pytest.mark.parametrize("reloader_class", [WatchFilesReload])
+    def test_watchfiles_should_only_call_watch_filter_once_per_reload(
+        self, mocker, touch_soon
+    ):
+        mock_call = mocker.patch(
+            "uvicorn.supervisors.watchfilesreload.FileFilter.__call__"
+        )
+        file = self.reload_path / "main.py"
+
+        with as_cwd(self.reload_path):
+            config = Config(app="tests.test_config:asgi_app", reload=True)
+            reloader = self._setup_reloader(config)
+
+            self._reload_tester(touch_soon, reloader, file)
+
+            mock_call.assert_called_once()
+
+            reloader.shutdown()
+
     @pytest.mark.parametrize("reloader_class", [WatchGodReload])
     def test_should_detect_new_reload_dirs(
         self, touch_soon, caplog: pytest.LogCaptureFixture, tmp_path: Path
