@@ -527,13 +527,9 @@ class Config:
         if self.uds:  # pragma: py-win32
             path = self.uds
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            try:
-                sock.bind(path)
-                uds_perms = 0o666
-                os.chmod(self.uds, uds_perms)
-            except OSError as exc:
-                logger.error(exc)
-                sys.exit(1)
+            sock.bind(path)
+            uds_perms = 0o666
+            os.chmod(self.uds, uds_perms)
 
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
             sock_name_format = "%s"
