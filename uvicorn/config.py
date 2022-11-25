@@ -560,11 +560,7 @@ class Config:
 
             sock = socket.socket(family=family)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            try:
-                sock.bind((self.host, self.port))
-            except OSError as exc:
-                logger.error(exc)
-                sys.exit(1)
+            sock.bind((self.host, self.port))
 
             message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
             color_message = (
