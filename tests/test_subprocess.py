@@ -1,9 +1,6 @@
 import socket
-import sys
 from typing import TYPE_CHECKING, List
 from unittest.mock import patch
-
-import pytest
 
 from uvicorn._subprocess import SpawnProcess, get_subprocess, subprocess_started
 from uvicorn.config import Config
@@ -22,9 +19,8 @@ async def app(
     ...
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
-def test_get_subprocess() -> None:  # pragma: py-win32
-    fdsock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+def test_get_subprocess() -> None:
+    fdsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     fd = fdsock.fileno()
     config = Config(app=app, fd=fd)
     config.load()
@@ -35,9 +31,8 @@ def test_get_subprocess() -> None:  # pragma: py-win32
     fdsock.close()
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
-def test_subprocess_started() -> None:  # pragma: py-win32
-    fdsock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+def test_subprocess_started() -> None:
+    fdsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     fd = fdsock.fileno()
     config = Config(app=app, fd=fd)
     config.load()
