@@ -970,14 +970,10 @@ async def test_return_close_header(protocol_cls, close_header: bytes):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-async def test_non_list_headers(protocol_cls):
+async def test_iterator_headers(protocol_cls):
     async def app(scope, receive, send):
-        headers = {
-            b"x-test-header": b"test value",
-        }
-        await send(
-            {"type": "http.response.start", "status": 200, "headers": headers.items()}
-        )
+        headers = iter([(b"x-test-header", b"test value")])
+        await send({"type": "http.response.start", "status": 200, "headers": headers})
         await send({"type": "http.response.body", "body": b""})
 
     protocol = get_connected_protocol(app, protocol_cls)
