@@ -111,6 +111,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.extra_headers = [
             (name.decode("latin-1"), value.decode("latin-1"))
             for name, value in server_state.default_headers
+            if name != b"sec-websocket-protocol"
         ]
 
     def connection_made(  # type: ignore[override]

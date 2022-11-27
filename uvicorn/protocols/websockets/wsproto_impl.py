@@ -64,7 +64,11 @@ class WSProtocol(asyncio.Protocol):
         # Shared server state
         self.connections = server_state.connections
         self.tasks = server_state.tasks
-        self.default_headers = server_state.default_headers
+        self.default_headers = [
+            (name, value)
+            for name, value in server_state.default_headers
+            if name != b"sec-websocket-protocol"
+        ]
 
         # Connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
