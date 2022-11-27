@@ -35,6 +35,10 @@ SIMPLE_POST_REQUEST = b"\r\n".join(
     ]
 )
 
+CONNECTION_CLOSE_REQUEST = b"\r\n".join(
+    [b"GET / HTTP/1.1", b"Host: example.org", b"Connection: close", b"", b""]
+)
+
 LARGE_POST_REQUEST = b"\r\n".join(
     [
         b"POST / HTTP/1.1",
@@ -936,3 +940,29 @@ async def test_huge_headers_h11_max_incomplete():
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "protocol_cls,close_header",
+    (
+        pytest.param(
+            HttpToolsProtocol,
+            b"connection: close",
+            marks=pytest.mark.skipif(
+                HttpToolsProtocol is None, reason="httptools is not installed"
+            ),
+        ),
+        (H11Protocol, b"Connection: close"),
+    ),
+)
+async def test_return_close_header(protocol_cls, close_header: bytes):
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(CONNECTION_CLOSE_REQUEST)
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"content-type: text/plain" in protocol.transport.buffer
+    assert b"content-length: 12" in protocol.transport.buffer
+    assert close_header in protocol.transport.buffer
