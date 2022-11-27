@@ -966,3 +966,21 @@ async def test_return_close_header(protocol_cls, close_header: bytes):
     assert b"content-type: text/plain" in protocol.transport.buffer
     assert b"content-length: 12" in protocol.transport.buffer
     assert close_header in protocol.transport.buffer
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+async def test_non_list_headers(protocol_cls):
+    async def app(scope, receive, send):
+        headers = {
+            b"x-test-header": b"test value",
+        }
+        await send(
+            {"type": "http.response.start", "status": 200, "headers": headers.items()}
+        )
+        await send({"type": "http.response.body", "body": b""})
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    await protocol.loop.run_one()
+    assert b"x-test-header: test value" in protocol.transport.buffer

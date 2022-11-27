@@ -468,9 +468,7 @@ class RequestResponseCycle:
             self.waiting_for_100_continue = False
 
             status_code = message["status"]
-            message_headers = cast(
-                List[Tuple[bytes, bytes]], message.get("headers", [])
-            )
+            message_headers = list(message.get("headers", []))
             headers = self.default_headers + message_headers
 
             if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
