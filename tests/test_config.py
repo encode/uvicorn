@@ -77,7 +77,7 @@ def test_should_warn_on_invalid_reload_configuration(
     assert len(caplog.records) == 1
     assert (
         caplog.records[-1].message
-        == "Current configuration will not reload as not all conditions are met,"
+        == "Current configuration will not reload as not all conditions are met, "
         "please refer to documentation."
     )
 
