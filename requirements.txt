@@ -10,6 +10,9 @@ wsproto==1.2.0
 build==0.8.0
 twine==4.0.1
 
+# Application
+pyyaml==6.0
+
 # Testing
 autoflake==1.7.7
 black==22.10.0
