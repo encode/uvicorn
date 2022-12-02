@@ -84,7 +84,7 @@ class Server:
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
         logger.info(message, process_id, extra={"color_message": color_message})
 
-    async def startup(self, sockets: list = None) -> None:
+    async def startup(self, sockets: Optional[List[socket.socket]] = None) -> None:
         await self.lifespan.startup()
         if self.lifespan.should_exit:
             self.should_exit = True
@@ -107,15 +107,17 @@ class Server:
             ) -> socket.SocketType:  # pragma py-linux pragma: py-darwin
                 # Windows requires the socket be explicitly shared across
                 # multiple workers (processes).
-                from socket import fromshare  # type: ignore
+                from socket import fromshare  # type: ignore[attr-defined]
 
-                sock_data = sock.share(os.getpid())  # type: ignore
+                sock_data = sock.share(os.getpid())  # type: ignore[attr-defined]
                 return fromshare(sock_data)
 
             self.servers = []
             for sock in sockets:
                 if config.workers > 1 and platform.system() == "Windows":
-                    sock = _share_socket(sock)  # pragma py-linux pragma: py-darwin
+                    sock = _share_socket(  # type: ignore[assignment]
+                        sock
+                    )  # pragma py-linux pragma: py-darwin
                 server = await loop.create_server(
                     create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
                 )
