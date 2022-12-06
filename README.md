@@ -136,6 +136,6 @@ $ hypercorn app:App
 
 [asgi]: https://asgi.readthedocs.io/en/latest/
 [daphne]: https://github.com/django/daphne
-[hypercorn]: https://gitlab.com/pgjones/hypercorn
+[hypercorn]: https://github.com/pgjones/hypercorn
 [mangum]: https://mangum.io
 [trio]: https://trio.readthedocs.io
