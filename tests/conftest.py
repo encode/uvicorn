@@ -226,6 +226,8 @@ def _unused_port(socket_type: int) -> int:
         return sock.getsockname()[1]
 
 
+# This was copied from pytest-asyncio.
+# Ref.: https://github.com/pytest-dev/pytest-asyncio/blob/25d9592286682bc6dbfbf291028ff7a9594cf283/pytest_asyncio/plugin.py#L525-L527  # noqa: E501
 @pytest.fixture
 def unused_tcp_port() -> int:
     return _unused_port(socket.SOCK_STREAM)

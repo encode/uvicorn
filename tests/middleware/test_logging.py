@@ -168,7 +168,7 @@ async def test_default_logging(
         assert "Waiting for application startup" in messages.pop(0)
         assert "ASGI 'lifespan' protocol appears unsupported" in messages.pop(0)
         assert "Application startup complete" in messages.pop(0)
-        assert f"Uvicorn running on http://127.0.0.1" in messages.pop(0)
+        assert "Uvicorn running on http://127.0.0.1" in messages.pop(0)
         assert '"GET / HTTP/1.1" 204' in messages.pop(0)
         assert "Shutting down" in messages.pop(0)
 
