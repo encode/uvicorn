@@ -822,7 +822,7 @@ async def test_invalid_http_request(request_line, protocol_cls, caplog):
 
 
 @pytest.mark.skipif(HttpToolsProtocol is None, reason="httptools is not installed")
-def test_fragmentation():
+def test_fragmentation(unused_tcp_port: int):
     def receive_all(sock):
         chunks = []
         while True:
@@ -837,7 +837,7 @@ def test_fragmentation():
     def send_fragmented_req(path):
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(("127.0.0.1", 8000))
+        sock.connect(("127.0.0.1", unused_tcp_port))
         d = (
             f"GET {path} HTTP/1.1\r\n" "Host: localhost\r\n" "Connection: close\r\n\r\n"
         ).encode()
@@ -855,7 +855,7 @@ def test_fragmentation():
         sock.close()
         return resp
 
-    config = Config(app=app, http="httptools")
+    config = Config(app=app, http="httptools", port=unused_tcp_port)
     server = Server(config=config)
     t = threading.Thread(target=server.run)
     t.daemon = True
