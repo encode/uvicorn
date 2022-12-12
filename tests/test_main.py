@@ -35,39 +35,45 @@ def _has_ipv6(host):
 @pytest.mark.parametrize(
     "host, url",
     [
-        pytest.param(None, "http://127.0.0.1:8000", id="default"),
-        pytest.param("localhost", "http://127.0.0.1:8000", id="hostname"),
+        pytest.param(None, "http://127.0.0.1", id="default"),
+        pytest.param("localhost", "http://127.0.0.1", id="hostname"),
         pytest.param(
             "::1",
-            "http://[::1]:8000",
+            "http://[::1]",
             id="ipv6",
             marks=pytest.mark.skipif(not _has_ipv6("::1"), reason="IPV6 not enabled"),
         ),
     ],
 )
-async def test_run(host, url):
-    config = Config(app=app, host=host, loop="asyncio", limit_max_requests=1)
+async def test_run(host, url: str, unused_tcp_port: int):
+    config = Config(
+        app=app, host=host, loop="asyncio", limit_max_requests=1, port=unused_tcp_port
+    )
     async with run_server(config):
         async with httpx.AsyncClient() as client:
-            response = await client.get(url)
+            response = await client.get(f"{url}:{unused_tcp_port}")
     assert response.status_code == 204
 
 
 @pytest.mark.anyio
-async def test_run_multiprocess():
-    config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
+async def test_run_multiprocess(unused_tcp_port: int):
+    config = Config(
+        app=app, loop="asyncio", workers=2, limit_max_requests=1, port=unused_tcp_port
+    )
     async with run_server(config):
         async with httpx.AsyncClient() as client:
-            response = await client.get("http://127.0.0.1:8000")
+            response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
     assert response.status_code == 204
 
 
 @pytest.mark.anyio
-async def test_run_reload():
-    config = Config(app=app, loop="asyncio", reload=True, limit_max_requests=1)
+async def test_run_reload(unused_tcp_port: int):
+    config = Config(
+        app=app, loop="asyncio", reload=True, limit_max_requests=1, port=unused_tcp_port
+    )
     async with run_server(config):
         async with httpx.AsyncClient() as client:
-            response = await client.get("http://127.0.0.1:8000")
+            response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
     assert response.status_code == 204
 
 
