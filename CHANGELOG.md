@@ -1,5 +1,7 @@
 # Change Log
 
+## 1.0.0 - CHANGE DATE
+
 ## 0.20.0 - 2022-11-20
 
 ### Added
