@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 import socket
 from logging import WARNING
@@ -113,3 +114,14 @@ def test_run_match_config_params() -> None:
         if key not in ("app_dir",)
     }
     assert config_params == run_params
+
+
+@pytest.mark.anyio
+async def test_run_multiprocess_with_sockets():
+    config = Config(app=app, workers=2, limit_max_requests=1)
+    with socket.socket() as sock:
+        sock.bind(("localhost", 0))
+        async with run_server(config, sockets=[sock]) as server:
+            while not server.started:
+                await asyncio.sleep(0.1)
+            await asyncio.sleep(0.1)
