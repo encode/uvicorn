@@ -122,4 +122,4 @@ async def test_run_invalid_host(caplog: pytest.LogCaptureFixture) -> None:
         config = Config(app=app, host="illegal_host")
         server = Server(config=config)
         await server.serve()
-    assert "[Errno 11001] getaddrinfo failed" in caplog.records[-1].message
+    assert "ERROR" == caplog.records[-1].levelname
