@@ -133,7 +133,6 @@ def create_ssl_context(
     cert_reqs: int,
     ca_certs: Optional[Union[str, os.PathLike]],
     ciphers: Optional[str],
-    options: Optional[List[ssl.Options]],
 ) -> ssl.SSLContext:
     ctx = ssl.SSLContext(ssl_version)
     get_password = (lambda: password) if password else None
@@ -143,9 +142,6 @@ def create_ssl_context(
         ctx.load_verify_locations(ca_certs)
     if ciphers:
         ctx.set_ciphers(ciphers)
-    if options:
-        for each_option in options:
-            ctx.options |= each_option
     return ctx
 
 
@@ -252,7 +248,7 @@ class Config:
         ssl_cert_reqs: int = ssl.CERT_NONE,
         ssl_ca_certs: Optional[str] = None,
         ssl_ciphers: str = "TLSv1",
-        ssl_options: Optional[List[ssl.Options]] = None,
+        ssl_context: Optional[Callable] = None,
         headers: Optional[List[Tuple[str, str]]] = None,
         factory: bool = False,
         h11_max_incomplete_event_size: int = DEFAULT_MAX_INCOMPLETE_EVENT_SIZE,
@@ -295,7 +291,7 @@ class Config:
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
-        self.ssl_options = ssl_options
+        self.ssl_context = ssl_context
         self.headers: List[Tuple[str, str]] = headers or []
         self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
@@ -441,7 +437,7 @@ class Config:
     def load(self) -> None:
         assert not self.loaded
 
-        if self.is_ssl:
+        if self.is_ssl and not self.ssl_context:
             assert self.ssl_certfile
             self.ssl: Optional[ssl.SSLContext] = create_ssl_context(
                 keyfile=self.ssl_keyfile,
@@ -451,8 +447,10 @@ class Config:
                 cert_reqs=self.ssl_cert_reqs,
                 ca_certs=self.ssl_ca_certs,
                 ciphers=self.ssl_ciphers,
-                options=self.ssl_options,
             )
+
+        elif self.ssl_context:
+            self.ssl = self.ssl_context.custom_ssl_context_factory()  # type: ignore
         else:
             self.ssl = None
 
