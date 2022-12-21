@@ -314,6 +314,7 @@ def test_ssl_config(
     assert config.is_ssl is True
 
 
+# ignore
 class SSL_Context(object):
     @staticmethod
     def custom_ssl_context_factory():
