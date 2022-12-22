@@ -117,9 +117,9 @@ def test_run_match_config_params() -> None:
 
 
 @pytest.mark.anyio
-async def test_run_invalid_host(caplog: pytest.LogCaptureFixture) -> None:
-    with pytest.raises(SystemExit):
+async def test_exit_on_create_server_with_invalid_host() -> None:
+    with pytest.raises(SystemExit) as exc_info:
         config = Config(app=app, host="illegal_host")
         server = Server(config=config)
         await server.serve()
-    assert "ERROR" == caplog.records[-1].levelname
+    assert exc_info.value.code == 1
