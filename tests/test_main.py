@@ -128,6 +128,7 @@ async def test_run_multiprocess_with_sockets():
             await asyncio.sleep(0.1)
 
 
+@pytest.mark.anyio
 async def test_exit_on_create_server_with_invalid_host() -> None:
     with pytest.raises(SystemExit) as exc_info:
         config = Config(app=app, host="illegal_host")
