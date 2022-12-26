@@ -233,7 +233,12 @@ class WSProtocol(asyncio.Protocol):
             (b"connection", b"close"),
         ]
         if self.conn.connection is None:
-            output = self.conn.send(wsproto.events.RejectConnection(status_code=500))
+            output = self.conn.send(
+                wsproto.events.RejectConnection(status_code=500, has_body=True)
+            )
+            output += self.conn.send(
+                wsproto.events.RejectData(data=b"Internal Server Error")
+            )
         else:
             msg = h11.Response(
                 status_code=500, headers=headers, reason="Internal Server Error"

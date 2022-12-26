@@ -144,8 +144,11 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
     def shutdown(self) -> None:
         self.ws_server.closing = True
-        if not self.transport.is_closing():
+        if self.handshake_completed_event.is_set():
             self.fail_connection(1012)
+        else:
+            self.send_500_response()
+        self.transport.close()
 
     def on_task_complete(self, task: asyncio.Task) -> None:
         self.tasks.discard(task)
