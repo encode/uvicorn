@@ -4,7 +4,6 @@ import sys
 import typing
 from urllib.parse import unquote
 
-import h11
 import wsproto
 from wsproto import ConnectionType, events
 from wsproto.connection import ConnectionState
