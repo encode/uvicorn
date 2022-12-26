@@ -90,7 +90,6 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.connect_sent = False
         self.lost_connection_before_handshake = False
         self.accepted_subprotocol: Optional[Subprotocol] = None
-        self.transfer_data_task: asyncio.Task = None  # type: ignore[assignment]
 
         self.ws_server: Server = Server()  # type: ignore[assignment]
 
@@ -145,7 +144,8 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
     def shutdown(self) -> None:
         self.ws_server.closing = True
-        self.transport.close()
+        if not self.transport.is_closing():
+            self.fail_connection(1012)
 
     def on_task_complete(self, task: asyncio.Task) -> None:
         self.tasks.discard(task)
