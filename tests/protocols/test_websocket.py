@@ -719,7 +719,6 @@ async def test_connection_lost_before_handshake_complete(
     response: typing.Optional[httpx.Response] = None
 
     async def websocket_session(uri):
-        # await websockets.client.connect(uri)
         nonlocal response
         async with httpx.AsyncClient() as client:
             response = await client.get(
@@ -747,7 +746,6 @@ async def test_connection_lost_before_handshake_complete(
         send_accept_task.set()
 
     task.cancel()
-
     assert response is not None
     assert response.status_code == 500, response.text
     assert response.text == "Internal Server Error"

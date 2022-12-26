@@ -232,22 +232,14 @@ class WSProtocol(asyncio.Protocol):
             (b"content-type", b"text/plain; charset=utf-8"),
             (b"connection", b"close"),
         ]
-        if self.conn.connection is None:
-            output = self.conn.send(
-                wsproto.events.RejectConnection(status_code=500, has_body=True)
+        output = self.conn.send(
+            wsproto.events.RejectConnection(
+                status_code=500, headers=headers, has_body=True
             )
-            output += self.conn.send(
-                wsproto.events.RejectData(data=b"Internal Server Error")
-            )
-        else:
-            msg = h11.Response(
-                status_code=500, headers=headers, reason="Internal Server Error"
-            )
-            output = self.conn.send(msg)
-            msg = h11.Data(data=b"Internal Server Error")
-            output += self.conn.send(msg)
-            msg = h11.EndOfMessage()
-            output += self.conn.send(msg)
+        )
+        output += self.conn.send(
+            wsproto.events.RejectData(data=b"Internal Server Error")
+        )
         self.transport.write(output)
 
     async def run_asgi(self) -> None:
