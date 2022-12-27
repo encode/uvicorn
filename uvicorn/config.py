@@ -48,6 +48,7 @@ from uvicorn.middleware.wsgi import WSGIMiddleware
 
 if TYPE_CHECKING:
     from asgiref.typing import ASGIApplication
+
     from uvicorn.lifespan.off import LifespanOff
     from uvicorn.lifespan.on import LifespanOn
 

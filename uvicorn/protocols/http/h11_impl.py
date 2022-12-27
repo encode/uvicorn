@@ -40,6 +40,7 @@ if TYPE_CHECKING:
         HTTPResponseStartEvent,
         HTTPScope,
     )
+
     from uvicorn.lifespan import Lifespan
 
 H11Event = Union[

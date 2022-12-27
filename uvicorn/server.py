@@ -93,7 +93,10 @@ class Server:
         config = self.config
 
         create_protocol = functools.partial(
-            config.http_protocol_class, config=config, server_state=self.server_state, lifespan=self.lifespan
+            config.http_protocol_class,
+            config=config,
+            server_state=self.server_state,
+            lifespan=self.lifespan,
         )
         loop = asyncio.get_running_loop()
 

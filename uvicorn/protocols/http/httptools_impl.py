@@ -43,6 +43,7 @@ if TYPE_CHECKING:
         HTTPResponseStartEvent,
         HTTPScope,
     )
+
     from uvicorn.lifespan import Lifespan
 
 HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
