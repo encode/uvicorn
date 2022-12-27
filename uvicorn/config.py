@@ -248,7 +248,7 @@ class Config:
         ssl_cert_reqs: int = ssl.CERT_NONE,
         ssl_ca_certs: Optional[str] = None,
         ssl_ciphers: str = "TLSv1",
-        ssl_context: Optional[Callable] = None,
+        ssl_context_factory: Optional[Callable] = None,
         headers: Optional[List[Tuple[str, str]]] = None,
         factory: bool = False,
         h11_max_incomplete_event_size: int = DEFAULT_MAX_INCOMPLETE_EVENT_SIZE,
@@ -291,7 +291,7 @@ class Config:
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
-        self.ssl_context = ssl_context
+        self.ssl_context_factory = ssl_context_factory
         self.headers: List[Tuple[str, str]] = headers or []
         self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
@@ -437,7 +437,7 @@ class Config:
     def load(self) -> None:
         assert not self.loaded
 
-        if self.is_ssl and not self.ssl_context:
+        if self.is_ssl and not self.ssl_context_factory:
             assert self.ssl_certfile
             self.ssl: Optional[ssl.SSLContext] = create_ssl_context(
                 keyfile=self.ssl_keyfile,
@@ -449,8 +449,8 @@ class Config:
                 ciphers=self.ssl_ciphers,
             )
 
-        elif self.ssl_context:
-            self.ssl = self.ssl_context.custom_ssl_context_factory()  # type: ignore
+        elif self.ssl_context_factory:
+            self.ssl = self.ssl_context_factory()
         else:
             self.ssl = None
 

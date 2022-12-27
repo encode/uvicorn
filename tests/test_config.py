@@ -315,31 +315,26 @@ def test_ssl_config(
 
 
 # ignore
-class SSL_Context(object):
-    @staticmethod
-    def custom_ssl_context_factory():
-        context = ssl.SSLContext(int(ssl.PROTOCOL_TLS))
-        allowed_ciphers = (
-            "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256"
-        )
-        context.set_ciphers(allowed_ciphers)
-        list_options = [ssl.OP_NO_RENEGOTIATION]
-        for each_option in list_options:
-            context.options |= each_option
-        return context
-
-    custom_ssl_context_factory = staticmethod(custom_ssl_context_factory)
-
-
-ssl_context = SSL_Context
+def ssl_context_factory():
+    context = ssl.SSLContext(int(ssl.PROTOCOL_TLS_SERVER))  # type: ignore
+    allowed_ciphers = (
+        "DEFAULT:!aNULL:!eNULL:!MD5:!3DES:!DES:!RC4:!IDEA:!SEED:!aDSS:!SRP:!PSK"
+    )
+    context.set_ciphers(allowed_ciphers)
+    list_options = [ssl.OP_NO_RENEGOTIATION]
+    for each_option in list_options:
+        context.options |= each_option
+    return context
 
 
 def test_ssl_context() -> None:
-    config = Config(app=asgi_app, ssl_context=ssl_context.custom_ssl_context_factory())
+    config = Config(app=asgi_app, ssl_context_factory=ssl_context_factory)
     config.load()
-    if config.ssl_context is not None:
-        assert int(ssl.PROTOCOL_TLS) is config.ssl_version
-        assert "TLS_AES_256_GCM_SHA384" in config.ssl_ciphers
+    if config.ssl_context_factory is not None:
+        assert ssl.PROTOCOL_TLS_SERVER is config.ssl_version
+        assert "TLSv1" in config.ssl_ciphers
+    if config.ssl is not None:
+        assert ssl.OP_NO_RENEGOTIATION in config.ssl.options
 
 
 def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
