@@ -63,7 +63,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self,
         config: Config,
         server_state: ServerState,
-        lifespan: Lifespan,
+        lifespan: "Lifespan",
         _loop: Optional[asyncio.AbstractEventLoop] = None,
     ):
         if not config.loaded:

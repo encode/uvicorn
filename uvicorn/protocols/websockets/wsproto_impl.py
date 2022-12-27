@@ -52,7 +52,7 @@ class WSProtocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
-        lifespan: Lifespan,
+        lifespan: "Lifespan",
         _loop: typing.Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         if not config.loaded:
