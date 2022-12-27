@@ -40,6 +40,7 @@ if TYPE_CHECKING:
         HTTPResponseStartEvent,
         HTTPScope,
     )
+    from uvicorn.lifespan import Lifespan
 
 H11Event = Union[
     h11.Request,
@@ -68,6 +69,7 @@ class H11Protocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
+        lifespan: Lifespan,
         _loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         if not config.loaded:
@@ -83,6 +85,7 @@ class H11Protocol(asyncio.Protocol):
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
         self.limit_concurrency = config.limit_concurrency
+        self.lifespan = lifespan
 
         # Timeouts
         self.timeout_keep_alive_task: Optional[asyncio.TimerHandle] = None
@@ -223,6 +226,7 @@ class H11Protocol(asyncio.Protocol):
                     "raw_path": raw_path,
                     "query_string": query_string,
                     "headers": self.headers,
+                    "state": self.lifespan.state.copy(),
                 }
 
                 upgrade = self._get_upgrade()

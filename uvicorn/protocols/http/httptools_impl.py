@@ -43,6 +43,7 @@ if TYPE_CHECKING:
         HTTPResponseStartEvent,
         HTTPScope,
     )
+    from uvicorn.lifespan import Lifespan
 
 HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")
@@ -66,6 +67,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
+        lifespan: Lifespan,
         _loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         if not config.loaded:
@@ -81,6 +83,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
         self.limit_concurrency = config.limit_concurrency
+        self.lifespan = lifespan
 
         # Timeouts
         self.timeout_keep_alive_task: Optional[TimerHandle] = None
@@ -237,6 +240,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             "scheme": self.scheme,
             "root_path": self.root_path,
             "headers": self.headers,
+            "state": self.lifespan.state.copy(),
         }
 
     # Parser callbacks

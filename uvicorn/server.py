@@ -10,7 +10,7 @@ import threading
 import time
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, List, Optional, Sequence, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import click
 
@@ -93,7 +93,7 @@ class Server:
         config = self.config
 
         create_protocol = functools.partial(
-            config.http_protocol_class, config=config, server_state=self.server_state
+            config.http_protocol_class, config=config, server_state=self.server_state, lifespan=self.lifespan
         )
         loop = asyncio.get_running_loop()
 
