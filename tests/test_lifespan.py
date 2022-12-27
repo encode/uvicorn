@@ -166,6 +166,7 @@ def test_lifespan_scope_asgi3app():
         assert scope == {
             "type": "lifespan",
             "asgi": {"version": "3.0", "spec_version": "2.0"},
+            "state": {},
         }
 
     async def test():
@@ -188,6 +189,7 @@ def test_lifespan_scope_asgi2app():
         assert scope == {
             "type": "lifespan",
             "asgi": {"version": "2.0", "spec_version": "2.0"},
+            "state": {},
         }
 
         async def asgi(receive, send):

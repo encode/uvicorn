@@ -69,7 +69,7 @@ class H11Protocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
-        lifespan: Lifespan,
+        lifespan: "Lifespan",
         _loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         if not config.loaded:
