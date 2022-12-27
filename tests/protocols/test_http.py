@@ -9,11 +9,11 @@ import pytest
 from tests.response import Response
 from uvicorn import Server
 from uvicorn.config import WS_PROTOCOLS, Config
+from uvicorn.lifespan import Lifespan
 from uvicorn.lifespan.off import LifespanOff
+from uvicorn.lifespan.on import LifespanOn
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
-from uvicorn.lifespan import Lifespan
-from uvicorn.lifespan.on import LifespanOn
 
 try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
@@ -188,13 +188,17 @@ class MockTask:
         pass
 
 
-def get_connected_protocol(app, protocol_cls, lifespan: Optional[Lifespan] = None, **kwargs):
+def get_connected_protocol(
+    app, protocol_cls, lifespan: Optional[Lifespan] = None, **kwargs
+):
     loop = MockLoop()
     transport = MockTransport()
     config = Config(app=app, **kwargs)
     lifespan = lifespan or LifespanOff(config)
     server_state = ServerState()
-    protocol = protocol_cls(config=config, server_state=server_state, lifespan=lifespan, _loop=loop)
+    protocol = protocol_cls(
+        config=config, server_state=server_state, lifespan=lifespan, _loop=loop
+    )
     protocol.connection_made(transport)
     return protocol
 
@@ -992,10 +996,13 @@ async def test_iterator_headers(protocol_cls):
 async def test_lifespan_state(protocol_cls):
     app = Response("Hello, world", media_type="text/plain")
 
+    expected_states = [{"a": 123, "b": [1]}, {"a": 123, "b": [1, 2]}]
+
     async def app(scope, receive, send):
-        assert scope["state"]["a"] == 123
+        expected_state = expected_states.pop(0)
+        assert scope["state"] == expected_state
         # modifications to keys are not preserved
-        scope["state"]["a"] = 234
+        scope["state"]["a"] = 456
         # unless of course the value itself is mutated
         scope["state"]["b"].append(2)
         return await Response("Hi!")(scope, receive, send)
@@ -1005,10 +1012,11 @@ async def test_lifespan_state(protocol_cls):
     # in the lifespan tests
     lifespan.state.update({"a": 123, "b": [1]})
 
-    protocol = get_connected_protocol(app, protocol_cls, lifespan=lifespan)
-    protocol.data_received(SIMPLE_GET_REQUEST)
-    await protocol.loop.run_one()
-    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-    assert b"Hi!" in protocol.transport.buffer
+    for _ in range(2):
+        protocol = get_connected_protocol(app, protocol_cls, lifespan=lifespan)
+        protocol.data_received(SIMPLE_GET_REQUEST)
+        await protocol.loop.run_one()
+        assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+        assert b"Hi!" in protocol.transport.buffer
 
-    assert lifespan.state == {"a": 123, "b": [1, 2]}
+    assert not expected_states  # consumed

@@ -205,7 +205,9 @@ class HttpToolsProtocol(asyncio.Protocol):
             output += [name, b": ", value, b"\r\n"]
         output.append(b"\r\n")
         protocol = self.ws_protocol_class(  # type: ignore[call-arg, misc]
-            config=self.config, server_state=self.server_state
+            config=self.config,
+            server_state=self.server_state,
+            lifespan=self.lifespan,
         )
         protocol.connection_made(self.transport)
         protocol.data_received(b"".join(output))

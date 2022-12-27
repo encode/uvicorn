@@ -1065,3 +1065,56 @@ async def test_multiple_server_header(
     async with run_server(config):
         headers = await open_connection(f"ws://127.0.0.1:{unused_tcp_port}")
         assert headers.get_all("Server") == ["uvicorn", "over-ridden", "another-value"]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_lifespan_state(ws_protocol_cls, http_protocol_cls, unused_tcp_port: int):
+    expected_states = [
+        {"a": 123, "b": [1]},
+        {"a": 123, "b": [1, 2]},
+    ]
+
+    async def lifespan_app(scope, receive, send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        scope["state"]["a"] = 123
+        scope["state"]["b"] = [1]
+        await send({"type": "lifespan.startup.complete"})
+        message = await receive()
+        assert message["type"] == "lifespan.shutdown"
+        await send({"type": "lifespan.shutdown.complete"})
+
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            expected_state = expected_states.pop(0)
+            assert self.scope["state"] == expected_state
+            self.scope["state"]["a"] = 456
+            self.scope["state"]["b"].append(2)
+            await self.send({"type": "websocket.accept"})
+
+    async def open_connection(url):
+        async with websockets.connect(url) as websocket:
+            return websocket.open
+
+    async def app_wrapper(scope, receive, send):
+        if scope["type"] == "lifespan":
+            return await lifespan_app(scope, receive, send)
+        else:
+            return await App(scope, receive, send)
+
+    config = Config(
+        app=app_wrapper,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="on",
+        port=unused_tcp_port,
+    )
+    async with run_server(config):
+        is_open = await open_connection(f"ws://127.0.0.1:{unused_tcp_port}")
+        assert is_open
+        is_open = await open_connection(f"ws://127.0.0.1:{unused_tcp_port}")
+        assert is_open
+
+    assert not expected_states  # consumed
