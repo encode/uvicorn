@@ -83,7 +83,7 @@ class LifespanOn:
             scope: LifespanScope = {
                 "type": "lifespan",
                 "asgi": {"version": self.config.asgi_version, "spec_version": "2.0"},
-                "state": self.state,
+                "state": self.state,  # type: ignore[typeddict-item]
             }
             await app(scope, self.receive, self.send)
         except BaseException as exc:

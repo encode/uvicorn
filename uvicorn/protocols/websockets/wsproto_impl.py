@@ -32,6 +32,7 @@ if typing.TYPE_CHECKING:
         WebSocketScope,
         WebSocketSendEvent,
     )
+
     from uvicorn.lifespan import Lifespan
 
     WebSocketEvent = typing.Union[
@@ -188,7 +189,7 @@ class WSProtocol(asyncio.Protocol):
             "headers": headers,
             "subprotocols": event.subprotocols,
             "extensions": None,
-            "state": self.lifespan.state.copy(),
+            "state": self.lifespan.state.copy(),  # type: ignore[typeddict-item]
         }
         self.queue.put_nowait({"type": "websocket.connect"})
         task = self.loop.create_task(self.run_asgi())

@@ -39,6 +39,7 @@ if TYPE_CHECKING:
         WebSocketScope,
         WebSocketSendEvent,
     )
+
     from uvicorn.lifespan import Lifespan
 
 
