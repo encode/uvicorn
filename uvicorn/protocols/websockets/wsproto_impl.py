@@ -32,6 +32,7 @@ if typing.TYPE_CHECKING:
         WebSocketScope,
         WebSocketSendEvent,
     )
+    from uvicorn.lifespan import Lifespan
 
     WebSocketEvent = typing.Union[
         "WebSocketReceiveEvent",
@@ -50,6 +51,7 @@ class WSProtocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
+        lifespan: Lifespan,
         _loop: typing.Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         if not config.loaded:
@@ -60,6 +62,7 @@ class WSProtocol(asyncio.Protocol):
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.root_path = config.root_path
+        self.lifespan = lifespan
 
         # Shared server state
         self.connections = server_state.connections
@@ -185,6 +188,7 @@ class WSProtocol(asyncio.Protocol):
             "headers": headers,
             "subprotocols": event.subprotocols,
             "extensions": None,
+            "state": self.lifespan.state.copy(),
         }
         self.queue.put_nowait({"type": "websocket.connect"})
         task = self.loop.create_task(self.run_asgi())
