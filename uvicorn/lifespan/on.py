@@ -80,10 +80,10 @@ class LifespanOn:
     async def main(self) -> None:
         try:
             app = self.config.loaded_app
-            scope: LifespanScope = {
+            scope: LifespanScope = {  # type: ignore[typeddict-item]
                 "type": "lifespan",
                 "asgi": {"version": self.config.asgi_version, "spec_version": "2.0"},
-                "state": self.state,  # type: ignore[typeddict-item]
+                "state": self.state,
             }
             await app(scope, self.receive, self.send)
         except BaseException as exc:
