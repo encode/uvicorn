@@ -254,7 +254,7 @@ def test_lifespan_state():
         message = await receive()
         assert message["type"] == "lifespan.startup"
         await send({"type": "lifespan.startup.complete"})
-        scope["state"]["foo"] = 123
+        scope["extensions"]["state"]["foo"] = 123
         message = await receive()
         assert message["type"] == "lifespan.shutdown"
         await send({"type": "lifespan.shutdown.complete"})
