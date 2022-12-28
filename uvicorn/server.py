@@ -94,7 +94,7 @@ class Server:
         def create_protocol(
             _loop: Optional[asyncio.AbstractEventLoop] = None,
         ) -> asyncio.Protocol:
-            return config.http_protocol_class(
+            return config.http_protocol_class(  # type: ignore[call-arg]
                 config=config,
                 server_state=self.server_state,
                 app_state=self.lifespan.state.copy(),
