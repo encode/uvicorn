@@ -3,7 +3,6 @@ import asyncio
 import pytest
 
 from uvicorn.config import Config
-from uvicorn.lifespan.off import LifespanOff
 from uvicorn.loops.auto import auto_loop_setup
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.auto import AutoHTTPProtocol
@@ -46,9 +45,7 @@ def test_loop_auto():
 async def test_http_auto():
     config = Config(app=app)
     server_state = ServerState()
-    protocol = AutoHTTPProtocol(
-        config=config, server_state=server_state, lifespan=LifespanOff(config=config)
-    )
+    protocol = AutoHTTPProtocol(config=config, server_state=server_state, app_state={})
     expected_http = "H11Protocol" if httptools is None else "HttpToolsProtocol"
     assert type(protocol).__name__ == expected_http
 
@@ -58,7 +55,7 @@ async def test_websocket_auto():
     config = Config(app=app)
     server_state = ServerState()
     protocol = AutoWebSocketsProtocol(
-        config=config, server_state=server_state, lifespan=LifespanOff(config=config)
+        config=config, server_state=server_state, app_state={}
     )
     expected_websockets = "WSProtocol" if websockets is None else "WebSocketProtocol"
     assert type(protocol).__name__ == expected_websockets

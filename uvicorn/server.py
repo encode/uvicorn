@@ -1,5 +1,4 @@
 import asyncio
-import functools
 import logging
 import os
 import platform
@@ -92,12 +91,16 @@ class Server:
 
         config = self.config
 
-        create_protocol = functools.partial(
-            config.http_protocol_class,
-            config=config,
-            server_state=self.server_state,
-            lifespan=self.lifespan,
-        )
+        def create_protocol(
+            _loop: Optional[asyncio.AbstractEventLoop] = None,
+        ) -> asyncio.Protocol:
+            return config.http_protocol_class(
+                config=config,
+                server_state=self.server_state,
+                app_state=self.lifespan.state.copy(),
+                _loop=_loop,
+            )
+
         loop = asyncio.get_running_loop()
 
         listeners: Sequence[socket.SocketType]

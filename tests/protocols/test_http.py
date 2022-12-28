@@ -2,14 +2,13 @@ import logging
 import socket
 import threading
 import time
-from typing import Optional
+from typing import Optional, Union
 
 import pytest
 
 from tests.response import Response
 from uvicorn import Server
 from uvicorn.config import WS_PROTOCOLS, Config
-from uvicorn.lifespan import Lifespan
 from uvicorn.lifespan.off import LifespanOff
 from uvicorn.lifespan.on import LifespanOn
 from uvicorn.main import ServerState
@@ -189,7 +188,10 @@ class MockTask:
 
 
 def get_connected_protocol(
-    app, protocol_cls, lifespan: Optional[Lifespan] = None, **kwargs
+    app,
+    protocol_cls,
+    lifespan: Optional[Union[LifespanOff, LifespanOn]] = None,
+    **kwargs,
 ):
     loop = MockLoop()
     transport = MockTransport()
@@ -197,7 +199,10 @@ def get_connected_protocol(
     lifespan = lifespan or LifespanOff(config)
     server_state = ServerState()
     protocol = protocol_cls(
-        config=config, server_state=server_state, lifespan=lifespan, _loop=loop
+        config=config,
+        server_state=server_state,
+        app_state=lifespan.state.copy(),
+        _loop=loop,
     )
     protocol.connection_made(transport)
     return protocol

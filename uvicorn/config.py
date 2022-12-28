@@ -49,8 +49,6 @@ from uvicorn.middleware.wsgi import WSGIMiddleware
 if TYPE_CHECKING:
     from asgiref.typing import ASGIApplication
 
-    from uvicorn.lifespan import Lifespan
-
 HTTPProtocolType = Literal["auto", "h11", "httptools"]
 WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
 LifespanType = Literal["auto", "on", "off"]
@@ -473,9 +471,7 @@ class Config:
         else:
             self.ws_protocol_class = self.ws
 
-        self.lifespan_class: "Type[Lifespan]" = import_from_string(
-            LIFESPAN[self.lifespan]
-        )
+        self.lifespan_class = import_from_string(LIFESPAN[self.lifespan])
 
         try:
             self.loaded_app = import_from_string(self.app)
