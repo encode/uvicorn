@@ -250,7 +250,6 @@ def test_lifespan_with_failed_shutdown(mode, raise_exception, caplog):
 
 
 def test_lifespan_state():
-
     async def app(scope, receive, send):
         message = await receive()
         assert message["type"] == "lifespan.startup"
