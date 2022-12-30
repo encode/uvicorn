@@ -269,6 +269,17 @@ class Server:
             connection.shutdown()
         await asyncio.sleep(0.1)
 
+        # When 3.10 is not supported anymore, use `async with asyncio.timeout(...):`.
+        await asyncio.wait_for(
+            self._wait_tasks_to_complete(),
+            timeout=self.config.timeout_graceful_shutdown,
+        )
+
+        # Send the lifespan shutdown event, and wait for application shutdown.
+        if not self.force_exit:
+            await self.lifespan.shutdown()
+
+    async def _wait_tasks_to_complete(self) -> None:
         # Wait for existing connections to finish sending responses.
         if self.server_state.connections and not self.force_exit:
             msg = "Waiting for connections to close. (CTRL+C to force quit)"
@@ -282,10 +293,6 @@ class Server:
             logger.info(msg)
             while self.server_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
-
-        # Send the lifespan shutdown event, and wait for application shutdown.
-        if not self.force_exit:
-            await self.lifespan.shutdown()
 
     def install_signal_handlers(self) -> None:
         if threading.current_thread() is not threading.main_thread():

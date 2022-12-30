@@ -240,6 +240,7 @@ class Config:
         backlog: int = 2048,
         timeout_keep_alive: int = 5,
         timeout_notify: int = 30,
+        timeout_graceful_shutdown: Optional[int] = None,
         callback_notify: Optional[Callable[..., Awaitable[None]]] = None,
         ssl_keyfile: Optional[str] = None,
         ssl_certfile: Optional[Union[str, os.PathLike]] = None,
@@ -282,6 +283,7 @@ class Config:
         self.backlog = backlog
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
+        self.timeout_graceful_shutdown = timeout_graceful_shutdown
         self.callback_notify = callback_notify
         self.ssl_keyfile = ssl_keyfile
         self.ssl_certfile = ssl_certfile
