@@ -1,15 +1,13 @@
-import io
 import sys
-from typing import TYPE_CHECKING, AsyncGenerator, List
+from importlib import reload
+from typing import AsyncGenerator, List
+from unittest import mock
 
 import httpx
 import pytest
 
 from uvicorn._types import Environ, StartResponse
-from uvicorn.middleware.wsgi import WSGIMiddleware, build_environ
-
-if TYPE_CHECKING:
-    from asgiref.typing import HTTPRequestEvent, HTTPScope
+from uvicorn.middleware.wsgi import WSGIMiddleware
 
 
 def hello_world(environ: Environ, start_response: StartResponse) -> List[bytes]:
@@ -34,7 +32,7 @@ def echo_body(environ: Environ, start_response: StartResponse) -> List[bytes]:
     return [output]
 
 
-def raise_exception(environ: Environ, start_response: StartResponse) -> RuntimeError:
+def raise_exception(environ: Environ, start_response: StartResponse) -> List[bytes]:
     raise RuntimeError("Something went wrong")
 
 
@@ -115,27 +113,13 @@ async def test_wsgi_exc_info() -> None:
     assert response.text == "Internal Server Error"
 
 
-def test_build_environ_encoding() -> None:
-    scope: "HTTPScope" = {
-        "asgi": {"version": "3.0", "spec_version": "2.0"},
-        "scheme": "http",
-        "raw_path": b"/\xe6\x96\x87",
-        "type": "http",
-        "http_version": "1.1",
-        "method": "GET",
-        "path": "/文",
-        "root_path": "/文",
-        "client": None,
-        "server": None,
-        "query_string": b"a=123&b=456",
-        "headers": [(b"key", b"value1"), (b"key", b"value2")],
-        "extensions": {},
-    }
-    message: "HTTPRequestEvent" = {
-        "type": "http.request",
-        "body": b"",
-        "more_body": False,
-    }
-    environ = build_environ(scope, message, io.BytesIO(b""))
-    assert environ["PATH_INFO"] == "/文".encode("utf8").decode("latin-1")
-    assert environ["HTTP_KEY"] == "value1,value2"
+def test_no_a2wsgi() -> None:
+    from uvicorn.middleware import wsgi
+
+    with mock.patch.dict(sys.modules, {"a2wsgi": None}):
+        reload(wsgi)
+
+        with pytest.raises(RuntimeError):
+            wsgi.WSGIMiddleware(hello_world)
+
+    reload(wsgi)

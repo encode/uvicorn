@@ -36,6 +36,7 @@ dependencies = [
 
 [project.optional-dependencies]
 standard = [
+    "a2wsgi>=1.6.0,<2.0.0",
     "colorama>=0.4;sys_platform == 'win32'",
     "httptools>=0.5.0",
     "python-dotenv>=0.13",
