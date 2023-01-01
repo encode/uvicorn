@@ -1,7 +1,7 @@
 -e .[standard]
 
 # Type annotation
-asgiref==3.5.2
+asgiref==3.6.0
 
 # Explicit optionals
 wsproto==1.2.0
