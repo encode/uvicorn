@@ -335,7 +335,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 )
 @click.option(
     "--app-dir",
-    default=".",
+    default="",
     show_default=True,
     help="Look for APP in the specified directory, by adding this to the PYTHONPATH."
     " Defaults to the current working directory.",
