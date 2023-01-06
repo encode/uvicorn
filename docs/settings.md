@@ -110,4 +110,4 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 
 ## Timeouts
 
-* `--timeout-keep-alive <int>` - Close Keep-Alive connections if no new data is received within this timeout. **Default:** *5*.
+* `--timeout-keep-alive <int>` - Close Keep-Alive connections if no new data is received within this timeout. Unit of measure is in minutes. **Default:** *5*.
