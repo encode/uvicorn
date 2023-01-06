@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-<em>An ASGI web server, for Python.</em>
+<em>An ASGI first web server, for Python.</em>
 </p>
 
 ---
@@ -15,13 +15,15 @@
 
 **Requirements**: Python 3.7+ (For Python 3.6 support, install version 0.16.0.)
 
-Uvicorn is an ASGI web server implementation for Python.
+Uvicorn is an ASGI first web server implementation for Python.
 
 Until recently Python has lacked a minimal low-level server/application interface for
 async frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
 start building a common set of tooling usable across all async frameworks.
 
 Uvicorn supports HTTP/1.1 and WebSockets.
+
+It also comes with support to WSGI applications out of the box.
 
 ## Quickstart
 

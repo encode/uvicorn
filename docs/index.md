@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-<em>An ASGI web server, for Python.</em>
+<em>An ASGI first web server, for Python.</em>
 </p>
 
 <p align="center">
@@ -19,13 +19,15 @@
 
 # Introduction
 
-Uvicorn is an ASGI web server implementation for Python.
+Uvicorn is an ASGI first web server implementation for Python.
 
 Until recently Python has lacked a minimal low-level server/application interface for
 async frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
 start building a common set of tooling usable across all async frameworks.
 
 Uvicorn currently supports HTTP/1.1 and WebSockets.
+
+It also comes with support to WSGI applications out of the box.
 
 ## Quickstart
 
@@ -458,6 +460,25 @@ async def app(scope, receive, send):
         'type': 'http.response.body',
         'body': b'',
     })
+```
+
+## The WSGI Support
+
+Uvicorn offer support to WSGI applications throught `WSGIMiddleware` from [a2wsgi](https://github.com/abersheeran/a2wsgi)
+which converts your WSGI into ASGI application seamlessly by just running it with `--interface wsgi`
+
+Create an application, in `example.py`:
+
+```python
+def app(environ, start_response):
+    start_response('200 OK', [('Content-Type', 'text/plain')])
+    return [b'Hello World!']
+```
+
+Run the server:
+
+```shell
+$ uvicorn --interface wsgi example:app
 ```
 
 ---

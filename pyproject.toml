@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "uvicorn"
 dynamic = ["version"]
-description = "The lightning-fast ASGI server."
+description = "The lightning-fast ASGI first server."
 readme = "README.md"
 license = "BSD-3-Clause"
 requires-python = ">=3.7"
@@ -29,6 +29,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
 ]
 dependencies = [
+    "a2wsgi>=1.6.0,<2.0.0",
     "click>=7.0",
     "h11>=0.8",
     "typing-extensions;python_version < '3.8'",
@@ -36,7 +37,6 @@ dependencies = [
 
 [project.optional-dependencies]
 standard = [
-    "a2wsgi>=1.6.0,<2.0.0",
     "colorama>=0.4;sys_platform == 'win32'",
     "httptools>=0.5.0",
     "python-dotenv>=0.13",

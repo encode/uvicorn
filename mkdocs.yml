@@ -1,5 +1,5 @@
 site_name: Uvicorn
-site_description: The lightning-fast ASGI server.
+site_description: The lightning-fast ASGI first server.
 
 theme:
   name: "material"
