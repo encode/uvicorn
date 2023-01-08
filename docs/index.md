@@ -462,14 +462,15 @@ async def app(scope, receive, send):
 
 ## The WSGI Support
 
-Uvicorn offer support to WSGI applications throught `WSGIMiddleware` which converts
-your WSGI into ASGI application seamlessly just by running it with `--interface wsgi`
+Uvicorn offers support to WSGI applications through `WSGIMiddleware` which converts
+your WSGI into ASGI application by running it with `--interface wsgi`
 
 !!! warning
-    The present WSGIMiddleware will be deprecated in favour of [a2wsgi](https://github.com/abersheeran/a2wsgi).
-    If you are using Uvicorn to run WSGI applications, please add it as part of your project requirements.
+    The present WSGIMiddleware is deprecated in favour of [a2wsgi](https://github.com/abersheeran/a2wsgi).
+    If you are using Uvicorn to run WSGI applications, please make sure you switch to a2wsgi
+    by adding it as part of your project requirements.
 
-To use the WSGI interface install its dependency:
+To use the WSGI interface you just need to install it:
 
 ```shell
 pip install a2wsgi
