@@ -2,6 +2,7 @@ import asyncio
 import concurrent.futures
 import io
 import sys
+import warnings
 from collections import deque
 from typing import TYPE_CHECKING, Deque, Iterable, Optional, Tuple
 
@@ -75,6 +76,11 @@ def build_environ(
 
 class WSGIMiddleware:
     def __init__(self, app: WSGIApp, workers: int = 10):
+        warnings.warn(
+            '"WSGIMiddleware" is deprecated, you should switch '
+            "to a2wsgi (`pip install a2wsgi`).",
+            DeprecationWarning,
+        )
         self.app = app
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
