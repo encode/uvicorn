@@ -74,7 +74,7 @@ def build_environ(
     return environ
 
 
-class WSGIMiddleware:
+class _WSGIMiddleware:
     def __init__(self, app: WSGIApp, workers: int = 10):
         warnings.warn(
             '"WSGIMiddleware" is deprecated, you should switch '
@@ -198,5 +198,5 @@ class WSGIResponder:
 
 try:
     from a2wsgi import WSGIMiddleware  # type: ignore # noqa
-except ImportError:
-    pass
+except ModuleNotFoundError:
+    WSGIMiddleware = _WSGIMiddleware  # type: ignore
