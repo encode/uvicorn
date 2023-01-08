@@ -1,15 +1,36 @@
 import io
 import sys
-from typing import TYPE_CHECKING, AsyncGenerator, List
+from importlib import reload
+from typing import TYPE_CHECKING, AsyncGenerator, Awaitable, Callable, List
+from unittest import mock
 
 import httpx
 import pytest
 
 from uvicorn._types import Environ, StartResponse
-from uvicorn.middleware.wsgi import WSGIMiddleware, build_environ
+from uvicorn.middleware import wsgi
 
 if TYPE_CHECKING:
     from asgiref.typing import HTTPRequestEvent, HTTPScope
+
+
+def environ_switcher(
+    async_test: Callable[[], Awaitable[None]]
+) -> Callable[[bool], Awaitable[None]]:
+    from uvicorn.middleware import wsgi
+
+    async def test_wrapper(use_a2wsgi: bool) -> None:
+        if use_a2wsgi:
+            await async_test()
+        else:
+            with mock.patch.dict(sys.modules, {"a2wsgi": None}):
+                reload(wsgi)
+
+                await async_test()
+
+            reload(wsgi)
+
+    return test_wrapper
 
 
 def hello_world(environ: Environ, start_response: StartResponse) -> List[bytes]:
@@ -53,8 +74,10 @@ def return_exc_info(environ: Environ, start_response: StartResponse) -> List[byt
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("use_a2wsgi", [True, False])
+@environ_switcher
 async def test_wsgi_get() -> None:
-    app = WSGIMiddleware(hello_world)
+    app = wsgi.WSGIMiddleware(hello_world)
     async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
         response = await client.get("/")
     assert response.status_code == 200
@@ -62,8 +85,10 @@ async def test_wsgi_get() -> None:
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("use_a2wsgi", [True, False])
+@environ_switcher
 async def test_wsgi_post() -> None:
-    app = WSGIMiddleware(echo_body)
+    app = wsgi.WSGIMiddleware(echo_body)
     async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
         response = await client.post("/", json={"example": 123})
     assert response.status_code == 200
@@ -71,12 +96,14 @@ async def test_wsgi_post() -> None:
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("use_a2wsgi", [True, False])
+@environ_switcher
 async def test_wsgi_put_more_body() -> None:
     async def generate_body() -> AsyncGenerator[bytes, None]:
         for _ in range(1024):
             yield b"123456789abcdef\n" * 64
 
-    app = WSGIMiddleware(echo_body)
+    app = wsgi.WSGIMiddleware(echo_body)
     async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
         response = await client.put("/", content=generate_body())
     assert response.status_code == 200
@@ -84,25 +111,29 @@ async def test_wsgi_put_more_body() -> None:
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("use_a2wsgi", [True, False])
+@environ_switcher
 async def test_wsgi_exception() -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
-    app = WSGIMiddleware(raise_exception)
+    app = wsgi.WSGIMiddleware(raise_exception)
     async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
         with pytest.raises(RuntimeError):
             await client.get("/")
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("use_a2wsgi", [True, False])
+@environ_switcher
 async def test_wsgi_exc_info() -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
-    app = WSGIMiddleware(return_exc_info)
+    app = wsgi.WSGIMiddleware(return_exc_info)
     async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
         with pytest.raises(RuntimeError):
             response = await client.get("/")
 
-    app = WSGIMiddleware(return_exc_info)
+    app = wsgi.WSGIMiddleware(return_exc_info)
     transport = httpx.ASGITransport(
         app=app,
         raise_app_exceptions=False,
@@ -136,6 +167,6 @@ def test_build_environ_encoding() -> None:
         "body": b"",
         "more_body": False,
     }
-    environ = build_environ(scope, message, io.BytesIO(b""))
+    environ = wsgi.build_environ(scope, message, io.BytesIO(b""))
     assert environ["PATH_INFO"] == "/文".encode("utf8").decode("latin-1")
     assert environ["HTTP_KEY"] == "value1,value2"
