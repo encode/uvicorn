@@ -188,3 +188,9 @@ class WSGIResponder:
         }
         self.send_queue.append(empty_body)
         self.loop.call_soon_threadsafe(self.send_event.set)
+
+
+try:
+    from a2wsgi import WSGIMiddleware  # type: ignore # noqa
+except ImportError:
+    pass
