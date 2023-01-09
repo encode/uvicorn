@@ -81,7 +81,7 @@ Note that WSGI mode always disables WebSocket support, as it is not supported by
 **Options:** *'auto', 'asgi3', 'asgi2', 'wsgi'.* **Default:** *'auto'*.
 
 !!! warning
-    The internal `WSGIMiddleware` is deprecated, you should switch
+    Uvicorn's native `WSGIMiddleware` is deprecated, you should switch
     to [a2wsgi](https://github.com/abersheeran/a2wsgi) (`pip install a2wsgi`).
 
 ## HTTP

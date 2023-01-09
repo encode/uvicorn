@@ -77,8 +77,8 @@ def build_environ(
 class _WSGIMiddleware:
     def __init__(self, app: WSGIApp, workers: int = 10):
         warnings.warn(
-            '"WSGIMiddleware" is deprecated, you should switch '
-            "to a2wsgi (`pip install a2wsgi`).",
+            'Uvicorn\'s native "WSGIMiddleware" is deprecated, you '
+            "should switch to a2wsgi (`pip install a2wsgi`).",
             DeprecationWarning,
         )
         self.app = app
