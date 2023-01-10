@@ -2,7 +2,6 @@ import asyncio
 import http
 import logging
 import sys
-
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -35,7 +34,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
 
 if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal

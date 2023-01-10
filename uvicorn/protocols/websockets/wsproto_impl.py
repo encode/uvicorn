@@ -2,11 +2,9 @@ import asyncio
 import logging
 import sys
 import typing
-
 from urllib.parse import unquote
 
 import wsproto
-
 from wsproto import ConnectionType, events
 from wsproto.connection import ConnectionState
 from wsproto.extensions import Extension, PerMessageDeflate
@@ -22,7 +20,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
 
 if typing.TYPE_CHECKING:
     from asgiref.typing import (

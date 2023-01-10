@@ -1,9 +1,7 @@
 import asyncio
 import ssl
 import urllib.parse
-
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
-
 
 if TYPE_CHECKING:
     from asgiref.typing import WWWScope

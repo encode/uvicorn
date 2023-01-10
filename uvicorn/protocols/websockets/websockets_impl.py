@@ -2,7 +2,6 @@ import asyncio
 import http
 import logging
 import sys
-
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -17,7 +16,6 @@ from typing import (
 from urllib.parse import unquote
 
 import websockets
-
 from websockets.datastructures import Headers
 from websockets.exceptions import ConnectionClosed
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
@@ -35,7 +33,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
 
 if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal

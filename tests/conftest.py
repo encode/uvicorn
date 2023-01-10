@@ -2,7 +2,6 @@ import contextlib
 import os
 import socket
 import ssl
-
 from copy import deepcopy
 from hashlib import md5
 from pathlib import Path
@@ -13,12 +12,10 @@ from uuid import uuid4
 
 import pytest
 import trustme
-
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
 from uvicorn.config import LOGGING_CONFIG
-
 
 # Note: We explicitly turn the propagate on just for tests, because pytest
 # caplog not able to capture no-propagate loggers.

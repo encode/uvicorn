@@ -4,7 +4,6 @@ import logging
 import re
 import sys
 import urllib
-
 from asyncio.events import TimerHandle
 from collections import deque
 from typing import (
@@ -39,7 +38,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
 
 if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
