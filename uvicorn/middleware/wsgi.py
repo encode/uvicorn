@@ -197,6 +197,6 @@ class WSGIResponder:
 
 
 try:
-    from a2wsgi import WSGIMiddleware  # type: ignore # noqa
+    from a2wsgi import WSGIMiddleware
 except ModuleNotFoundError:
-    WSGIMiddleware = _WSGIMiddleware  # type: ignore
+    WSGIMiddleware = _WSGIMiddleware

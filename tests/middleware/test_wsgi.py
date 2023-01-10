@@ -53,10 +53,12 @@ def return_exc_info(environ: Environ, start_response: StartResponse) -> List[byt
         return [output]
 
 
+@pytest.fixture(params=[wsgi._WSGIMiddleware, a2wsgi.WSGIMiddleware])
+def wsgi_middleware(request: pytest.FixtureRequest):
+    return request.param
+
+
 @pytest.mark.anyio
-@pytest.mark.parametrize(
-    "wsgi_middleware", [wsgi._WSGIMiddleware, a2wsgi.WSGIMiddleware]
-)
 async def test_wsgi_get(wsgi_middleware: Callable) -> None:
     app = wsgi_middleware(hello_world)
     async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
@@ -66,9 +68,6 @@ async def test_wsgi_get(wsgi_middleware: Callable) -> None:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize(
-    "wsgi_middleware", [wsgi._WSGIMiddleware, a2wsgi.WSGIMiddleware]
-)
 async def test_wsgi_post(wsgi_middleware: Callable) -> None:
     app = wsgi_middleware(echo_body)
     async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
@@ -78,9 +77,6 @@ async def test_wsgi_post(wsgi_middleware: Callable) -> None:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize(
-    "wsgi_middleware", [wsgi._WSGIMiddleware, a2wsgi.WSGIMiddleware]
-)
 async def test_wsgi_put_more_body(wsgi_middleware: Callable) -> None:
     async def generate_body() -> AsyncGenerator[bytes, None]:
         for _ in range(1024):
@@ -94,9 +90,6 @@ async def test_wsgi_put_more_body(wsgi_middleware: Callable) -> None:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize(
-    "wsgi_middleware", [wsgi._WSGIMiddleware, a2wsgi.WSGIMiddleware]
-)
 async def test_wsgi_exception(wsgi_middleware: Callable) -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
@@ -107,9 +100,6 @@ async def test_wsgi_exception(wsgi_middleware: Callable) -> None:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize(
-    "wsgi_middleware", [wsgi._WSGIMiddleware, a2wsgi.WSGIMiddleware]
-)
 async def test_wsgi_exc_info(wsgi_middleware: Callable) -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
