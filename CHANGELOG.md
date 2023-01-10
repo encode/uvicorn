@@ -1,5 +1,7 @@
 # Change Log
 
+- Add [ASGI TLS Extension version: 0.2](https://github.com/jonfoster/asgiref/blob/master/specs/tls.rst) to h11, httptools, websockets, and wsproto impl (#1119)
+
 ## 0.20.0 - 2022-11-20
 
 ### Added
