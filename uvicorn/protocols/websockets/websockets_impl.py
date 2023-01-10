@@ -2,10 +2,22 @@ import asyncio
 import http
 import logging
 import sys
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, Union, cast
+
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 from urllib.parse import unquote
 
 import websockets
+
 from websockets.datastructures import Headers
 from websockets.exceptions import ConnectionClosed
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
@@ -19,9 +31,11 @@ from uvicorn.protocols.utils import (
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
+    get_tls_info,
     is_ssl,
 )
 from uvicorn.server import ServerState
+
 
 if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
@@ -80,6 +94,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.server: Optional[Tuple[str, int]] = None
         self.client: Optional[Tuple[str, int]] = None
         self.scheme: Literal["wss", "ws"] = None  # type: ignore[assignment]
+        self.tls: Optional[Dict[str, Any]] = None
 
         # Connection events
         self.scope: WebSocketScope = None  # type: ignore[assignment]
@@ -120,6 +135,9 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
         self.scheme = "wss" if is_ssl(transport) else "ws"
+
+        if self.scheme == "wss":
+            self.tls = get_tls_info(transport, self.config.ssl_cert_pem)
 
         if self.logger.isEnabledFor(TRACE_LOG_LEVEL):
             prefix = "%s:%d - " % self.client if self.client else ""
@@ -190,7 +208,10 @@ class WebSocketProtocol(WebSocketServerProtocol):
             "query_string": query_string.encode("ascii"),
             "headers": asgi_headers,
             "subprotocols": subprotocols,
+            "extensions": {},
         }
+        if self.scheme == "wss":
+            self.scope["extensions"]["tls"] = self.tls
         task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)
         self.tasks.add(task)

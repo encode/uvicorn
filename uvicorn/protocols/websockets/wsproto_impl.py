@@ -2,9 +2,11 @@ import asyncio
 import logging
 import sys
 import typing
+
 from urllib.parse import unquote
 
 import wsproto
+
 from wsproto import ConnectionType, events
 from wsproto.connection import ConnectionState
 from wsproto.extensions import Extension, PerMessageDeflate
@@ -16,9 +18,11 @@ from uvicorn.protocols.utils import (
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
+    get_tls_info,
     is_ssl,
 )
 from uvicorn.server import ServerState
+
 
 if typing.TYPE_CHECKING:
     from asgiref.typing import (
@@ -70,6 +74,7 @@ class WSProtocol(asyncio.Protocol):
         self.server: typing.Optional[typing.Tuple[str, int]] = None
         self.client: typing.Optional[typing.Tuple[str, int]] = None
         self.scheme: Literal["wss", "ws"] = None  # type: ignore[assignment]
+        self.tls: typing.Optional[typing.Dict[str, typing.Any]] = None
 
         # WebSocket state
         self.queue: asyncio.Queue["WebSocketEvent"] = asyncio.Queue()
@@ -96,6 +101,9 @@ class WSProtocol(asyncio.Protocol):
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
         self.scheme = "wss" if is_ssl(transport) else "ws"
+
+        if self.scheme == "wss":
+            self.tls = get_tls_info(transport, self.config.ssl_cert_pem)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
@@ -183,8 +191,10 @@ class WSProtocol(asyncio.Protocol):
             "query_string": query_string.encode("ascii"),
             "headers": headers,
             "subprotocols": event.subprotocols,
-            "extensions": None,
+            "extensions": {},
         }
+        if self.scheme == "wss":
+            self.scope["extensions"]["tls"] = self.tls
         self.queue.put_nowait({"type": "websocket.connect"})
         task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)
