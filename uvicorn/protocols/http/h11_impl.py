@@ -233,7 +233,7 @@ class H11Protocol(asyncio.Protocol):
                     "http_version": event.http_version.decode("ascii"),
                     "server": self.server,
                     "client": self.client,
-                    "scheme": self.scheme,
+                    "scheme": self.scheme,  # type: ignore[typeddict-item]
                     "method": event.method.decode("ascii"),
                     "root_path": self.root_path,
                     "path": unquote(raw_path.decode("ascii")),
@@ -243,7 +243,7 @@ class H11Protocol(asyncio.Protocol):
                     "extensions": {},
                 }
                 if self.scheme == "https":
-                    self.scope["extensions"]["tls"] = self.tls
+                    self.scope["extensions"]["tls"] = self.tls  # type: ignore
 
                 upgrade = self._get_upgrade()
                 if upgrade == b"websocket" and self._should_upgrade_to_ws():

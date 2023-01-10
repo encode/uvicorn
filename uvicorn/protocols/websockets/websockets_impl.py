@@ -211,7 +211,8 @@ class WebSocketProtocol(WebSocketServerProtocol):
             "extensions": {},
         }
         if self.scheme == "wss":
-            self.scope["extensions"]["tls"] = self.tls
+            self.scope["extensions"]["tls"] = self.tls  # type: ignore
+
         task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)
         self.tasks.add(task)

@@ -194,7 +194,8 @@ class WSProtocol(asyncio.Protocol):
             "extensions": {},
         }
         if self.scheme == "wss":
-            self.scope["extensions"]["tls"] = self.tls
+            self.scope["extensions"]["tls"] = self.tls  # type: ignore
+
         self.queue.put_nowait({"type": "websocket.connect"})
         task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)

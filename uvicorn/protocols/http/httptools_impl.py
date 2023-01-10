@@ -258,7 +258,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             "extensions": {},
         }
         if self.scheme == "https":
-            self.scope["extensions"]["tls"] = self.tls
+            self.scope["extensions"]["tls"] = self.tls  # type: ignore
 
     # Parser callbacks
     def on_url(self, url: bytes) -> None:
