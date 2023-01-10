@@ -77,10 +77,12 @@ def get_path_with_query_string(scope: "WWWScope") -> str:
     return path_with_query_string
 
 
-def get_tls_info(transport: asyncio.Transport) -> Optional[Dict]:
+def get_tls_info(
+    transport: asyncio.Transport, server_pem: Optional[str] = None
+) -> Dict:
 
     ###
-    # server_cert: Unable to set from transport information
+    # server_cert: Unable to set from transport information, need to read from config
     # client_cert_chain: Just the peercert, currently no access to the full cert chain
     # client_cert_name:
     # client_cert_error: No access to this
@@ -89,7 +91,7 @@ def get_tls_info(transport: asyncio.Transport) -> Optional[Dict]:
     ###
 
     ssl_info: Dict[str, Any] = {
-        "server_cert": None,
+        "server_cert": server_pem,
         "client_cert_chain": [],
         "client_cert_name": None,
         "client_cert_error": None,
@@ -117,13 +119,12 @@ def get_tls_info(transport: asyncio.Transport) -> Optional[Dict]:
             ssl.DER_cert_to_PEM_cert(ssl_object.getpeercert(binary_form=True))
         ]
         ssl_info["client_cert_name"] = ", ".join(rdn_strings) if rdn_strings else ""
-        ssl_info["tls_version"] = (
-            TLS_VERSION_MAP[ssl_object.version()]
-            if ssl_object.version() in TLS_VERSION_MAP
-            else None
-        )
-        ssl_info["cipher_suite"] = list(ssl_object.cipher())
 
-        return ssl_info
+    ssl_info["tls_version"] = (
+        TLS_VERSION_MAP[ssl_object.version()]
+        if ssl_object.version() in TLS_VERSION_MAP
+        else None
+    )
+    ssl_info["cipher_suite"] = list(ssl_object.cipher())
 
-    return None
+    return ssl_info
