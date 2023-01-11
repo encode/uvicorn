@@ -77,7 +77,7 @@ def build_environ(
 class _WSGIMiddleware:
     def __init__(self, app: WSGIApp, workers: int = 10):
         warnings.warn(
-            'Uvicorn\'s native "WSGIMiddleware" is deprecated, you '
+            "Uvicorn's native WSGI implementation is deprecated, you "
             "should switch to a2wsgi (`pip install a2wsgi`).",
             DeprecationWarning,
         )
@@ -197,6 +197,6 @@ class WSGIResponder:
 
 
 try:
-    from a2wsgi import WSGIMiddleware  # type: ignore # noqa
+    from a2wsgi import WSGIMiddleware
 except ModuleNotFoundError:
-    WSGIMiddleware = _WSGIMiddleware  # type: ignore
+    WSGIMiddleware = _WSGIMiddleware  # type: ignore[misc, assignment]
