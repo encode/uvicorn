@@ -10,7 +10,7 @@ import threading
 import time
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, List, Optional, Sequence, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Set, Tuple, Union
 
 import click
 
@@ -54,7 +54,7 @@ class Server:
         self.should_exit = False
         self.force_exit = False
         self.last_notified = 0.0
-        self.servers = []
+        self.servers: List[Any] = []
 
     def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
