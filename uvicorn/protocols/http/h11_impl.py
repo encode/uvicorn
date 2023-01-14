@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Callable, List, Optional, Tuple, Union, cast
 from urllib.parse import unquote
 
 import h11
+from h11._connection import DEFAULT_MAX_INCOMPLETE_EVENT_SIZE
 
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
@@ -79,7 +80,12 @@ class H11Protocol(asyncio.Protocol):
         self.logger = logging.getLogger("uvicorn.error")
         self.access_logger = logging.getLogger("uvicorn.access")
         self.access_log = self.access_logger.hasHandlers()
-        self.conn = h11.Connection(h11.SERVER, config.h11_max_incomplete_event_size)
+        self.conn = h11.Connection(
+            h11.SERVER,
+            config.h11_max_incomplete_event_size
+            if config.h11_max_incomplete_event_size is not None
+            else DEFAULT_MAX_INCOMPLETE_EVENT_SIZE,
+        )
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
         self.limit_concurrency = config.limit_concurrency
