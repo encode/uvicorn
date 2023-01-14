@@ -32,14 +32,6 @@ else:  # pragma: py-lt-38
 
 import click
 
-try:
-    import yaml
-except ImportError:  # pragma: no cover
-    # If the code below that depends on yaml is exercised, it will raise a NameError.
-    # Install the PyYAML package or the uvicorn[standard] optional dependencies to
-    # enable this functionality.
-    pass
-
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
@@ -410,6 +402,10 @@ class Config:
                     loaded_config = json.load(file)
                     logging.config.dictConfig(loaded_config)
             elif self.log_config.endswith((".yaml", ".yml")):
+                # Install the PyYAML package or the uvicorn[standard] optional
+                # dependencies to enable this functionality.
+                import yaml
+
                 with open(self.log_config) as file:
                     loaded_config = yaml.safe_load(file)
                     logging.config.dictConfig(loaded_config)
