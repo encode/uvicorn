@@ -269,6 +269,8 @@ gunicorn example:app -w 4 -k uvicorn.workers.UvicornWorker
 
 For a [PyPy][pypy] compatible configuration use `uvicorn.workers.UvicornH11Worker`.
 
+For a [Django][django] compatible configuration use `uvicorn.workers.UvicornNoLifespanWorker`.
+
 For more information, see the [deployment documentation](deployment.md).
 
 ### Application factories
@@ -562,6 +564,7 @@ Its most distinctive features are built-in support for dependency injection, aut
 [asgi]: https://asgi.readthedocs.io/en/latest/
 [asgi-http]: https://asgi.readthedocs.io/en/latest/specs/www.html
 [daphne]: https://github.com/django/daphne
+[django]: https://djangoproject.com/
 [hypercorn]: https://gitlab.com/pgjones/hypercorn
 [uvloop_docs]: https://uvloop.readthedocs.io/
 [httptools_vs_h11]: https://github.com/python-hyper/h11/issues/9

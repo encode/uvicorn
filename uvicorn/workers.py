@@ -103,3 +103,7 @@ class UvicornWorker(Worker):
 
 class UvicornH11Worker(UvicornWorker):
     CONFIG_KWARGS = {"loop": "asyncio", "http": "h11"}
+
+
+class UvicornNoLifespanWorker(UvicornWorker):
+    CONFIG_KWARGS = {**UvicornWorker.CONFIG_KWARGS, "lifespan": "off"}
