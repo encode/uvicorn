@@ -9,7 +9,7 @@ wsproto==1.2.0
 
 # Packaging
 build==0.9.0
-twine==4.0.1
+twine==4.0.2
 
 # Testing
 autoflake==1.7.7
