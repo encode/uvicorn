@@ -451,7 +451,7 @@ def main(
 
 
 def run(
-    app: typing.Union["ASGIApplication", typing.Callable, str],
+    app: typing.Union["ASGIApplication", typing.Callable[..., None], str],
     *,
     host: str = "127.0.0.1",
     port: int = 8000,
@@ -472,7 +472,7 @@ def run(
     reload_excludes: typing.Optional[typing.Union[typing.List[str], str]] = None,
     reload_delay: float = 0.25,
     workers: typing.Optional[int] = None,
-    env_file: typing.Optional[typing.Union[str, os.PathLike]] = None,
+    env_file: typing.Optional[typing.Union[str, os.PathLike[typing.Any]]] = None,
     log_config: typing.Optional[
         typing.Union[typing.Dict[str, typing.Any], str]
     ] = LOGGING_CONFIG,
@@ -488,7 +488,7 @@ def run(
     limit_max_requests: typing.Optional[int] = None,
     timeout_keep_alive: int = 5,
     ssl_keyfile: typing.Optional[str] = None,
-    ssl_certfile: typing.Optional[typing.Union[str, os.PathLike]] = None,
+    ssl_certfile: typing.Optional[typing.Union[str, os.PathLike[typing.Any]]] = None,
     ssl_keyfile_password: typing.Optional[str] = None,
     ssl_version: int = SSL_PROTOCOL_VERSION,
     ssl_cert_reqs: int = ssl.CERT_NONE,
