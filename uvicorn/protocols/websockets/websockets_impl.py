@@ -2,16 +2,22 @@ import asyncio
 import http
 import logging
 import sys
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, Union, cast
 from urllib.parse import unquote
 
 import websockets
 from websockets.datastructures import Headers
-from websockets.exceptions import ConnectionClosed
-from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
+from websockets.exceptions import ConnectionClosed, NegotiationError
+from websockets.extensions.base import Extension
+from websockets.extensions.permessage_deflate import (
+    _extract_parameters,
+    PerMessageDeflate,
+    ServerPerMessageDeflateFactory as BaseServerPerMessageDeflateFactory
+)
 from websockets.legacy.server import HTTPResponse
 from websockets.server import WebSocketServerProtocol
-from websockets.typing import Subprotocol
+from websockets.typing import Subprotocol, ExtensionName, ExtensionParameter
 
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
@@ -52,6 +58,30 @@ class Server:
 
     def is_serving(self) -> bool:
         return not self.closing
+
+
+class ServerPerMessageDeflateFactory(BaseServerPerMessageDeflateFactory):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._per_message_deflate_cache = {}
+
+    def process_request_params(
+        self,
+        params: Sequence[ExtensionParameter],
+        accepted_extensions: Sequence[Extension],
+    ) -> Tuple[List[ExtensionParameter], PerMessageDeflate]:
+        # In order to skip unnecessary work as fast as possible
+        if any(other.name == self.name for other in accepted_extensions):
+            raise NegotiationError(f"skipped duplicate {self.name}")
+
+        # Try searching valuable parameters tuple in cache.
+        # If it exists - returned cached PerMessageDeflate instance.
+        # If not - create new instance and return it.
+        params_tuple = _extract_parameters(params, is_server=True)
+        if params_tuple not in self._per_message_deflate_cache:
+            self._per_message_deflate_cache[params_tuple] = super().process_request_params(params, accepted_extensions)
+
+        return self._per_message_deflate_cache[params_tuple]
 
 
 class WebSocketProtocol(WebSocketServerProtocol):
