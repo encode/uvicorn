@@ -115,7 +115,7 @@ class Server:
 
             # Ensure list does not have stale items if the server is run multiple times.
             self.servers.clear()
-            
+
             for sock in sockets:
                 if config.workers > 1 and platform.system() == "Windows":
                     sock = _share_socket(  # type: ignore[assignment]
