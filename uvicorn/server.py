@@ -113,6 +113,9 @@ class Server:
                 sock_data = sock.share(os.getpid())  # type: ignore[attr-defined]
                 return fromshare(sock_data)
 
+            # Ensure list does not have stale items if the server is run multiple times.
+            self.servers.clear()
+            
             for sock in sockets:
                 if config.workers > 1 and platform.system() == "Windows":
                     sock = _share_socket(  # type: ignore[assignment]
