@@ -320,10 +320,10 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
-    "--ssl-context-factory",
+    "--ssl-context",
     type=typing.Callable,
     default=None,
-    help="Custom ssl_context factory that returns ssl.Context to set on config",
+    help="Custom ssl_context that returns ssl.SSLContext to set on config",
     show_default=True,
 )
 @click.option(
@@ -402,7 +402,7 @@ def main(
     ssl_cert_reqs: int,
     ssl_ca_certs: str,
     ssl_ciphers: str,
-    ssl_context_factory: typing.Callable,
+    ssl_context: typing.Callable,
     headers: typing.List[str],
     use_colors: bool,
     app_dir: str,
@@ -450,7 +450,7 @@ def main(
         ssl_cert_reqs=ssl_cert_reqs,
         ssl_ca_certs=ssl_ca_certs,
         ssl_ciphers=ssl_ciphers,
-        ssl_context_factory=ssl_context_factory,
+        ssl_context=ssl_context,
         headers=[header.split(":", 1) for header in headers],  # type: ignore[misc]
         use_colors=use_colors,
         factory=factory,
@@ -503,7 +503,7 @@ def run(
     ssl_cert_reqs: int = ssl.CERT_NONE,
     ssl_ca_certs: typing.Optional[str] = None,
     ssl_ciphers: str = "TLSv1",
-    ssl_context_factory: typing.Optional[typing.Callable] = None,
+    ssl_context: typing.Optional[typing.Callable] = None,
     headers: typing.Optional[typing.List[typing.Tuple[str, str]]] = None,
     use_colors: typing.Optional[bool] = None,
     app_dir: typing.Optional[str] = None,
@@ -554,7 +554,7 @@ def run(
         ssl_cert_reqs=ssl_cert_reqs,
         ssl_ca_certs=ssl_ca_certs,
         ssl_ciphers=ssl_ciphers,
-        ssl_context_factory=ssl_context_factory,
+        ssl_context=ssl_context,
         headers=headers,
         use_colors=use_colors,
         factory=factory,

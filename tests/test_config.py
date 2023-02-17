@@ -315,7 +315,7 @@ def test_ssl_config(
 
 
 # ignore
-def ssl_context_factory():
+def ssl_context():
     context = ssl.SSLContext(int(ssl.PROTOCOL_TLS_SERVER))  # type: ignore
     allowed_ciphers = (
         "DEFAULT:!aNULL:!eNULL:!MD5:!3DES:!DES:!RC4:!IDEA:!SEED:!aDSS:!SRP:!PSK"
@@ -328,9 +328,9 @@ def ssl_context_factory():
 
 
 def test_ssl_context() -> None:
-    config = Config(app=asgi_app, ssl_context_factory=ssl_context_factory)
+    config = Config(app=asgi_app, ssl_context=ssl_context)
     config.load()
-    if config.ssl_context_factory is not None:
+    if config.ssl_context is not None:
         assert ssl.PROTOCOL_TLS_SERVER is config.ssl_version
         assert "TLSv1" in config.ssl_ciphers
     if config.ssl is not None:

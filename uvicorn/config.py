@@ -125,6 +125,27 @@ LOGGING_CONFIG: Dict[str, Any] = {
 logger = logging.getLogger("uvicorn.error")
 
 
+def update_ssl_context(
+    ctx: ssl.SSLContext,
+    certfile: Optional[Union[str, os.PathLike]],
+    keyfile: Optional[Union[str, os.PathLike]],
+    password: Optional[str],
+    cert_reqs: int,
+    ca_certs: Optional[Union[str, os.PathLike]],
+    ciphers: Optional[str],
+) -> ssl.SSLContext:
+    get_password = (lambda: password) if password else None
+    if certfile and keyfile:
+        ctx.load_cert_chain(certfile, keyfile, get_password)
+    if cert_reqs:
+        ctx.verify_mode = ssl.VerifyMode(cert_reqs)
+    if ca_certs:
+        ctx.load_verify_locations(ca_certs)
+    if ciphers:
+        ctx.set_ciphers(ciphers)
+    return ctx
+
+
 def create_ssl_context(
     certfile: Union[str, os.PathLike],
     keyfile: Optional[Union[str, os.PathLike]],
@@ -248,7 +269,7 @@ class Config:
         ssl_cert_reqs: int = ssl.CERT_NONE,
         ssl_ca_certs: Optional[str] = None,
         ssl_ciphers: str = "TLSv1",
-        ssl_context_factory: Optional[Callable] = None,
+        ssl_context: Optional[Callable] = None,
         headers: Optional[List[Tuple[str, str]]] = None,
         factory: bool = False,
         h11_max_incomplete_event_size: int = DEFAULT_MAX_INCOMPLETE_EVENT_SIZE,
@@ -291,7 +312,7 @@ class Config:
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
-        self.ssl_context_factory = ssl_context_factory
+        self.ssl_context = ssl_context
         self.headers: List[Tuple[str, str]] = headers or []
         self.encoded_headers: List[Tuple[bytes, bytes]] = []
         self.factory = factory
@@ -437,9 +458,21 @@ class Config:
     def load(self) -> None:
         assert not self.loaded
 
-        if self.is_ssl and not self.ssl_context_factory:
+        if self.ssl_context:
+            self.ssl: Optional[ssl.SSLContext] = update_ssl_context(
+                self.ssl_context(),
+                keyfile=self.ssl_keyfile,
+                certfile=self.ssl_certfile,
+                password=self.ssl_keyfile_password,
+                cert_reqs=self.ssl_cert_reqs,
+                ca_certs=self.ssl_ca_certs,
+                ciphers=self.ssl_ciphers,
+            )
+
+        elif self.is_ssl and not self.ssl_context:
             assert self.ssl_certfile
-            self.ssl: Optional[ssl.SSLContext] = create_ssl_context(
+
+            self.ssl = create_ssl_context(
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
                 password=self.ssl_keyfile_password,
@@ -449,8 +482,6 @@ class Config:
                 ciphers=self.ssl_ciphers,
             )
 
-        elif self.ssl_context_factory:
-            self.ssl = self.ssl_context_factory()
         else:
             self.ssl = None
 
