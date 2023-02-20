@@ -2,12 +2,22 @@ import asyncio
 import http
 import logging
 import sys
-from typing import TYPE_CHECKING, Callable, List, Optional, Tuple, Union, cast
+from typing import Callable, List, Optional, Tuple, Union, cast
 from urllib.parse import unquote
 
 import h11
 from h11._connection import DEFAULT_MAX_INCOMPLETE_EVENT_SIZE
 
+from uvicorn._types import (
+    ASGI3Application,
+    ASGIReceiveEvent,
+    ASGISendEvent,
+    HTTPDisconnectEvent,
+    HTTPRequestEvent,
+    HTTPResponseBodyEvent,
+    HTTPResponseStartEvent,
+    HTTPScope,
+)
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import (
@@ -30,17 +40,6 @@ if sys.version_info < (3, 8):  # pragma: py-gte-38
 else:  # pragma: py-lt-38
     from typing import Literal
 
-if TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGI3Application,
-        ASGIReceiveEvent,
-        ASGISendEvent,
-        HTTPDisconnectEvent,
-        HTTPRequestEvent,
-        HTTPResponseBodyEvent,
-        HTTPResponseStartEvent,
-        HTTPScope,
-    )
 
 H11Event = Union[
     h11.Request,
@@ -65,6 +64,8 @@ STATUS_PHRASES = {
 
 
 class H11Protocol(asyncio.Protocol):
+    scheme: Literal["http", "https"]
+
     def __init__(
         self,
         config: Config,
@@ -104,7 +105,6 @@ class H11Protocol(asyncio.Protocol):
         self.flow: FlowControl = None  # type: ignore[assignment]
         self.server: Optional[Tuple[str, int]] = None
         self.client: Optional[Tuple[str, int]] = None
-        self.scheme: Optional[Literal["http", "https"]] = None
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]

@@ -1,14 +1,12 @@
 import asyncio
-import typing
 
-if typing.TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGIReceiveCallable,
-        ASGISendCallable,
-        HTTPResponseBodyEvent,
-        HTTPResponseStartEvent,
-        Scope,
-    )
+from uvicorn._types import (
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    HTTPResponseBodyEvent,
+    HTTPResponseStartEvent,
+    Scope,
+)
 
 CLOSE_HEADER = (b"connection", b"close")
 
@@ -65,4 +63,5 @@ async def service_unavailable(
         "body": b"Service Unavailable",
         "more_body": False,
     }
+    await send(response_body)
     await send(response_body)

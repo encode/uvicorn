@@ -10,6 +10,15 @@ from wsproto.connection import ConnectionState
 from wsproto.extensions import Extension, PerMessageDeflate
 from wsproto.utilities import RemoteProtocolError
 
+from uvicorn._types import (
+    ASGISendEvent,
+    WebSocketAcceptEvent,
+    WebSocketCloseEvent,
+    WebSocketEvent,
+    WebSocketReceiveEvent,
+    WebSocketScope,
+    WebSocketSendEvent,
+)
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import (
@@ -19,24 +28,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
-if typing.TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGISendEvent,
-        WebSocketAcceptEvent,
-        WebSocketCloseEvent,
-        WebSocketConnectEvent,
-        WebSocketDisconnectEvent,
-        WebSocketReceiveEvent,
-        WebSocketScope,
-        WebSocketSendEvent,
-    )
-
-    WebSocketEvent = typing.Union[
-        "WebSocketReceiveEvent",
-        "WebSocketDisconnectEvent",
-        "WebSocketConnectEvent",
-    ]
 
 if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
@@ -183,7 +174,6 @@ class WSProtocol(asyncio.Protocol):
             "query_string": query_string.encode("ascii"),
             "headers": headers,
             "subprotocols": event.subprotocols,
-            "extensions": None,
         }
         self.queue.put_nowait({"type": "websocket.connect"})
         task = self.loop.create_task(self.run_asgi())
@@ -351,4 +341,5 @@ class WSProtocol(asyncio.Protocol):
         if self.read_paused and self.queue.empty():
             self.read_paused = False
             self.transport.resume_reading()
+        return message
         return message

@@ -6,10 +6,20 @@ import sys
 import urllib
 from asyncio.events import TimerHandle
 from collections import deque
-from typing import TYPE_CHECKING, Callable, Deque, List, Optional, Tuple, Union, cast
+from typing import Callable, Deque, List, Optional, Tuple, Union, cast
 
 import httptools
 
+from uvicorn._types import (
+    ASGI3Application,
+    ASGIReceiveEvent,
+    ASGISendEvent,
+    HTTPDisconnectEvent,
+    HTTPRequestEvent,
+    HTTPResponseBodyEvent,
+    HTTPResponseStartEvent,
+    HTTPScope,
+)
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import (
@@ -32,17 +42,6 @@ if sys.version_info < (3, 8):  # pragma: py-gte-38
 else:  # pragma: py-lt-38
     from typing import Literal
 
-if TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGI3Application,
-        ASGIReceiveEvent,
-        ASGISendEvent,
-        HTTPDisconnectEvent,
-        HTTPRequestEvent,
-        HTTPResponseBodyEvent,
-        HTTPResponseStartEvent,
-        HTTPScope,
-    )
 
 HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")

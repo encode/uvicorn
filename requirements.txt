@@ -1,8 +1,5 @@
 -e .[standard]
 
-# Type annotation
-asgiref==3.5.2
-
 # Explicit optionals
 a2wsgi==1.6.0
 wsproto==1.2.0

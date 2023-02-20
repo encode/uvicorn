@@ -1,29 +1,15 @@
 import asyncio
 import logging
 from asyncio import Queue
-from typing import TYPE_CHECKING, Union
 
 from uvicorn import Config
-
-if TYPE_CHECKING:
-    from asgiref.typing import (
-        LifespanScope,
-        LifespanShutdownCompleteEvent,
-        LifespanShutdownEvent,
-        LifespanShutdownFailedEvent,
-        LifespanStartupCompleteEvent,
-        LifespanStartupEvent,
-        LifespanStartupFailedEvent,
-    )
-
-    LifespanReceiveMessage = Union[LifespanStartupEvent, LifespanShutdownEvent]
-    LifespanSendMessage = Union[
-        LifespanStartupFailedEvent,
-        LifespanShutdownFailedEvent,
-        LifespanStartupCompleteEvent,
-        LifespanShutdownCompleteEvent,
-    ]
-
+from uvicorn._types import (
+    LifespanReceiveMessage,
+    LifespanScope,
+    LifespanSendMessage,
+    LifespanShutdownEvent,
+    LifespanStartupEvent,
+)
 
 STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
 

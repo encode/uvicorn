@@ -2,7 +2,7 @@ import asyncio
 import http
 import logging
 import sys
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, Union, cast
+from typing import Any, List, Optional, Sequence, Tuple, Union, cast
 from urllib.parse import unquote
 
 import websockets
@@ -13,6 +13,16 @@ from websockets.legacy.server import HTTPResponse
 from websockets.server import WebSocketServerProtocol
 from websockets.typing import Subprotocol
 
+from uvicorn._types import (
+    ASGISendEvent,
+    WebSocketAcceptEvent,
+    WebSocketCloseEvent,
+    WebSocketConnectEvent,
+    WebSocketDisconnectEvent,
+    WebSocketReceiveEvent,
+    WebSocketScope,
+    WebSocketSendEvent,
+)
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import (
@@ -27,18 +37,6 @@ if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
 else:  # pragma: py-lt-38
     from typing import Literal
-
-if TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGISendEvent,
-        WebSocketAcceptEvent,
-        WebSocketCloseEvent,
-        WebSocketConnectEvent,
-        WebSocketDisconnectEvent,
-        WebSocketReceiveEvent,
-        WebSocketScope,
-        WebSocketSendEvent,
-    )
 
 
 class Server:
@@ -358,13 +356,6 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 return {"type": "websocket.disconnect", "code": 1012}
             return {"type": "websocket.disconnect", "code": exc.code}
 
-        msg: WebSocketReceiveEvent = {  # type: ignore[typeddict-item]
-            "type": "websocket.receive"
-        }
-
         if isinstance(data, str):
-            msg["text"] = data
-        else:
-            msg["bytes"] = data
-
-        return msg
+            return {"type": "websocket.receive", "text": data}
+        return {"type": "websocket.receive", "bytes": data}
