@@ -329,7 +329,7 @@ An incoming HTTP request might have a connection `scope` like this:
 
 ```python
 {
-    'type': 'http.request',
+    'type': 'http',
     'scheme': 'http',
     'root_path': '',
     'server': ('127.0.0.1', 8000),
