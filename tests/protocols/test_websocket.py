@@ -14,19 +14,19 @@ try:
     import websockets.client
     import websockets.exceptions
     from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
+    from websockets.typing import Subprotocol
 
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
-except ImportError:  # pragma: nocover
-    websockets = None
-    WebSocketProtocol = None
-    ClientPerMessageDeflateFactory = None
 
-ONLY_WEBSOCKETPROTOCOL = [p for p in [WebSocketProtocol] if p is not None]
-ONLY_WS_PROTOCOL = [p for p in [WSProtocol] if p is not None]
-WS_PROTOCOLS = [p for p in [WSProtocol, WebSocketProtocol] if p is not None]
-pytestmark = pytest.mark.skipif(
-    websockets is None, reason="This test needs the websockets module"
-)
+    ONLY_WEBSOCKETS_PROTOCOL = [WebSocketProtocol]
+    WS_PROTOCOLS = [WSProtocol, WebSocketProtocol]
+except ImportError:  # pragma: nocover
+    ONLY_WEBSOCKETS_PROTOCOL = []
+    WS_PROTOCOLS = [WSProtocol]
+
+    pytestmark = pytest.mark.skip(reason="This test needs the websockets module")
+
+ONLY_WS_PROTOCOL = [WSProtocol]
 
 
 class WebSocketResponse:
@@ -98,7 +98,7 @@ async def test_accept_connection(
             await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             return websocket.open
 
     config = Config(
@@ -125,7 +125,9 @@ async def test_supports_permessage_deflate_extension(
 
     async def open_connection(url):
         extension_factories = [ClientPerMessageDeflateFactory()]
-        async with websockets.connect(url, extensions=extension_factories) as websocket:
+        async with websockets.client.connect(
+            url, extensions=extension_factories
+        ) as websocket:
             return [extension.name for extension in websocket.extensions]
 
     config = Config(
@@ -154,7 +156,9 @@ async def test_can_disable_permessage_deflate_extension(
         # enable per-message deflate on the client, so that we can check the server
         # won't support it when it's disabled.
         extension_factories = [ClientPerMessageDeflateFactory()]
-        async with websockets.connect(url, extensions=extension_factories) as websocket:
+        async with websockets.client.connect(
+            url, extensions=extension_factories
+        ) as websocket:
             return [extension.name for extension in websocket.extensions]
 
     config = Config(
@@ -182,7 +186,7 @@ async def test_close_connection(
 
     async def open_connection(url):
         try:
-            await websockets.connect(url)
+            await websockets.client.connect(url)
         except websockets.exceptions.InvalidHandshake:
             return False
         return True  # pragma: no cover
@@ -212,7 +216,7 @@ async def test_headers(ws_protocol_cls, http_protocol_cls, unused_tcp_port: int)
             await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
-        async with websockets.connect(
+        async with websockets.client.connect(
             url, extra_headers=[("username", "abraão")]
         ) as websocket:
             return websocket.open
@@ -240,7 +244,7 @@ async def test_extra_headers(ws_protocol_cls, http_protocol_cls, unused_tcp_port
             )
 
     async def open_connection(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             return websocket.response_headers
 
     config = Config(
@@ -270,7 +274,7 @@ async def test_path_and_raw_path(
             await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             return websocket.open
 
     config = Config(
@@ -297,7 +301,7 @@ async def test_send_text_data_to_client(
             await self.send({"type": "websocket.send", "text": "123"})
 
     async def get_data(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             return await websocket.recv()
 
     config = Config(
@@ -324,7 +328,7 @@ async def test_send_binary_data_to_client(
             await self.send({"type": "websocket.send", "bytes": b"123"})
 
     async def get_data(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             return await websocket.recv()
 
     config = Config(
@@ -352,7 +356,7 @@ async def test_send_and_close_connection(
             await self.send({"type": "websocket.close"})
 
     async def get_data(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             data = await websocket.recv()
             is_open = True
             try:
@@ -389,7 +393,7 @@ async def test_send_text_data_to_server(
             await self.send({"type": "websocket.send", "text": _text})
 
     async def send_text(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             await websocket.send("abc")
             return await websocket.recv()
 
@@ -420,7 +424,7 @@ async def test_send_binary_data_to_server(
             await self.send({"type": "websocket.send", "bytes": _bytes})
 
     async def send_text(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             await websocket.send(b"abc")
             return await websocket.recv()
 
@@ -451,7 +455,7 @@ async def test_send_after_protocol_close(
                 await self.send({"type": "websocket.send", "text": "123"})
 
     async def get_data(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             data = await websocket.recv()
             is_open = True
             try:
@@ -483,7 +487,7 @@ async def test_missing_handshake(
         pass
 
     async def connect(url):
-        await websockets.connect(url)
+        await websockets.client.connect(url)
 
     config = Config(
         app=app,
@@ -508,7 +512,7 @@ async def test_send_before_handshake(
         await send({"type": "websocket.send", "text": "123"})
 
     async def connect(url):
-        await websockets.connect(url)
+        await websockets.client.connect(url)
 
     config = Config(
         app=app,
@@ -534,7 +538,7 @@ async def test_duplicate_handshake(
         await send({"type": "websocket.accept"})
 
     async def connect(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             _ = await websocket.recv()
 
     config = Config(
@@ -566,7 +570,7 @@ async def test_asgi_return_value(
         return 123
 
     async def connect(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             _ = await websocket.recv()
 
     config = Config(
@@ -613,7 +617,7 @@ async def test_app_close(
                 break
 
     async def websocket_session(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             await websocket.ping()
             await websocket.send("abc")
             await websocket.recv()
@@ -647,7 +651,7 @@ async def test_client_close(ws_protocol_cls, http_protocol_cls, unused_tcp_port:
                 break
 
     async def websocket_session(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             await websocket.ping()
             await websocket.send("abc")
 
@@ -813,8 +817,8 @@ async def test_subprotocols(
             await self.send({"type": "websocket.accept", "subprotocol": subprotocol})
 
     async def get_subprotocol(url):
-        async with websockets.connect(
-            url, subprotocols=["proto1", "proto2"]
+        async with websockets.client.connect(
+            url, subprotocols=[Subprotocol("proto1"), Subprotocol("proto2")]
         ) as websocket:
             return websocket.subprotocol
 
@@ -837,7 +841,7 @@ MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", ONLY_WEBSOCKETPROTOCOL)
+@pytest.mark.parametrize("ws_protocol_cls", ONLY_WEBSOCKETS_PROTOCOL)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 @pytest.mark.parametrize(
     "client_size_sent, server_size_max, expected_result",
@@ -871,7 +875,9 @@ async def test_send_binary_data_to_server_bigger_than_default(
             await self.send({"type": "websocket.send", "bytes": _bytes})
 
     async def send_text(url):
-        async with websockets.connect(url, max_size=client_size_sent) as websocket:
+        async with websockets.client.connect(
+            url, max_size=client_size_sent
+        ) as websocket:
             await websocket.send(b"\x01" * client_size_sent)
             return await websocket.recv()
 
@@ -888,7 +894,7 @@ async def test_send_binary_data_to_server_bigger_than_default(
             data = await send_text(f"ws://127.0.0.1:{unused_tcp_port}")
             assert data == b"\x01" * client_size_sent
         else:
-            with pytest.raises(websockets.ConnectionClosedError) as e:
+            with pytest.raises(websockets.exceptions.ConnectionClosedError) as e:
                 data = await send_text(f"ws://127.0.0.1:{unused_tcp_port}")
             assert e.value.code == expected_result
 
@@ -917,7 +923,7 @@ async def test_server_reject_connection(
 
     async def websocket_session(url):
         try:
-            async with websockets.connect(url):
+            async with websockets.client.connect(url):
                 pass  # pragma: no cover
         except Exception:
             pass
@@ -958,7 +964,7 @@ async def test_server_can_read_messages_in_buffer_after_close(
             frames.append(message.get("bytes"))
 
     async def send_text(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             await websocket.send(b"abc")
             await websocket.send(b"abc")
             await websocket.send(b"abc")
@@ -988,7 +994,7 @@ async def test_default_server_headers(
             await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             return websocket.response_headers
 
     config = Config(
@@ -1014,7 +1020,7 @@ async def test_no_server_headers(
             await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             return websocket.response_headers
 
     config = Config(
@@ -1039,7 +1045,7 @@ async def test_no_date_header(ws_protocol_cls, http_protocol_cls, unused_tcp_por
             await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             return websocket.response_headers
 
     config = Config(
@@ -1074,7 +1080,7 @@ async def test_multiple_server_header(
             )
 
     async def open_connection(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             return websocket.response_headers
 
     config = Config(
