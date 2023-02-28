@@ -6,6 +6,7 @@ import sys
 import httpx
 import pytest
 import websockets
+import websockets.client
 
 from tests.utils import run_server
 from uvicorn import Config
@@ -13,11 +14,10 @@ from uvicorn.protocols.http.h11_impl import H11Protocol
 
 try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
+
+    HTTP_PROTOCOLS = [H11Protocol, HttpToolsProtocol]
 except ImportError:  # pragma: nocover
-    HttpToolsProtocol = None
-
-
-HTTP_PROTOCOLS = [p for p in [H11Protocol, HttpToolsProtocol] if p is not None]
+    HTTP_PROTOCOLS = [H11Protocol]
 
 
 @contextlib.contextmanager
@@ -104,7 +104,7 @@ async def test_trace_logging_on_ws_protocol(
                 break
 
     async def open_connection(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             return websocket.open
 
     config = Config(
