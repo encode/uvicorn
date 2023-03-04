@@ -6,7 +6,17 @@ import sys
 import urllib
 from asyncio.events import TimerHandle
 from collections import deque
-from typing import TYPE_CHECKING, Callable, Deque, List, Optional, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Deque,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 import httptools
 
@@ -248,7 +258,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         }
 
         if self.config.is_ssl:
-            self.scope["extensions"]["tls"] = self.tls
+            self.scope["extensions"]["tls"] = self.tls  # type: ignore[index, assignment] # noqa: E501
 
     # Parser callbacks
     def on_url(self, url: bytes) -> None:

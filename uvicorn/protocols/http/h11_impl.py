@@ -2,7 +2,7 @@ import asyncio
 import http
 import logging
 import sys
-from typing import TYPE_CHECKING, Callable, List, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union, cast
 from urllib.parse import unquote
 
 import h11
@@ -240,8 +240,8 @@ class H11Protocol(asyncio.Protocol):
                 }
 
                 if self.config.is_ssl:
-                    self.scope["extensions"]["tls"] = self.tls
-                    
+                    self.scope["extensions"]["tls"] = self.tls  # type: ignore[index, assignment] # noqa: E501
+
                 upgrade = self._get_upgrade()
                 if upgrade == b"websocket" and self._should_upgrade_to_ws():
                     self.handle_websocket_upgrade(event)
