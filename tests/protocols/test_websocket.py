@@ -1115,7 +1115,6 @@ async def test_lifespan_state(ws_protocol_cls, http_protocol_cls, unused_tcp_por
 
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
-            nonlocal state_equals_expected_state
             actual_states.append(deepcopy(self.scope["state"]))
             self.scope["state"]["a"] = 456
             self.scope["state"]["b"].append(2)
