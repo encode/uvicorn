@@ -166,7 +166,7 @@ def test_lifespan_scope_asgi3app():
         assert scope == {
             "type": "lifespan",
             "asgi": {"version": "3.0", "spec_version": "2.0"},
-            "extensions": {"state": {}},
+            "state": {},
         }
 
     async def test():
@@ -189,7 +189,7 @@ def test_lifespan_scope_asgi2app():
         assert scope == {
             "type": "lifespan",
             "asgi": {"version": "2.0", "spec_version": "2.0"},
-            "extensions": {"state": {}},
+            "state": {},
         }
 
         async def asgi(receive, send):
@@ -254,7 +254,7 @@ def test_lifespan_state():
         message = await receive()
         assert message["type"] == "lifespan.startup"
         await send({"type": "lifespan.startup.complete"})
-        scope["extensions"]["state"]["foo"] = 123
+        scope["state"]["foo"] = 123
         message = await receive()
         assert message["type"] == "lifespan.shutdown"
         await send({"type": "lifespan.shutdown.complete"})

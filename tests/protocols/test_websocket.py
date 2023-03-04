@@ -1079,8 +1079,8 @@ async def test_lifespan_state(ws_protocol_cls, http_protocol_cls, unused_tcp_por
     async def lifespan_app(scope, receive, send):
         message = await receive()
         assert message["type"] == "lifespan.startup"
-        scope["extensions"]["state"]["a"] = 123
-        scope["extensions"]["state"]["b"] = [1]
+        scope["state"]["a"] = 123
+        scope["state"]["b"] = [1]
         await send({"type": "lifespan.startup.complete"})
         message = await receive()
         assert message["type"] == "lifespan.shutdown"
