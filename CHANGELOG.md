@@ -1,5 +1,175 @@
 # Change Log
 
+## 0.20.0 - 2022-11-20
+
+### Added
+
+- Check if handshake is completed before sending frame on `wsproto` shutdown (#1737)
+- Add default headers to WebSockets implementations (#1606 & #1747) 28/10/22
+- Warn user when `reload` and `workers` flag are used together (#1731) 31/10/22
+
+### Fixed
+
+- Use correct `WebSocket` error codes on `close` (#1753) 20/11/22
+- Send disconnect event on connection lost for `wsproto` (#996) 29/10/22
+- Add `SIGQUIT` handler to `UvicornWorker` (#1710) 01/11/22
+- Fix crash on exist with "--uds" if socket doesn't exist (#1725) 27/10/22
+- Annotate `CONFIG_KWARGS` in `UvicornWorker` class (#1746) 31/10/22
+
+### Removed
+
+- Remove conditional on `RemoteProtocolError.event_hint` on `wsproto` (#1486) 31/10/22
+- Remove unused `handle_no_connect` on `wsproto` implementation (#1759) 17/11/22
+
+## 0.19.0 - 2022-10-19
+
+### Added
+
+- Support Python 3.11 (#1652) 16/09/22
+- Bump minimal `httptools` version to `0.5.0` (#1645) 13/09/22
+- Ignore HTTP/2 upgrade and optionally ignore WebSocket upgrade (#1661) 19/10/22
+- Add `py.typed` to comply with PEP 561 (#1687) 07/10/22
+
+### Fixed
+
+- Set `propagate` to `False` on "uvicorn" logger (#1288) 08/10/22
+- USR1 signal is now handled correctly on `UvicornWorker`. (#1565) 26/08/22
+- Use path with query string on `WebSockets` logs (#1385) 11/09/22
+- Fix behavior on which "Date" headers were not updated on the same connection (#1706) 19/10/22
+
+### Removed
+
+- Remove the `--debug` flag (#1640) 14/09/22
+- Remove the `DebugMiddleware` (#1697) 07/10/22
+
+## 0.18.3 - 2022-08-24
+
+### Fixed
+
+- Remove cyclic references on HTTP implementations. (#1604) 24/08/22
+
+### Changed
+
+- `reload_delay` default changed from `None` to `0.25` on `uvicorn.run()` and `Config`. `None` is not an acceptable value anymore. (#1545) 02/07/22
+
+## 0.18.2 - 2022-06-27
+
+### Fixed
+
+- Add default `log_config` on `uvicorn.run()` (#1541) 24/06/22
+- Revert `logging` file name modification (#1543) 27/06/22
+
+## 0.18.1 - 2022-06-23
+
+### Fixed
+
+- Use `DEFAULT_MAX_INCOMPLETE_EVENT_SIZE` as default to `h11_max_incomplete_event_size` on the CLI (#1534) 23/06/22
+
+## 0.18.0 - 2022-06-23
+
+### Added
+
+- The `reload` flag prioritizes `watchfiles` instead of the deprecated `watchgod` (#1437) 18/06/22
+- Annotate `uvicorn.run()` function (#1423) 10/05/22
+- Allow configuring `max_incomplete_event_size` for `h11` implementation (#1514) 22/06/22
+
+### Removed
+
+- Remove `asgiref` dependency (#1532) 22/06/22
+
+### Fixed
+
+- Turn `raw_path` into bytes on both websockets implementations (#1487) 16/05/22
+- Revert log exception traceback in case of invalid HTTP request (#1518) 14/06/22
+- Set `asyncio.WindowsSelectorEventLoopPolicy()` when using multiple workers to avoid "WinError 87" (#1454) 22/06/22
+
+## 0.17.6 - 2022-03-11
+
+### Changed
+
+- Change `httptools` range to `>=0.4.0` (#1400) 11/03/22
+
+## 0.17.5 - 2022-02-16
+
+### Fixed
+
+- Fix case where url is fragmented in httptools protocol (#1263) 16/02/22
+- Fix WSGI middleware not to explode quadratically in the case of a larger body (#1329) 16/02/16
+
+### Changed
+
+- Send HTTP 400 response for invalid request (#1352) 2/11/22
+
+## 0.17.4 - 2022-02-04
+
+### Fixed
+
+- Replace `create_server` by `create_unix_server` (#1362) 04/02/22
+
+## 0.17.3 - 2022-02-03
+
+### Fixed
+
+- Drop wsproto version checking. (#1359) 03/02/22
+
+## 0.17.2 - 2022-02-03
+
+### Fixed
+
+- Revert #1332. While trying to solve the memory leak, it introduced an issue (#1345) when the server receives big chunks of data using the `httptools` implementation. (#1354) 03/02/22
+- Revert stream interface changes. This was introduced on 0.14.0, and caused an issue (#1226), which caused a memory leak when sending TCP pings. (#1355) 03/02/22
+- Fix wsproto version check expression (#1342) 28/01/22
+
+## 0.17.1 - 2022-01-28
+
+### Fixed
+
+- Move all data handling logic to protocol and ensure connection is closed. (#1332) 28/01/22
+- Change `spec_version` field from "2.1" to "2.3", as Uvicorn is compliant with that version of the ASGI specifications. (#1337) 25/01/22
+
+## 0.17.0.post1 - 2022-01-24
+
+### Fixed
+
+- Add the `python_requires` version specifier (#1328) 17/01/22
+
+## 0.17.0 - 2022-01-14
+
+### Added
+
+- Allow configurable websocket per-message-deflate setting (#1300) 29/12/21
+- Support extra_headers for WS accept message (#1293) 06/01/22
+- Add missing http version on websockets scope (#1309) 08/01/22
+
+### Fixed/Removed
+
+- Drop Python 3.6 support (#1261) 06/01/22
+- Fix reload process behavior when exception is raised (#1313) 11/01/22
+- Remove `root_path` from logs (#1294) 25/12/21
+
+## 0.16.0 - 2021-12-08
+
+### Added
+
+- Enable read of uvicorn settings from environment variables (#1279) 06/12/21
+- Bump `websockets` to 10.0. (#1180) 13/09/21
+- Ensure non-zero exit code when startup fails (#1278) 06/12/21
+- Increase `httptools` version range from "==0.2.*" to ">=0.2.0,<0.4.0". (#1243) 8/11/21
+- Override default asyncio event loop with reload only on Windows (#1257) 24/11/21
+- Replace `HttpToolsProtocol.pipeline` type from `list` to `deque`. (#1213) 10/10/21
+- Replace `WSGIResponder.send_queue` type from `list` to `deque`. (#1214) 10/10/21
+
+### Fixed
+
+- Main process exit after startup failure on reloader classes (#1177) 30/09/21
+- Add explicit casting on click options (#1217) 11/10/21
+- Allow WebSocket close event to receive reason being None from ASGI app. (#1259) 23/11/21
+- Fix a bug in `WebSocketProtocol.asgi_receive` on which we returned a close frame even if there were data messages before that frame in the read queue. (#1252) 25/11/21
+- The option `--reload-dirs` was splitting a string into single character directories. (#1267) 25/11/21
+- Only second SIGINT is able to forcefully shutdown the server (#1269) 28/11/21
+- Allow app-dir parameter on the run() function (#1271) 06/12/21
+
+
 ## 0.15.0 - 2021-08-13
 
 ### Added
@@ -110,7 +280,7 @@
 ### Fixed
 - Fixes watchgod with common prefixes (#817) 10/14/20 1b32f997
 - Fix reload with ipv6 host (#803) 10/14/20 5acaee5b
-- Added cli suport for headers containing colon (#813) 10/12/20 68732899
+- Added cli support for headers containing colon (#813) 10/12/20 68732899
 - Sharing socket across workers on windows (#802) 10/12/20 103167a0
 - Note the need to configure trusted "ips" when using unix sockets (#796) 10/4/20 a504c569
 

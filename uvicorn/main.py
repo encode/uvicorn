@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import platform
@@ -6,7 +7,6 @@ import sys
 import typing
 
 import click
-from asgiref.typing import ASGIApplication
 
 import uvicorn
 from uvicorn.config import (
@@ -19,9 +19,17 @@ from uvicorn.config import (
     SSL_PROTOCOL_VERSION,
     WS_PROTOCOLS,
     Config,
+    HTTPProtocolType,
+    InterfaceType,
+    LifespanType,
+    LoopSetupType,
+    WSProtocolType,
 )
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
+
+if typing.TYPE_CHECKING:
+    from asgiref.typing import ASGIApplication
 
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
 HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
@@ -70,9 +78,6 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 @click.option(
     "--fd", type=int, default=None, help="Bind to socket from this file descriptor."
 )
-@click.option(
-    "--debug", is_flag=True, default=False, help="Enable debug mode.", hidden=True
-)
 @click.option("--reload", is_flag=True, default=False, help="Enable auto-reload.")
 @click.option(
     "--reload-dir",
@@ -87,7 +92,8 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "reload_includes",
     multiple=True,
     help="Set glob patterns to include while watching for files. Includes '*.py' "
-    "by default; these defaults can be overridden in `--reload-exclude`.",
+    "by default; these defaults can be overridden with `--reload-exclude`. "
+    "This option has no effect unless watchfiles is installed.",
 )
 @click.option(
     "--reload-exclude",
@@ -95,7 +101,8 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     multiple=True,
     help="Set glob patterns to exclude while watching for files. Includes "
     "'.*, .py[cod], .sw.*, ~*' by default; these defaults can be overridden "
-    "in `--reload-include`.",
+    "with `--reload-include`. This option has no effect unless watchfiles is "
+    "installed.",
 )
 @click.option(
     "--reload-delay",
@@ -152,6 +159,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     type=float,
     default=20.0,
     help="WebSocket ping timeout",
+    show_default=True,
+)
+@click.option(
+    "--ws-per-message-deflate",
+    type=bool,
+    default=True,
+    help="WebSocket per-message-deflate compression",
     show_default=True,
 )
 @click.option(
@@ -224,7 +238,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--forwarded-allow-ips",
     type=str,
     default=None,
-    help="Comma seperated list of IPs to trust with proxy headers. Defaults to"
+    help="Comma separated list of IPs to trust with proxy headers. Defaults to"
     " the $FORWARDED_ALLOW_IPS environment variable if available, or '127.0.0.1'.",
 )
 @click.option(
@@ -320,11 +334,17 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 )
 @click.option(
     "--app-dir",
-    "app_dir",
-    default=".",
+    default="",
     show_default=True,
     help="Look for APP in the specified directory, by adding this to the PYTHONPATH."
     " Defaults to the current working directory.",
+)
+@click.option(
+    "--h11-max-incomplete-event-size",
+    "h11_max_incomplete_event_size",
+    type=int,
+    default=None,
+    help="For h11, the maximum number of bytes to buffer of an incomplete event.",
 )
 @click.option(
     "--factory",
@@ -339,15 +359,15 @@ def main(
     port: int,
     uds: str,
     fd: int,
-    loop: str,
-    http: str,
-    ws: str,
+    loop: LoopSetupType,
+    http: HTTPProtocolType,
+    ws: WSProtocolType,
     ws_max_size: int,
     ws_ping_interval: float,
     ws_ping_timeout: float,
-    lifespan: str,
-    interface: str,
-    debug: bool,
+    ws_per_message_deflate: bool,
+    lifespan: LifespanType,
+    interface: InterfaceType,
     reload: bool,
     reload_dirs: typing.List[str],
     reload_includes: typing.List[str],
@@ -377,59 +397,157 @@ def main(
     headers: typing.List[str],
     use_colors: bool,
     app_dir: str,
+    h11_max_incomplete_event_size: typing.Optional[int],
     factory: bool,
 ) -> None:
-    sys.path.insert(0, app_dir)
+    run(
+        app,
+        host=host,
+        port=port,
+        uds=uds,
+        fd=fd,
+        loop=loop,
+        http=http,
+        ws=ws,
+        ws_max_size=ws_max_size,
+        ws_ping_interval=ws_ping_interval,
+        ws_ping_timeout=ws_ping_timeout,
+        ws_per_message_deflate=ws_per_message_deflate,
+        lifespan=lifespan,
+        env_file=env_file,
+        log_config=LOGGING_CONFIG if log_config is None else log_config,
+        log_level=log_level,
+        access_log=access_log,
+        interface=interface,
+        reload=reload,
+        reload_dirs=reload_dirs or None,
+        reload_includes=reload_includes or None,
+        reload_excludes=reload_excludes or None,
+        reload_delay=reload_delay,
+        workers=workers,
+        proxy_headers=proxy_headers,
+        server_header=server_header,
+        date_header=date_header,
+        forwarded_allow_ips=forwarded_allow_ips,
+        root_path=root_path,
+        limit_concurrency=limit_concurrency,
+        backlog=backlog,
+        limit_max_requests=limit_max_requests,
+        timeout_keep_alive=timeout_keep_alive,
+        ssl_keyfile=ssl_keyfile,
+        ssl_certfile=ssl_certfile,
+        ssl_keyfile_password=ssl_keyfile_password,
+        ssl_version=ssl_version,
+        ssl_cert_reqs=ssl_cert_reqs,
+        ssl_ca_certs=ssl_ca_certs,
+        ssl_ciphers=ssl_ciphers,
+        headers=[header.split(":", 1) for header in headers],  # type: ignore[misc]
+        use_colors=use_colors,
+        factory=factory,
+        app_dir=app_dir,
+        h11_max_incomplete_event_size=h11_max_incomplete_event_size,
+    )
 
-    kwargs = {
-        "host": host,
-        "port": port,
-        "uds": uds,
-        "fd": fd,
-        "loop": loop,
-        "http": http,
-        "ws": ws,
-        "ws_max_size": ws_max_size,
-        "ws_ping_interval": ws_ping_interval,
-        "ws_ping_timeout": ws_ping_timeout,
-        "lifespan": lifespan,
-        "env_file": env_file,
-        "log_config": LOGGING_CONFIG if log_config is None else log_config,
-        "log_level": log_level,
-        "access_log": access_log,
-        "interface": interface,
-        "debug": debug,
-        "reload": reload,
-        "reload_dirs": reload_dirs if reload_dirs else None,
-        "reload_includes": reload_includes if reload_includes else None,
-        "reload_excludes": reload_excludes if reload_excludes else None,
-        "reload_delay": reload_delay,
-        "workers": workers,
-        "proxy_headers": proxy_headers,
-        "server_header": server_header,
-        "date_header": date_header,
-        "forwarded_allow_ips": forwarded_allow_ips,
-        "root_path": root_path,
-        "limit_concurrency": limit_concurrency,
-        "backlog": backlog,
-        "limit_max_requests": limit_max_requests,
-        "timeout_keep_alive": timeout_keep_alive,
-        "ssl_keyfile": ssl_keyfile,
-        "ssl_certfile": ssl_certfile,
-        "ssl_keyfile_password": ssl_keyfile_password,
-        "ssl_version": ssl_version,
-        "ssl_cert_reqs": ssl_cert_reqs,
-        "ssl_ca_certs": ssl_ca_certs,
-        "ssl_ciphers": ssl_ciphers,
-        "headers": [header.split(":", 1) for header in headers],
-        "use_colors": use_colors,
-        "factory": factory,
-    }
-    run(app, **kwargs)
 
+def run(
+    app: typing.Union["ASGIApplication", typing.Callable, str],
+    *,
+    host: str = "127.0.0.1",
+    port: int = 8000,
+    uds: typing.Optional[str] = None,
+    fd: typing.Optional[int] = None,
+    loop: LoopSetupType = "auto",
+    http: typing.Union[typing.Type[asyncio.Protocol], HTTPProtocolType] = "auto",
+    ws: typing.Union[typing.Type[asyncio.Protocol], WSProtocolType] = "auto",
+    ws_max_size: int = 16777216,
+    ws_ping_interval: typing.Optional[float] = 20.0,
+    ws_ping_timeout: typing.Optional[float] = 20.0,
+    ws_per_message_deflate: bool = True,
+    lifespan: LifespanType = "auto",
+    interface: InterfaceType = "auto",
+    reload: bool = False,
+    reload_dirs: typing.Optional[typing.Union[typing.List[str], str]] = None,
+    reload_includes: typing.Optional[typing.Union[typing.List[str], str]] = None,
+    reload_excludes: typing.Optional[typing.Union[typing.List[str], str]] = None,
+    reload_delay: float = 0.25,
+    workers: typing.Optional[int] = None,
+    env_file: typing.Optional[typing.Union[str, os.PathLike]] = None,
+    log_config: typing.Optional[
+        typing.Union[typing.Dict[str, typing.Any], str]
+    ] = LOGGING_CONFIG,
+    log_level: typing.Optional[typing.Union[str, int]] = None,
+    access_log: bool = True,
+    proxy_headers: bool = True,
+    server_header: bool = True,
+    date_header: bool = True,
+    forwarded_allow_ips: typing.Optional[typing.Union[typing.List[str], str]] = None,
+    root_path: str = "",
+    limit_concurrency: typing.Optional[int] = None,
+    backlog: int = 2048,
+    limit_max_requests: typing.Optional[int] = None,
+    timeout_keep_alive: int = 5,
+    ssl_keyfile: typing.Optional[str] = None,
+    ssl_certfile: typing.Optional[typing.Union[str, os.PathLike]] = None,
+    ssl_keyfile_password: typing.Optional[str] = None,
+    ssl_version: int = SSL_PROTOCOL_VERSION,
+    ssl_cert_reqs: int = ssl.CERT_NONE,
+    ssl_ca_certs: typing.Optional[str] = None,
+    ssl_ciphers: str = "TLSv1",
+    headers: typing.Optional[typing.List[typing.Tuple[str, str]]] = None,
+    use_colors: typing.Optional[bool] = None,
+    app_dir: typing.Optional[str] = None,
+    factory: bool = False,
+    h11_max_incomplete_event_size: typing.Optional[int] = None,
+) -> None:
+    if app_dir is not None:
+        sys.path.insert(0, app_dir)
 
-def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
-    config = Config(app, **kwargs)
+    config = Config(
+        app,
+        host=host,
+        port=port,
+        uds=uds,
+        fd=fd,
+        loop=loop,
+        http=http,
+        ws=ws,
+        ws_max_size=ws_max_size,
+        ws_ping_interval=ws_ping_interval,
+        ws_ping_timeout=ws_ping_timeout,
+        ws_per_message_deflate=ws_per_message_deflate,
+        lifespan=lifespan,
+        interface=interface,
+        reload=reload,
+        reload_dirs=reload_dirs,
+        reload_includes=reload_includes,
+        reload_excludes=reload_excludes,
+        reload_delay=reload_delay,
+        workers=workers,
+        env_file=env_file,
+        log_config=log_config,
+        log_level=log_level,
+        access_log=access_log,
+        proxy_headers=proxy_headers,
+        server_header=server_header,
+        date_header=date_header,
+        forwarded_allow_ips=forwarded_allow_ips,
+        root_path=root_path,
+        limit_concurrency=limit_concurrency,
+        backlog=backlog,
+        limit_max_requests=limit_max_requests,
+        timeout_keep_alive=timeout_keep_alive,
+        ssl_keyfile=ssl_keyfile,
+        ssl_certfile=ssl_certfile,
+        ssl_keyfile_password=ssl_keyfile_password,
+        ssl_version=ssl_version,
+        ssl_cert_reqs=ssl_cert_reqs,
+        ssl_ca_certs=ssl_ca_certs,
+        ssl_ciphers=ssl_ciphers,
+        headers=headers,
+        use_colors=use_colors,
+        factory=factory,
+        h11_max_incomplete_event_size=h11_max_incomplete_event_size,
+    )
     server = Server(config=config)
 
     if (config.reload or config.workers > 1) and not isinstance(app, str):
@@ -448,7 +566,7 @@ def run(app: typing.Union[ASGIApplication, str], **kwargs: typing.Any) -> None:
         Multiprocess(config, target=server.run, sockets=[sock]).run()
     else:
         server.run()
-    if config.uds:
+    if config.uds and os.path.exists(config.uds):
         os.remove(config.uds)  # pragma: py-win32
 
     if not server.started and not config.should_reload and config.workers == 1:

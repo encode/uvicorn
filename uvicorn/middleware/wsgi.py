@@ -2,24 +2,28 @@ import asyncio
 import concurrent.futures
 import io
 import sys
+import warnings
 from collections import deque
-from typing import Deque, Iterable, Optional, Tuple
+from typing import TYPE_CHECKING, Deque, Iterable, Optional, Tuple
 
-from asgiref.typing import (
-    ASGIReceiveCallable,
-    ASGIReceiveEvent,
-    ASGISendCallable,
-    ASGISendEvent,
-    HTTPRequestEvent,
-    HTTPResponseBodyEvent,
-    HTTPResponseStartEvent,
-    HTTPScope,
-)
+if TYPE_CHECKING:
+    from asgiref.typing import (
+        ASGIReceiveCallable,
+        ASGIReceiveEvent,
+        ASGISendCallable,
+        ASGISendEvent,
+        HTTPRequestEvent,
+        HTTPResponseBodyEvent,
+        HTTPResponseStartEvent,
+        HTTPScope,
+    )
 
 from uvicorn._types import Environ, ExcInfo, StartResponse, WSGIApp
 
 
-def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> Environ:
+def build_environ(
+    scope: "HTTPScope", message: "ASGIReceiveEvent", body: io.BytesIO
+) -> Environ:
     """
     Builds a scope and request message into a WSGI environ object.
     """
@@ -31,7 +35,7 @@ def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> E
         "SERVER_PROTOCOL": "HTTP/%s" % scope["http_version"],
         "wsgi.version": (1, 0),
         "wsgi.url_scheme": scope.get("scheme", "http"),
-        "wsgi.input": io.BytesIO(body),
+        "wsgi.input": body,
         "wsgi.errors": sys.stdout,
         "wsgi.multithread": True,
         "wsgi.multiprocess": True,
@@ -70,13 +74,21 @@ def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: bytes) -> E
     return environ
 
 
-class WSGIMiddleware:
+class _WSGIMiddleware:
     def __init__(self, app: WSGIApp, workers: int = 10):
+        warnings.warn(
+            "Uvicorn's native WSGI implementation is deprecated, you "
+            "should switch to a2wsgi (`pip install a2wsgi`).",
+            DeprecationWarning,
+        )
         self.app = app
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
     async def __call__(
-        self, scope: HTTPScope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self,
+        scope: "HTTPScope",
+        receive: "ASGIReceiveCallable",
+        send: "ASGISendCallable",
     ) -> None:
         assert scope["type"] == "http"
         instance = WSGIResponder(self.app, self.executor, scope)
@@ -88,7 +100,7 @@ class WSGIResponder:
         self,
         app: WSGIApp,
         executor: concurrent.futures.ThreadPoolExecutor,
-        scope: HTTPScope,
+        scope: "HTTPScope",
     ):
         self.app = app
         self.executor = executor
@@ -96,21 +108,26 @@ class WSGIResponder:
         self.status = None
         self.response_headers = None
         self.send_event = asyncio.Event()
-        self.send_queue: Deque[Optional[ASGISendEvent]] = deque()
+        self.send_queue: Deque[Optional["ASGISendEvent"]] = deque()
         self.loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
         self.response_started = False
         self.exc_info: Optional[ExcInfo] = None
 
     async def __call__(
-        self, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, receive: "ASGIReceiveCallable", send: "ASGISendCallable"
     ) -> None:
         message: HTTPRequestEvent = await receive()  # type: ignore[assignment]
-        body = message.get("body", b"")
+        body = io.BytesIO(message.get("body", b""))
         more_body = message.get("more_body", False)
-        while more_body:
-            body_message: HTTPRequestEvent = await receive()  # type: ignore[assignment]
-            body += body_message.get("body", b"")
-            more_body = body_message.get("more_body", False)
+        if more_body:
+            body.seek(0, io.SEEK_END)
+            while more_body:
+                body_message: "HTTPRequestEvent" = (
+                    await receive()  # type: ignore[assignment]
+                )
+                body.write(body_message.get("body", b""))
+                more_body = body_message.get("more_body", False)
+            body.seek(0)
         environ = build_environ(self.scope, message, body)
         self.loop = asyncio.get_event_loop()
         wsgi = self.loop.run_in_executor(
@@ -126,7 +143,7 @@ class WSGIResponder:
         if self.exc_info is not None:
             raise self.exc_info[0].with_traceback(self.exc_info[1], self.exc_info[2])
 
-    async def sender(self, send: ASGISendCallable) -> None:
+    async def sender(self, send: "ASGISendCallable") -> None:
         while True:
             if self.send_queue:
                 message = self.send_queue.popleft()
@@ -177,3 +194,9 @@ class WSGIResponder:
         }
         self.send_queue.append(empty_body)
         self.loop.call_soon_threadsafe(self.send_event.set)
+
+
+try:
+    from a2wsgi import WSGIMiddleware
+except ModuleNotFoundError:
+    WSGIMiddleware = _WSGIMiddleware  # type: ignore[misc, assignment]

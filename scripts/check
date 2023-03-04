@@ -3,13 +3,15 @@
 export PREFIX=""
 if [ -d 'venv' ] ; then
     export PREFIX="venv/bin/"
+    export PATH=${PREFIX}:${PATH}
 fi
 export SOURCE_FILES="uvicorn tests"
 
 set -x
 
-${PREFIX}black --check --diff --target-version=py36 $SOURCE_FILES
+./scripts/sync-version
+${PREFIX}black --check --diff --target-version=py37 $SOURCE_FILES
 ${PREFIX}flake8 $SOURCE_FILES
-${PREFIX}mypy --show-error-codes
+${PREFIX}mypy --show-error-codes $SOURCE_FILES
 ${PREFIX}isort --check --diff --project=uvicorn $SOURCE_FILES
 ${PREFIX}python -m tools.cli_usage --check

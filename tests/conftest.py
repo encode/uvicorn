@@ -1,9 +1,32 @@
+import contextlib
+import os
+import socket
 import ssl
+from copy import deepcopy
+from hashlib import md5
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from threading import Thread
+from time import sleep
+from uuid import uuid4
 
 import pytest
 import trustme
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+
+from uvicorn.config import LOGGING_CONFIG
+
+# Note: We explicitly turn the propagate on just for tests, because pytest
+# caplog not able to capture no-propagate loggers.
+#
+# And the caplog_for_logger helper also not work on test config cases, because
+# when create Config object, Config.configure_logging will remove caplog.handler.
+#
+# The simple solution is set propagate=True before execute tests.
+#
+# See also: https://github.com/pytest-dev/pytest/issues/3697
+LOGGING_CONFIG["loggers"]["uvicorn"]["propagate"] = True
 
 
 @pytest.fixture
@@ -142,3 +165,83 @@ def reload_directory_structure(tmp_path_factory: pytest.TempPathFactory):
     ext_file.touch()
 
     yield root
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    return "asyncio"
+
+
+@pytest.fixture(scope="function")
+def logging_config() -> dict:
+    return deepcopy(LOGGING_CONFIG)
+
+
+@pytest.fixture
+def short_socket_name(tmp_path, tmp_path_factory):  # pragma: py-win32
+    max_sock_len = 100
+    socket_filename = "my.sock"
+    identifier = f"{uuid4()}-"
+    identifier_len = len(identifier.encode())
+    tmp_dir = Path("/tmp").resolve()
+    os_tmp_dir = Path(os.getenv("TMPDIR", "/tmp")).resolve()
+    basetemp = Path(
+        str(tmp_path_factory.getbasetemp()),
+    ).resolve()
+    hash_basetemp = md5(
+        str(basetemp).encode(),
+    ).hexdigest()
+
+    def make_tmp_dir(base_dir):
+        return TemporaryDirectory(
+            dir=str(base_dir),
+            prefix="p-",
+            suffix=f"-{hash_basetemp}",
+        )
+
+    paths = basetemp, os_tmp_dir, tmp_dir
+    for num, tmp_dir_path in enumerate(paths, 1):
+        with make_tmp_dir(tmp_dir_path) as tmpd:
+            tmpd = Path(tmpd).resolve()
+            sock_path = str(tmpd / socket_filename)
+            sock_path_len = len(sock_path.encode())
+            if sock_path_len <= max_sock_len:
+                if max_sock_len - sock_path_len >= identifier_len:  # pragma: no cover
+                    sock_path = str(tmpd / "".join((identifier, socket_filename)))
+                yield sock_path
+                return
+
+
+def sleep_touch(*paths: Path):
+    sleep(0.1)
+    for p in paths:
+        p.touch()
+
+
+@pytest.fixture
+def touch_soon():
+    threads = []
+
+    def start(*paths: Path):
+        thread = Thread(target=sleep_touch, args=paths)
+        thread.start()
+        threads.append(thread)
+
+    yield start
+
+    for t in threads:
+        t.join()
+
+
+def _unused_port(socket_type: int) -> int:
+    """Find an unused localhost port from 1024-65535 and return it."""
+    with contextlib.closing(socket.socket(type=socket_type)) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+
+
+# This was copied from pytest-asyncio.
+# Ref.: https://github.com/pytest-dev/pytest-asyncio/blob/25d9592286682bc6dbfbf291028ff7a9594cf283/pytest_asyncio/plugin.py#L525-L527  # noqa: E501
+@pytest.fixture
+def unused_tcp_port() -> int:
+    return _unused_port(socket.SOCK_STREAM)

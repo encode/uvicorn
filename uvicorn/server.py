@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import logging
 import os
 import platform
@@ -9,11 +10,10 @@ import threading
 import time
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, Any, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Sequence, Set, Tuple, Union
 
 import click
 
-from uvicorn._handlers.http import handle_http
 from uvicorn.config import Config
 
 if TYPE_CHECKING:
@@ -23,13 +23,6 @@ if TYPE_CHECKING:
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
     Protocols = Union[H11Protocol, HttpToolsProtocol, WSProtocol, WebSocketProtocol]
-
-if sys.platform != "win32":
-    from asyncio import start_unix_server as _start_unix_server
-else:
-
-    async def _start_unix_server(*args: Any, **kwargs: Any) -> Any:
-        raise NotImplementedError("Cannot start a unix server on win32")
 
 
 HANDLED_SIGNALS = (
@@ -64,9 +57,7 @@ class Server:
 
     def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
         self.config.setup_event_loop()
-        if sys.version_info >= (3, 7):
-            return asyncio.run(self.serve(sockets=sockets))
-        return asyncio.get_event_loop().run_until_complete(self.serve(sockets=sockets))
+        return asyncio.run(self.serve(sockets=sockets))
 
     async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
         process_id = os.getpid()
@@ -93,7 +84,7 @@ class Server:
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
         logger.info(message, process_id, extra={"color_message": color_message})
 
-    async def startup(self, sockets: list = None) -> None:
+    async def startup(self, sockets: Optional[List[socket.socket]] = None) -> None:
         await self.lifespan.startup()
         if self.lifespan.should_exit:
             self.should_exit = True
@@ -101,52 +92,55 @@ class Server:
 
         config = self.config
 
-        async def handler(
-            reader: asyncio.StreamReader, writer: asyncio.StreamWriter
-        ) -> None:
-            await handle_http(
-                reader, writer, server_state=self.server_state, config=config
-            )
+        create_protocol = functools.partial(
+            config.http_protocol_class, config=config, server_state=self.server_state
+        )
+        loop = asyncio.get_running_loop()
 
+        listeners: Sequence[socket.SocketType]
         if sockets is not None:
             # Explicitly passed a list of open sockets.
             # We use this when the server is run from a Gunicorn worker.
 
-            def _share_socket(sock: socket.SocketType) -> socket.SocketType:
+            def _share_socket(
+                sock: socket.SocketType,
+            ) -> socket.SocketType:  # pragma py-linux pragma: py-darwin
                 # Windows requires the socket be explicitly shared across
                 # multiple workers (processes).
-                from socket import fromshare  # type: ignore
+                from socket import fromshare  # type: ignore[attr-defined]
 
-                sock_data = sock.share(os.getpid())  # type: ignore
+                sock_data = sock.share(os.getpid())  # type: ignore[attr-defined]
                 return fromshare(sock_data)
 
             self.servers = []
             for sock in sockets:
                 if config.workers > 1 and platform.system() == "Windows":
-                    sock = _share_socket(sock)
-                server = await asyncio.start_server(
-                    handler, sock=sock, ssl=config.ssl, backlog=config.backlog
+                    sock = _share_socket(  # type: ignore[assignment]
+                        sock
+                    )  # pragma py-linux pragma: py-darwin
+                server = await loop.create_server(
+                    create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
                 )
                 self.servers.append(server)
             listeners = sockets
 
-        elif config.fd is not None:
+        elif config.fd is not None:  # pragma: py-win32
             # Use an existing socket, from a file descriptor.
             sock = socket.fromfd(config.fd, socket.AF_UNIX, socket.SOCK_STREAM)
-            server = await asyncio.start_server(
-                handler, sock=sock, ssl=config.ssl, backlog=config.backlog
+            server = await loop.create_server(
+                create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
             )
             assert server.sockets is not None  # mypy
             listeners = server.sockets
             self.servers = [server]
 
-        elif config.uds is not None:
+        elif config.uds is not None:  # pragma: py-win32
             # Create a socket using UNIX domain socket.
             uds_perms = 0o666
             if os.path.exists(config.uds):
                 uds_perms = os.stat(config.uds).st_mode
-            server = await _start_unix_server(
-                handler, path=config.uds, ssl=config.ssl, backlog=config.backlog
+            server = await loop.create_unix_server(
+                create_protocol, path=config.uds, ssl=config.ssl, backlog=config.backlog
             )
             os.chmod(config.uds, uds_perms)
             assert server.sockets is not None  # mypy
@@ -156,8 +150,8 @@ class Server:
         else:
             # Standard case. Create a socket from a host/port pair.
             try:
-                server = await asyncio.start_server(
-                    handler,
+                server = await loop.create_server(
+                    create_protocol,
                     host=config.host,
                     port=config.port,
                     ssl=config.ssl,
@@ -181,17 +175,17 @@ class Server:
 
         self.started = True
 
-    def _log_started_message(self, listeners: List[socket.SocketType]) -> None:
+    def _log_started_message(self, listeners: Sequence[socket.SocketType]) -> None:
         config = self.config
 
-        if config.fd is not None:
+        if config.fd is not None:  # pragma: py-win32
             sock = listeners[0]
             logger.info(
                 "Uvicorn running on socket %s (Press CTRL+C to quit)",
                 sock.getsockname(),
             )
 
-        elif config.uds is not None:
+        elif config.uds is not None:  # pragma: py-win32
             logger.info(
                 "Uvicorn running on unix socket %s (Press CTRL+C to quit)", config.uds
             )
@@ -308,7 +302,7 @@ class Server:
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)
 
-    def handle_exit(self, sig: signal.Signals, frame: FrameType) -> None:
+    def handle_exit(self, sig: int, frame: Optional[FrameType]) -> None:
 
         if self.should_exit and sig == signal.SIGINT:
             self.force_exit = True

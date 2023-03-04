@@ -13,6 +13,7 @@ For example, in case you want to run the app on port `5000`, just set the enviro
 !!! note
     CLI options and the arguments for `uvicorn.run()` take precedence over environment variables.
 
+    Also note that `UVICORN_*` prefixed settings cannot be used from within an environment configuration file. Using an environment configuration file with the `--env-file` flag is intended for configuring the ASGI application that uvicorn runs, rather than configuring uvicorn itself.
 
 ## Application
 
@@ -28,12 +29,26 @@ For example, in case you want to run the app on port `5000`, just set the enviro
 
 ## Development
 
-* `--reload` - Enable auto-reload.
+* `--reload` - Enable auto-reload. Uvicorn supports two versions of auto-reloading behavior enabled by this option. There are important differences between them.
 * `--reload-dir <path>` - Specify which directories to watch for python file changes. May be used multiple times. If unused, then by default the whole current directory will be watched. If you are running programmatically use `reload_dirs=[]` and pass a list of strings.
+
+### Reloading without watchfiles
+
+If Uvicorn _cannot_ load [watchfiles](https://pypi.org/project/watchfiles/) at runtime, it will periodically look for changes in modification times to all `*.py` files (and only `*.py` files) inside of its monitored directories. See the `--reload-dir` option. Specifying other file extensions is not supported unless watchfiles is installed. See the `--reload-include` and `--reload-exclude` options for details.
+
+### Reloading with watchfiles
+
+For more nuanced control over which file modifications trigger reloads, install `uvicorn[standard]`, which includes watchfiles as a dependency. Alternatively, install [watchfiles](https://pypi.org/project/watchfiles/) where Uvicorn can see it.
+
+Using Uvicorn with watchfiles will enable the following options (which are otherwise ignored).
+
 * `--reload-include <glob-pattern>` - Specify a glob pattern to match files or directories which will be watched. May be used multiple times. By default the following patterns are included: `*.py`. These defaults can be overwritten by including them in `--reload-exclude`.
 * `--reload-exclude <glob-pattern>` - Specify a glob pattern to match files or directories which will excluded from watching. May be used multiple times. By default the following patterns are excluded: `.*, .py[cod], .sw.*, ~*`. These defaults can be overwritten by including them in `--reload-include`.
 
-By default Uvicorn uses simple changes detection strategy that compares python files modification times few times a second. If this approach doesn't work for your project (eg. because of its complexity), or you need watching of non python files you can install [watchgod](https://pypi.org/project/watchgod/) or install uvicorn with `uvicorn[standard]`, which will include watchgod.
+!!! tip
+    When using Uvicorn through [WSL](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux), you might
+    have to set the `WATCHFILES_FORCE_POLLING` environment variable, for file changes to trigger a reload.
+    See [watchfiles documentation](https://watchfiles.helpmanual.io/api/watch/) for further details.
 
 ## Production
 
@@ -52,17 +67,22 @@ By default Uvicorn uses simple changes detection strategy that compares python f
 
 * `--loop <str>` - Set the event loop implementation. The uvloop implementation provides greater performance, but is not compatible with Windows or PyPy. **Options:** *'auto', 'asyncio', 'uvloop'.* **Default:** *'auto'*.
 * `--http <str>` - Set the HTTP protocol implementation. The httptools implementation provides greater performance, but it not compatible with PyPy. **Options:** *'auto', 'h11', 'httptools'.* **Default:** *'auto'*.
-* `--ws <str>` - Set the WebSockets protocol implementation. Either of the `websockets` and `wsproto` packages are supported. Use `'none'` to deny all websocket requests. **Options:** *'auto', 'none', 'websockets', 'wsproto'.* **Default:** *'auto'*.
+* `--ws <str>` - Set the WebSockets protocol implementation. Either of the `websockets` and `wsproto` packages are supported. Use `'none'` to ignore all websocket requests. **Options:** *'auto', 'none', 'websockets', 'wsproto'.* **Default:** *'auto'*.
 * `--ws-max-size <int>` - Set the WebSockets max message size, in bytes. Please note that this can be used only with the default `websockets` protocol.
 * `--ws-ping-interval <float>` - Set the WebSockets ping interval, in seconds. Please note that this can be used only with the default `websockets` protocol.
 * `--ws-ping-timeout <float>` - Set the WebSockets ping timeout, in seconds. Please note that this can be used only with the default `websockets` protocol.
 * `--lifespan <str>` - Set the Lifespan protocol implementation. **Options:** *'auto', 'on', 'off'.* **Default:** *'auto'*.
+* `--h11-max-incomplete-event-size <int>` - Set the maximum number of bytes to buffer of an incomplete event. Only available for `h11` HTTP protocol implementation. **Default:** *'16384'* (16 KB).
 
 ## Application Interface
 
 * `--interface` - Select ASGI3, ASGI2, or WSGI as the application interface.
 Note that WSGI mode always disables WebSocket support, as it is not supported by the WSGI interface.
 **Options:** *'auto', 'asgi3', 'asgi2', 'wsgi'.* **Default:** *'auto'*.
+
+!!! warning
+    Uvicorn's native WSGI implementation is deprecated, you should switch
+    to [a2wsgi](https://github.com/abersheeran/a2wsgi) (`pip install a2wsgi`).
 
 ## HTTP
 
@@ -72,6 +92,9 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 * `--forwarded-allow-ips` <comma-separated-list> Comma separated list of IPs to trust with proxy headers. Defaults to the `$FORWARDED_ALLOW_IPS` environment variable if available, or '127.0.0.1'. A wildcard '*' means always trust.
 * `--server-header` / `--no-server-header` - Enable/Disable default `Server` header.
 * `--date-header` / `--no-date-header` - Enable/Disable default `Date` header.
+
+!!! note
+    The `--no-date-header` flag doesn't have effect on the `websockets` implementation.
 
 ## HTTPS
 

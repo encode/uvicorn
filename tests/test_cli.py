@@ -3,6 +3,7 @@ import os
 import platform
 import sys
 from pathlib import Path
+from textwrap import dedent
 from unittest import mock
 
 import pytest
@@ -90,11 +91,20 @@ def test_cli_call_multiprocess_run() -> None:
     mock_run.assert_called_once()
 
 
+@pytest.fixture(params=(True, False))
+def uds_file(
+    tmp_path: Path, request: pytest.FixtureRequest
+) -> Path:  # pragma: py-win32
+    file = tmp_path / "uvicorn.sock"
+    should_create_file = request.param
+    if should_create_file:
+        file.touch(exist_ok=True)
+    return file
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
-def test_cli_uds(tmp_path: Path) -> None:  # pragma: py-win32
+def test_cli_uds(uds_file: Path) -> None:  # pragma: py-win32
     runner = CliRunner()
-    uds_file = tmp_path / "uvicorn.sock"
-    uds_file.touch(exist_ok=True)
 
     with mock.patch.object(Config, "bind_socket") as mock_bind_socket:
         with mock.patch.object(Multiprocess, "run") as mock_run:
@@ -121,19 +131,19 @@ def test_cli_incomplete_app_parameter() -> None:
     assert result.exit_code == 1
 
 
-def test_cli_reloader_incomplete_app_parameter(
-    capfd: pytest.CaptureFixture[str],
-) -> None:
+def test_cli_event_size() -> None:
     runner = CliRunner()
 
-    runner.invoke(cli, ["tests.test_cli", "--reload"])
+    with mock.patch.object(main, "run") as mock_run:
+        result = runner.invoke(
+            cli,
+            ["tests.test_cli:App", "--h11-max-incomplete-event-size", str(32 * 1024)],
+        )
 
-    captured = capfd.readouterr()
-
-    assert (
-        'Error loading ASGI app. Import string "tests.test_cli" '
-        'must be in format "<module>:<attribute>".'
-    ) in captured.err
+    assert result.output == ""
+    assert result.exit_code == 0
+    mock_run.assert_called_once()
+    assert mock_run.call_args[1]["h11_max_incomplete_event_size"] == 32768
 
 
 @pytest.fixture()
@@ -159,3 +169,25 @@ def test_mistmatch_env_variables(load_env_h11_protocol: None):
         runner.invoke(cli, ["tests.test_cli:App", "--http=httptools"])
         _, kwargs = mock_run.call_args
         assert kwargs["http"] == "httptools"
+
+
+def test_app_dir(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    app_dir = tmp_path / "dir" / "app_dir"
+    app_file = app_dir / "main.py"
+    app_dir.mkdir(parents=True)
+    app_file.touch()
+    app_file.write_text(
+        dedent(
+            """
+            async def app(scope, receive, send):
+                ...
+            """
+        )
+    )
+    runner = CliRunner()
+    with mock.patch.object(Server, "run") as mock_run:
+        result = runner.invoke(cli, ["main:app", "--app-dir", f"{str(app_dir)}"])
+
+    assert result.exit_code == 3
+    mock_run.assert_called_once()
+    assert sys.path[0] == str(app_dir)

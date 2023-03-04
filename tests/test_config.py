@@ -4,37 +4,37 @@ import os
 import socket
 import sys
 import typing
-from copy import deepcopy
 from pathlib import Path
 from unittest.mock import MagicMock
 
-if sys.version_info < (3, 8):
-    from typing_extensions import Literal
-else:
-    from typing import Literal
-
 import pytest
 import yaml
-from asgiref.typing import ASGIApplication, ASGIReceiveCallable, ASGISendCallable, Scope
 from pytest_mock import MockerFixture
 
 from tests.utils import as_cwd
 from uvicorn._types import Environ, StartResponse
-from uvicorn.config import LOGGING_CONFIG, Config
-from uvicorn.middleware.debug import DebugMiddleware
+from uvicorn.config import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
+
+if sys.version_info < (3, 8):  # pragma: py-gte-38
+    from typing_extensions import Literal
+else:  # pragma: py-lt-38
+    from typing import Literal
+
+if typing.TYPE_CHECKING:
+    from asgiref.typing import (
+        ASGIApplication,
+        ASGIReceiveCallable,
+        ASGISendCallable,
+        Scope,
+    )
 
 
 @pytest.fixture
 def mocked_logging_config_module(mocker: MockerFixture) -> MagicMock:
     return mocker.patch("logging.config")
-
-
-@pytest.fixture(scope="function")
-def logging_config() -> dict:
-    return deepcopy(LOGGING_CONFIG)
 
 
 @pytest.fixture
@@ -48,7 +48,7 @@ def yaml_logging_config(logging_config: dict) -> str:
 
 
 async def asgi_app(
-    scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
 ) -> None:
     pass  # pragma: nocover
 
@@ -57,28 +57,16 @@ def wsgi_app(environ: Environ, start_response: StartResponse) -> None:
     pass  # pragma: nocover
 
 
-def test_debug_app() -> None:
-    config = Config(app=asgi_app, debug=True, proxy_headers=False)
-    config.load()
-
-    assert config.debug is True
-    assert isinstance(config.loaded_app, DebugMiddleware)
-
-
 @pytest.mark.parametrize(
     "app, expected_should_reload",
     [(asgi_app, False), ("tests.test_config:asgi_app", True)],
 )
 def test_config_should_reload_is_set(
-    app: ASGIApplication, expected_should_reload: bool
+    app: "ASGIApplication", expected_should_reload: bool
 ) -> None:
-    config_debug = Config(app=app, debug=True)
-    assert config_debug.debug is True
-    assert config_debug.should_reload is expected_should_reload
-
-    config_reload = Config(app=app, reload=True)
-    assert config_reload.reload is True
-    assert config_reload.should_reload is expected_should_reload
+    config = Config(app=app, reload=True)
+    assert config.reload is True
+    assert config.should_reload is expected_should_reload
 
 
 def test_should_warn_on_invalid_reload_configuration(
@@ -89,7 +77,7 @@ def test_should_warn_on_invalid_reload_configuration(
     assert len(caplog.records) == 1
     assert (
         caplog.records[-1].message
-        == "Current configuration will not reload as not all conditions are met,"
+        == "Current configuration will not reload as not all conditions are met, "
         "please refer to documentation."
     )
 
@@ -100,7 +88,7 @@ def test_should_warn_on_invalid_reload_configuration(
     assert len(caplog.records) == 2
     assert (
         caplog.records[-1].message
-        == "Current configuration will not reload as not all conditions are met,"
+        == "Current configuration will not reload as not all conditions are met, "
         "please refer to documentation."
     )
 
@@ -275,7 +263,7 @@ def test_app_unimportable_other(caplog: pytest.LogCaptureFixture) -> None:
 
 
 def test_app_factory(caplog: pytest.LogCaptureFixture) -> None:
-    def create_app() -> ASGIApplication:
+    def create_app() -> "ASGIApplication":
         return asgi_app
 
     config = Config(app=create_app, factory=True, proxy_headers=False)
@@ -336,9 +324,9 @@ def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
     assert config.is_ssl is True
 
 
-def asgi2_app(scope: Scope) -> typing.Callable:
+def asgi2_app(scope: "Scope") -> typing.Callable:
     async def asgi(
-        receive: ASGIReceiveCallable, send: ASGISendCallable
+        receive: "ASGIReceiveCallable", send: "ASGISendCallable"
     ) -> None:  # pragma: nocover
         pass
 
@@ -349,7 +337,7 @@ def asgi2_app(scope: Scope) -> typing.Callable:
     "app, expected_interface", [(asgi_app, "3.0"), (asgi2_app, "2.0")]
 )
 def test_asgi_version(
-    app: ASGIApplication, expected_interface: Literal["2.0", "3.0"]
+    app: "ASGIApplication", expected_interface: Literal["2.0", "3.0"]
 ) -> None:
     config = Config(app=app)
     config.load()
@@ -369,15 +357,16 @@ def test_log_config_default(
     mocked_logging_config_module: MagicMock,
     use_colors: typing.Optional[bool],
     expected: typing.Optional[bool],
+    logging_config,
 ) -> None:
     """
     Test that one can specify the use_colors option when using the default logging
     config.
     """
-    config = Config(app=asgi_app, use_colors=use_colors)
+    config = Config(app=asgi_app, use_colors=use_colors, log_config=logging_config)
     config.load()
 
-    mocked_logging_config_module.dictConfig.assert_called_once_with(LOGGING_CONFIG)
+    mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
 
     (provided_dict_config,), _ = mocked_logging_config_module.dictConfig.call_args
     assert provided_dict_config["formatters"]["default"]["use_colors"] == expected
@@ -518,17 +507,14 @@ def test_ws_max_size() -> None:
 )
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
 def test_bind_unix_socket_works_with_reload_or_workers(
-    tmp_path, reload, workers
+    tmp_path, reload, workers, short_socket_name
 ):  # pragma: py-win32
-    uds_file = tmp_path / "uvicorn.sock"
-    config = Config(
-        app=asgi_app, uds=uds_file.as_posix(), reload=reload, workers=workers
-    )
+    config = Config(app=asgi_app, uds=short_socket_name, reload=reload, workers=workers)
     config.load()
     sock = config.bind_socket()
     assert isinstance(sock, socket.socket)
     assert sock.family == socket.AF_UNIX
-    assert sock.getsockname() == uds_file.as_posix()
+    assert sock.getsockname() == short_socket_name
     sock.close()
 
 
@@ -552,3 +538,31 @@ def test_bind_fd_works_with_reload_or_workers(reload, workers):  # pragma: py-wi
     assert sock.getsockname() == ""
     sock.close()
     fdsock.close()
+
+
+@pytest.mark.parametrize(
+    "reload, workers, expected",
+    [
+        (True, 1, True),
+        (False, 2, True),
+        (False, 1, False),
+    ],
+    ids=[
+        "--reload=True --workers=1",
+        "--reload=False --workers=2",
+        "--reload=False --workers=1",
+    ],
+)
+def test_config_use_subprocess(reload, workers, expected):
+    config = Config(app=asgi_app, reload=reload, workers=workers)
+    config.load()
+    assert config.use_subprocess == expected
+
+
+def test_warn_when_using_reload_and_workers(caplog: pytest.LogCaptureFixture) -> None:
+    Config(app=asgi_app, reload=True, workers=2)
+    assert len(caplog.records) == 1
+    assert (
+        '"workers" flag is ignored when reloading is enabled.'
+        in caplog.records[0].message
+    )

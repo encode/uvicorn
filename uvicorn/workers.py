@@ -2,7 +2,7 @@ import asyncio
 import logging
 import signal
 import sys
-from typing import Any
+from typing import Any, Dict
 
 from gunicorn.arbiter import Arbiter
 from gunicorn.workers.base import Worker
@@ -17,7 +17,7 @@ class UvicornWorker(Worker):
     rather than a WSGI callable.
     """
 
-    CONFIG_KWARGS = {"loop": "auto", "http": "auto"}
+    CONFIG_KWARGS: Dict[str, Any] = {"loop": "auto", "http": "auto"}
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(UvicornWorker, self).__init__(*args, **kwargs)
@@ -72,17 +72,30 @@ class UvicornWorker(Worker):
         for s in self.SIGNALS:
             signal.signal(s, signal.SIG_DFL)
 
+        signal.signal(signal.SIGUSR1, self.handle_usr1)
+        # Don't let SIGUSR1 disturb active requests by interrupting system calls
+        signal.siginterrupt(signal.SIGUSR1, False)
+
+    def _install_sigquit_handler(self) -> None:
+        """Install a SIGQUIT handler on workers.
+
+        - https://github.com/encode/uvicorn/issues/1116
+        - https://github.com/benoitc/gunicorn/issues/2604
+        """
+
+        loop = asyncio.get_running_loop()
+        loop.add_signal_handler(signal.SIGQUIT, self.handle_exit, signal.SIGQUIT, None)
+
     async def _serve(self) -> None:
         self.config.app = self.wsgi
         server = Server(config=self.config)
+        self._install_sigquit_handler()
         await server.serve(sockets=self.sockets)
         if not server.started:
             sys.exit(Arbiter.WORKER_BOOT_ERROR)
 
     def run(self) -> None:
-        if sys.version_info >= (3, 7):
-            return asyncio.run(self._serve())
-        return asyncio.get_event_loop().run_until_complete(self._serve())
+        return asyncio.run(self._serve())
 
     async def callback_notify(self) -> None:
         self.notify()

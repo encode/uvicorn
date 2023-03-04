@@ -1,31 +1,34 @@
 -e .[standard]
 
+# Type annotation
+asgiref==3.5.2
+
 # Explicit optionals
-wsproto==1.0.0
+a2wsgi==1.7.0
+wsproto==1.2.0
 
 # Packaging
-twine==3.4.2
-wheel==0.37.0
+build==0.10.0
+twine==4.0.2
 
 # Testing
-autoflake==1.4
-black==21.9b0
+autoflake==1.7.7
+black==22.10.0
 flake8==3.9.2
-isort==5.9.3
-pytest==6.2.5
-pytest-mock==3.6.1
-mypy==0.910
-types-click==7.1.5
-types-pyyaml==5.4.10
+importlib-metadata==4.13.0; python_version>='3.7'
+isort==5.10.1
+pytest==7.2.1
+pytest-mock==3.10.0
+mypy==0.991
+types-click==7.1.8
+types-pyyaml==6.0.12.3
 trustme==0.9.0
-cryptography==3.4.8
-coverage==5.5
-coverage-conditional-plugin==0.4.0
-httpx==1.0.0b0
-pytest-asyncio==0.15.1
-async_generator==1.10 ; python_version < '3.7'
-
+cryptography==39.0.1
+coverage==7.1.0
+coverage-conditional-plugin==0.8.0
+httpx==0.23.0
+watchgod==0.8.2
 
 # Documentation
-mkdocs==1.2.3
-mkdocs-material==7.2.6
+mkdocs==1.4.2
+mkdocs-material==8.5.4
