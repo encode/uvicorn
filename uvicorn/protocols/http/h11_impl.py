@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import http
 import logging
-from typing import Any, Callable, Literal, cast
+from typing import Callable, cast
 from urllib.parse import unquote
 
 import h11
@@ -222,7 +222,7 @@ class H11Protocol(asyncio.Protocol):
                 }
 
                 if self.config.is_ssl:
-                    self.scope["extensions"]["tls"] = self.tls
+                    self.scope["extensions"]["tls"] = self.tls # type: ignore[index, assignment] # noqa: E501
                     
                 if self._should_upgrade():
                     self.handle_websocket_upgrade(event)

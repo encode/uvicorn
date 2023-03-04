@@ -240,7 +240,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         }
 
         if self.config.is_ssl:
-            self.scope["extensions"]["tls"] = self.tls
+            self.scope["extensions"]["tls"] = self.tls  # type: ignore[index, assignment] # noqa: E501
 
     # Parser callbacks
     def on_url(self, url: bytes) -> None:
