@@ -186,7 +186,7 @@ Options:
   --version                       Display the uvicorn version and exit.
   --app-dir TEXT                  Look for APP in the specified directory, by
                                   adding this to the PYTHONPATH. Defaults to
-                                  the current working directory.  [default: .]
+                                  the current working directory.
   --h11-max-incomplete-event-size INTEGER
                                   For h11, the maximum number of bytes to
                                   buffer of an incomplete event.
@@ -329,7 +329,7 @@ An incoming HTTP request might have a connection `scope` like this:
 
 ```python
 {
-    'type': 'http.request',
+    'type': 'http',
     'scheme': 'http',
     'root_path': '',
     'server': ('127.0.0.1', 8000),
@@ -417,7 +417,8 @@ async def app(scope, receive, send):
         'type': 'http.response.start',
         'status': 200,
         'headers': [
-            [b'content-type', b'text/plain'],
+            (b'content-type', b'text/plain'),
+            (b'content-length', str(len(body)).encode())
         ]
     })
     await send({

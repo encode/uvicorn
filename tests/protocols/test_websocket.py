@@ -1,4 +1,5 @@
 import asyncio
+import typing
 from copy import deepcopy
 
 import httpx
@@ -714,11 +715,22 @@ async def test_connection_lost_before_handshake_complete(
         message = await receive()
         if message["type"] == "websocket.connect":
             await send_accept_task.wait()
-            await send({"type": "websocket.accept"})
         disconnect_message = await receive()
 
+    response: typing.Optional[httpx.Response] = None
+
     async def websocket_session(uri):
-        await websockets.client.connect(uri)
+        nonlocal response
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"http://127.0.0.1:{unused_tcp_port}",
+                headers={
+                    "upgrade": "websocket",
+                    "connection": "upgrade",
+                    "sec-websocket-version": "13",
+                    "sec-websocket-key": "dGhlIHNhbXBsZSBub25jZQ==",
+                },
+            )
 
     config = Config(
         app=app,
@@ -732,9 +744,12 @@ async def test_connection_lost_before_handshake_complete(
             websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
         )
         await asyncio.sleep(0.1)
-        task.cancel()
         send_accept_task.set()
 
+    task.cancel()
+    assert response is not None
+    assert response.status_code == 500, response.text
+    assert response.text == "Internal Server Error"
     assert disconnect_message == {"type": "websocket.disconnect", "code": 1006}
 
 
@@ -745,6 +760,7 @@ async def test_send_close_on_server_shutdown(
     ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
 ):
     disconnect_message = {}
+    server_shutdown_event = asyncio.Event()
 
     async def app(scope, receive, send):
         nonlocal disconnect_message
@@ -756,10 +772,13 @@ async def test_send_close_on_server_shutdown(
                 disconnect_message = message
                 break
 
+    websocket: typing.Optional[websockets.client.WebSocketClientProtocol] = None
+
     async def websocket_session(uri):
-        async with websockets.client.connect(uri):
-            while True:
-                await asyncio.sleep(0.1)
+        nonlocal websocket
+        async with websockets.client.connect(uri) as ws_connection:
+            websocket = ws_connection
+            await server_shutdown_event.wait()
 
     config = Config(
         app=app,
@@ -774,7 +793,10 @@ async def test_send_close_on_server_shutdown(
         )
         await asyncio.sleep(0.1)
         disconnect_message_before_shutdown = disconnect_message
+    server_shutdown_event.set()
 
+    assert websocket is not None
+    assert websocket.close_code == 1012
     assert disconnect_message_before_shutdown == {}
     assert disconnect_message == {"type": "websocket.disconnect", "code": 1012}
     task.cancel()

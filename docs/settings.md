@@ -80,6 +80,10 @@ Using Uvicorn with watchfiles will enable the following options (which are other
 Note that WSGI mode always disables WebSocket support, as it is not supported by the WSGI interface.
 **Options:** *'auto', 'asgi3', 'asgi2', 'wsgi'.* **Default:** *'auto'*.
 
+!!! warning
+    Uvicorn's native WSGI implementation is deprecated, you should switch
+    to [a2wsgi](https://github.com/abersheeran/a2wsgi) (`pip install a2wsgi`).
+
 ## HTTP
 
 * `--root-path <str>` - Set the ASGI `root_path` for applications submounted below a given URL path.

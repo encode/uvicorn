@@ -21,8 +21,6 @@ from typing import (
     Union,
 )
 
-from h11._connection import DEFAULT_MAX_INCOMPLETE_EVENT_SIZE
-
 from uvicorn.logging import TRACE_LOG_LEVEL
 
 if sys.version_info < (3, 8):  # pragma: py-gte-38
@@ -31,14 +29,6 @@ else:  # pragma: py-lt-38
     from typing import Literal
 
 import click
-
-try:
-    import yaml
-except ImportError:  # pragma: no cover
-    # If the code below that depends on yaml is exercised, it will raise a NameError.
-    # Install the PyYAML package or the uvicorn[standard] optional dependencies to
-    # enable this functionality.
-    pass
 
 from uvicorn.importer import ImportFromStringError, import_from_string
 from uvicorn.middleware.asgi2 import ASGI2Middleware
@@ -250,7 +240,7 @@ class Config:
         ssl_ciphers: str = "TLSv1",
         headers: Optional[List[Tuple[str, str]]] = None,
         factory: bool = False,
-        h11_max_incomplete_event_size: int = DEFAULT_MAX_INCOMPLETE_EVENT_SIZE,
+        h11_max_incomplete_event_size: Optional[int] = None,
     ):
         self.app = app
         self.host = host
@@ -410,6 +400,10 @@ class Config:
                     loaded_config = json.load(file)
                     logging.config.dictConfig(loaded_config)
             elif self.log_config.endswith((".yaml", ".yml")):
+                # Install the PyYAML package or the uvicorn[standard] optional
+                # dependencies to enable this functionality.
+                import yaml
+
                 with open(self.log_config) as file:
                     loaded_config = yaml.safe_load(file)
                     logging.config.dictConfig(loaded_config)
