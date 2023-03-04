@@ -6,7 +6,17 @@ import sys
 import urllib
 from asyncio.events import TimerHandle
 from collections import deque
-from typing import TYPE_CHECKING, Callable, Deque, List, Optional, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Deque,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 import httptools
 
@@ -23,6 +33,7 @@ from uvicorn.protocols.utils import (
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
+    get_tls_info,
     is_ssl,
 )
 from uvicorn.server import ServerState
@@ -98,6 +109,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.client: Optional[Tuple[str, int]] = None
         self.scheme: Optional[Literal["http", "https"]] = None
         self.pipeline: Deque[Tuple[RequestResponseCycle, ASGI3Application]] = deque()
+        self.tls: Optional[Dict] = None
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
@@ -116,6 +128,11 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
         self.scheme = "https" if is_ssl(transport) else "http"
+
+        if self.config.is_ssl:
+            self.tls = get_tls_info(transport)
+            if self.tls:
+                self.tls["server_cert"] = self.config.ssl_cert_pem
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
@@ -237,7 +254,11 @@ class HttpToolsProtocol(asyncio.Protocol):
             "scheme": self.scheme,
             "root_path": self.root_path,
             "headers": self.headers,
+            "extensions": {},
         }
+
+        if self.config.is_ssl:
+            self.scope["extensions"]["tls"] = self.tls  # type: ignore[index, assignment] # noqa: E501
 
     # Parser callbacks
     def on_url(self, url: bytes) -> None:
