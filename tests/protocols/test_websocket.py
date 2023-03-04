@@ -1,4 +1,5 @@
 import asyncio
+from copy import deepcopy
 
 import httpx
 import pytest
@@ -1076,6 +1077,10 @@ async def test_lifespan_state(ws_protocol_cls, http_protocol_cls, unused_tcp_por
         {"a": 123, "b": [1, 2]},
     ]
 
+    actual_states = []
+
+    state_equals_expected_state = True
+
     async def lifespan_app(scope, receive, send):
         message = await receive()
         assert message["type"] == "lifespan.startup"
@@ -1088,8 +1093,8 @@ async def test_lifespan_state(ws_protocol_cls, http_protocol_cls, unused_tcp_por
 
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
-            expected_state = expected_states.pop(0)
-            assert self.scope["state"] == expected_state
+            nonlocal state_equals_expected_state
+            actual_states.append(deepcopy(self.scope["state"]))
             self.scope["state"]["a"] = 456
             self.scope["state"]["b"].append(2)
             await self.send({"type": "websocket.accept"})
@@ -1117,4 +1122,4 @@ async def test_lifespan_state(ws_protocol_cls, http_protocol_cls, unused_tcp_por
         is_open = await open_connection(f"ws://127.0.0.1:{unused_tcp_port}")
         assert is_open
 
-    assert not expected_states  # consumed
+    assert expected_states == actual_states
