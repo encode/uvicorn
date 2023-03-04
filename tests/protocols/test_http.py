@@ -999,8 +999,6 @@ async def test_iterator_headers(protocol_cls):
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 async def test_lifespan_state(protocol_cls):
-    app = Response("Hello, world", media_type="text/plain")
-
     expected_states = [{"a": 123, "b": [1]}, {"a": 123, "b": [1, 2]}]
 
     async def app(scope, receive, send):
