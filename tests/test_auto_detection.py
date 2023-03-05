@@ -45,7 +45,7 @@ def test_loop_auto():
 async def test_http_auto():
     config = Config(app=app)
     server_state = ServerState()
-    protocol = AutoHTTPProtocol(config=config, server_state=server_state)
+    protocol = AutoHTTPProtocol(config=config, server_state=server_state, app_state={})
     expected_http = "H11Protocol" if httptools is None else "HttpToolsProtocol"
     assert type(protocol).__name__ == expected_http
 
@@ -54,6 +54,8 @@ async def test_http_auto():
 async def test_websocket_auto():
     config = Config(app=app)
     server_state = ServerState()
-    protocol = AutoWebSocketsProtocol(config=config, server_state=server_state)
+    protocol = AutoWebSocketsProtocol(
+        config=config, server_state=server_state, app_state={}
+    )
     expected_websockets = "WSProtocol" if websockets is None else "WebSocketProtocol"
     assert type(protocol).__name__ == expected_websockets

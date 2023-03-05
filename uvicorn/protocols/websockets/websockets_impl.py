@@ -2,7 +2,17 @@ import asyncio
 import http
 import logging
 import sys
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 from urllib.parse import unquote
 
 import websockets
@@ -61,6 +71,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self,
         config: Config,
         server_state: ServerState,
+        app_state: Dict[str, Any],
         _loop: Optional[asyncio.AbstractEventLoop] = None,
     ):
         if not config.loaded:
@@ -70,6 +81,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
         self.root_path = config.root_path
+        self.app_state = app_state
 
         # Shared server state
         self.connections = server_state.connections
@@ -190,6 +202,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             "query_string": query_string.encode("ascii"),
             "headers": asgi_headers,
             "subprotocols": subprotocols,
+            "state": self.app_state,
         }
         task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)

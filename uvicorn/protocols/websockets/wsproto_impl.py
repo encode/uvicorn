@@ -49,6 +49,7 @@ class WSProtocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
+        app_state: typing.Dict[str, typing.Any],
         _loop: typing.Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         if not config.loaded:
@@ -59,6 +60,7 @@ class WSProtocol(asyncio.Protocol):
         self.loop = _loop or asyncio.get_event_loop()
         self.logger = logging.getLogger("uvicorn.error")
         self.root_path = config.root_path
+        self.app_state = app_state
 
         # Shared server state
         self.connections = server_state.connections
@@ -170,7 +172,7 @@ class WSProtocol(asyncio.Protocol):
         headers = [(b"host", event.host.encode())]
         headers += [(key.lower(), value) for key, value in event.extra_headers]
         raw_path, _, query_string = event.target.partition("?")
-        self.scope: "WebSocketScope" = {
+        self.scope: "WebSocketScope" = {  # type: ignore[typeddict-item]
             "type": "websocket",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
             "http_version": "1.1",
@@ -184,6 +186,7 @@ class WSProtocol(asyncio.Protocol):
             "headers": headers,
             "subprotocols": event.subprotocols,
             "extensions": None,
+            "state": self.app_state,
         }
         self.queue.put_nowait({"type": "websocket.connect"})
         task = self.loop.create_task(self.run_asgi())

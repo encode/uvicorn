@@ -166,6 +166,7 @@ def test_lifespan_scope_asgi3app():
         assert scope == {
             "type": "lifespan",
             "asgi": {"version": "3.0", "spec_version": "2.0"},
+            "state": {},
         }
 
     async def test():
@@ -188,6 +189,7 @@ def test_lifespan_scope_asgi2app():
         assert scope == {
             "type": "lifespan",
             "asgi": {"version": "2.0", "spec_version": "2.0"},
+            "state": {},
         }
 
         async def asgi(receive, send):
@@ -244,4 +246,27 @@ def test_lifespan_with_failed_shutdown(mode, raise_exception, caplog):
     ]
     assert "the lifespan event failed" in error_messages.pop(0)
     assert "Application shutdown failed. Exiting." in error_messages.pop(0)
+    loop.close()
+
+
+def test_lifespan_state():
+    async def app(scope, receive, send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await send({"type": "lifespan.startup.complete"})
+        scope["state"]["foo"] = 123
+        message = await receive()
+        assert message["type"] == "lifespan.shutdown"
+        await send({"type": "lifespan.shutdown.complete"})
+
+    async def test():
+        config = Config(app=app, lifespan="on")
+        lifespan = LifespanOn(config)
+
+        await lifespan.startup()
+        assert lifespan.state == {"foo": 123}
+        await lifespan.shutdown()
+
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(test())
     loop.close()
