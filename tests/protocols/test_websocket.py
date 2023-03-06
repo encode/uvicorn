@@ -1125,7 +1125,7 @@ async def test_lifespan_state(ws_protocol_cls, http_protocol_cls, unused_tcp_por
             await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
-        async with websockets.connect(url) as websocket:
+        async with websockets.client.connect(url) as websocket:
             return websocket.open
 
     async def app_wrapper(scope, receive, send):
