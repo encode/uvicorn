@@ -571,7 +571,7 @@ class Config:
                 + " (Press CTRL+C to quit)"
             )
             protocol_name = "https" if self.is_ssl else "http"
-            logger_args = [protocol_name, self.host, self.port]
+            logger_args = [protocol_name, self.host, sock.getsockname()[1]]
         logger.info(message, *logger_args, extra={"color_message": color_message})
         sock.set_inheritable(True)
         return sock
