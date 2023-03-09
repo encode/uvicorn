@@ -6,6 +6,7 @@
 
 - Introduce lifespan state (#1818) 05/03/23
 - Allow headers to be sent as iterables on H11 implementation (#1782) 27/11/22
+- Improve discoverability when --port=0 is used (#1890) 09/03/23
 
 ### Changed
 
