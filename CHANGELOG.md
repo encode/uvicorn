@@ -10,7 +10,7 @@
 
 ### Changed
 
-- Improve import time (#1846) 07/02/23
+- Avoid importing `h11` and `pyyaml` when not needed to improve import time (#1846) 07/02/23
 - Replace current native `WSGIMiddleware` implementation by `a2wsgi` (#1825) 16/01/23
 - Change default `--app-dir` from "." (dot) to "" (empty string) (#1835) 06/01/23
 
