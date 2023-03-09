@@ -1,5 +1,24 @@
 # Change Log
 
+## 0.21.0 - 2023-03-09
+
+### Added
+
+- Introduce lifespan state (#1818) 05/03/23
+- Allow headers to be sent as iterables on H11 implementation (#1782) 27/11/22
+
+### Changed
+
+- Improve import time (#1846) 07/02/23
+- Replace current native `WSGIMiddleware` implementation by `a2wsgi` (#1825) 16/01/23
+- Change default `--app-dir` from from "." (dot) to "" (empty string) (#1835) 06/01/23
+
+### Fixed
+
+- Send code 1012 on shutdown for WebSockets (#1816) 06/01/23
+- Use `surrogateescape` to encode headers on `websockets` implementation (#1005) 12/12/22
+- Fix warning message on reload failure (#1784) 29/11/22
+
 ## 0.20.0 - 2022-11-20
 
 ### Added
