@@ -2,6 +2,7 @@ import asyncio
 import concurrent.futures
 import io
 import sys
+import warnings
 from collections import deque
 from typing import TYPE_CHECKING, Deque, Iterable, Optional, Tuple
 
@@ -73,8 +74,13 @@ def build_environ(
     return environ
 
 
-class WSGIMiddleware:
+class _WSGIMiddleware:
     def __init__(self, app: WSGIApp, workers: int = 10):
+        warnings.warn(
+            "Uvicorn's native WSGI implementation is deprecated, you "
+            "should switch to a2wsgi (`pip install a2wsgi`).",
+            DeprecationWarning,
+        )
         self.app = app
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
@@ -188,3 +194,9 @@ class WSGIResponder:
         }
         self.send_queue.append(empty_body)
         self.loop.call_soon_threadsafe(self.send_event.set)
+
+
+try:
+    from a2wsgi import WSGIMiddleware
+except ModuleNotFoundError:
+    WSGIMiddleware = _WSGIMiddleware  # type: ignore[misc, assignment]

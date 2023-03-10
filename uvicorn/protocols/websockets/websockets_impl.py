@@ -2,7 +2,17 @@ import asyncio
 import http
 import logging
 import sys
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 from urllib.parse import unquote
 
 import websockets
@@ -61,6 +71,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self,
         config: Config,
         server_state: ServerState,
+        app_state: Dict[str, Any],
         _loop: Optional[asyncio.AbstractEventLoop] = None,
     ):
         if not config.loaded:
@@ -70,6 +81,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
         self.root_path = config.root_path
+        self.app_state = app_state
 
         # Shared server state
         self.connections = server_state.connections
@@ -90,7 +102,6 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.connect_sent = False
         self.lost_connection_before_handshake = False
         self.accepted_subprotocol: Optional[Subprotocol] = None
-        self.transfer_data_task: asyncio.Task = None  # type: ignore[assignment]
 
         self.ws_server: Server = Server()  # type: ignore[assignment]
 
@@ -145,6 +156,10 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
     def shutdown(self) -> None:
         self.ws_server.closing = True
+        if self.handshake_completed_event.is_set():
+            self.fail_connection(1012)
+        else:
+            self.send_500_response()
         self.transport.close()
 
     def on_task_complete(self, task: asyncio.Task) -> None:
@@ -187,6 +202,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             "query_string": query_string.encode("ascii"),
             "headers": asgi_headers,
             "subprotocols": subprotocols,
+            "state": self.app_state,
         }
         task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)

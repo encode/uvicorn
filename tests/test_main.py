@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 from tests.utils import run_server
+from uvicorn import Server
 from uvicorn.config import Config
 from uvicorn.main import run
 
@@ -113,3 +114,12 @@ def test_run_match_config_params() -> None:
         if key not in ("app_dir",)
     }
     assert config_params == run_params
+
+
+@pytest.mark.anyio
+async def test_exit_on_create_server_with_invalid_host() -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        config = Config(app=app, host="illegal_host")
+        server = Server(config=config)
+        await server.serve()
+    assert exc_info.value.code == 1

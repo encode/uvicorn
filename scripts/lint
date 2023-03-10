@@ -3,6 +3,7 @@
 export PREFIX=""
 if [ -d 'venv' ] ; then
     export PREFIX="venv/bin/"
+    export PATH=${PREFIX}:${PATH}
 fi
 export SOURCE_FILES="uvicorn tests"
 
