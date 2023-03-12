@@ -54,6 +54,7 @@ class TestBaseReload:
 
     def _reload_tester(self, touch_soon, reloader: BaseReload, *files: Path) -> bool:
         reloader.restart()
+        print(files)
         if WatchFilesReload is not None and isinstance(reloader, WatchFilesReload):
             touch_soon(*files)
         else:
@@ -221,7 +222,6 @@ class TestBaseReload:
             reload_dirs=[str(app_dir)],
         )
         reloader = self._setup_reloader(config)
-
         assert self._reload_tester(touch_soon, reloader, app_dir_file)
         assert not self._reload_tester(
             touch_soon, reloader, root_file, app_dir / "~ignored"

@@ -69,7 +69,6 @@ def resolve_reload_patterns(
                 children.append(directories[j])
 
     directories = list(set(directories).difference(set(children)))
-
     return list(set(patterns)), directories
 
 

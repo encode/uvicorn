@@ -382,7 +382,7 @@ def test_log_config_json(
     Test that one can load a json config from disk.
     """
     mocked_open = mocker.patch(
-        "uvicorn.config.open", mocker.mock_open(read_data=json_logging_config)
+        "uvicorn.config.conf.open", mocker.mock_open(read_data=json_logging_config)
     )
 
     config = Config(app=asgi_app, log_config="log_config.json")
@@ -404,7 +404,7 @@ def test_log_config_yaml(
     Test that one can load a yaml config from disk.
     """
     mocked_open = mocker.patch(
-        "uvicorn.config.open", mocker.mock_open(read_data=yaml_logging_config)
+        "uvicorn.config.conf.open", mocker.mock_open(read_data=yaml_logging_config)
     )
 
     config = Config(app=asgi_app, log_config=config_filename)
