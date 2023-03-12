@@ -1,5 +1,11 @@
 import ssl
-from typing import List, Literal
+import sys
+from typing import List
+
+if sys.version_info < (3, 8):  # pragma: py-gte-38
+    from typing_extensions import Literal
+else:  # pragma: py-lt-38
+    from typing import Literal
 
 HTTPProtocolType = Literal["auto", "h11", "httptools"]
 WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
