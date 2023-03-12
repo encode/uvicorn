@@ -39,157 +39,19 @@ from uvicorn.middleware.wsgi import WSGIMiddleware
 if TYPE_CHECKING:
     from asgiref.typing import ASGIApplication
 
-HTTPProtocolType = Literal["auto", "h11", "httptools"]
-WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
-LifespanType = Literal["auto", "on", "off"]
-LoopSetupType = Literal["none", "auto", "asyncio", "uvloop"]
-InterfaceType = Literal["auto", "asgi3", "asgi2", "wsgi"]
-
-LOG_LEVELS: Dict[str, int] = {
-    "critical": logging.CRITICAL,
-    "error": logging.ERROR,
-    "warning": logging.WARNING,
-    "info": logging.INFO,
-    "debug": logging.DEBUG,
-    "trace": TRACE_LOG_LEVEL,
-}
-HTTP_PROTOCOLS: Dict[HTTPProtocolType, str] = {
-    "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
-    "h11": "uvicorn.protocols.http.h11_impl:H11Protocol",
-    "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
-}
-WS_PROTOCOLS: Dict[WSProtocolType, Optional[str]] = {
-    "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",
-    "none": None,
-    "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
-    "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
-}
-LIFESPAN: Dict[LifespanType, str] = {
-    "auto": "uvicorn.lifespan.on:LifespanOn",
-    "on": "uvicorn.lifespan.on:LifespanOn",
-    "off": "uvicorn.lifespan.off:LifespanOff",
-}
-LOOP_SETUPS: Dict[LoopSetupType, Optional[str]] = {
-    "none": None,
-    "auto": "uvicorn.loops.auto:auto_loop_setup",
-    "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
-    "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
-}
-INTERFACES: List[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
-
-SSL_PROTOCOL_VERSION: int = ssl.PROTOCOL_TLS_SERVER
-
-LOGGING_CONFIG: Dict[str, Any] = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "default": {
-            "()": "uvicorn.logging.DefaultFormatter",
-            "fmt": "%(levelprefix)s %(message)s",
-            "use_colors": None,
-        },
-        "access": {
-            "()": "uvicorn.logging.AccessFormatter",
-            "fmt": '%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',  # noqa: E501
-        },
-    },
-    "handlers": {
-        "default": {
-            "formatter": "default",
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stderr",
-        },
-        "access": {
-            "formatter": "access",
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stdout",
-        },
-    },
-    "loggers": {
-        "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": False},
-        "uvicorn.error": {"level": "INFO"},
-        "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
-    },
-}
+from .defaults import LOGGING_CONFIG
+from .mappings import HTTP_PROTOCOLS, LIFESPAN, LOG_LEVELS, LOOP_SETUPS, WS_PROTOCOLS
+from .types import (
+    SSL_PROTOCOL_VERSION,
+    HTTPProtocolType,
+    InterfaceType,
+    LifespanType,
+    LoopSetupType,
+    WSProtocolType,
+)
+from .utils import _normalize_dirs, create_ssl_context, resolve_reload_patterns
 
 logger = logging.getLogger("uvicorn.error")
-
-
-def create_ssl_context(
-    certfile: Union[str, os.PathLike],
-    keyfile: Optional[Union[str, os.PathLike]],
-    password: Optional[str],
-    ssl_version: int,
-    cert_reqs: int,
-    ca_certs: Optional[Union[str, os.PathLike]],
-    ciphers: Optional[str],
-) -> ssl.SSLContext:
-    ctx = ssl.SSLContext(ssl_version)
-    get_password = (lambda: password) if password else None
-    ctx.load_cert_chain(certfile, keyfile, get_password)
-    ctx.verify_mode = ssl.VerifyMode(cert_reqs)
-    if ca_certs:
-        ctx.load_verify_locations(ca_certs)
-    if ciphers:
-        ctx.set_ciphers(ciphers)
-    return ctx
-
-
-def is_dir(path: Path) -> bool:
-    try:
-        if not path.is_absolute():
-            path = path.resolve()
-        return path.is_dir()
-    except OSError:
-        return False
-
-
-def resolve_reload_patterns(
-    patterns_list: List[str], directories_list: List[str]
-) -> Tuple[List[str], List[Path]]:
-    directories: List[Path] = list(set(map(Path, directories_list.copy())))
-    patterns: List[str] = patterns_list.copy()
-
-    current_working_directory = Path.cwd()
-    for pattern in patterns_list:
-        # Special case for the .* pattern, otherwise this would only match
-        # hidden directories which is probably undesired
-        if pattern == ".*":
-            continue
-        patterns.append(pattern)
-        if is_dir(Path(pattern)):
-            directories.append(Path(pattern))
-        else:
-            for match in current_working_directory.glob(pattern):
-                if is_dir(match):
-                    directories.append(match)
-
-    directories = list(set(directories))
-    directories = list(map(Path, directories))
-    directories = list(map(lambda x: x.resolve(), directories))
-    directories = list(
-        {reload_path for reload_path in directories if is_dir(reload_path)}
-    )
-
-    children = []
-    for j in range(len(directories)):
-        for k in range(j + 1, len(directories)):
-            if directories[j] in directories[k].parents:
-                children.append(directories[k])  # pragma: py-darwin
-            elif directories[k] in directories[j].parents:
-                children.append(directories[j])
-
-    directories = list(set(directories).difference(set(children)))
-
-    return list(set(patterns)), directories
-
-
-def _normalize_dirs(dirs: Union[List[str], str, None]) -> List[str]:
-    if dirs is None:
-        return []
-    if isinstance(dirs, str):
-        return [dirs]
-    return list(set(dirs))
 
 
 class Config:
