@@ -97,7 +97,7 @@ class Server:
             return config.http_protocol_class(  # type: ignore[call-arg]
                 config=config,
                 server_state=self.server_state,
-                app_state=self.lifespan.state.copy(),
+                app_state=self.lifespan.state,
                 _loop=_loop,
             )
 

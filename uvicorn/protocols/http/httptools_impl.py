@@ -253,7 +253,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             "scheme": self.scheme,
             "root_path": self.root_path,
             "headers": self.headers,
-            "state": self.app_state,
+            "state": self.app_state.copy(),
         }
 
     # Parser callbacks

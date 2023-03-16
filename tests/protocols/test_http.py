@@ -201,7 +201,7 @@ def get_connected_protocol(
     protocol = protocol_cls(
         config=config,
         server_state=server_state,
-        app_state=lifespan.state.copy(),
+        app_state=lifespan.state,
         _loop=loop,
     )
     protocol.connection_made(transport)
@@ -849,7 +849,6 @@ def test_fragmentation(unused_tcp_port: int):
     app = Response("Hello, world", media_type="text/plain")
 
     def send_fragmented_req(path):
-
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(("127.0.0.1", unused_tcp_port))
         d = (
@@ -1015,8 +1014,8 @@ async def test_lifespan_state(protocol_cls):
     # in the lifespan tests
     lifespan.state.update({"a": 123, "b": [1]})
 
+    protocol = get_connected_protocol(app, protocol_cls, lifespan=lifespan)
     for _ in range(2):
-        protocol = get_connected_protocol(app, protocol_cls, lifespan=lifespan)
         protocol.data_received(SIMPLE_GET_REQUEST)
         await protocol.loop.run_one()
         assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
