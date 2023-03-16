@@ -201,7 +201,7 @@ def get_connected_protocol(
     protocol = protocol_cls(
         config=config,
         server_state=server_state,
-        app_state=lifespan.state.copy(),
+        app_state=lifespan.state,
         _loop=loop,
     )
     protocol.connection_made(transport)
@@ -849,7 +849,6 @@ def test_fragmentation(unused_tcp_port: int):
     app = Response("Hello, world", media_type="text/plain")
 
     def send_fragmented_req(path):
-
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(("127.0.0.1", unused_tcp_port))
         d = (

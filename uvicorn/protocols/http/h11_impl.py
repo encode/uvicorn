@@ -242,7 +242,7 @@ class H11Protocol(asyncio.Protocol):
                     "raw_path": raw_path,
                     "query_string": query_string,
                     "headers": self.headers,
-                    "state": self.app_state,
+                    "state": self.app_state.copy(),
                 }
 
                 upgrade = self._get_upgrade()
