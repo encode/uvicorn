@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.21.1 - 2023-03-16
+
+### Fixed
+
+- Reset lifespan state on each request (#1903) 16/03/23
+
 ## 0.21.0 - 2023-03-09
 
 ### Added
