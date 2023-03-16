@@ -1014,8 +1014,8 @@ async def test_lifespan_state(protocol_cls):
     # in the lifespan tests
     lifespan.state.update({"a": 123, "b": [1]})
 
+    protocol = get_connected_protocol(app, protocol_cls, lifespan=lifespan)
     for _ in range(2):
-        protocol = get_connected_protocol(app, protocol_cls, lifespan=lifespan)
         protocol.data_received(SIMPLE_GET_REQUEST)
         await protocol.loop.run_one()
         assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
