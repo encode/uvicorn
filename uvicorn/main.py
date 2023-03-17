@@ -274,6 +274,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
+    "--timeout-notify",
+    type=int,
+    default=30,
+    help="Restart worker processes if no information received within this timeout.",
+    show_default=True,
+)
+@click.option(
     "--ssl-keyfile", type=str, default=None, help="SSL key file", show_default=True
 )
 @click.option(
@@ -387,6 +394,7 @@ def main(
     backlog: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
+    timeout_notify: int,
     ssl_keyfile: str,
     ssl_certfile: str,
     ssl_keyfile_password: str,
@@ -434,6 +442,7 @@ def main(
         backlog=backlog,
         limit_max_requests=limit_max_requests,
         timeout_keep_alive=timeout_keep_alive,
+        timeout_notify=timeout_notify,
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
         ssl_keyfile_password=ssl_keyfile_password,
@@ -486,6 +495,7 @@ def run(
     backlog: int = 2048,
     limit_max_requests: typing.Optional[int] = None,
     timeout_keep_alive: int = 5,
+    timeout_notify: int = 30,
     ssl_keyfile: typing.Optional[str] = None,
     ssl_certfile: typing.Optional[typing.Union[str, os.PathLike]] = None,
     ssl_keyfile_password: typing.Optional[str] = None,
@@ -536,6 +546,7 @@ def run(
         backlog=backlog,
         limit_max_requests=limit_max_requests,
         timeout_keep_alive=timeout_keep_alive,
+        timeout_notify=timeout_notify,
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
         ssl_keyfile_password=ssl_keyfile_password,
