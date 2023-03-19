@@ -29,6 +29,8 @@ from uvicorn._types import (
     WebSocketConnectEvent,
     WebSocketDisconnectEvent,
     WebSocketReceiveEvent,
+    WebSocketResponseBodyEvent,
+    WebSocketResponseStartEvent,
     WebSocketScope,
     WebSocketSendEvent,
 )
@@ -94,6 +96,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.connect_sent = False
         self.lost_connection_before_handshake = False
         self.accepted_subprotocol: Optional[Subprotocol] = None
+        self.response_body: Optional[List[bytes]] = None
 
         self.ws_server: Server = Server()  # type: ignore[assignment]
 
@@ -196,6 +199,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             "headers": asgi_headers,
             "subprotocols": subprotocols,
             "state": self.app_state.copy(),
+            "extensions": {"websocket.http.response": {}},
         }
         task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)
@@ -271,43 +275,87 @@ class WebSocketProtocol(WebSocketServerProtocol):
         message_type = message["type"]
 
         if not self.handshake_started_event.is_set():
-            if message_type == "websocket.accept":
-                message = cast("WebSocketAcceptEvent", message)
-                self.logger.info(
-                    '%s - "WebSocket %s" [accepted]',
-                    self.scope["client"],
-                    get_path_with_query_string(self.scope),
-                )
-                self.initial_response = None
-                self.accepted_subprotocol = cast(
-                    Optional[Subprotocol], message.get("subprotocol")
-                )
-                if "headers" in message:
-                    self.extra_headers.extend(
-                        # ASGI spec requires bytes
-                        # But for compatibility we need to convert it to strings
-                        (name.decode("latin-1"), value.decode("latin-1"))
-                        for name, value in message["headers"]
+            if self.response_body is None:
+                if message_type == "websocket.accept":
+                    message = cast("WebSocketAcceptEvent", message)
+                    self.logger.info(
+                        '%s - "WebSocket %s" [accepted]',
+                        self.scope["client"],
+                        get_path_with_query_string(self.scope),
                     )
-                self.handshake_started_event.set()
+                    self.initial_response = None
+                    self.accepted_subprotocol = cast(
+                        Optional[Subprotocol], message.get("subprotocol")
+                    )
+                    if "headers" in message:
+                        self.extra_headers.extend(
+                            # ASGI spec requires bytes
+                            # But for compatibility we need to convert it to strings
+                            (name.decode("latin-1"), value.decode("latin-1"))
+                            for name, value in message["headers"]
+                        )
+                    self.handshake_started_event.set()
 
-            elif message_type == "websocket.close":
-                message = cast("WebSocketCloseEvent", message)
-                self.logger.info(
-                    '%s - "WebSocket %s" 403',
-                    self.scope["client"],
-                    get_path_with_query_string(self.scope),
-                )
-                self.initial_response = (http.HTTPStatus.FORBIDDEN, [], b"")
-                self.handshake_started_event.set()
-                self.closed_event.set()
+                elif message_type == "websocket.close":
+                    message = cast("WebSocketCloseEvent", message)
+                    self.logger.info(
+                        '%s - "WebSocket %s" 403',
+                        self.scope["client"],
+                        get_path_with_query_string(self.scope),
+                    )
+                    self.initial_response = (http.HTTPStatus.FORBIDDEN, [], b"")
+                    self.handshake_started_event.set()
+                    self.closed_event.set()
 
+                elif message_type == "websocket.http.response.start":
+                    message = cast("WebSocketResponseStartEvent", message)
+                    self.logger.info(
+                        '%s - "WebSocket %s" %d',
+                        self.scope["client"],
+                        get_path_with_query_string(self.scope),
+                        message["status"],
+                    )
+                    # websockets requires the status to be an enum. look it up.
+                    try:
+                        status = http.HTTPStatus(message["status"])
+                    except AttributeError:
+                        status = http.HTTPStatus.FORBIDDEN
+                        self.logger.info(
+                            "status code %d unknown, replaced with 403",
+                            message["status"],
+                        )
+                    headers = [
+                        (name.decode("latin-1"), value.decode("latin-1"))
+                        for name, value in message.get("headers", [])
+                    ]
+                    self.initial_response = (status, headers, b"")
+                    self.response_body = []
+
+                else:
+                    msg = (
+                        "Expected ASGI message 'websocket.accept', 'websocket.close', "
+                        "or 'websocket.http.response.start' "
+                        "but got '%s'."
+                    )
+                    raise RuntimeError(msg % message_type)
             else:
-                msg = (
-                    "Expected ASGI message 'websocket.accept' or 'websocket.close', "
-                    "but got '%s'."
-                )
-                raise RuntimeError(msg % message_type)
+                if message_type == "websocket.http.response.body":
+                    message = cast("WebSocketResponseBodyEvent", message)
+                    self.response_body.append(message["body"])
+
+                    if not message.get("more_body", False):
+                        self.initial_response = self.initial_response[:2] + (
+                            b"".join(self.response_body),
+                        )
+                        self.response_body = None
+                        self.handshake_started_event.set()
+                        self.closed_event.set()
+                else:
+                    msg = (
+                        "Expected ASGI message 'websocket.http.response.body' "
+                        "but got '%s'."
+                    )
+                    raise RuntimeError(msg % message_type)
 
         elif not self.closed_event.is_set():
             await self.handshake_completed_event.wait()
