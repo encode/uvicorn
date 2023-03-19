@@ -10,6 +10,11 @@ import websockets.exceptions
 from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from websockets.typing import Subprotocol
 
+<<<<<<< HEAD
+=======
+from tests.protocols.test_http import HTTP_PROTOCOLS
+from tests.response import Response
+>>>>>>> d771410 (create test for websocket responses)
 from tests.utils import run_server
 from uvicorn._types import (
     ASGIReceiveCallable,
@@ -958,12 +963,48 @@ async def test_server_reject_connection(
         message = await receive()
         assert message["type"] == "websocket.disconnect"
 
-    async def websocket_session(url: str):
-        try:
+    async def websocket_session(url):
+        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
             async with websockets.client.connect(url):
                 pass  # pragma: no cover
-        except Exception:
-            pass
+        assert exc_info.value.status_code == 403
+
+    config = Config(
+        app=app,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        port=unused_tcp_port,
+    )
+    async with run_server(config):
+        await websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_server_reject_connection_with_response(
+    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+):
+    async def app(scope, receive, send):
+        assert scope["type"] == "websocket"
+        assert "websocket.http.response" in scope["extensions"]
+
+        # Pull up first recv message.
+        message = await receive()
+        assert message["type"] == "websocket.connect"
+
+        # Reject the connection with a response
+        response = Response(b"goodbye", status_code=400)
+        await response(scope, receive, send)
+        message = await receive()
+        assert message["type"] == "websocket.disconnect"
+
+    async def websocket_session(url):
+        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
+            async with websockets.client.connect(url):
+                pass  # pragma: no cover
+        assert exc_info.value.status_code == 400
 
     config = Config(
         app=app,
