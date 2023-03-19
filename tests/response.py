@@ -10,9 +10,10 @@ class Response:
         self.set_content_length()
 
     async def __call__(self, scope, receive, send) -> None:
+        prefix = "websocket." if scope["type"] == "websocket" else ""
         await send(
             {
-                "type": "http.response.start",
+                "type": prefix + "http.response.start",
                 "status": self.status_code,
                 "headers": [
                     [key.encode(), value.encode()]
@@ -20,7 +21,7 @@ class Response:
                 ],
             }
         )
-        await send({"type": "http.response.body", "body": self.body})
+        await send({"type": prefix + "http.response.body", "body": self.body})
 
     def render(self, content) -> bytes:
         if isinstance(content, bytes):
