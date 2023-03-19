@@ -1005,6 +1005,58 @@ async def test_server_reject_connection_with_response(
             async with websockets.client.connect(url):
                 pass  # pragma: no cover
         assert exc_info.value.status_code == 400
+        # Websockets module currently does not read the response body from the socket.
+
+    config = Config(
+        app=app,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        port=unused_tcp_port,
+    )
+    async with run_server(config):
+        await websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_server_reject_connection_with_multibody_response(
+    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+):
+    async def app(scope, receive, send):
+        assert scope["type"] == "websocket"
+        assert "websocket.http.response" in scope["extensions"]
+
+        # Pull up first recv message.
+        message = await receive()
+        assert message["type"] == "websocket.connect"
+        message = {
+            "type": "websocket.http.response.start",
+            "status": 400,
+            "headers": [(b"Content-Length", b"20"), (b"Content-Type", b"text/plain")],
+        }
+        await send(message)
+        message = {
+            "type": "websocket.http.response.body",
+            "body": b"x" * 10,
+            "more_body": True,
+        }
+        await send(message)
+        message = {
+            "type": "websocket.http.response.body",
+            "body": b"y" * 10,
+        }
+        await send(message)
+        message = await receive()
+        assert message["type"] == "websocket.disconnect"
+
+    async def websocket_session(url):
+        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
+            async with websockets.client.connect(url):
+                pass  # pragma: no cover
+        assert exc_info.value.status_code == 400
+        # Websockets module currently does not read the response body from the socket.
 
     config = Config(
         app=app,
