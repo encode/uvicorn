@@ -188,7 +188,6 @@ class WSProtocol(asyncio.Protocol):
             "query_string": query_string.encode("ascii"),
             "headers": headers,
             "subprotocols": event.subprotocols,
-            "extensions": None,
             "state": self.app_state.copy(),
             "extensions": {"websocket.http.response": {}},
         }
