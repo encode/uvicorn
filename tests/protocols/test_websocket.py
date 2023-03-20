@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 from tests.protocols.test_http import HTTP_PROTOCOLS
+from tests.response import Response
 from tests.utils import run_server
 from uvicorn.config import Config
 from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
@@ -937,9 +938,6 @@ async def test_server_reject_connection(
     )
     async with run_server(config):
         await websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
-
-
-from tests.response import Response
 
 
 @pytest.mark.anyio
