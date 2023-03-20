@@ -354,6 +354,7 @@ class WSProtocol(asyncio.Protocol):
                         )
                         self.handshake_complete = True
                         self.close_sent = True
+                        self.transport.close()
 
                 else:
                     msg = (
