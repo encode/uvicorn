@@ -318,7 +318,7 @@ class WSProtocol(asyncio.Protocol):
                     self.response_started = True
                     message = typing.cast("WebSocketResponseStartEvent", message)
                     self.logger.info(
-                        '%s - "WebSocket %s" %i',
+                        '%s - "WebSocket %s" %d',
                         self.scope["client"],
                         get_path_with_query_string(self.scope),
                         message["status"],
