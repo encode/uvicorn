@@ -301,7 +301,7 @@ class WSProtocol(asyncio.Protocol):
                     )
                     event = events.RejectConnection(
                         status_code=message["status"],
-                        headers=message["headers"],
+                        headers=list(message["headers"]),
                         has_body=True,
                     )
                     output = self.conn.send(event)
@@ -319,10 +319,10 @@ class WSProtocol(asyncio.Protocol):
                 if message_type == "websocket.http.response.body":
                     message = typing.cast("WebSocketResponseBodyEvent", message)
                     body_finished = not message.get("more_body", False)
-                    event = events.RejectData(
+                    reject_data = events.RejectData(
                         data=message["body"], body_finished=body_finished
                     )
-                    output = self.conn.send(event)
+                    output = self.conn.send(reject_data)
                     self.transport.write(output)
                     if body_finished:
                         self.queue.put_nowait(

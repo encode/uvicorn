@@ -344,6 +344,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                     self.response_body.append(message["body"])
 
                     if not message.get("more_body", False):
+                        assert self.initial_response is not None
                         self.initial_response = self.initial_response[:2] + (
                             b"".join(self.response_body),
                         )
