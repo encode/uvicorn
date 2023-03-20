@@ -316,6 +316,12 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
                 elif message_type == "websocket.http.response.start":
                     message = cast("WebSocketResponseStartEvent", message)
+                    self.logger.info(
+                        '%s - "WebSocket %s" %s',
+                        self.scope["client"],
+                        get_path_with_query_string(self.scope),
+                        message["status"],
+                    )
                     try:
                         status = http.HTTPStatus(message["status"])
                     except AttributeError:
@@ -340,13 +346,6 @@ class WebSocketProtocol(WebSocketServerProtocol):
                     self.response_body.append(message["body"])
 
                     if not message.get("more_body", False):
-                        self.logger.info(
-                            '%s - "WebSocket %s" %i',
-                            self.scope["client"],
-                            get_path_with_query_string(self.scope),
-                            self.initial_response[0],
-                        )
-
                         self.initial_response = self.initial_response[:2] + (
                             b"".join(self.response_body),
                         )
