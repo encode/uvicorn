@@ -316,14 +316,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                         message["status"],
                     )
                     # websockets requires the status to be an enum. look it up.
-                    try:
-                        status = http.HTTPStatus(message["status"])
-                    except AttributeError:
-                        status = http.HTTPStatus.FORBIDDEN
-                        self.logger.info(
-                            "status code %d unknown, replaced with 403",
-                            message["status"],
-                        )
+                    status = http.HTTPStatus(message["status"])
                     headers = [
                         (name.decode("latin-1"), value.decode("latin-1"))
                         for name, value in message.get("headers", [])

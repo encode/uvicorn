@@ -1079,6 +1079,51 @@ async def test_server_reject_connection_with_multibody_response(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_server_reject_connection_with_invalid_status(
+    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+):
+    async def app(scope, receive, send):
+        assert scope["type"] == "websocket"
+        assert "websocket.http.response" in scope["extensions"]
+
+        # Pull up first recv message.
+        message = await receive()
+        assert message["type"] == "websocket.connect"
+
+        message = {
+            "type": "websocket.http.response.start",
+            "status": 700,  # invalid status code
+            "headers": [(b"Content-Length", b"0"), (b"Content-Type", b"text/plain")],
+        }
+        await send(message)
+        message = {
+            "type": "websocket.http.response.body",
+            "body": b"",
+        }
+        await send(message)
+
+    async def websocket_session(url):
+        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
+            async with websockets.client.connect(url):
+                pass  # pragma: no cover
+        assert exc_info.value.status_code == 500
+
+    config = Config(
+        app=app,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        port=unused_tcp_port,
+    )
+    async with run_server(config):
+        await websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_can_read_messages_in_buffer_after_close(
     ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
     http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
