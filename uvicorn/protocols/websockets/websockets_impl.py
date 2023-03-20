@@ -317,7 +317,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 elif message_type == "websocket.http.response.start":
                     message = cast("WebSocketResponseStartEvent", message)
                     self.logger.info(
-                        '%s - "WebSocket %s" %s',
+                        '%s - "WebSocket %s" %d',
                         self.scope["client"],
                         get_path_with_query_string(self.scope),
                         message["status"],
