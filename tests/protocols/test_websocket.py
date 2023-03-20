@@ -10,11 +10,8 @@ import websockets.exceptions
 from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from websockets.typing import Subprotocol
 
-<<<<<<< HEAD
-=======
 from tests.protocols.test_http import HTTP_PROTOCOLS
 from tests.response import Response
->>>>>>> d771410 (create test for websocket responses)
 from tests.utils import run_server
 from uvicorn._types import (
     ASGIReceiveCallable,
@@ -947,7 +944,10 @@ async def test_server_reject_connection(
     http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
     unused_tcp_port: int,
 ):
+    disconnected_message = {}
+
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
+        nonlocal disconnected_message
         assert scope["type"] == "websocket"
 
         # Pull up first recv message.
@@ -960,8 +960,7 @@ async def test_server_reject_connection(
 
         # This doesn't raise `TypeError`:
         # See https://github.com/encode/uvicorn/issues/244
-        message = await receive()
-        assert message["type"] == "websocket.disconnect"
+        disconnected_message = await receive()
 
     async def websocket_session(url):
         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
@@ -978,6 +977,8 @@ async def test_server_reject_connection(
     )
     async with run_server(config):
         await websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
+
+    assert disconnected_message == {"type": "websocket.disconnect", "code": 1006}
 
 
 @pytest.mark.anyio
@@ -1019,7 +1020,8 @@ async def test_server_reject_connection_with_response(
     async with run_server(config):
         await websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
 
-    assert disconnected_message == {"type": "websocket.disconnect", "code": 1006"}
+    assert disconnected_message == {"type": "websocket.disconnect", "code": 1006}
+
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
@@ -1027,7 +1029,10 @@ async def test_server_reject_connection_with_response(
 async def test_server_reject_connection_with_multibody_response(
     ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
 ):
+    disconnected_message = {}
+
     async def app(scope, receive, send):
+        nonlocal disconnected_message
         assert scope["type"] == "websocket"
         assert "websocket.http.response" in scope["extensions"]
 
@@ -1051,8 +1056,7 @@ async def test_server_reject_connection_with_multibody_response(
             "body": b"y" * 10,
         }
         await send(message)
-        message = await receive()
-        assert message["type"] == "websocket.disconnect"
+        disconnected_message = await receive()
 
     async def websocket_session(url):
         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
@@ -1070,6 +1074,8 @@ async def test_server_reject_connection_with_multibody_response(
     )
     async with run_server(config):
         await websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
+
+    assert disconnected_message == {"type": "websocket.disconnect", "code": 1006}
 
 
 @pytest.mark.anyio
