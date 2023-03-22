@@ -1127,9 +1127,6 @@ async def test_server_reject_connection_with_invalid_status(
 async def test_server_reject_connection_with_invalid_msg(
     ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
 ):
-    if ws_protocol_cls is WSProtocol:
-        pytest.skip("Cannot supporess asynchronously raised errors")
-
     async def app(scope, receive, send):
         assert scope["type"] == "websocket"
         assert "websocket.http.response" in scope["extensions"]
@@ -1144,12 +1141,8 @@ async def test_server_reject_connection_with_invalid_msg(
             "headers": [(b"Content-Length", b"0"), (b"Content-Type", b"text/plain")],
         }
         await send(message)
-        # send invalid message
-        try:
-            await send(message)
-        except Exception:
-            # swallow the invalid message error
-            pass
+        # send invalid message.  This will raise an exception here
+        await send(message)
 
     async def websocket_session(url):
         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
@@ -1161,6 +1154,8 @@ async def test_server_reject_connection_with_invalid_msg(
             # undo that, we will get the initial 404 response
             assert exc_info.value.status_code == 404
         else:
+            # websockets protocol sends its response in one chunk
+            # and can override the already started response with a 500
             assert exc_info.value.status_code == 500
 
     config = Config(
