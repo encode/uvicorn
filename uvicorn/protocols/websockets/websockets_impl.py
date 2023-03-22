@@ -341,7 +341,6 @@ class WebSocketProtocol(WebSocketServerProtocol):
                         self.initial_response = self.initial_response[:2] + (
                             b"".join(self.response_body),
                         )
-                        self.response_body = None
                         self.handshake_started_event.set()
                         self.closed_event.set()
                 else:
