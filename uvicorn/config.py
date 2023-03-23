@@ -454,13 +454,15 @@ class Config:
         )
 
         if isinstance(self.http, str):
-            http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
+            protocol_name = HTTP_PROTOCOLS.get(self.http, self.http)
+            http_protocol_class = import_from_string(protocol_name)
             self.http_protocol_class: Type[asyncio.Protocol] = http_protocol_class
         else:
             self.http_protocol_class = self.http
 
         if isinstance(self.ws, str):
-            ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
+            protocol_name = WS_PROTOCOLS.get(self.ws, self.ws)
+            ws_protocol_class = import_from_string(protocol_name)
             self.ws_protocol_class: Optional[Type[asyncio.Protocol]] = ws_protocol_class
         else:
             self.ws_protocol_class = self.ws
