@@ -57,6 +57,21 @@ class WebSocketResponse:
                 break
 
 
+async def wsresponse(url):
+    """
+    A simple websocket connection request and response helper
+    """
+    url = url.replace("ws:", "http:")
+    headers = {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "Sec-WebSocket-Key": "x3JJHMbDL1EzLkh9GBhXDw==",
+        "Sec-WebSocket-Version": "13",
+    }
+    async with httpx.AsyncClient() as client:
+        return await client.get(url, headers=headers)
+
+
 @pytest.mark.anyio
 async def test_invalid_upgrade(
     ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
@@ -1004,11 +1019,9 @@ async def test_server_reject_connection_with_response(
         disconnected_message = await receive()
 
     async def websocket_session(url):
-        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
-            async with websockets.client.connect(url):
-                pass  # pragma: no cover
-        assert exc_info.value.status_code == 400
-        # Websockets module currently does not read the response body from the socket.
+        response = await wsresponse(url)
+        assert response.status_code == 400
+        assert response.content == b"goodbye"
 
     config = Config(
         app=app,
@@ -1059,11 +1072,9 @@ async def test_server_reject_connection_with_multibody_response(
         disconnected_message = await receive()
 
     async def websocket_session(url):
-        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
-            async with websockets.client.connect(url):
-                pass  # pragma: no cover
-        assert exc_info.value.status_code == 400
-        # Websockets module currently does not read the response body from the socket.
+        response = await wsresponse(url)
+        assert response.status_code == 400
+        assert response.content == (b"x" * 10) + (b"y" * 10)
 
     config = Config(
         app=app,
@@ -1105,10 +1116,9 @@ async def test_server_reject_connection_with_invalid_status(
         await send(message)
 
     async def websocket_session(url):
-        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
-            async with websockets.client.connect(url):
-                pass  # pragma: no cover
-        assert exc_info.value.status_code == 500
+        response = await wsresponse(url)
+        assert response.status_code == 500
+        assert response.content == b"Internal Server Error"
 
     config = Config(
         app=app,
