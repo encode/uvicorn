@@ -316,7 +316,6 @@ class WSProtocol(asyncio.Protocol):
                     self.transport.close()
 
                 elif message_type == "websocket.http.response.start":
-                    self.response_started = True
                     message = typing.cast("WebSocketResponseStartEvent", message)
                     self.logger.info(
                         '%s - "WebSocket %s" %d',
@@ -331,6 +330,7 @@ class WSProtocol(asyncio.Protocol):
                     )
                     output = self.conn.send(event)
                     self.transport.write(output)
+                    self.response_started = True
 
                 else:
                     msg = (
