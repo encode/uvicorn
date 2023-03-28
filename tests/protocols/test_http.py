@@ -768,7 +768,7 @@ async def test_unsupported_ws_upgrade_request_warn_on_auto(
         )
     ]
     assert "Unsupported upgrade request." in warnings
-    msg = "No supported WebSocket library detected. Please use 'pip install uvicorn[standard]', or install 'websockets' or 'wsproto' manually."  # noqa: E501
+    msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
     assert msg in warnings
 
 

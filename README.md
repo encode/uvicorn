@@ -34,7 +34,7 @@ $ pip install uvicorn
 This will install uvicorn with minimal (pure Python) dependencies.
 
 ```shell
-$ pip install uvicorn[standard]
+$ pip install 'uvicorn[standard]'
 ```
 
 This will install uvicorn with "Cython-based" dependencies (where possible) and other "optional extras".
