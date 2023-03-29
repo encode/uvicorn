@@ -1134,6 +1134,55 @@ async def test_server_reject_connection_with_invalid_status(
 @pytest.mark.anyio
 @pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_server_reject_connection_with_body_nolength(
+    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+):
+    # test that the server can send a response with a body but no content-length
+    async def app(scope, receive, send):
+        assert scope["type"] == "websocket"
+        assert "websocket.http.response" in scope["extensions"]
+
+        # Pull up first recv message.
+        message = await receive()
+        assert message["type"] == "websocket.connect"
+
+        message = {
+            "type": "websocket.http.response.start",
+            "status": 403,
+            "headers": [],
+        }
+        await send(message)
+        message = {
+            "type": "websocket.http.response.body",
+            "body": b"hardbody",
+        }
+        await send(message)
+
+    async def websocket_session(url):
+        response = await wsresponse(url)
+        assert response.status_code == 403
+        assert response.content == b"hardbody"
+        if ws_protocol_cls == WSProtocol:
+            # wsproto automatically makes the message chunked
+            assert response.headers["transfer-encoding"] == "chunked"
+        else:
+            # websockets automatically adds a content-length
+            assert response.headers["content-length"] == "8"
+
+    config = Config(
+        app=app,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        port=unused_tcp_port,
+    )
+    async with run_server(config):
+        await websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection_with_invalid_msg(
     ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
 ):
