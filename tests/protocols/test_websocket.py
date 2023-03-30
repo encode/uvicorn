@@ -1207,15 +1207,7 @@ async def test_server_reject_connection_with_invalid_msg(
         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
             async with websockets.client.connect(url):
                 pass  # pragma: no cover
-        if ws_protocol_cls == WSProtocol:
-            # ws protocol has started to send the response when it
-            # fails with the subsequent invalid message so it cannot
-            # undo that, we will get the initial 404 response
-            assert exc_info.value.status_code == 404
-        else:
-            # websockets protocol sends its response in one chunk
-            # and can override the already started response with a 500
-            assert exc_info.value.status_code == 500
+        assert exc_info.value.status_code == 500
 
     config = Config(
         app=app,
@@ -1254,10 +1246,7 @@ async def test_server_reject_connection_with_missing_body(
         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
             async with websockets.client.connect(url):
                 pass  # pragma: no cover
-        if ws_protocol_cls == WSProtocol:
-            assert exc_info.value.status_code == 404
-        else:
-            assert exc_info.value.status_code == 500
+        assert exc_info.value.status_code == 500
 
     config = Config(
         app=app,

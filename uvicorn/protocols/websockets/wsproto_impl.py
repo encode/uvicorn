@@ -64,7 +64,10 @@ class WSProtocol(asyncio.Protocol):
         self.queue: asyncio.Queue["WebSocketEvent"] = asyncio.Queue()
         self.handshake_complete = False
         self.close_sent = False
-        self.response_started = False
+
+        # Rejection state
+        self.reject_event: typing.Optional[typing.Any] = None
+        self.response_started: bool = False  # we have sent response start
 
         self.conn = wsproto.WSConnection(connection_type=ConnectionType.SERVER)
 
@@ -210,6 +213,8 @@ class WSProtocol(asyncio.Protocol):
         self.transport.write(self.conn.send(event.response()))
 
     def send_500_response(self) -> None:
+        if self.response_started or self.handshake_complete:
+            return  # we cannot send responses anymore
         headers = [
             (b"content-type", b"text/plain; charset=utf-8"),
             (b"connection", b"close"),
@@ -229,15 +234,13 @@ class WSProtocol(asyncio.Protocol):
             result = await self.app(self.scope, self.receive, self.send)
         except BaseException:
             self.logger.exception("Exception in ASGI application\n")
-            if not self.response_started:
-                self.send_500_response()
+            self.send_500_response()
             self.transport.close()
         else:
             if not self.handshake_complete:
                 msg = "ASGI callable returned without completing handshake."
                 self.logger.error(msg)
-                if not self.response_started:
-                    self.send_500_response()
+                self.send_500_response()
                 self.transport.close()
             elif result is not None:
                 msg = "ASGI callable should return None, but returned '%s'."
@@ -250,7 +253,8 @@ class WSProtocol(asyncio.Protocol):
         message_type = message["type"]
 
         if not self.handshake_complete:
-            if not self.response_started:
+            if not (self.response_started or self.reject_event):
+                # a rejection event has not been sent yet
                 if message_type == "websocket.accept":
                     message = typing.cast("WebSocketAcceptEvent", message)
                     self.logger.info(
@@ -305,9 +309,10 @@ class WSProtocol(asyncio.Protocol):
                         headers=list(message["headers"]),
                         has_body=True,
                     )
-                    output = self.conn.send(event)
-                    self.transport.write(output)
-                    self.response_started = True
+                    # Create the event here but do not send it, the ASGI spec
+                    # suggest that we wait for the body event before sending.
+                    # https://asgi.readthedocs.io/en/latest/specs/www.html#response-start-send-event
+                    self.reject_event = event
 
                 else:
                     msg = (
@@ -317,14 +322,23 @@ class WSProtocol(asyncio.Protocol):
                     )
                     raise RuntimeError(msg % message_type)
             else:
+                # we have started a rejection process with http.response.start
                 if message_type == "websocket.http.response.body":
                     message = typing.cast("WebSocketResponseBodyEvent", message)
                     body_finished = not message.get("more_body", False)
                     reject_data = events.RejectData(
                         data=message["body"], body_finished=body_finished
                     )
+                    if self.reject_event is not None:
+                        # Prepend with the reject event now that we have a body event.
+                        output = self.conn.send(self.reject_event)
+                        self.transport.write(output)
+                        self.reject_event = None
+                        self.response_started = True
+
                     output = self.conn.send(reject_data)
                     self.transport.write(output)
+
                     if body_finished:
                         self.queue.put_nowait(
                             {"type": "websocket.disconnect", "code": 1006}
