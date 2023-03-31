@@ -420,8 +420,9 @@ class RequestResponseCycle:
         self.more_body = True
 
         # Response state
-        self.response_started = False
+        self.response_started = False  # has response start been sent from server
         self.response_complete = False
+        self.response_start_event = None  # The pending response start event
 
     # ASGI exception wrapper
     async def run_asgi(self, app: "ASGI3Application") -> None:
@@ -432,16 +433,16 @@ class RequestResponseCycle:
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
-            if not self.response_started:
-                await self.send_500_response()
-            else:
-                self.transport.close()
+            await self.send_500_response()
         else:
             if result is not None:
                 msg = "ASGI callable should return None, but returned '%s'."
                 self.logger.error(msg, result)
                 self.transport.close()
-            elif not self.response_started and not self.disconnected:
+            elif (
+                not (self.response_start_event or self.response_started)
+                and not self.disconnected
+            ):
                 msg = "ASGI callable returned without starting response."
                 self.logger.error(msg)
                 await self.send_500_response()
@@ -453,21 +454,29 @@ class RequestResponseCycle:
             self.on_response = lambda: None
 
     async def send_500_response(self) -> None:
-        response_start_event: "HTTPResponseStartEvent" = {
-            "type": "http.response.start",
-            "status": 500,
-            "headers": [
-                (b"content-type", b"text/plain; charset=utf-8"),
-                (b"connection", b"close"),
-            ],
-        }
-        await self.send(response_start_event)
-        response_body_event: "HTTPResponseBodyEvent" = {
-            "type": "http.response.body",
-            "body": b"Internal Server Error",
-            "more_body": False,
-        }
-        await self.send(response_body_event)
+        # We can only send a 500 response if we haven't already started
+        if self.response_started:
+            self.transport.close()  # The only course of action
+            return
+        # use h11 directly to not trip over our own state
+        status_code = 500
+        reason = STATUS_PHRASES[status_code]
+        headers = [
+            (b"content-type", b"text/plain; charset=utf-8"),
+            (b"connection", b"close"),
+        ]
+        event = h11.Response(status_code=status_code, headers=headers, reason=reason)
+        output = self.conn.send(event)
+
+        event = h11.Data(data=reason)
+        output += self.conn.send(event)
+
+        event = h11.EndOfMessage()
+        output += self.conn.send(event)
+        self.transport.write(output)
+        event = h11.ConnectionClosed()
+        self.conn.send(event)
+        self.transport.close()
 
     # ASGI interface
     async def send(self, message: "ASGISendEvent") -> None:
@@ -479,14 +488,13 @@ class RequestResponseCycle:
         if self.disconnected:
             return
 
-        if not self.response_started:
+        if not (self.response_start_event or self.response_started):
             # Sending response status line and headers
             if message_type != "http.response.start":
                 msg = "Expected ASGI message 'http.response.start', but got '%s'."
                 raise RuntimeError(msg % message_type)
             message = cast("HTTPResponseStartEvent", message)
 
-            self.response_started = True
             self.waiting_for_100_continue = False
 
             status_code = message["status"]
@@ -510,8 +518,7 @@ class RequestResponseCycle:
             event = h11.Response(
                 status_code=status_code, headers=headers, reason=reason
             )
-            output = self.conn.send(event)
-            self.transport.write(output)
+            self.response_start_event = event
 
         elif not self.response_complete:
             # Sending response body
@@ -528,7 +535,15 @@ class RequestResponseCycle:
                 event = h11.Data(data=b"")
             else:
                 event = h11.Data(data=body)
-            output = self.conn.send(event)
+            if self.response_start_event:
+                # Can only send the start event once
+                # the first body chunk is ready
+                output = self.conn.send(self.response_start_event)
+                self.response_start_event = None
+                self.response_started = True
+            else:
+                output = b""
+            output += self.conn.send(event)
             self.transport.write(output)
 
             # Handle response completion
