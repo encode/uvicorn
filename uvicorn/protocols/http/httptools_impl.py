@@ -429,6 +429,7 @@ class RequestResponseCycle:
         self.response_complete = False
         self.chunked_encoding: Optional[bool] = None
         self.expected_content_length = 0
+        self.response_start_content: Optional[List[bytes]] = None
 
     # ASGI exception wrapper
     async def run_asgi(self, app: "ASGI3Application") -> None:
@@ -439,16 +440,16 @@ class RequestResponseCycle:
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
-            if not self.response_started:
-                await self.send_500_response()
-            else:
-                self.transport.close()
+            await self.send_500_response()
         else:
             if result is not None:
                 msg = "ASGI callable should return None, but returned '%s'."
                 self.logger.error(msg, result)
-                self.transport.close()
-            elif not self.response_started and not self.disconnected:
+                await self.send_500_response()
+            elif (
+                not (self.response_start_content or self.response_started)
+                and not self.disconnected
+            ):
                 msg = "ASGI callable returned without starting response."
                 self.logger.error(msg)
                 await self.send_500_response()
@@ -460,6 +461,13 @@ class RequestResponseCycle:
             self.on_response = lambda: None
 
     async def send_500_response(self) -> None:
+        if self.response_started:
+            # we have already sent data, cannot send 500
+            self.transport.close()
+            return
+        # discard any previouse response start data
+        self.response_start_content = None
+
         response_start_event: "HTTPResponseStartEvent" = {
             "type": "http.response.start",
             "status": 500,
@@ -486,14 +494,13 @@ class RequestResponseCycle:
         if self.disconnected:
             return
 
-        if not self.response_started:
+        if not (self.response_start_content or self.response_started):
             # Sending response status line and headers
             if message_type != "http.response.start":
                 msg = "Expected ASGI message 'http.response.start', but got '%s'."
                 raise RuntimeError(msg % message_type)
             message = cast("HTTPResponseStartEvent", message)
 
-            self.response_started = True
             self.waiting_for_100_continue = False
 
             status_code = message["status"]
@@ -542,7 +549,8 @@ class RequestResponseCycle:
                 content.append(b"transfer-encoding: chunked\r\n")
 
             content.append(b"\r\n")
-            self.transport.write(b"".join(content))
+            #  Must not write to transport before first body chunk
+            self.response_start_content = content
 
         elif not self.response_complete:
             # Sending response body
@@ -553,24 +561,29 @@ class RequestResponseCycle:
             body = cast(bytes, message.get("body", b""))
             more_body = message.get("more_body", False)
 
-            # Write response body
+            # Write response body. Prepend with start content.
+            if self.response_start_content:
+                content = self.response_start_content
+                self.response_start_content = None
+                self.response_started = True
+            else:
+                content = []
+
             if self.scope["method"] == "HEAD":
                 self.expected_content_length = 0
             elif self.chunked_encoding:
                 if body:
-                    content = [b"%x\r\n" % len(body), body, b"\r\n"]
-                else:
-                    content = []
+                    content += [b"%x\r\n" % len(body), body, b"\r\n"]
                 if not more_body:
                     content.append(b"0\r\n\r\n")
-                self.transport.write(b"".join(content))
             else:
                 num_bytes = len(body)
                 if num_bytes > self.expected_content_length:
                     raise RuntimeError("Response content longer than Content-Length")
                 else:
                     self.expected_content_length -= num_bytes
-                self.transport.write(body)
+                content.append(body)
+            self.transport.write(b"".join(content))
 
             # Handle response completion
             if not more_body:

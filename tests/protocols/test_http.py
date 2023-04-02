@@ -486,11 +486,7 @@ async def test_duplicate_start_message(protocol_cls):
     protocol = get_connected_protocol(app, protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
     await protocol.loop.run_one()
-    if protocol_cls == H11Protocol:
-        assert b"HTTP/1.1 500 Internal Server Error" in protocol.transport.buffer
-    else:
-        # TODO: This should be a 500 error, but we're not currently handling it.
-        assert b"HTTP/1.1 500 Internal Server Error" not in protocol.transport.buffer
+    assert b"HTTP/1.1 500 Internal Server Error" in protocol.transport.buffer
     assert protocol.transport.is_closing()
 
 
