@@ -253,7 +253,6 @@ class WebSocketProtocol(WebSocketServerProtocol):
         try:
             result = await self.app(self.scope, self.asgi_receive, self.asgi_send)
         except BaseException as exc:
-            self.closed_event.set()
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
             if not self.handshake_started_event.is_set():
@@ -262,7 +261,6 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 await self.handshake_completed_event.wait()
             self.transport.close()
         else:
-            self.closed_event.set()
             if not self.handshake_started_event.is_set():
                 msg = "ASGI callable returned without sending handshake."
                 self.logger.error(msg)
@@ -273,6 +271,8 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 self.logger.error(msg, result)
                 await self.handshake_completed_event.wait()
                 self.transport.close()
+        finally:
+            self.closed_event.set()
 
     async def asgi_send(self, message: "ASGISendEvent") -> None:
         message_type = message["type"]
