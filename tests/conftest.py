@@ -186,7 +186,7 @@ def short_socket_name(tmp_path, tmp_path_factory):  # pragma: py-win32
         )
 
     paths = basetemp, os_tmp_dir, tmp_dir
-    for num, tmp_dir_path in enumerate(paths, 1):
+    for _num, tmp_dir_path in enumerate(paths, 1):
         with make_tmp_dir(tmp_dir_path) as tmpd:
             tmpd = Path(tmpd).resolve()
             sock_path = str(tmpd / socket_filename)
