@@ -313,7 +313,6 @@ class H11Protocol(asyncio.Protocol):
         self.transport.set_protocol(protocol)
 
     def send_400_response(self, msg: str) -> None:
-
         reason = STATUS_PHRASES[400]
         headers = [
             (b"content-type", b"text/plain; charset=utf-8"),
