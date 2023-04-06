@@ -244,13 +244,13 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.url = b""
         self.expect_100_continue = False
         self.headers = []
-        self.scope = {  # type: ignore[typeddict-item]
+        self.scope = {
             "type": "http",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
             "http_version": "1.1",
             "server": self.server,
             "client": self.client,
-            "scheme": self.scheme,
+            "scheme": self.scheme,  # type: ignore[typeddict-item]
             "root_path": self.root_path,
             "headers": self.headers,
             "state": self.app_state.copy(),
