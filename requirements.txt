@@ -20,7 +20,7 @@ importlib-metadata==4.13.0; python_version>='3.7'
 isort==5.10.1
 pytest==7.2.1
 pytest-mock==3.10.0
-mypy==1.1.1
+mypy==1.2.0
 types-click==7.1.8
 types-pyyaml==6.0.12.3
 trustme==0.9.0

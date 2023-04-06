@@ -226,7 +226,7 @@ class H11Protocol(asyncio.Protocol):
             elif event_type is h11.Request:
                 self.headers = [(key.lower(), value) for key, value in event.headers]
                 raw_path, _, query_string = event.target.partition(b"?")
-                self.scope = {
+                self.scope = {  # type: ignore[typeddict-item]
                     "type": "http",
                     "asgi": {
                         "version": self.config.asgi_version,
