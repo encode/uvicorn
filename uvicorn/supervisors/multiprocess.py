@@ -55,7 +55,7 @@ class Multiprocess:
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.signal_handler)
 
-        for idx in range(self.config.workers):
+        for _idx in range(self.config.workers):
             process = get_subprocess(
                 config=self.config, target=self.target, sockets=self.sockets
             )
