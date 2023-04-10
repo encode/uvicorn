@@ -235,7 +235,7 @@ class H11Protocol(asyncio.Protocol):
                     "http_version": event.http_version.decode("ascii"),
                     "server": self.server,
                     "client": self.client,
-                    "scheme": self.scheme,
+                    "scheme": self.scheme,  # type: ignore[typeddict-item]
                     "method": event.method.decode("ascii"),
                     "root_path": self.root_path,
                     "path": unquote(raw_path.decode("ascii")),

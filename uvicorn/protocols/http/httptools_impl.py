@@ -250,7 +250,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             "http_version": "1.1",
             "server": self.server,
             "client": self.client,
-            "scheme": self.scheme,
+            "scheme": self.scheme,  # type: ignore[typeddict-item]
             "root_path": self.root_path,
             "headers": self.headers,
             "state": self.app_state.copy(),
