@@ -61,3 +61,11 @@ path = "uvicorn/__init__.py"
 include = [
     "/uvicorn",
 ]
+
+[tool.ruff]
+select = ["E", "F", "I"]
+ignore = ["B904", "B028"]
+line-length = 120
+
+[tool.ruff.isort]
+combine-as-imports = true
