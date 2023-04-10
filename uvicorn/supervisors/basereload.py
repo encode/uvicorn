@@ -80,7 +80,6 @@ class BaseReload:
         self.process.start()
 
     def restart(self) -> None:
-
         self.process.terminate()
         self.process.join()
 

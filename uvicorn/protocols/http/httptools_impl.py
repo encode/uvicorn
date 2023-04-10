@@ -224,7 +224,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.transport.set_protocol(protocol)
 
     def send_400_response(self, msg: str) -> None:
-
         content = [STATUS_LINE[400]]
         for name, value in self.server_state.default_headers:
             content.extend([name, b": ", value, b"\r\n"])
