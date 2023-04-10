@@ -6,6 +6,7 @@ asgiref==3.5.2
 # Explicit optionals
 a2wsgi==1.7.0
 wsproto==1.2.0
+websockets==10.4
 
 # Packaging
 build==0.10.0
