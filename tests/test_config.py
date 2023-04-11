@@ -428,14 +428,14 @@ def test_log_config_file(mocked_logging_config_module: MagicMock) -> None:
 
 @pytest.fixture(params=[0, 1])
 def web_concurrency(request: pytest.FixtureRequest) -> typing.Iterator[int]:
-    yield getattr(request, "param")
+    yield request.param
     if os.getenv("WEB_CONCURRENCY"):
         del os.environ["WEB_CONCURRENCY"]
 
 
 @pytest.fixture(params=["127.0.0.1", "127.0.0.2"])
 def forwarded_allow_ips(request: pytest.FixtureRequest) -> typing.Iterator[str]:
-    yield getattr(request, "param")
+    yield request.param
     if os.getenv("FORWARDED_ALLOW_IPS"):
         del os.environ["FORWARDED_ALLOW_IPS"]
 
