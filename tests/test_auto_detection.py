@@ -8,21 +8,9 @@ from uvicorn.main import ServerState
 from uvicorn.protocols.http.auto import AutoHTTPProtocol
 from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
 
-try:
-    import uvloop
-except ImportError:  # pragma: no cover
-    uvloop = None
-
-try:
-    import httptools
-except ImportError:  # pragma: no cover
-    httptools = None
-
-try:
-    import websockets
-except ImportError:  # pragma: no cover
-    # Note that we skip the websocket tests completely in this case.
-    websockets = None
+pytest.importorskip("uvloop")
+pytest.importorskip("httptools")
+pytest.importorskip("websockets")
 
 
 async def app(scope, receive, send):
@@ -37,25 +25,24 @@ def test_loop_auto():
     auto_loop_setup()
     policy = asyncio.get_event_loop_policy()
     assert isinstance(policy, asyncio.events.BaseDefaultEventLoopPolicy)
-    expected_loop = "asyncio" if uvloop is None else "uvloop"
-    assert type(policy).__module__.startswith(expected_loop)
+    assert type(policy).__module__.startswith("uvloop")
 
 
 @pytest.mark.anyio
 async def test_http_auto():
     config = Config(app=app)
     server_state = ServerState()
-    protocol = AutoHTTPProtocol(config=config, server_state=server_state, app_state={})
-    expected_http = "H11Protocol" if httptools is None else "HttpToolsProtocol"
-    assert type(protocol).__name__ == expected_http
+    protocol = AutoHTTPProtocol(config=config, server_state=server_state, app_state={})  # type: ignore[call-arg]
+    assert type(protocol).__name__ == "HttpToolsProtocol"
 
 
 @pytest.mark.anyio
 async def test_websocket_auto():
     config = Config(app=app)
     server_state = ServerState()
+
+    assert AutoWebSocketsProtocol is not None
     protocol = AutoWebSocketsProtocol(
         config=config, server_state=server_state, app_state={}
     )
-    expected_websockets = "WSProtocol" if websockets is None else "WebSocketProtocol"
-    assert type(protocol).__name__ == expected_websockets
+    assert type(protocol).__name__ == "WebSocketProtocol"
