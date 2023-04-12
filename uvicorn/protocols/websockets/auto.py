@@ -1,13 +1,12 @@
 import asyncio
-import importlib
 import typing
 
 AutoWebSocketsProtocol: typing.Optional[typing.Callable[..., asyncio.Protocol]]
 try:
-    importlib.import_module("websockets")
+    import websockets  # noqa
 except ImportError:  # pragma: no cover
     try:
-        importlib.import_module("wsproto")
+        import wsproto  # noqa
     except ImportError:
         AutoWebSocketsProtocol = None
     else:
