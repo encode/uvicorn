@@ -18,7 +18,7 @@ try:
     from cryptography.hazmat.primitives import serialization
 
     HAVE_TRUSTME = True
-except ImportError:  # pragma: nocover
+except ImportError:  # pragma: no cover
     HAVE_TRUSTME = False
 
 from uvicorn.config import LOGGING_CONFIG
@@ -38,7 +38,7 @@ LOGGING_CONFIG["loggers"]["uvicorn"]["propagate"] = True
 @pytest.fixture
 def tls_certificate_authority() -> "trustme.CA":
     if not HAVE_TRUSTME:
-        pytest.skip("trustme not installed")
+        pytest.skip("trustme not installed")  # pragma: no cover
     return trustme.CA()
 
 
