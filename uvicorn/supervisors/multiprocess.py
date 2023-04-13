@@ -1,6 +1,7 @@
 import logging
 import os
 import signal
+import time
 import threading
 from multiprocessing.context import SpawnProcess
 from socket import socket
@@ -42,7 +43,7 @@ class Multiprocess:
 
     def run(self) -> None:
         self.startup()
-        self.should_exit.wait()
+        self.monitor()
         self.shutdown()
 
     def startup(self) -> None:
@@ -72,3 +73,18 @@ class Multiprocess:
             click.style(str(self.pid), fg="cyan", bold=True)
         )
         logger.info(message, extra={"color_message": color_message})
+
+    def monitor(self) -> None:
+        while not self.should_exit.is_set():
+            time.sleep(0.5)
+            if self.should_exit.is_set():
+                break
+            # Restart expired workers.
+            for process in self.processes:
+                if not process.is_alive():
+                    self.processes.remove(process)
+                    process_new = get_subprocess(
+                        config=self.config, target=self.target, sockets=self.sockets
+                    )
+                    process_new.start()
+                    self.processes.append(process_new)
