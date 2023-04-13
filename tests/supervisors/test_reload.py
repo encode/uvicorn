@@ -1,6 +1,7 @@
 import logging
 import signal
 import socket
+import sys
 from pathlib import Path
 from time import sleep
 from typing import Optional, Type
@@ -393,7 +394,10 @@ def test_base_reloader_should_exit(tmp_path):
     assert not reloader.should_exit.is_set()
     reloader.pause()
 
-    reloader.signal_handler(signal.SIGINT, None)
+    if sys.platform == "win32":
+        reloader.signal_handler(signal.CTRL_C_EVENT, None)  # pragma: py-not-win32
+    else:
+        reloader.signal_handler(signal.SIGINT, None)  # pragma: py-win32
 
     assert reloader.should_exit.is_set()
     with pytest.raises(StopIteration):
