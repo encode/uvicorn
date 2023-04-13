@@ -180,7 +180,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.config.ws == "auto":
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
-            msg = "No supported WebSocket library detected. Please use 'pip install uvicorn[standard]', or install 'websockets' or 'wsproto' manually."  # noqa: E501
+            msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
             self.logger.warning(msg)
         return False
 
@@ -224,7 +224,6 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.transport.set_protocol(protocol)
 
     def send_400_response(self, msg: str) -> None:
-
         content = [STATUS_LINE[400]]
         for name, value in self.server_state.default_headers:
             content.extend([name, b": ", value, b"\r\n"])
@@ -250,7 +249,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             "http_version": "1.1",
             "server": self.server,
             "client": self.client,
-            "scheme": self.scheme,
+            "scheme": self.scheme,  # type: ignore[typeddict-item]
             "root_path": self.root_path,
             "headers": self.headers,
             "state": self.app_state.copy(),

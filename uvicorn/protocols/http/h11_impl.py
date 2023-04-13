@@ -190,7 +190,7 @@ class H11Protocol(asyncio.Protocol):
             if self.config.ws == "auto":
                 msg = "Unsupported upgrade request."
                 self.logger.warning(msg)
-                msg = "No supported WebSocket library detected. Please use 'pip install uvicorn[standard]', or install 'websockets' or 'wsproto' manually."  # noqa: E501
+                msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
                 self.logger.warning(msg)
             return False
         return True
@@ -235,7 +235,7 @@ class H11Protocol(asyncio.Protocol):
                     "http_version": event.http_version.decode("ascii"),
                     "server": self.server,
                     "client": self.client,
-                    "scheme": self.scheme,
+                    "scheme": self.scheme,  # type: ignore[typeddict-item]
                     "method": event.method.decode("ascii"),
                     "root_path": self.root_path,
                     "path": unquote(raw_path.decode("ascii")),
@@ -313,7 +313,6 @@ class H11Protocol(asyncio.Protocol):
         self.transport.set_protocol(protocol)
 
     def send_400_response(self, msg: str) -> None:
-
         reason = STATUS_PHRASES[400]
         headers = [
             (b"content-type", b"text/plain; charset=utf-8"),

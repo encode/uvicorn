@@ -38,7 +38,7 @@ $ pip install uvicorn
 This will install uvicorn with minimal (pure Python) dependencies.
 
 ```shell
-$ pip install uvicorn[standard]
+$ pip install 'uvicorn[standard]'
 ```
 
 This will install uvicorn with "Cython-based" dependencies (where possible) and other "optional extras".
@@ -500,7 +500,7 @@ $ daphne app:App
 [Hypercorn][hypercorn] was initially part of the Quart web framework, before
 being separated out into a standalone ASGI server.
 
-Hypercorn supports HTTP/1.1, HTTP/2, and WebSockets.
+Hypercorn supports HTTP/1.1, HTTP/2, HTTP/3 and WebSockets.
 
 ```
 $ pip install hypercorn

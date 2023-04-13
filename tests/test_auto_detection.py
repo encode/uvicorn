@@ -1,4 +1,5 @@
 import asyncio
+import importlib
 
 import pytest
 
@@ -9,20 +10,22 @@ from uvicorn.protocols.http.auto import AutoHTTPProtocol
 from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
 
 try:
-    import uvloop
+    importlib.import_module("uvloop")
+    expected_loop = "uvloop"
 except ImportError:  # pragma: no cover
-    uvloop = None
+    expected_loop = "asyncio"
 
 try:
-    import httptools
+    importlib.import_module("httptools")
+    expected_http = "HttpToolsProtocol"
 except ImportError:  # pragma: no cover
-    httptools = None
+    expected_http = "H11Protocol"
 
 try:
-    import websockets
+    importlib.import_module("websockets")
+    expected_websockets = "WebSocketProtocol"
 except ImportError:  # pragma: no cover
-    # Note that we skip the websocket tests completely in this case.
-    websockets = None
+    expected_websockets = "WSProtocol"
 
 
 async def app(scope, receive, send):
@@ -37,7 +40,6 @@ def test_loop_auto():
     auto_loop_setup()
     policy = asyncio.get_event_loop_policy()
     assert isinstance(policy, asyncio.events.BaseDefaultEventLoopPolicy)
-    expected_loop = "asyncio" if uvloop is None else "uvloop"
     assert type(policy).__module__.startswith(expected_loop)
 
 
@@ -45,8 +47,7 @@ def test_loop_auto():
 async def test_http_auto():
     config = Config(app=app)
     server_state = ServerState()
-    protocol = AutoHTTPProtocol(config=config, server_state=server_state, app_state={})
-    expected_http = "H11Protocol" if httptools is None else "HttpToolsProtocol"
+    protocol = AutoHTTPProtocol(config=config, server_state=server_state, app_state={})  # type: ignore[call-arg]
     assert type(protocol).__name__ == expected_http
 
 
@@ -54,8 +55,9 @@ async def test_http_auto():
 async def test_websocket_auto():
     config = Config(app=app)
     server_state = ServerState()
+
+    assert AutoWebSocketsProtocol is not None
     protocol = AutoWebSocketsProtocol(
         config=config, server_state=server_state, app_state={}
     )
-    expected_websockets = "WSProtocol" if websockets is None else "WebSocketProtocol"
     assert type(protocol).__name__ == expected_websockets
