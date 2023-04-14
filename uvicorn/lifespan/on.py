@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from asyncio import Queue
-from typing import TYPE_CHECKING, Any, Dict, Union
+from typing import TYPE_CHECKING, Any, ChainMap, Union
 
 from uvicorn import Config
 
@@ -42,7 +42,7 @@ class LifespanOn:
         self.startup_failed = False
         self.shutdown_failed = False
         self.should_exit = False
-        self.state: Dict[str, Any] = {}
+        self.state: ChainMap[str, Any] = ChainMap()
 
     async def startup(self) -> None:
         self.logger.info("Waiting for application startup.")

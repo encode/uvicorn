@@ -2,7 +2,8 @@ import logging
 import socket
 import threading
 import time
-from typing import Optional, Union
+from copy import deepcopy
+from typing import Any, List, Optional, Union
 
 import pytest
 
@@ -998,15 +999,23 @@ async def test_iterator_headers(protocol_cls):
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 async def test_lifespan_state(protocol_cls):
-    expected_states = [{"a": 123, "b": [1]}, {"a": 123, "b": [1, 2]}]
+    expected_states = [
+        [{}, {"a": 123, "b": [1]}],
+        [{"a": 456, "c": 42}, {"a": 123, "b": [1, 2]}],
+        [{}, {"a": 123, "b": [1, 2]}],
+        [{"a": 456, "c": 42}, {"a": 123, "b": [1, 2, 2]}],
+    ]
+    actual_states: List[Any] = []
 
     async def app(scope, receive, send):
-        expected_state = expected_states.pop(0)
-        assert scope["state"] == expected_state
-        # modifications to keys are not preserved
+        actual_states.append(deepcopy(scope["state"].maps))
+        # modifications to keys or new keys are not preserved
         scope["state"]["a"] = 456
+        scope["state"]["c"] = 42
         # unless of course the value itself is mutated
         scope["state"]["b"].append(2)
+        # the ChainMap is accessible
+        actual_states.append(deepcopy(scope["state"].maps))
         return await Response("Hi!")(scope, receive, send)
 
     lifespan = LifespanOn(config=Config(app=app))
@@ -1021,4 +1030,4 @@ async def test_lifespan_state(protocol_cls):
         assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
         assert b"Hi!" in protocol.transport.buffer
 
-    assert not expected_states  # consumed
+    assert actual_states == expected_states

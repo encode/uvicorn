@@ -10,8 +10,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    ChainMap,
     Deque,
-    Dict,
     List,
     Optional,
     Tuple,
@@ -78,7 +78,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
-        app_state: Dict[str, Any],
+        app_state: ChainMap[str, Any],
         _loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         if not config.loaded:
@@ -252,7 +252,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             "scheme": self.scheme,  # type: ignore[typeddict-item]
             "root_path": self.root_path,
             "headers": self.headers,
-            "state": self.app_state.copy(),
+            "state": self.app_state.new_child(),
         }
 
     # Parser callbacks

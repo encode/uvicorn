@@ -6,7 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
+    ChainMap,
     List,
     Optional,
     Tuple,
@@ -80,7 +80,7 @@ class H11Protocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
-        app_state: Dict[str, Any],
+        app_state: ChainMap[str, Any],
         _loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         if not config.loaded:
@@ -242,7 +242,7 @@ class H11Protocol(asyncio.Protocol):
                     "raw_path": raw_path,
                     "query_string": query_string,
                     "headers": self.headers,
-                    "state": self.app_state.copy(),
+                    "state": self.app_state.new_child(),
                 }
 
                 upgrade = self._get_upgrade()

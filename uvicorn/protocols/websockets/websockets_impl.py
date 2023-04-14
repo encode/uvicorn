@@ -5,7 +5,7 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
+    ChainMap,
     List,
     Optional,
     Sequence,
@@ -71,7 +71,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self,
         config: Config,
         server_state: ServerState,
-        app_state: Dict[str, Any],
+        app_state: ChainMap[str, Any],
         _loop: Optional[asyncio.AbstractEventLoop] = None,
     ):
         if not config.loaded:
@@ -202,7 +202,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             "query_string": query_string.encode("ascii"),
             "headers": asgi_headers,
             "subprotocols": subprotocols,
-            "state": self.app_state.copy(),
+            "state": self.app_state.new_child(),
         }
         task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)

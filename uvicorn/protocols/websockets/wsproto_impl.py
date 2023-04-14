@@ -49,7 +49,7 @@ class WSProtocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
-        app_state: typing.Dict[str, typing.Any],
+        app_state: typing.ChainMap[str, typing.Any],
         _loop: typing.Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         if not config.loaded:
@@ -186,7 +186,7 @@ class WSProtocol(asyncio.Protocol):
             "headers": headers,
             "subprotocols": event.subprotocols,
             "extensions": None,
-            "state": self.app_state.copy(),
+            "state": self.app_state.new_child(),
         }
         self.queue.put_nowait({"type": "websocket.connect"})
         task = self.loop.create_task(self.run_asgi())

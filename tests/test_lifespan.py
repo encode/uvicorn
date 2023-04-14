@@ -264,7 +264,7 @@ def test_lifespan_state():
         lifespan = LifespanOn(config)
 
         await lifespan.startup()
-        assert lifespan.state == {"foo": 123}
+        assert lifespan.state.maps == [{"foo": 123}]
         await lifespan.shutdown()
 
     loop = asyncio.new_event_loop()

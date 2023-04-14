@@ -1101,8 +1101,10 @@ async def test_multiple_server_header(
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_lifespan_state(ws_protocol_cls, http_protocol_cls, unused_tcp_port: int):
     expected_states = [
-        {"a": 123, "b": [1]},
-        {"a": 123, "b": [1, 2]},
+        [{}, {"a": 123, "b": [1]}],
+        [{"a": 456, "c": 42}, {"a": 123, "b": [1, 2]}],
+        [{}, {"a": 123, "b": [1, 2]}],
+        [{"a": 456, "c": 42}, {"a": 123, "b": [1, 2, 2]}],
     ]
 
     actual_states = []
@@ -1119,9 +1121,13 @@ async def test_lifespan_state(ws_protocol_cls, http_protocol_cls, unused_tcp_por
 
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
-            actual_states.append(deepcopy(self.scope["state"]))
+            actual_states.append(deepcopy(self.scope["state"].maps))
+            # changes to keys or new keys are not preserved
             self.scope["state"]["a"] = 456
+            self.scope["state"]["c"] = 42
+            # unless of course the value itself is mutated
             self.scope["state"]["b"].append(2)
+            actual_states.append(deepcopy(self.scope["state"].maps))
             await self.send({"type": "websocket.accept"})
 
     async def open_connection(url):
