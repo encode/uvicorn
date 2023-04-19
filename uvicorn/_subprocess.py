@@ -35,7 +35,7 @@ def get_subprocess(
     stdin_fileno: Optional[int]
     try:
         stdin_fileno = sys.stdin.fileno()
-    except OSError:
+    except (AttributeError, OSError):
         stdin_fileno = None
 
     kwargs = {
