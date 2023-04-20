@@ -92,6 +92,9 @@ filterwarnings = [
     "ignore:Uvicorn's native WSGI implementation is deprecated.*:DeprecationWarning",
     "ignore: 'cgi' is deprecated and slated for removal in Python 3.13:DeprecationWarning"
 ]
+markers = [
+  "subprocess: test requires a subprocess (deselect with '-m \"not subprocess\"')"
+]
 
 [tool.coverage.run]
 source_pkgs = ["uvicorn", "tests"]
