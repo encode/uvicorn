@@ -75,7 +75,10 @@ class Multiprocess:
         logger.info(message, extra={"color_message": color_message})
 
     def monitor(self) -> None:
-        while not self.should_exit.wait(0.5):
+        while not self.should_exit.is_set():
+            time.sleep(0.5)
+            if self.should_exit.is_set():
+                break
             # Restart expired workers.
             for process in self.processes:
                 if not process.is_alive():
