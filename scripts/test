@@ -11,6 +11,10 @@ if [ -z $GITHUB_ACTIONS ]; then
     scripts/check
 fi
 
+# enable subprocess coverage
+# https://coverage.readthedocs.io/en/latest/subprocess.html
+# https://github.com/nedbat/coveragepy/issues/367
+export COVERAGE_PROCESS_START=$PWD/pyproject.toml
 ${PREFIX}coverage run --debug config -m pytest "$@"
 
 if [ -z $GITHUB_ACTIONS ]; then
