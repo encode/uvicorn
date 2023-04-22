@@ -82,6 +82,8 @@ class WatchFilesReload(BaseReload):
         )
 
     def should_restart(self) -> Optional[List[Path]]:
+        self.pause()
+
         changes = next(self.watcher)
         if changes:
             unique_paths = {Path(c[1]) for c in changes}
