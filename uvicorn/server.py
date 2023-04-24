@@ -283,8 +283,13 @@ class Server:
                 self._wait_tasks_to_complete(),
                 timeout=self.config.timeout_graceful_shutdown,
             )
-        except TimeoutError as error:
-            print(f"{error=}")
+        except TimeoutError:
+            logger.error(
+                "Cancel %s running task(s), timeout_graceful_shutdown exceeded",
+                len(self.server_state.tasks),
+            )
+            for t in self.server_state.tasks:
+                t.cancel(msg="Task cancelled, timeout_graceful_shutdown exceeded")
 
         # Send the lifespan shutdown event, and wait for application shutdown.
         if not self.force_exit:

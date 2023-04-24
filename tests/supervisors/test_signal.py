@@ -16,7 +16,7 @@ async def app(scope, receive, send):
 
 
 @pytest.mark.anyio
-async def test_x(unused_tcp_port: int):
+async def test_graceful_shutdown(unused_tcp_port: int):
     """
     * Start server
     * Send request 1
@@ -35,12 +35,14 @@ async def test_x(unused_tcp_port: int):
             r1 = asyncio.create_task(client.get(f"http://127.0.0.1:{unused_tcp_port}"))  # success
             await asyncio.sleep(1)  # ensure next request should time out
             r2 = asyncio.create_task(client.get(f"http://127.0.0.1:{unused_tcp_port}"))  # cancelled
+
             server.handle_exit(sig=signal.SIGINT, frame=None)
+
             await asyncio.sleep(1)  # ensure one tick pass, and that server does not accept requests
             r3 = asyncio.create_task(client.get(f"http://127.0.0.1:{unused_tcp_port}"))  # connect error
             await asyncio.sleep(1)  # ensure one more tick pass, and everything has been handled
             assert r1.result().status_code == 200
-            with pytest.raises(httpx.ConnectTimeout):  # fix this.. task is not cancelled, test fails
+            with pytest.raises(httpx.RemoteProtocolError):  # fix this.. task is not cancelled, test fails
                 r2.result()
             with pytest.raises(httpx.ConnectError):
                 r3.result()
