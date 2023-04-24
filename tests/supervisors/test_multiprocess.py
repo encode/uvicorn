@@ -30,3 +30,4 @@ def test_multiprocess_run() -> None:
     supervisor = Multiprocess(config, target=run, sockets=[])
     supervisor.signal_handler(sig=signal.SIGINT, frame=None)
     supervisor.run()
+

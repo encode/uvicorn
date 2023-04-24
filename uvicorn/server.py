@@ -278,10 +278,13 @@ class Server:
         await asyncio.sleep(0.1)
 
         # When 3.10 is not supported anymore, use `async with asyncio.timeout(...):`.
-        await asyncio.wait_for(
-            self._wait_tasks_to_complete(),
-            timeout=self.config.timeout_graceful_shutdown,
-        )
+        try:
+            await asyncio.wait_for(
+                self._wait_tasks_to_complete(),
+                timeout=self.config.timeout_graceful_shutdown,
+            )
+        except TimeoutError as error:
+            print(f"{error=}")
 
         # Send the lifespan shutdown event, and wait for application shutdown.
         if not self.force_exit:
