@@ -84,9 +84,8 @@ class Server:
         message = "Finished server process [%d]"
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
         logger.info(message, process_id, extra={"color_message": color_message})
-        os._exit(
-            1
-        )  # ensure we kill any other threads, such as those spawned by run_in_executor
+        # ensure we kill any other threads, such as those spawned by run_in_executor
+        os._exit(1)
 
     async def startup(self, sockets: Optional[List[socket.socket]] = None) -> None:
         await self.lifespan.startup()
@@ -292,7 +291,10 @@ class Server:
                 len(self.server_state.tasks),
             )
             for t in self.server_state.tasks:
-                t.cancel(msg="Task cancelled, timeout_graceful_shutdown exceeded")
+                if sys.version_info < (3, 9):
+                    t.cancel()
+                else:
+                    t.cancel(msg="Task cancelled, timeout_graceful_shutdown exceeded")
 
         # Send the lifespan shutdown event, and wait for application shutdown.
         if not self.force_exit:
