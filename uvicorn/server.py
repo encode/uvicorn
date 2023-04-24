@@ -84,6 +84,7 @@ class Server:
         message = "Finished server process [%d]"
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
         logger.info(message, process_id, extra={"color_message": color_message})
+        os._exit(1)  # ensure we kill any other threads, such as those spawned by run_in_executor
 
     async def startup(self, sockets: Optional[List[socket.socket]] = None) -> None:
         await self.lifespan.startup()
