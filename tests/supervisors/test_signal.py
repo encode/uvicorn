@@ -18,7 +18,12 @@ def set_event(event: Event, task: Task):
 @pytest.mark.anyio
 async def test_sigint_finish_req(unused_tcp_port: int):
     """
-    Test that a request that is sent, sigint is sent, but request is finished and not cancelled
+    1. Request is sent
+    2. Sigint is sent to uvicorn
+    3. Shutdown sequence start
+    4. Request is finished before timeout_graceful_shutdown=1
+
+    Result: Request should go through, even though the server was cancelled.
     """
 
     server_event = Event()
@@ -49,7 +54,12 @@ async def test_sigint_finish_req(unused_tcp_port: int):
 @pytest.mark.anyio
 async def test_sigint_abort_req_3_11_up(unused_tcp_port: int, caplog):
     """
-    Test that a request that is sent, sigint is sent, but request is cancelled since it lasts too long
+    1. Request is sent
+    2. Sigint is sent to uvicorn
+    3. Shutdown sequence start
+    4. Request is _NOT_ finished before timeout_graceful_shutdown=1
+
+    Result: Request is cancelled mid-execution, and httpx will raise a `RemoteProtocolError`
     """
 
     async def forever_app(scope, receive, send):
@@ -81,22 +91,27 @@ async def test_sigint_abort_req_3_11_up(unused_tcp_port: int, caplog):
 
 
 @pytest.mark.anyio
-async def test_sigint_deny_request_after_triggered(unused_tcp_port: int):
+async def test_sigint_deny_request_after_triggered(unused_tcp_port: int, caplog):
     """
-    Test that sigint is sent, and that the server denies further requests
+    1. Server is started
+    2. Shutdown sequence start
+    3. Request is sent, but not accepted
+
+    Result: Request should fail, and not be able to be sent, since server is no longer accepting connections
     """
 
     async def app(scope, receive, send):
-        pass
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        await asyncio.sleep(1)
 
     config = Config(
         app=app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1
     )
     server: Server
     async with run_server(config) as server:
-        server.handle_exit(
-            sig=signal.SIGINT, frame=None
-        )  # exit and ensure we do not accept more requests
+        # exit and ensure we do not accept more requests
+        server.handle_exit(sig=signal.SIGINT, frame=None)
+        await asyncio.sleep(0.1)  # next tick
         async with httpx.AsyncClient() as client:
             with pytest.raises(httpx.ConnectError):
                 await client.get(f"http://127.0.0.1:{unused_tcp_port}")
