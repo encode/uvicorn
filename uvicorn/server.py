@@ -283,7 +283,7 @@ class Server:
                 self._wait_tasks_to_complete(),
                 timeout=self.config.timeout_graceful_shutdown,
             )
-        except TimeoutError:
+        except asyncio.TimeoutError:
             logger.error(
                 "Cancel %s running task(s), timeout_graceful_shutdown exceeded",
                 len(self.server_state.tasks),

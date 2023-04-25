@@ -47,16 +47,16 @@ async def test_sigint_finish_req(unused_tcp_port: int):
 
 
 @pytest.mark.anyio
-async def test_sigint_abort_req(unused_tcp_port: int, caplog):
+async def test_sigint_abort_req_3_11_up(unused_tcp_port: int, caplog):
     """
     Test that a request that is sent, sigint is sent, but request is cancelled since it lasts too long
     """
-    server_event = Event()
 
     async def forever_app(scope, receive, send):
+        server_event = Event()
         await send({"type": "http.response.start", "status": 200, "headers": []})
         await send({"type": "http.response.body", "body": b"start", "more_body": True})
-        await server_event.wait()  # we never continue this one
+        await server_event.wait()  # we never continue this one, so this request will time out
         await send({"type": "http.response.body", "body": b"end", "more_body": False})
 
     config = Config(
@@ -71,7 +71,6 @@ async def test_sigint_abort_req(unused_tcp_port: int, caplog):
             await asyncio.sleep(0.1)  # next tick
             # trigger exit, this request should time out in ~1 sec
             server.handle_exit(sig=signal.SIGINT, frame=None)
-            # add time for httpx to recognize the connection is lost, so it raise `httpx.RemoteProtocolError`
             await task_complete_event.wait()
     with pytest.raises(httpx.RemoteProtocolError):
         req.result()
