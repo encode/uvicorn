@@ -104,6 +104,9 @@ Options:
   --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
                                   is received within this timeout.  [default:
                                   5]
+  --timeout-graceful-shutdown INTEGER
+                                  Maximum number of seconds to wait for
+                                  graceful shutdown.
   --ssl-keyfile TEXT              SSL key file
   --ssl-certfile TEXT             SSL certificate file
   --ssl-keyfile-password TEXT     SSL keyfile password
