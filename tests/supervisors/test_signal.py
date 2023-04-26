@@ -79,7 +79,7 @@ async def test_sigint_abort_req(unused_tcp_port: int, caplog):
 
         # req.result()
     assert (
-        "Cancel 1 running task(s), timeout_graceful_shutdown exceeded"
+        "Cancel 1 running task(s), timeout graceful shutdown exceeded"
         in caplog.messages
     )
 

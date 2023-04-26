@@ -285,11 +285,14 @@ class Server:
             )
         except asyncio.TimeoutError:
             logger.error(
-                "Cancel %s running task(s), timeout_graceful_shutdown exceeded",
+                "Cancel %s running task(s), timeout graceful shutdown exceeded",
                 len(self.server_state.tasks),
             )
             for t in self.server_state.tasks:
-                t.cancel()
+                if sys.version_info < (3, 9):  # pragma: py-gte-39
+                    t.cancel()
+                else:  # pragma: py-lt-39
+                    t.cancel(msg="Task cancelled, timeout graceful shutdown exceeded")
 
         # Send the lifespan shutdown event, and wait for application shutdown.
         if not self.force_exit:
