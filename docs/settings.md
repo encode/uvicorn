@@ -115,4 +115,4 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 ## Timeouts
 
 * `--timeout-keep-alive <int>` - Close Keep-Alive connections if no new data is received within this timeout. **Default:** *5*.
-* `--timeout-graceful-shutdown <int>` - Maximum number of seconds to wait for graceful shutdown. After this timeout, the server will start terminating requests. Useful together with ``terminationGracePeriodSeconds`` in kubernetes, when you want to make the pod complete handling of requests before shutting down.
+* `--timeout-graceful-shutdown <int>` - Maximum number of seconds to wait for graceful shutdown. After this timeout, the server will start terminating requests. 
