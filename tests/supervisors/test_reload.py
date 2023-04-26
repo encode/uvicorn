@@ -4,7 +4,7 @@ import socket
 import sys
 from pathlib import Path
 from time import sleep
-from typing import Optional, Type, List
+from typing import List, Optional, Type
 
 import pytest
 
