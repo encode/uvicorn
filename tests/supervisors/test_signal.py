@@ -1,7 +1,6 @@
 import asyncio
 import signal
-from asyncio import Event, Task
-from functools import partial
+from asyncio import Event
 
 import httpx
 import pytest
@@ -9,10 +8,6 @@ import pytest
 from tests.utils import run_server
 from uvicorn import Server
 from uvicorn.config import Config
-
-
-def set_event(event: Event, task: Task):
-    event.set()
 
 
 @pytest.mark.anyio
@@ -40,14 +35,13 @@ async def test_sigint_finish_req(unused_tcp_port: int):
     server: Server
     async with run_server(config) as server:
         async with httpx.AsyncClient() as client:
-            task_complete_event = Event()
+            Event()
             req = asyncio.create_task(client.get(f"http://127.0.0.1:{unused_tcp_port}"))
-            req.add_done_callback(partial(set_event, task_complete_event))
             await asyncio.sleep(0.1)  # ensure next tick
             server.handle_exit(sig=signal.SIGINT, frame=None)  # exit
             server_event.set()  # continue request
             # ensure httpx has processed the response and result is complete
-            await task_complete_event.wait()
+            await req
             assert req.result().status_code == 200
 
 
@@ -75,15 +69,15 @@ async def test_sigint_abort_req(unused_tcp_port: int, caplog):
     server: Server
     async with run_server(config) as server:
         async with httpx.AsyncClient() as client:
-            task_complete_event = Event()
+            Event()
             req = asyncio.create_task(client.get(f"http://127.0.0.1:{unused_tcp_port}"))
-            req.add_done_callback(partial(set_event, task_complete_event))
             await asyncio.sleep(0.1)  # next tick
             # trigger exit, this request should time out in ~1 sec
             server.handle_exit(sig=signal.SIGINT, frame=None)
-            await task_complete_event.wait()
-    with pytest.raises(httpx.RemoteProtocolError):
-        req.result()
+            with pytest.raises(httpx.RemoteProtocolError):
+                await req
+
+        # req.result()
     assert (
         "Cancel 1 running task(s), timeout_graceful_shutdown exceeded"
         in caplog.messages
