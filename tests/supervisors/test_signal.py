@@ -52,7 +52,7 @@ async def test_sigint_finish_req(unused_tcp_port: int):
 
 
 @pytest.mark.anyio
-async def test_sigint_abort_req_3_11_up(unused_tcp_port: int, caplog):
+async def test_sigint_abort_req(unused_tcp_port: int, caplog):
     """
     1. Request is sent
     2. Sigint is sent to uvicorn
