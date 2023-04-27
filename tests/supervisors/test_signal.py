@@ -35,7 +35,6 @@ async def test_sigint_finish_req(unused_tcp_port: int):
     server: Server
     async with run_server(config) as server:
         async with httpx.AsyncClient() as client:
-            Event()
             req = asyncio.create_task(client.get(f"http://127.0.0.1:{unused_tcp_port}"))
             await asyncio.sleep(0.1)  # ensure next tick
             server.handle_exit(sig=signal.SIGINT, frame=None)  # exit
@@ -69,7 +68,6 @@ async def test_sigint_abort_req(unused_tcp_port: int, caplog):
     server: Server
     async with run_server(config) as server:
         async with httpx.AsyncClient() as client:
-            Event()
             req = asyncio.create_task(client.get(f"http://127.0.0.1:{unused_tcp_port}"))
             await asyncio.sleep(0.1)  # next tick
             # trigger exit, this request should time out in ~1 sec
