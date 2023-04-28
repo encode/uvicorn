@@ -253,7 +253,7 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
     
-When the `uvicorn.Server.serve()` is used directly, the `auto-reload` feature is not available.
+When the `uvicorn.Server.serve()` is used directly, the hot reload feature is not available.
 
 This is because the `uvicorn.Server.serve()` function is usually used in production environments where automatic reloading is not desired. In production environments, the application is expected to be stable and changes are typically made through a deployment process rather than by modifying the code directly.
 
