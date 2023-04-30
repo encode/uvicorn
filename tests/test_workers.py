@@ -14,6 +14,13 @@ if TYPE_CHECKING:
     from ssl import SSLContext
     from typing import IO, Generator
 
+    from asgiref.typing import (
+        ASGIReceiveCallable,
+        ASGISendCallable,
+        LifespanStartupFailedEvent,
+        Scope,
+    )
+
 pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="requires unix")
 gunicorn_arbiter = pytest.importorskip("gunicorn.arbiter", reason="requires gunicorn")
 uvicorn_workers = pytest.importorskip("uvicorn.workers", reason="requires gunicorn")
@@ -145,3 +152,79 @@ def test_gunicorn_arbiter_signal_handling(
         time.sleep(2)
         output_text = gunicorn_process.read_output()
         assert expected_text in output_text
+
+
+async def app_with_lifespan_startup_failure(
+    scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+) -> None:
+    """An ASGI app instance for testing Uvicorn worker boot errors."""
+    if scope["type"] == "lifespan":
+        message = await receive()
+        if message["type"] == "lifespan.startup":
+            lifespan_startup_failed_event: LifespanStartupFailedEvent = {
+                "type": "lifespan.startup.failed",
+                "message": "ASGI application failed to start",
+            }
+            await send(lifespan_startup_failed_event)
+
+
+@pytest.fixture
+def gunicorn_process_with_lifespan_startup_failure(
+    unused_tcp_port: int, worker_class: str
+) -> Generator[Process, None, None]:
+    """Yield a subprocess running a Gunicorn arbiter with a Uvicorn worker.
+
+    Output is saved to a temporary file and accessed with `read_output()`.
+    The lifespan startup error in the ASGI app helps test worker boot errors.
+    """
+    args = [
+        "gunicorn",
+        "--bind",
+        f"127.0.0.1:{unused_tcp_port}",
+        "--graceful-timeout",
+        "1",
+        "--log-level",
+        "debug",
+        "--worker-class",
+        worker_class,
+        "--workers",
+        "1",
+        "tests.test_workers:app_with_lifespan_startup_failure",
+    ]
+    output = tempfile.TemporaryFile()
+    with Process(args, stdout=output, stderr=output) as process:
+        time.sleep(1)
+        process.output = output
+        yield process
+        process.terminate()
+        process.wait(timeout=2)
+    output.close()
+
+
+def test_uvicorn_worker_boot_error(
+    gunicorn_process_with_lifespan_startup_failure: Process,
+) -> None:
+    """Test Gunicorn arbiter shutdown behavior after Uvicorn worker boot errors.
+
+    Previously, if Uvicorn workers raised exceptions during startup,
+    Gunicorn continued trying to boot workers ([#1066]). To avoid this,
+    the Uvicorn worker was updated to exit with `Arbiter.WORKER_BOOT_ERROR`,
+    but no tests were included at that time ([#1077]). This test verifies
+    that Gunicorn shuts down appropriately after a Uvicorn worker boot error.
+
+    When a worker exits with `Arbiter.WORKER_BOOT_ERROR`, the Gunicorn arbiter will
+    also terminate, so there is no need to send a separate signal to the arbiter.
+
+    [#1066]: https://github.com/encode/uvicorn/issues/1066
+    [#1077]: https://github.com/encode/uvicorn/pull/1077
+    """
+    expected_text = "Worker failed to boot"
+    output_text = gunicorn_process_with_lifespan_startup_failure.read_output()
+    try:
+        assert expected_text in output_text
+        assert gunicorn_process_with_lifespan_startup_failure.poll()
+    except AssertionError:  # pragma: no cover
+        time.sleep(2)
+        output_text = gunicorn_process_with_lifespan_startup_failure.read_output()
+        assert expected_text in output_text
+        assert gunicorn_process_with_lifespan_startup_failure.poll()
