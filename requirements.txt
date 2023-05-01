@@ -14,7 +14,7 @@ twine==4.0.2
 
 # Testing
 black==23.3.0
-ruff==0.0.260
+ruff==0.0.263
 pytest==7.2.1
 pytest-mock==3.10.0
 mypy==1.2.0
