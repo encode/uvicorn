@@ -5,6 +5,7 @@ import socket
 import sys
 import typing
 from pathlib import Path
+from typing import Optional
 from unittest.mock import MagicMock
 
 import pytest
@@ -489,6 +490,28 @@ def test_config_log_level(log_level: int) -> None:
     assert logging.getLogger("uvicorn.access").level == log_level
     assert logging.getLogger("uvicorn.asgi").level == log_level
     assert config.log_level == log_level
+
+
+@pytest.mark.parametrize("log_level", [None, 0, 5, 10, 20, 30, 40, 50])
+@pytest.mark.parametrize("uvicorn_logger_level", [0, 5, 10, 20, 30, 40, 50])
+def test_config_log_effective_level(
+    log_level: Optional[int], uvicorn_logger_level: Optional[int]
+) -> None:
+    default_level = 30
+    log_config = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "loggers": {
+            "uvicorn": {"level": uvicorn_logger_level},
+        },
+    }
+    config = Config(app=asgi_app, log_level=log_level, log_config=log_config)
+    config.load()
+
+    effective_level = log_level or uvicorn_logger_level or default_level
+    assert logging.getLogger("uvicorn.error").getEffectiveLevel() == effective_level
+    assert logging.getLogger("uvicorn.access").getEffectiveLevel() == effective_level
+    assert logging.getLogger("uvicorn.asgi").getEffectiveLevel() == effective_level
 
 
 def test_ws_max_size() -> None:

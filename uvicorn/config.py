@@ -504,7 +504,7 @@ class Config:
         elif self.interface == "asgi2":
             self.loaded_app = ASGI2Middleware(self.loaded_app)
 
-        if logger.level <= TRACE_LOG_LEVEL:
+        if logger.getEffectiveLevel() <= TRACE_LOG_LEVEL:
             self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
             self.loaded_app = ProxyHeadersMiddleware(
