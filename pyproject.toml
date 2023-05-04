@@ -69,3 +69,58 @@ line-length = 120
 
 [tool.ruff.isort]
 combine-as-imports = true
+
+[tool.mypy]
+disallow_untyped_defs = true
+ignore_missing_imports = true
+follow_imports = "silent"
+# NOTE: If you are seeing this, feel free to create a PR to cover the below files.
+exclude = [
+    "tests/protocols/test_utils.py"
+]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+addopts = "-rxXs --strict-config --strict-markers"
+xfail_strict = true
+filterwarnings = [
+    # Turn warnings that aren't filtered into exceptions
+    "error",
+    "ignore: \"watchgod\" is deprecated, you should switch to watchfiles (`pip install watchfiles`).:DeprecationWarning",
+    "ignore: Uvicorn's native WSGI implementation is deprecated, you should switch to a2wsgi (`pip install a2wsgi`).:DeprecationWarning",
+    "ignore: 'cgi' is deprecated and slated for removal in Python 3.13:DeprecationWarning",
+]
+
+[tool.coverage.run]
+omit = ["venv/*"]
+include = ["uvicorn/*", "tests/*"]
+plugins = [
+  "coverage_conditional_plugin",
+]
+
+[tool.coverage.report]
+precision = 2
+fail_under = 98.80
+show_missing = true
+skip_covered = true
+exclude_lines = [
+    "pragma: no cover",
+    "pragma: nocover",
+    "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+
+[tool.coverage.coverage_conditional_plugin.rules]
+py-win32 = "sys_platform == 'win32'"
+py-not-win32 = "sys_platform != 'win32'"
+py-linux = "sys_platform == 'linux'"
+py-darwin = "sys_platform == 'darwin'"
+py-gte-38 = "sys_version_info >= (3, 8)"
+py-lt-38 = "sys_version_info < (3, 8)"
+py-gte-39 = "sys_version_info < (3, 9)"
+py-lt-39 = "sys_version_info < (3, 9)"
