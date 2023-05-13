@@ -1,4 +1,5 @@
 import asyncio
+import configparser
 import logging
 import os
 import platform
@@ -481,7 +482,9 @@ def run(
     workers: typing.Optional[int] = None,
     env_file: typing.Optional[typing.Union[str, os.PathLike]] = None,
     log_config: typing.Optional[
-        typing.Union[typing.Dict[str, typing.Any], str]
+        typing.Union[
+            typing.Dict[str, typing.Any], str, configparser.RawConfigParser, typing.IO
+        ]
     ] = LOGGING_CONFIG,
     log_level: typing.Optional[typing.Union[str, int]] = None,
     access_log: bool = True,
