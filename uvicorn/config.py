@@ -7,8 +7,10 @@ import os
 import socket
 import ssl
 import sys
+from configparser import RawConfigParser
 from pathlib import Path
 from typing import (
+    IO,
     TYPE_CHECKING,
     Any,
     Awaitable,
@@ -209,7 +211,9 @@ class Config:
         ws_per_message_deflate: bool = True,
         lifespan: LifespanType = "auto",
         env_file: Optional[Union[str, os.PathLike]] = None,
-        log_config: Optional[Union[Dict[str, Any], str]] = LOGGING_CONFIG,
+        log_config: Optional[
+            Union[Dict[str, Any], str, RawConfigParser, IO]
+        ] = LOGGING_CONFIG,
         log_level: Optional[Union[str, int]] = None,
         access_log: bool = True,
         use_colors: Optional[bool] = None,
@@ -397,11 +401,13 @@ class Config:
                         "use_colors"
                     ] = self.use_colors
                 logging.config.dictConfig(self.log_config)
-            elif self.log_config.endswith(".json"):
+            elif isinstance(self.log_config, str) and self.log_config.endswith(".json"):
                 with open(self.log_config) as file:
                     loaded_config = json.load(file)
                     logging.config.dictConfig(loaded_config)
-            elif self.log_config.endswith((".yaml", ".yml")):
+            elif isinstance(self.log_config, str) and self.log_config.endswith(
+                (".yaml", ".yml")
+            ):
                 # Install the PyYAML package or the uvicorn[standard] optional
                 # dependencies to enable this functionality.
                 import yaml
