@@ -71,7 +71,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--port",
     type=int,
     default=8000,
-    help="Bind socket to this port. If 0, a random port is used.",
+    help="Bind socket to this port. If 0, an available port will be picked.",
     show_default=True,
 )
 @click.option("--uds", type=str, default=None, help="Bind to a UNIX domain socket.")

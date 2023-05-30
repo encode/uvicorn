@@ -100,8 +100,8 @@ Usage: uvicorn [OPTIONS] APP
 Options:
   --host TEXT                     Bind socket to this host.  [default:
                                   127.0.0.1]
-  --port INTEGER                  Bind socket to this port. If 0, a random
-                                  port is used.  [default: 8000]
+  --port INTEGER                  Bind socket to this port. If 0, an available
+                                  port will be picked.  [default: 8000]
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
   --reload                        Enable auto-reload.
