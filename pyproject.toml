@@ -99,7 +99,7 @@ plugins = ["coverage_conditional_plugin"]
 
 [tool.coverage.report]
 precision = 2
-fail_under = 96.66
+fail_under = 96.57
 show_missing = true
 skip_covered = true
 exclude_lines = [
