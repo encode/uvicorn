@@ -47,7 +47,9 @@ def test_loop_auto():
 async def test_http_auto():
     config = Config(app=app)
     server_state = ServerState()
-    protocol = AutoHTTPProtocol(config=config, server_state=server_state, app_state={})  # type: ignore[call-arg]
+    protocol = AutoHTTPProtocol(  # type: ignore[call-arg]
+        config=config, server_state=server_state, app_state={}
+    )
     assert type(protocol).__name__ == expected_http
 
 

@@ -52,14 +52,16 @@ async def test_sigint_abort_req(unused_tcp_port: int, caplog):
     3. Shutdown sequence start
     4. Request is _NOT_ finished before timeout_graceful_shutdown=1
 
-    Result: Request is cancelled mid-execution, and httpx will raise a `RemoteProtocolError`
+    Result: Request is cancelled mid-execution, and httpx will raise a
+        `RemoteProtocolError`.
     """
 
     async def forever_app(scope, receive, send):
         server_event = Event()
         await send({"type": "http.response.start", "status": 200, "headers": []})
         await send({"type": "http.response.body", "body": b"start", "more_body": True})
-        await server_event.wait()  # we never continue this one, so this request will time out
+        # we never continue this one, so this request will time out
+        await server_event.wait()
         await send({"type": "http.response.body", "body": b"end", "more_body": False})
 
     config = Config(
@@ -89,7 +91,8 @@ async def test_sigint_deny_request_after_triggered(unused_tcp_port: int, caplog)
     2. Shutdown sequence start
     3. Request is sent, but not accepted
 
-    Result: Request should fail, and not be able to be sent, since server is no longer accepting connections
+    Result: Request should fail, and not be able to be sent, since server is no longer
+        accepting connections.
     """
 
     async def app(scope, receive, send):
