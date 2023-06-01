@@ -111,7 +111,7 @@ exclude_lines = [
 ]
 
 [tool.coverage.coverage_conditional_plugin.rules]
-py-win32 = "sys_platform == 'win32"
+py-win32 = "sys_platform == 'win32'"
 py-not-win32 = "sys_platform != 'win32'"
 py-linux = "sys_platform == 'linux'"
 py-darwin = "sys_platform == 'darwin'"
