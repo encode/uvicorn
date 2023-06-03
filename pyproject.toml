@@ -103,7 +103,7 @@ parallel = true
 
 [tool.coverage.report]
 precision = 2
-fail_under = 96.57
+fail_under = 98.05
 show_missing = true
 skip_covered = true
 exclude_lines = [
