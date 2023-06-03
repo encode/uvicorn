@@ -34,6 +34,7 @@ jobs:
       - name: "Run tests"
         run: "scripts/test"
         shell: bash
+        timeout-minutes: 10
       - name: "Enforce coverage"
         run: "scripts/coverage"
         shell: bash
