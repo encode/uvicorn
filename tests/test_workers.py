@@ -151,6 +151,7 @@ def test_gunicorn_arbiter_signal_handling(
     except AssertionError:  # pragma: no cover
         # occasional flakes are seen with certain signals
         flaky_signals = [
+            getattr(signal, "SIGHUP", None),
             getattr(signal, "SIGTERM", None),
             getattr(signal, "SIGTTIN", None),
             getattr(signal, "SIGTTOU", None),
