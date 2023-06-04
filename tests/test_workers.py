@@ -155,6 +155,7 @@ def test_gunicorn_arbiter_signal_handling(
             getattr(signal, "SIGTTIN", None),
             getattr(signal, "SIGTTOU", None),
             getattr(signal, "SIGUSR2", None),
+            getattr(signal, "SIGWINCH", None),
         ]
         if signal_to_send not in flaky_signals:
             time.sleep(2)
