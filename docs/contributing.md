@@ -80,6 +80,16 @@ For example, to run a single test script:
 $ scripts/test tests/test_cli.py
 ```
 
+Some of the tests start separate subprocesses. These tests are more complex in some ways, and can take longer, than the standard single-process tests. A [pytest mark](https://docs.pytest.org/en/latest/example/markers.html) is included to help control the behavior of subprocess tests.
+
+To run the test suite without subprocess tests:
+
+```shell
+$ scripts/test -m "not subprocess"
+```
+
+Note that test coverage will be lower without the subprocess tests.
+
 To run the code auto-formatting:
 
 ```shell
@@ -148,6 +158,10 @@ If tests succeed but coverage doesn't reach our current threshold, you will see 
 message under the coverage report:
 
 `Coverage failure: total of 88 is less than fail-under=95`
+
+Sometimes, a test will intermittently fail for no apparent reason ("flake"). In these cases, it can help to simply [re-run the failed GitHub Actions workflow job](https://docs.github.com/en/actions/managing-workflow-runs/re-running-workflows-and-jobs).
+
+The [GitHub Actions `jobs.<job_id>.strategy.fail-fast` setting](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions) controls how failures are handled. The default of `true` will fail the entire run when any job in the matrix fails. The test workflow job in this repo uses `fail-fast: false` to allow all the jobs to complete so that specific failed jobs can be identified.
 
 ## Releasing
 
