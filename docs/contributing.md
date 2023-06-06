@@ -159,10 +159,6 @@ message under the coverage report:
 
 `Coverage failure: total of 88 is less than fail-under=95`
 
-Sometimes, a test will intermittently fail for no apparent reason ("flake"). In these cases, it can help to simply [re-run the failed GitHub Actions workflow job](https://docs.github.com/en/actions/managing-workflow-runs/re-running-workflows-and-jobs).
-
-The [GitHub Actions `jobs.<job_id>.strategy.fail-fast` setting](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions) controls how failures are handled. The default of `true` will fail the entire run when any job in the matrix fails. The test workflow job in this repo uses `fail-fast: false` to allow all the jobs to complete so that specific failed jobs can be identified.
-
 ## Releasing
 
 *This section is targeted at Uvicorn maintainers.*
