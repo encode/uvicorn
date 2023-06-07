@@ -2,14 +2,9 @@ import http
 import logging
 import sys
 from copy import copy
-from typing import Optional
+from typing import Literal, Optional
 
 import click
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
 
 TRACE_LOG_LEVEL = 5
 

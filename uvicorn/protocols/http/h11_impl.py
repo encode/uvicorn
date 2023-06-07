@@ -1,12 +1,12 @@
 import asyncio
 import http
 import logging
-import sys
 from typing import (
     Any,
     Callable,
     Dict,
     List,
+    Literal,
     Optional,
     Tuple,
     Union,
@@ -43,12 +43,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
-
 
 H11Event = Union[
     h11.Request,
