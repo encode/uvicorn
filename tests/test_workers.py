@@ -107,18 +107,17 @@ def gunicorn_process(
         base_url = f"http://{bind}"
         verify = False
     args.append(app)
-    client = httpx.Client(base_url=base_url, verify=verify)
-    output = tempfile.TemporaryFile()
-    with Process(args, stdout=output, stderr=output) as process:
-        time.sleep(1)
-        assert not process.poll()
-        process.client = client
-        process.output = output
-        yield process
-        process.terminate()
-        process.wait(timeout=2)
-    client.close()
-    output.close()
+    with httpx.Client(
+        base_url=base_url, verify=verify
+    ) as client, tempfile.TemporaryFile() as output:
+        with Process(args, stdout=output, stderr=output) as process:
+            time.sleep(1)
+            assert not process.poll()
+            process.client = client
+            process.output = output
+            yield process
+            process.terminate()
+            process.wait(timeout=2)
 
 
 def test_get_request_to_asgi_app(gunicorn_process: Process) -> None:
@@ -201,14 +200,13 @@ def gunicorn_process_with_lifespan_startup_failure(
         "1",
         "tests.test_workers:app_with_lifespan_startup_failure",
     ]
-    output = tempfile.TemporaryFile()
-    with Process(args, stdout=output, stderr=output) as process:
-        time.sleep(1)
-        process.output = output
-        yield process
-        process.terminate()
-        process.wait(timeout=2)
-    output.close()
+    with tempfile.TemporaryFile() as output:
+        with Process(args, stdout=output, stderr=output) as process:
+            time.sleep(1)
+            process.output = output
+            yield process
+            process.terminate()
+            process.wait(timeout=2)
 
 
 def test_uvicorn_worker_boot_error(
