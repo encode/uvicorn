@@ -17,6 +17,8 @@ if TYPE_CHECKING:
     from asgiref.typing import (
         ASGIReceiveCallable,
         ASGISendCallable,
+        HTTPResponseBodyEvent,
+        HTTPResponseStartEvent,
         LifespanStartupFailedEvent,
         Scope,
     )
@@ -55,6 +57,25 @@ def worker_class(request: pytest.FixtureRequest) -> str:
     return f"{worker_class.__module__}.{worker_class.__name__}"
 
 
+async def app(
+    scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+) -> None:
+    assert scope["type"] == "http"
+    start_event: HTTPResponseStartEvent = {
+        "type": "http.response.start",
+        "status": 204,
+        "headers": [],
+        # "trailers": False,  # will be required on asgiref==3.6.0
+    }
+    body_event: HTTPResponseBodyEvent = {
+        "type": "http.response.body",
+        "body": b"",
+        "more_body": False,
+    }
+    await send(start_event)
+    await send(body_event)
+
+
 @pytest.fixture(
     params=(
         pytest.param(False, id="TLS off"),
@@ -75,7 +96,7 @@ def gunicorn_process(
     An instance of `httpx.Client` is available on the `client` attribute.
     Output is saved to a temporary file and accessed with `read_output()`.
     """
-    app = "tests.test_main:app"
+    app = "tests.test_workers:app"
     bind = f"127.0.0.1:{unused_tcp_port}"
     use_tls: bool = request.param
     args = [
