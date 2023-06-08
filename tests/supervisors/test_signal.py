@@ -11,7 +11,7 @@ from uvicorn.config import Config
 
 
 @pytest.mark.anyio
-async def test_sigint_finish_req(unused_tcp_port: int):
+async def test_sigint_finish_req():
     """
     1. Request is sent
     2. Sigint is sent to uvicorn
@@ -29,13 +29,11 @@ async def test_sigint_finish_req(unused_tcp_port: int):
         await server_event.wait()
         await send({"type": "http.response.body", "body": b"end", "more_body": False})
 
-    config = Config(
-        app=wait_app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1
-    )
+    config = Config(app=wait_app, reload=False, timeout_graceful_shutdown=1)
     server: Server
     async with run_server(config) as server:
         async with httpx.AsyncClient() as client:
-            req = asyncio.create_task(client.get(f"http://127.0.0.1:{unused_tcp_port}"))
+            req = asyncio.create_task(client.get("http://127.0.0.1:8000"))
             await asyncio.sleep(0.1)  # ensure next tick
             server.handle_exit(sig=signal.SIGINT, frame=None)  # exit
             server_event.set()  # continue request
@@ -45,7 +43,7 @@ async def test_sigint_finish_req(unused_tcp_port: int):
 
 
 @pytest.mark.anyio
-async def test_sigint_abort_req(unused_tcp_port: int, caplog):
+async def test_sigint_abort_req(caplog):
     """
     1. Request is sent
     2. Sigint is sent to uvicorn
@@ -64,13 +62,11 @@ async def test_sigint_abort_req(unused_tcp_port: int, caplog):
         await server_event.wait()
         await send({"type": "http.response.body", "body": b"end", "more_body": False})
 
-    config = Config(
-        app=forever_app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1
-    )
+    config = Config(app=forever_app, reload=False, timeout_graceful_shutdown=1)
     server: Server
     async with run_server(config) as server:
         async with httpx.AsyncClient() as client:
-            req = asyncio.create_task(client.get(f"http://127.0.0.1:{unused_tcp_port}"))
+            req = asyncio.create_task(client.get("http://127.0.0.1:8000"))
             await asyncio.sleep(0.1)  # next tick
             # trigger exit, this request should time out in ~1 sec
             server.handle_exit(sig=signal.SIGINT, frame=None)
@@ -85,7 +81,7 @@ async def test_sigint_abort_req(unused_tcp_port: int, caplog):
 
 
 @pytest.mark.anyio
-async def test_sigint_deny_request_after_triggered(unused_tcp_port: int, caplog):
+async def test_sigint_deny_request_after_triggered(caplog):
     """
     1. Server is started
     2. Shutdown sequence start
@@ -99,9 +95,7 @@ async def test_sigint_deny_request_after_triggered(unused_tcp_port: int, caplog)
         await send({"type": "http.response.start", "status": 200, "headers": []})
         await asyncio.sleep(1)
 
-    config = Config(
-        app=app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1
-    )
+    config = Config(app=app, reload=False, timeout_graceful_shutdown=1)
     server: Server
     async with run_server(config) as server:
         # exit and ensure we do not accept more requests
@@ -109,4 +103,4 @@ async def test_sigint_deny_request_after_triggered(unused_tcp_port: int, caplog)
         await asyncio.sleep(0.1)  # next tick
         async with httpx.AsyncClient() as client:
             with pytest.raises(httpx.ConnectError):
-                await client.get(f"http://127.0.0.1:{unused_tcp_port}")
+                await client.get("http://127.0.0.1:8000")
