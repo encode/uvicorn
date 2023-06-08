@@ -71,12 +71,6 @@ combine-as-imports = true
 disallow_untyped_defs = true
 ignore_missing_imports = true
 follow_imports = "silent"
-# NOTE: If you are seeing this, feel free to create a PR to cover the below files.
-exclude = """(?x)
-  ^(
-    |tests/protocols/test_utils.py
-  )$
-"""
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -96,10 +90,14 @@ filterwarnings = [
 [tool.coverage.run]
 source_pkgs = ["uvicorn", "tests"]
 plugins = ["coverage_conditional_plugin"]
+omit = [
+    "uvicorn/workers.py",
+    "uvicorn/__main__.py",
+]
 
 [tool.coverage.report]
 precision = 2
-fail_under = 96.57
+fail_under = 98.10
 show_missing = true
 skip_covered = true
 exclude_lines = [
