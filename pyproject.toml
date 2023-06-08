@@ -68,6 +68,9 @@ ignore = ["B904", "B028"]
 combine-as-imports = true
 
 [tool.mypy]
+warn_unused_ignores = true
+warn_redundant_casts = true
+show_error_codes = true
 disallow_untyped_defs = true
 ignore_missing_imports = true
 follow_imports = "silent"
