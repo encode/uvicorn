@@ -750,7 +750,7 @@ async def test_connection_lost_before_handshake_complete(
         await asyncio.sleep(0.1)
         send_accept_task.set()
 
-    task.cancel()
+    await task
     assert response is not None
     assert response.status_code == 500, response.text
     assert response.text == "Internal Server Error"
