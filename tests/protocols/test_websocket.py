@@ -712,6 +712,7 @@ async def test_connection_lost_before_handshake_complete(
     ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
 ):
     send_accept_task = asyncio.Event()
+    response_received = asyncio.Event()
     disconnect_message = {}
 
     async def app(scope, receive, send):
@@ -735,6 +736,7 @@ async def test_connection_lost_before_handshake_complete(
                     "sec-websocket-key": "dGhlIHNhbXBsZSBub25jZQ==",
                 },
             )
+            response_received.set()
 
     config = Config(
         app=app,
@@ -750,7 +752,7 @@ async def test_connection_lost_before_handshake_complete(
         await asyncio.sleep(0.1)
         send_accept_task.set()
 
-    await task
+    await response_received.wait()
     assert response is not None
     assert response.status_code == 500, response.text
     assert response.text == "Internal Server Error"
