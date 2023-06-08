@@ -4,21 +4,22 @@ import io
 import sys
 import warnings
 from collections import deque
-from typing import TYPE_CHECKING, Deque, Iterable, Optional, Tuple
+from typing import Deque, Iterable, Optional, Tuple
 
-if TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGIReceiveCallable,
-        ASGIReceiveEvent,
-        ASGISendCallable,
-        ASGISendEvent,
-        HTTPRequestEvent,
-        HTTPResponseBodyEvent,
-        HTTPResponseStartEvent,
-        HTTPScope,
-    )
-
-from uvicorn._types import Environ, ExcInfo, StartResponse, WSGIApp
+from uvicorn._types import (
+    ASGIReceiveCallable,
+    ASGIReceiveEvent,
+    ASGISendCallable,
+    ASGISendEvent,
+    Environ,
+    ExcInfo,
+    HTTPRequestEvent,
+    HTTPResponseBodyEvent,
+    HTTPResponseStartEvent,
+    HTTPScope,
+    StartResponse,
+    WSGIApp,
+)
 
 
 def build_environ(

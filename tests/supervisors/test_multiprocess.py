@@ -1,12 +1,10 @@
 import signal
 import socket
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional
 
 from uvicorn import Config
+from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.supervisors import Multiprocess
-
-if TYPE_CHECKING:
-    from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
 
 async def app(
