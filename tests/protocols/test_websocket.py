@@ -760,6 +760,7 @@ async def test_connection_lost_before_handshake_complete(
 
     print("Server shutdown")
     await response_received.wait()
+    print("Wait... Is it getting here?")
     assert response is not None
     assert response.status_code == 500, response.text
     assert response.text == "Internal Server Error"
