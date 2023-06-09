@@ -739,6 +739,7 @@ async def test_connection_lost_before_handshake_complete(
             )
             print("Response received")
             response_received.set()
+            print("After response received")
 
     config = Config(
         app=app,
