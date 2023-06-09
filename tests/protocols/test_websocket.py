@@ -746,7 +746,9 @@ async def test_connection_lost_before_handshake_complete(
         port=unused_tcp_port,
     )
     async with run_server(config):
-        task = asyncio.create_task(websocket_session(f"ws://127.0.0.1:{unused_tcp_port}"))  # noqa: E501
+        task = asyncio.create_task(
+            websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
+        )
         await asyncio.sleep(0.1)
         send_accept_task.set()
 
