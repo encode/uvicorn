@@ -746,7 +746,7 @@ async def test_connection_lost_before_handshake_complete(
         port=unused_tcp_port,
     )
     async with run_server(config):
-        asyncio.create_task(websocket_session(f"ws://127.0.0.1:{unused_tcp_port}"))
+        task = asyncio.create_task(websocket_session(f"ws://127.0.0.1:{unused_tcp_port}"))  # noqa: E501
         await asyncio.sleep(0.1)
         send_accept_task.set()
 
@@ -755,6 +755,7 @@ async def test_connection_lost_before_handshake_complete(
     assert response.status_code == 500, response.text
     assert response.text == "Internal Server Error"
     assert disconnect_message == {"type": "websocket.disconnect", "code": 1006}
+    await task
 
 
 @pytest.mark.anyio
