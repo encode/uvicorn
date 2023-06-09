@@ -111,6 +111,9 @@ exclude_lines = [
     "raise NotImplementedError",
 ]
 
+[tool.coverage.coverage_conditional_plugin.omit]
+"uvicorn/loops/uvloop.py" = "sys_platform == 'win32'"
+
 [tool.coverage.coverage_conditional_plugin.rules]
 py-win32 = "sys_platform == 'win32'"
 py-not-win32 = "sys_platform != 'win32'"

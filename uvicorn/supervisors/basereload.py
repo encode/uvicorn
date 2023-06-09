@@ -41,9 +41,9 @@ class BaseReload:
         A signal handler that is registered with the parent process.
         """
         if sys.platform == "win32" and self.is_restarting:
-            self.is_restarting = False  # pragma: py-not-win32
+            self.is_restarting = False  # pragma: py-win32
         else:
-            self.should_exit.set()  # pragma: py-win32
+            self.should_exit.set()  # pragma: py-not-win32
 
     def run(self) -> None:
         self.startup()
@@ -85,11 +85,11 @@ class BaseReload:
         self.process.start()
 
     def restart(self) -> None:
-        if sys.platform == "win32":  # pragma: py-not-win32
+        if sys.platform == "win32":  # pragma: py-win32
             self.is_restarting = True
             assert self.process.pid is not None
             os.kill(self.process.pid, signal.CTRL_C_EVENT)
-        else:  # pragma: py-win32
+        else:  # pragma: py-not-win32
             self.process.terminate()
         self.process.join()
 
@@ -100,9 +100,9 @@ class BaseReload:
 
     def shutdown(self) -> None:
         if sys.platform == "win32":
-            self.should_exit.set()  # pragma: py-not-win32
+            self.should_exit.set()  # pragma: py-win32
         else:
-            self.process.terminate()  # pragma: py-win32
+            self.process.terminate()  # pragma: py-not-win32
         self.process.join()
 
         for sock in self.sockets:
