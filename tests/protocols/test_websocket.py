@@ -726,7 +726,6 @@ async def test_connection_lost_before_handshake_complete(
     async def websocket_session(uri):
         nonlocal response
         async with httpx.AsyncClient() as client:
-            print("2.5")
             response = await client.get(
                 f"http://127.0.0.1:{unused_tcp_port}",
                 headers={
