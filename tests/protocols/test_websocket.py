@@ -766,6 +766,7 @@ async def test_connection_lost_before_handshake_complete(
     assert response.status_code == 500, response.text
     assert response.text == "Internal Server Error"
     assert disconnect_message == {"type": "websocket.disconnect", "code": 1006}
+    await task
 
 
 @pytest.mark.anyio
