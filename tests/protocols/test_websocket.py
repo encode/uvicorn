@@ -712,7 +712,6 @@ async def test_connection_lost_before_handshake_complete(
     ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
 ):
     send_accept_task = asyncio.Event()
-    response_received = asyncio.Event()
     disconnect_message = {}
 
     async def app(scope, receive, send):
