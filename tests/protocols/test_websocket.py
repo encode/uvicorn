@@ -727,7 +727,6 @@ async def test_connection_lost_before_handshake_complete(
     async def websocket_session(uri):
         nonlocal response
         async with httpx.AsyncClient() as client:
-            print("Sending request")
             response = await client.get(
                 f"http://127.0.0.1:{unused_tcp_port}",
                 headers={
@@ -737,9 +736,7 @@ async def test_connection_lost_before_handshake_complete(
                     "sec-websocket-key": "dGhlIHNhbXBsZSBub25jZQ==",
                 },
             )
-            print("Response received")
-            response_received.set()
-            print("After response received")
+        response_received.set()
 
     config = Config(
         app=app,
@@ -749,18 +746,13 @@ async def test_connection_lost_before_handshake_complete(
         port=unused_tcp_port,
     )
     async with run_server(config):
-        print("Server created")
         task = asyncio.create_task(
             websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
         )
-        print("Task created")
         await asyncio.sleep(0.1)
-        print("Slept")
         send_accept_task.set()
 
-    print("Server shutdown")
     await response_received.wait()
-    print("Wait... Is it getting here?")
     assert response is not None
     assert response.status_code == 500, response.text
     assert response.text == "Internal Server Error"
