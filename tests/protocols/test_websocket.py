@@ -719,14 +719,18 @@ async def test_connection_lost_before_handshake_complete(
         nonlocal disconnect_message
         message = await receive()
         if message["type"] == "websocket.connect":
+            print("3")
             await send_accept_task.wait()
+        print("6")
         disconnect_message = await receive()
 
     response: typing.Optional[httpx.Response] = None
 
     async def websocket_session(uri):
         nonlocal response
+        print("2")
         async with httpx.AsyncClient() as client:
+            print("2.5")
             response = await client.get(
                 f"http://127.0.0.1:{unused_tcp_port}",
                 headers={
@@ -736,7 +740,7 @@ async def test_connection_lost_before_handshake_complete(
                     "sec-websocket-key": "dGhlIHNhbXBsZSBub25jZQ==",
                 },
             )
-        response_received.set()
+            print("8")
 
     config = Config(
         app=app,
@@ -746,18 +750,22 @@ async def test_connection_lost_before_handshake_complete(
         port=unused_tcp_port,
     )
     async with run_server(config):
+        print("0")
         task = asyncio.create_task(
             websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
         )
+        print("1")
         await asyncio.sleep(0.1)
+        print("4")
         send_accept_task.set()
+        print("5")
+        await asyncio.sleep(0.1)
+        print("7")
 
-    await response_received.wait()
     assert response is not None
     assert response.status_code == 500, response.text
     assert response.text == "Internal Server Error"
     assert disconnect_message == {"type": "websocket.disconnect", "code": 1006}
-    task.cancel()
 
 
 @pytest.mark.anyio
