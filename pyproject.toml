@@ -100,7 +100,7 @@ omit = [
 
 [tool.coverage.report]
 precision = 2
-fail_under = 98.10
+fail_under = 98.28
 show_missing = true
 skip_covered = true
 exclude_lines = [
@@ -112,7 +112,7 @@ exclude_lines = [
 ]
 
 [tool.coverage.coverage_conditional_plugin.omit]
-"uvicorn/loops/uvloop.py" = "sys_platform == 'win32'"
+"sys_platform == 'win32'" = ["uvicorn/loops/uvloop.py"]
 
 [tool.coverage.coverage_conditional_plugin.rules]
 py-win32 = "sys_platform == 'win32'"
@@ -121,5 +121,5 @@ py-linux = "sys_platform == 'linux'"
 py-darwin = "sys_platform == 'darwin'"
 py-gte-38 = "sys_version_info >= (3, 8)"
 py-lt-38 =  "sys_version_info < (3, 8)"
-py-gte-39 = "sys_version_info < (3, 9)"
+py-gte-39 = "sys_version_info >= (3, 9)"
 py-lt-39 = "sys_version_info < (3, 9)"
