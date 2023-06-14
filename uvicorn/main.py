@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import multiprocessing
 import os
 import platform
 import ssl
@@ -558,13 +559,17 @@ def run(
     )
     server = Server(config=config)
 
-    if (config.reload or config.workers > 1) and not isinstance(app, str):
+    is_main_process = multiprocessing.current_process().name == "MainProcess"
+    # fmt: off
+    if (config.reload or config.workers > 1) and not isinstance(app, str) or not is_main_process:  # noqa
         logger = logging.getLogger("uvicorn.error")
-        logger.warning(
-            "You must pass the application as an import string to enable 'reload' or "
-            "'workers'."
-        )
+        if not isinstance(app, str):
+            msg = "You must pass the application as an import string to enable 'reload' or 'workers'."  # noqa: E501
+        elif not is_main_process:
+            msg = "You must run `uvicorn.run()` inside a `if __name__ == '__main__'` block."  # noqa: E501
+        logger.error(msg)
         sys.exit(1)
+    # fmt: on
 
     if config.should_reload:
         sock = config.bind_socket()
