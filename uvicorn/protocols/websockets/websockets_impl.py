@@ -3,7 +3,6 @@ import http
 import logging
 import sys
 from typing import (
-    TYPE_CHECKING,
     Any,
     Dict,
     List,
@@ -23,6 +22,16 @@ from websockets.legacy.server import HTTPResponse
 from websockets.server import WebSocketServerProtocol
 from websockets.typing import Subprotocol
 
+from uvicorn._types import (
+    ASGISendEvent,
+    WebSocketAcceptEvent,
+    WebSocketCloseEvent,
+    WebSocketConnectEvent,
+    WebSocketDisconnectEvent,
+    WebSocketReceiveEvent,
+    WebSocketScope,
+    WebSocketSendEvent,
+)
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import (
@@ -37,18 +46,6 @@ if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
 else:  # pragma: py-lt-38
     from typing import Literal
-
-if TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGISendEvent,
-        WebSocketAcceptEvent,
-        WebSocketCloseEvent,
-        WebSocketConnectEvent,
-        WebSocketDisconnectEvent,
-        WebSocketReceiveEvent,
-        WebSocketScope,
-        WebSocketSendEvent,
-    )
 
 
 class Server:
@@ -189,7 +186,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             for name, value in headers.raw_items()
         ]
 
-        self.scope = {  # type: ignore[typeddict-item]
+        self.scope = {
             "type": "websocket",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
             "http_version": "1.1",

@@ -68,15 +68,12 @@ ignore = ["B904", "B028"]
 combine-as-imports = true
 
 [tool.mypy]
+warn_unused_ignores = true
+warn_redundant_casts = true
+show_error_codes = true
 disallow_untyped_defs = true
 ignore_missing_imports = true
 follow_imports = "silent"
-# NOTE: If you are seeing this, feel free to create a PR to cover the below files.
-exclude = """(?x)
-  ^(
-    |tests/protocols/test_utils.py
-  )$
-"""
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -99,11 +96,14 @@ markers = [
 [tool.coverage.run]
 source_pkgs = ["uvicorn", "tests"]
 plugins = ["coverage_conditional_plugin"]
+omit = [
+    "uvicorn/__main__.py",
+]
 parallel = true
 
 [tool.coverage.report]
 precision = 2
-fail_under = 98.05
+fail_under = 98.28
 show_missing = true
 skip_covered = true
 exclude_lines = [
@@ -115,7 +115,11 @@ exclude_lines = [
 ]
 
 [tool.coverage.coverage_conditional_plugin.omit]
-"sys_platform == 'win32'" = ["tests/test_workers.py", "uvicorn/workers.py"]
+"sys_platform == 'win32'" = [
+  "tests/test_workers.py",
+  "uvicorn/loops/uvloop.py",
+  "uvicorn/workers.py",
+]
 
 [tool.coverage.coverage_conditional_plugin.rules]
 py-win32 = "sys_platform == 'win32'"
@@ -124,5 +128,5 @@ py-linux = "sys_platform == 'linux'"
 py-darwin = "sys_platform == 'darwin'"
 py-gte-38 = "sys_version_info >= (3, 8)"
 py-lt-38 =  "sys_version_info < (3, 8)"
-py-gte-39 = "sys_version_info < (3, 9)"
+py-gte-39 = "sys_version_info >= (3, 9)"
 py-lt-39 = "sys_version_info < (3, 9)"

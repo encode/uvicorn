@@ -13,7 +13,14 @@ import yaml
 from pytest_mock import MockerFixture
 
 from tests.utils import as_cwd
-from uvicorn._types import Environ, StartResponse
+from uvicorn._types import (
+    ASGIApplication,
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    Environ,
+    Scope,
+    StartResponse,
+)
 from uvicorn.config import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
@@ -23,14 +30,6 @@ if sys.version_info < (3, 8):  # pragma: py-gte-38
     from typing_extensions import Literal
 else:  # pragma: py-lt-38
     from typing import Literal
-
-if typing.TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGIApplication,
-        ASGIReceiveCallable,
-        ASGISendCallable,
-        Scope,
-    )
 
 
 @pytest.fixture

@@ -9,6 +9,7 @@ import typing
 import click
 
 import uvicorn
+from uvicorn._types import ASGIApplication
 from uvicorn.config import (
     HTTP_PROTOCOLS,
     INTERFACES,
@@ -27,9 +28,6 @@ from uvicorn.config import (
 )
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
-
-if typing.TYPE_CHECKING:
-    from asgiref.typing import ASGIApplication
 
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
 HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))

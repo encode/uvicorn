@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from ssl import SSLContext
     from typing import IO, Generator
 
-    from asgiref.typing import (
+    from uvicorn._types import (
         ASGIReceiveCallable,
         ASGISendCallable,
         HTTPResponseBodyEvent,
@@ -65,7 +65,6 @@ async def app(
         "type": "http.response.start",
         "status": 204,
         "headers": [],
-        # "trailers": False,  # will be required on asgiref==3.6.0
     }
     body_event: HTTPResponseBodyEvent = {
         "type": "http.response.body",
