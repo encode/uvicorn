@@ -14,23 +14,18 @@ from typing import (
     Callable,
     Dict,
     List,
+    Literal,
     Optional,
     Tuple,
     Type,
     Union,
 )
 
-from uvicorn.logging import TRACE_LOG_LEVEL
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
-
 import click
 
 from uvicorn._types import ASGIApplication
 from uvicorn.importer import ImportFromStringError, import_from_string
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware

@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "The lightning-fast ASGI server."
 readme = "README.md"
 license = "BSD-3-Clause"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 authors = [
     { name = "Tom Christie", email = "tom@tomchristie.com" },
 ]
@@ -19,7 +19,6 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -31,7 +30,6 @@ classifiers = [
 dependencies = [
     "click>=7.0",
     "h11>=0.8",
-    "typing-extensions;python_version < '3.8'",
 ]
 
 [project.optional-dependencies]

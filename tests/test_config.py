@@ -5,7 +5,7 @@ import socket
 import sys
 import typing
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 from unittest.mock import MagicMock
 
 import pytest
@@ -25,11 +25,6 @@ from uvicorn.config import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
 
 
 @pytest.fixture
