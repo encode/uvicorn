@@ -42,7 +42,7 @@ standard = [
     "PyYAML>=5.1",
     "uvloop>=0.14.0,!=0.15.0,!=0.15.1; sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')",
     "watchfiles>=0.13",
-    "websockets>=10.4,<12",
+    "websockets>=10.4",
 ]
 
 [project.scripts]

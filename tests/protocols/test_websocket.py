@@ -568,11 +568,13 @@ async def test_asgi_return_value(
 
     async def app(scope, receive, send):
         await send({"type": "websocket.accept"})
+        await send({"type": "websocket.send", "text": "123"})
         return 123
 
     async def connect(url):
         async with websockets.client.connect(url) as websocket:
-            _ = await websocket.recv()
+            await websocket.recv()
+            await websocket.recv()
 
     config = Config(
         app=app,
@@ -584,7 +586,7 @@ async def test_asgi_return_value(
     async with run_server(config):
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
             await connect(f"ws://127.0.0.1:{unused_tcp_port}")
-        assert exc_info.value.code in {1000, 1006}
+        assert exc_info.value.code == 1006
 
 
 @pytest.mark.anyio
