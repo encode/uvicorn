@@ -28,6 +28,8 @@ HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
 )
+if sys.platform == "win32":  # pragma: py-not-win32
+    HANDLED_SIGNALS += (signal.SIGBREAK,)  # Windows signal 21. Sent by Ctrl+Break.
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -275,6 +277,28 @@ class Server:
             connection.shutdown()
         await asyncio.sleep(0.1)
 
+        # When 3.10 is not supported anymore, use `async with asyncio.timeout(...):`.
+        try:
+            await asyncio.wait_for(
+                self._wait_tasks_to_complete(),
+                timeout=self.config.timeout_graceful_shutdown,
+            )
+        except asyncio.TimeoutError:
+            logger.error(
+                "Cancel %s running task(s), timeout graceful shutdown exceeded",
+                len(self.server_state.tasks),
+            )
+            for t in self.server_state.tasks:
+                if sys.version_info < (3, 9):  # pragma: py-gte-39
+                    t.cancel()
+                else:  # pragma: py-lt-39
+                    t.cancel(msg="Task cancelled, timeout graceful shutdown exceeded")
+
+        # Send the lifespan shutdown event, and wait for application shutdown.
+        if not self.force_exit:
+            await self.lifespan.shutdown()
+
+    async def _wait_tasks_to_complete(self) -> None:
         # Wait for existing connections to finish sending responses.
         if self.server_state.connections and not self.force_exit:
             msg = "Waiting for connections to close. (CTRL+C to force quit)"
@@ -288,10 +312,6 @@ class Server:
             logger.info(msg)
             while self.server_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
-
-        # Send the lifespan shutdown event, and wait for application shutdown.
-        if not self.force_exit:
-            await self.lifespan.shutdown()
 
     def install_signal_handlers(self) -> None:
         if threading.current_thread() is not threading.main_thread():

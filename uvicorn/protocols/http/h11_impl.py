@@ -1,13 +1,12 @@
 import asyncio
 import http
 import logging
-import sys
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
     List,
+    Literal,
     Optional,
     Tuple,
     Union,
@@ -18,6 +17,16 @@ from urllib.parse import unquote
 import h11
 from h11._connection import DEFAULT_MAX_INCOMPLETE_EVENT_SIZE
 
+from uvicorn._types import (
+    ASGI3Application,
+    ASGIReceiveEvent,
+    ASGISendEvent,
+    HTTPDisconnectEvent,
+    HTTPRequestEvent,
+    HTTPResponseBodyEvent,
+    HTTPResponseStartEvent,
+    HTTPScope,
+)
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import (
@@ -34,24 +43,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
-
-if TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGI3Application,
-        ASGIReceiveEvent,
-        ASGISendEvent,
-        HTTPDisconnectEvent,
-        HTTPRequestEvent,
-        HTTPResponseBodyEvent,
-        HTTPResponseStartEvent,
-        HTTPScope,
-    )
-
 
 H11Event = Union[
     h11.Request,
@@ -226,7 +217,7 @@ class H11Protocol(asyncio.Protocol):
             elif event_type is h11.Request:
                 self.headers = [(key.lower(), value) for key, value in event.headers]
                 raw_path, _, query_string = event.target.partition(b"?")
-                self.scope = {  # type: ignore[typeddict-item]
+                self.scope = {
                     "type": "http",
                     "asgi": {
                         "version": self.config.asgi_version,

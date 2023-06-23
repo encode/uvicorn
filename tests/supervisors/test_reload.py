@@ -1,9 +1,10 @@
 import logging
 import signal
 import socket
+import sys
 from pathlib import Path
 from time import sleep
-from typing import Optional, Type
+from typing import List, Optional, Type
 
 import pytest
 
@@ -15,12 +16,12 @@ from uvicorn.supervisors.statreload import StatReload
 try:
     from uvicorn.supervisors.watchfilesreload import WatchFilesReload
 except ImportError:  # pragma: no cover
-    WatchFilesReload = None
+    WatchFilesReload = None  # type: ignore[misc,assignment]
 
 try:
     from uvicorn.supervisors.watchgodreload import WatchGodReload
 except ImportError:  # pragma: no cover
-    WatchGodReload = None
+    WatchGodReload = None  # type: ignore[misc,assignment]
 
 
 def run(sockets):
@@ -52,7 +53,9 @@ class TestBaseReload:
         reloader.startup()
         return reloader
 
-    def _reload_tester(self, touch_soon, reloader: BaseReload, *files: Path) -> bool:
+    def _reload_tester(
+        self, touch_soon, reloader: BaseReload, *files: Path
+    ) -> Optional[List[Path]]:
         reloader.restart()
         if WatchFilesReload is not None and isinstance(reloader, WatchFilesReload):
             touch_soon(*files)
@@ -266,6 +269,7 @@ class TestBaseReload:
 
             from watchfiles import watch
 
+            assert isinstance(reloader, WatchFilesReload)
             # just so we can make rust_timeout 100ms
             reloader.watcher = watch(
                 sub_dir,
@@ -393,7 +397,10 @@ def test_base_reloader_should_exit(tmp_path):
     assert not reloader.should_exit.is_set()
     reloader.pause()
 
-    reloader.signal_handler(signal.SIGINT, None)
+    if sys.platform == "win32":
+        reloader.signal_handler(signal.CTRL_C_EVENT, None)  # pragma: py-not-win32
+    else:
+        reloader.signal_handler(signal.SIGINT, None)  # pragma: py-win32
 
     assert reloader.should_exit.is_set()
     with pytest.raises(StopIteration):

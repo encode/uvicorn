@@ -11,6 +11,6 @@ set -x
 
 ./scripts/sync-version
 ${PREFIX}black --check --diff --target-version=py37 $SOURCE_FILES
-${PREFIX}mypy --show-error-codes $SOURCE_FILES
-${PREFIX}ruff --diff $SOURCE_FILES
+${PREFIX}mypy $SOURCE_FILES
+${PREFIX}ruff check $SOURCE_FILES
 ${PREFIX}python -m tools.cli_usage --check

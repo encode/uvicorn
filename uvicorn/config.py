@@ -9,35 +9,27 @@ import ssl
 import sys
 from pathlib import Path
 from typing import (
-    TYPE_CHECKING,
     Any,
     Awaitable,
     Callable,
     Dict,
     List,
+    Literal,
     Optional,
     Tuple,
     Type,
     Union,
 )
 
-from uvicorn.logging import TRACE_LOG_LEVEL
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
-
 import click
 
+from uvicorn._types import ASGIApplication
 from uvicorn.importer import ImportFromStringError, import_from_string
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
-
-if TYPE_CHECKING:
-    from asgiref.typing import ASGIApplication
 
 HTTPProtocolType = Literal["auto", "h11", "httptools"]
 WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
@@ -230,6 +222,7 @@ class Config:
         backlog: int = 2048,
         timeout_keep_alive: int = 5,
         timeout_notify: int = 30,
+        timeout_graceful_shutdown: Optional[int] = None,
         callback_notify: Optional[Callable[..., Awaitable[None]]] = None,
         ssl_keyfile: Optional[str] = None,
         ssl_certfile: Optional[Union[str, os.PathLike]] = None,
@@ -272,6 +265,7 @@ class Config:
         self.backlog = backlog
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
+        self.timeout_graceful_shutdown = timeout_graceful_shutdown
         self.callback_notify = callback_notify
         self.ssl_keyfile = ssl_keyfile
         self.ssl_certfile = ssl_certfile
@@ -502,7 +496,7 @@ class Config:
         elif self.interface == "asgi2":
             self.loaded_app = ASGI2Middleware(self.loaded_app)
 
-        if logger.level <= TRACE_LOG_LEVEL:
+        if logger.getEffectiveLevel() <= TRACE_LOG_LEVEL:
             self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
             self.loaded_app = ProxyHeadersMiddleware(

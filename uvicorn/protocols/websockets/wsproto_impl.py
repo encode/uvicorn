@@ -1,7 +1,7 @@
 import asyncio
 import logging
-import sys
 import typing
+from typing import Literal
 from urllib.parse import unquote
 
 import wsproto
@@ -10,6 +10,15 @@ from wsproto.connection import ConnectionState
 from wsproto.extensions import Extension, PerMessageDeflate
 from wsproto.utilities import RemoteProtocolError
 
+from uvicorn._types import (
+    ASGISendEvent,
+    WebSocketAcceptEvent,
+    WebSocketCloseEvent,
+    WebSocketEvent,
+    WebSocketReceiveEvent,
+    WebSocketScope,
+    WebSocketSendEvent,
+)
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import (
@@ -19,29 +28,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
-if typing.TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGISendEvent,
-        WebSocketAcceptEvent,
-        WebSocketCloseEvent,
-        WebSocketConnectEvent,
-        WebSocketDisconnectEvent,
-        WebSocketReceiveEvent,
-        WebSocketScope,
-        WebSocketSendEvent,
-    )
-
-    WebSocketEvent = typing.Union[
-        "WebSocketReceiveEvent",
-        "WebSocketDisconnectEvent",
-        "WebSocketConnectEvent",
-    ]
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
 
 
 class WSProtocol(asyncio.Protocol):
@@ -172,7 +158,7 @@ class WSProtocol(asyncio.Protocol):
         headers = [(b"host", event.host.encode())]
         headers += [(key.lower(), value) for key, value in event.extra_headers]
         raw_path, _, query_string = event.target.partition("?")
-        self.scope: "WebSocketScope" = {  # type: ignore[typeddict-item]
+        self.scope: "WebSocketScope" = {
             "type": "websocket",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
             "http_version": "1.1",
@@ -185,7 +171,6 @@ class WSProtocol(asyncio.Protocol):
             "query_string": query_string.encode("ascii"),
             "headers": headers,
             "subprotocols": event.subprotocols,
-            "extensions": None,
             "state": self.app_state.copy(),
         }
         self.queue.put_nowait({"type": "websocket.connect"})

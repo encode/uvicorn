@@ -9,6 +9,7 @@ import typing
 import click
 
 import uvicorn
+from uvicorn._types import ASGIApplication
 from uvicorn.config import (
     HTTP_PROTOCOLS,
     INTERFACES,
@@ -27,9 +28,6 @@ from uvicorn.config import (
 )
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
-
-if typing.TYPE_CHECKING:
-    from asgiref.typing import ASGIApplication
 
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
 HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
@@ -71,7 +69,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--port",
     type=int,
     default=8000,
-    help="Bind socket to this port.",
+    help="Bind socket to this port. If 0, an available port will be picked.",
     show_default=True,
 )
 @click.option("--uds", type=str, default=None, help="Bind to a UNIX domain socket.")
@@ -274,6 +272,12 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
+    "--timeout-graceful-shutdown",
+    type=int,
+    default=None,
+    help="Maximum number of seconds to wait for graceful shutdown.",
+)
+@click.option(
     "--ssl-keyfile", type=str, default=None, help="SSL key file", show_default=True
 )
 @click.option(
@@ -387,6 +391,7 @@ def main(
     backlog: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
+    timeout_graceful_shutdown: typing.Optional[int],
     ssl_keyfile: str,
     ssl_certfile: str,
     ssl_keyfile_password: str,
@@ -434,6 +439,7 @@ def main(
         backlog=backlog,
         limit_max_requests=limit_max_requests,
         timeout_keep_alive=timeout_keep_alive,
+        timeout_graceful_shutdown=timeout_graceful_shutdown,
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
         ssl_keyfile_password=ssl_keyfile_password,
@@ -486,6 +492,7 @@ def run(
     backlog: int = 2048,
     limit_max_requests: typing.Optional[int] = None,
     timeout_keep_alive: int = 5,
+    timeout_graceful_shutdown: typing.Optional[int] = None,
     ssl_keyfile: typing.Optional[str] = None,
     ssl_certfile: typing.Optional[typing.Union[str, os.PathLike]] = None,
     ssl_keyfile_password: typing.Optional[str] = None,
@@ -536,6 +543,7 @@ def run(
         backlog=backlog,
         limit_max_requests=limit_max_requests,
         timeout_keep_alive=timeout_keep_alive,
+        timeout_graceful_shutdown=timeout_graceful_shutdown,
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
         ssl_keyfile_password=ssl_keyfile_password,

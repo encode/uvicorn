@@ -1,5 +1,17 @@
 # Change Log
 
+## 0.22.0 - 2023-04-28
+
+### Added
+
+- Add `--timeout-graceful-shutdown` parameter (#1950) 26/04/23
+- Handle `SIGBREAK` on Windows (#1909) 15/04/23
+
+### Fixed
+
+- Shutdown event is now being triggered on Windows when using hot reload (#1584) 13/04/23
+- `--reload-delay` is effectively used on the `watchfiles` reloader (#1930) 22/04/23
+
 ## 0.21.1 - 2023-03-16
 
 ### Fixed

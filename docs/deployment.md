@@ -33,7 +33,8 @@ Usage: uvicorn [OPTIONS] APP
 Options:
   --host TEXT                     Bind socket to this host.  [default:
                                   127.0.0.1]
-  --port INTEGER                  Bind socket to this port.  [default: 8000]
+  --port INTEGER                  Bind socket to this port. If 0, an available
+                                  port will be picked.  [default: 8000]
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
   --reload                        Enable auto-reload.
@@ -104,6 +105,9 @@ Options:
   --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
                                   is received within this timeout.  [default:
                                   5]
+  --timeout-graceful-shutdown INTEGER
+                                  Maximum number of seconds to wait for
+                                  graceful shutdown.
   --ssl-keyfile TEXT              SSL key file
   --ssl-certfile TEXT             SSL certificate file
   --ssl-keyfile-password TEXT     SSL keyfile password

@@ -1,16 +1,13 @@
 import io
 import sys
-from typing import TYPE_CHECKING, AsyncGenerator, Callable, List
+from typing import AsyncGenerator, Callable, List
 
 import a2wsgi
 import httpx
 import pytest
 
-from uvicorn._types import Environ, StartResponse
+from uvicorn._types import Environ, HTTPRequestEvent, HTTPScope, StartResponse
 from uvicorn.middleware import wsgi
-
-if TYPE_CHECKING:
-    from asgiref.typing import HTTPRequestEvent, HTTPScope
 
 
 def hello_world(environ: Environ, start_response: StartResponse) -> List[bytes]:
