@@ -41,14 +41,14 @@ class Multiprocess:
         """
         self.should_exit.set()
 
-    def start_worker_process(self):
+    def start_worker_process(self) -> None:
         process = get_subprocess(
             config=self.config, target=self.target, sockets=self.sockets
         )
         process.start()
         self.processes.append(process)
 
-    def guard_check(self):
+    def guard_check(self) -> None:
         while not self.should_exit.isSet():
             for item in self.processes:
                 if item.is_alive():
