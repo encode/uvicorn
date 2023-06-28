@@ -109,6 +109,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.headers: List[Tuple[bytes, bytes]] = None  # type: ignore[assignment]
         self.expect_100_continue = False
         self.cycle: RequestResponseCycle = None  # type: ignore[assignment]
+        self.len_body: int = None  # type: ignore[assignment]
 
     # Protocol interface
     def connection_made(  # type: ignore[override]
@@ -187,7 +188,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         except httptools.HttpParserError:
             msg = "Invalid HTTP request received."
             self.logger.warning(msg)
-            self.send_400_response(msg)
+            self.send_4xx_response(msg)
             return
         except httptools.HttpParserUpgrade:
             upgrade = self._get_upgrade()
@@ -214,8 +215,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         protocol.data_received(b"".join(output))
         self.transport.set_protocol(protocol)
 
-    def send_400_response(self, msg: str) -> None:
-        content = [STATUS_LINE[400]]
+    def send_4xx_response(self, msg: str, code: int = 400) -> None:
+        content = [STATUS_LINE[code]]
         for name, value in self.server_state.default_headers:
             content.extend([name, b": ", value, b"\r\n"])
         content.extend(
@@ -234,6 +235,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.url = b""
         self.expect_100_continue = False
         self.headers = []
+        self.len_body = 0
         self.scope = {  # type: ignore[typeddict-item]
             "type": "http",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
@@ -251,6 +253,17 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.url += url
 
     def on_header(self, name: bytes, value: bytes) -> None:
+        limit_header_name = self.config.limit_header_name or 0
+        limit_header_value = self.config.limit_header_value or 0
+
+        if limit_header_name > 0 and len(name) > limit_header_name:
+            self.send_4xx_response("Request Header Fields Too Large", 431)
+            return
+
+        if limit_header_value > 0 and len(value) > limit_header_value:
+            self.send_4xx_response("Request Header Fields Too Large", 431)
+            return
+
         name = name.lower()
         if name == b"expect" and value.lower() == b"100-continue":
             self.expect_100_continue = True
@@ -309,6 +322,12 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.pipeline.appendleft((self.cycle, app))
 
     def on_body(self, body: bytes) -> None:
+        self.len_body += len(body)
+        limit_body = self.config.limit_body or 0
+        if limit_body > 0 and self.len_body > limit_body:
+            self.send_4xx_response("Content Too Large", 413)
+            return
+
         if (
             self.parser.should_upgrade() and self._should_upgrade()
         ) or self.cycle.response_complete:

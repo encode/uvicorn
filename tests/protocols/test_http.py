@@ -898,17 +898,15 @@ async def test_huge_headers_h11protocol_failure():
 
 @pytest.mark.anyio
 @pytest.mark.skipif(HttpToolsProtocol is None, reason="httptools is not installed")
-async def test_huge_headers_httptools_will_pass():
+async def test_huge_headers_httptools_will_fail_with_setting():
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, HttpToolsProtocol)
-    # Huge headers make h11 fail in it's default config
-    # httptools protocol will always pass
+    # httptools protocol will fail when request header is larger than setting
     protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
     protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
-    await protocol.loop.run_one()
-    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-    assert b"Hello, world" in protocol.transport.buffer
+    assert b"HTTP/1.1 431" in protocol.transport.buffer
+    assert b"Request Header Fields Too Large" in protocol.transport.buffer
 
 
 @pytest.mark.anyio
@@ -933,12 +931,11 @@ async def test_huge_headers_httptools():
 
     protocol = get_connected_protocol(app, HttpToolsProtocol)
     # Huge headers make h11 fail in it's default config
-    # httptools protocol will always pass
+    # httptools protocol will be failed when request header is larger than setting
     protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
     protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
-    await protocol.loop.run_one()
-    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-    assert b"Hello, world" in protocol.transport.buffer
+    assert b"HTTP/1.1 431" in protocol.transport.buffer
+    assert b"Request Header Fields Too Large" in protocol.transport.buffer
 
 
 @pytest.mark.anyio
