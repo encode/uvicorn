@@ -118,6 +118,18 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     " variable if available, or 1. Not valid with --reload.",
 )
 @click.option(
+    "--guard",
+    default=True,
+    type=bool,
+    help="Guard of worker processes.",
+)
+@click.option(
+    "--guard-check-time",
+    default=1,
+    type=int,
+    help="Protect the check time of the working process. Time unit: second",
+)
+@click.option(
     "--loop",
     type=LOOP_CHOICES,
     default="auto",
@@ -378,6 +390,8 @@ def main(
     reload_excludes: typing.List[str],
     reload_delay: float,
     workers: int,
+    guard: bool,
+    guard_check_time: int,
     env_file: str,
     log_config: str,
     log_level: str,
@@ -430,6 +444,8 @@ def main(
         reload_excludes=reload_excludes or None,
         reload_delay=reload_delay,
         workers=workers,
+        guard=guard,
+        guard_check_time=guard_check_time,
         proxy_headers=proxy_headers,
         server_header=server_header,
         date_header=date_header,
@@ -477,6 +493,8 @@ def run(
     reload_excludes: typing.Optional[typing.Union[typing.List[str], str]] = None,
     reload_delay: float = 0.25,
     workers: typing.Optional[int] = None,
+    guard: bool = True,
+    guard_check_time: int = 1,
     env_file: typing.Optional[typing.Union[str, os.PathLike]] = None,
     log_config: typing.Optional[
         typing.Union[typing.Dict[str, typing.Any], str]
@@ -530,6 +548,8 @@ def run(
         reload_excludes=reload_excludes,
         reload_delay=reload_delay,
         workers=workers,
+        guard=guard,
+        guard_check_time=guard_check_time,
         env_file=env_file,
         log_config=log_config,
         log_level=log_level,

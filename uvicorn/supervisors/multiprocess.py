@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 import signal
 import threading
 from multiprocessing.context import SpawnProcess
@@ -40,8 +41,32 @@ class Multiprocess:
         """
         self.should_exit.set()
 
+    def start_worker_process(self):
+        process = get_subprocess(
+            config=self.config, target=self.target, sockets=self.sockets
+        )
+        process.start()
+        self.processes.append(process)
+
+    def guard_check(self):
+        while not self.should_exit.isSet():
+            for item in self.processes:
+                if item.is_alive():
+                    continue
+                else:
+                    self.processes.remove(item)
+                    logger.error(f'Worker process is die [{item.pid}]. '
+                                 f'Will restart in {self.config.guard_check_time} second')
+
+                    self.start_worker_process()
+                    break
+
+            time.sleep(self.config.guard_check_time)
+
     def run(self) -> None:
         self.startup()
+        if self.config.guard:
+            self.guard_check()
         self.should_exit.wait()
         self.shutdown()
 
@@ -56,11 +81,7 @@ class Multiprocess:
             signal.signal(sig, self.signal_handler)
 
         for _idx in range(self.config.workers):
-            process = get_subprocess(
-                config=self.config, target=self.target, sockets=self.sockets
-            )
-            process.start()
-            self.processes.append(process)
+            self.start_worker_process()
 
     def shutdown(self) -> None:
         for process in self.processes:

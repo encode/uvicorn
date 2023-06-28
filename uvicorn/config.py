@@ -212,6 +212,8 @@ class Config:
         reload_includes: Optional[Union[List[str], str]] = None,
         reload_excludes: Optional[Union[List[str], str]] = None,
         workers: Optional[int] = None,
+        guard: bool = True,
+        guard_check_time: int = 1,
         proxy_headers: bool = True,
         server_header: bool = True,
         date_header: bool = True,
@@ -256,6 +258,8 @@ class Config:
         self.reload = reload
         self.reload_delay = reload_delay
         self.workers = workers or 1
+        self.guard = guard
+        self.guard_check_time = guard_check_time
         self.proxy_headers = proxy_headers
         self.server_header = server_header
         self.date_header = date_header
