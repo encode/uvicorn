@@ -23,10 +23,10 @@ logger = logging.getLogger("uvicorn.error")
 
 class Multiprocess:
     def __init__(
-            self,
-            config: Config,
-            target: Callable[[Optional[List[socket]]], None],
-            sockets: List[socket],
+        self,
+        config: Config,
+        target: Callable[[Optional[List[socket]]], None],
+        sockets: List[socket],
     ) -> None:
         self.config = config
         self.target = target
@@ -56,8 +56,8 @@ class Multiprocess:
                 else:
                     self.processes.remove(item)
                     logger.error(
-                        f'Worker process is die [{item.pid}]. '
-                        f'Will restart in {self.config.guard_check_time} second'
+                        f"Worker process is die [{item.pid}]. "
+                        f"Will restart in {self.config.guard_check_time} second"
                     )
 
                     self.start_worker_process()
