@@ -124,6 +124,9 @@ Options:
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
                                   available, or 1. Not valid with --reload.
+  --guard BOOLEAN                 Guard of worker processes.
+  --guard-check-time INTEGER      Protect the check time of the working
+                                  process. Time unit: second
   --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
                                   auto]
