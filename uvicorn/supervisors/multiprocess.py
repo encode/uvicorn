@@ -1,7 +1,7 @@
 import logging
 import os
-import time
 import signal
+import time
 import threading
 from multiprocessing.context import SpawnProcess
 from socket import socket
