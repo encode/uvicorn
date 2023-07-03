@@ -80,6 +80,16 @@ For example, to run a single test script:
 $ scripts/test tests/test_cli.py
 ```
 
+Some of the tests start separate subprocesses. These tests are more complex in some ways, and can take longer, than the standard single-process tests. A [pytest mark](https://docs.pytest.org/en/latest/example/markers.html) is included to help control the behavior of subprocess tests.
+
+To run the test suite without subprocess tests:
+
+```shell
+$ scripts/test -m "not subprocess"
+```
+
+Note that test coverage will be lower without the subprocess tests.
+
 To run the code auto-formatting:
 
 ```shell
