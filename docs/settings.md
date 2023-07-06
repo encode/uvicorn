@@ -101,10 +101,10 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 * `--ssl-keyfile <path>` - SSL key file
 * `--ssl-keyfile-password <str>` - Password to decrypt the ssl key
 * `--ssl-certfile <path>` - SSL certificate file
-* `--ssl-version <int>` - SSL version to use (see stdlib ssl module's)
-* `--ssl-cert-reqs <int>` - Whether client certificate is required (see stdlib ssl module's)
+* `--ssl-version <int>` - SSL version to use (see stdlib ssl module's [SSL contexts](https://docs.python.org/3/library/ssl.html#ssl-contexts))
+* `--ssl-cert-reqs <int>` - Whether client certificate is required (see stdlib ssl module's [CERT_ constants](https://docs.python.org/3/library/ssl.html#ssl.CERT_NONE))
 * `--ssl-ca-certs <str>` - CA certificates file
-* `--ssl-ciphers <str>` - Ciphers to use (see stdlib ssl module's)
+* `--ssl-ciphers <str>` - Ciphers to use (see stdlib ssl module's [cipher selection](https://docs.python.org/3/library/ssl.html#cipher-selection))
 
 ## Resource Limits
 
