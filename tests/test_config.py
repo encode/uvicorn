@@ -514,6 +514,12 @@ def test_ws_max_size() -> None:
     assert config.ws_max_size == 1000
 
 
+def test_ws_max_queue() -> None:
+    config = Config(app=asgi_app, ws_max_queue=64)
+    config.load()
+    assert config.ws_max_queue == 64
+
+
 @pytest.mark.parametrize(
     "reload, workers",
     [

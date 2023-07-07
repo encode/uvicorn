@@ -146,6 +146,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
+    "--ws-max-queue",
+    type=int,
+    default=32,
+    help="WebSocket maximum length of the queue that holds incoming messages",
+    show_default=True,
+)
+@click.option(
     "--ws-ping-interval",
     type=float,
     default=20.0,
@@ -367,6 +374,7 @@ def main(
     http: HTTPProtocolType,
     ws: WSProtocolType,
     ws_max_size: int,
+    ws_max_queue: int,
     ws_ping_interval: float,
     ws_ping_timeout: float,
     ws_per_message_deflate: bool,
@@ -415,6 +423,7 @@ def main(
         http=http,
         ws=ws,
         ws_max_size=ws_max_size,
+        ws_max_queue=ws_max_queue,
         ws_ping_interval=ws_ping_interval,
         ws_ping_timeout=ws_ping_timeout,
         ws_per_message_deflate=ws_per_message_deflate,
@@ -466,6 +475,7 @@ def run(
     http: typing.Union[typing.Type[asyncio.Protocol], HTTPProtocolType] = "auto",
     ws: typing.Union[typing.Type[asyncio.Protocol], WSProtocolType] = "auto",
     ws_max_size: int = 16777216,
+    ws_max_queue: int = 32,
     ws_ping_interval: typing.Optional[float] = 20.0,
     ws_ping_timeout: typing.Optional[float] = 20.0,
     ws_per_message_deflate: bool = True,
@@ -519,6 +529,7 @@ def run(
         http=http,
         ws=ws,
         ws_max_size=ws_max_size,
+        ws_max_queue=ws_max_queue,
         ws_ping_interval=ws_ping_interval,
         ws_ping_timeout=ws_ping_timeout,
         ws_per_message_deflate=ws_per_message_deflate,
