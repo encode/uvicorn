@@ -291,6 +291,47 @@ def create_app():
 $ uvicorn --factory example:create_app
 ```
 
+### Logging
+
+You can also customize your logs using a configuration file written in YAML or JSON format. You can find more info on creating these files from the official Python documentation found [here](https://docs.python.org/3/howto/logging.html#configuring-logging).
+
+Below I have provided an example of a log file written in YAML that will get you started.
+
+**logging.yaml**:
+```yaml
+version: 1
+disable_existing_loggers: False
+formatters:
+  default:
+    (): 'uvicorn.logging.DefaultFormatter'
+    fmt: '%(asctime)s -- %(levelprefix)s %(message)s'
+  access:
+    (): 'uvicorn.logging.AccessFormatter'
+    fmt: '%(asctime)s -- %(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s'
+handlers:
+  default:
+    class: logging.StreamHandler
+    formatter: default
+    stream: ext://sys.stderr
+  access:
+    class: logging.StreamHandler
+    formatter: access
+    stream: ext://sys.stdout
+loggers:
+  uvicorn:
+    level: INFO
+    handlers:
+      - default
+  uvicorn.error:
+    level: INFO
+  uvicorn.access:
+    level: INFO
+    propagate: False
+    handlers:
+      - access
+```
+> **_NOTE:_**  Using Uvicorn's formatter gives us access to the terminal colors and proper formatting
+
 ## The ASGI interface
 
 Uvicorn uses the [ASGI specification][asgi] for interacting with an application.
