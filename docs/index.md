@@ -332,6 +332,28 @@ loggers:
 ```
 > **_NOTE:_**  Using Uvicorn's formatter gives us access to the terminal colors and proper formatting
 
+
+After you have configured the logging file above you can use it progromatically as seen below
+
+```python
+# main.py
+import uvicorn
+
+async def app(scope, receive, send):
+    ...
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", port=5000, log_level="info", log_config="./logging.yaml")
+```
+
+Or you can use via command line like below
+
+<!-- :cli_usage: -->
+```
+$ uvicorn main:app --log-config ./logging.yaml
+```
+
+
 ## The ASGI interface
 
 Uvicorn uses the [ASGI specification][asgi] for interacting with an application.
