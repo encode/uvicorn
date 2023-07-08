@@ -120,12 +120,11 @@ class Server:
                 sock_data = sock.share(os.getpid())  # type: ignore[attr-defined]
                 return fromshare(sock_data)
 
-            self.servers = []
+            self.servers: List[asyncio.base_events.Server] = []
             for sock in sockets:
-                if config.workers > 1 and platform.system() == "Windows":
-                    sock = _share_socket(  # type: ignore[assignment]
-                        sock
-                    )  # pragma py-linux pragma: py-darwin
+                is_windows = platform.system() == "Windows"
+                if config.workers > 1 and is_windows:  # pragma: py-not-win32
+                    sock = _share_socket(sock)  # type: ignore[assignment]
                 server = await loop.create_server(
                     create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
                 )
