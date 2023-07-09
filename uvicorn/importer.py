@@ -6,10 +6,6 @@ class ImportFromStringError(Exception):
     pass
 
 
-class ImportFromStringModuleNotFoundError(Exception):
-    pass
-
-
 def import_from_string(import_str: Any) -> Any:
     if not isinstance(import_str, str):
         return import_str
@@ -23,12 +19,16 @@ def import_from_string(import_str: Any) -> Any:
 
     try:
         module = importlib.import_module(module_str)
-
     except ModuleNotFoundError as exc:
-        raise ImportFromStringModuleNotFoundError(exc)
-
+        print(exc.name, module_str)
+        if exc.name != module_str:
+            raise exc from None
+        message = 'Could not import module "{module_str}".'
+        raise ImportFromStringError(message.format(module_str=module_str))
     except ImportError as exc:
-        raise ImportFromStringError(exc)
+        if exc.name != module_str:
+            raise exc from None
+        raise exc
 
     instance = module
     try:

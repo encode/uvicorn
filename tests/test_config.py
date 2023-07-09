@@ -22,7 +22,6 @@ from uvicorn._types import (
     StartResponse,
 )
 from uvicorn.config import Config
-from uvicorn.importer import ImportFromStringModuleNotFoundError
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -239,7 +238,7 @@ def test_proxy_headers() -> None:
 
 def test_app_unimportable_module() -> None:
     config = Config(app="no.such:app")
-    with pytest.raises(ImportFromStringModuleNotFoundError):
+    with pytest.raises(ImportError):
         config.load()
 
 
