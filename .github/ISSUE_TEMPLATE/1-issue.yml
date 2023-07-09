@@ -48,11 +48,6 @@ body:
         If applicable, please add a self-contained,
         [minimal, reproducible, example](https://stackoverflow.com/help/minimal-reproducible-example)
         demonstrating the bug.
-
-      placeholder: |
-        import pydantic
-
-        ...
       render: Python
 
   - type: textarea
