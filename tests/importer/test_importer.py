@@ -1,6 +1,10 @@
 import pytest
 
-from uvicorn.importer import ImportFromStringError, import_from_string
+from uvicorn.importer import (
+    ImportFromStringError,
+    ImportFromStringModuleNotFoundError,
+    import_from_string,
+)
 
 
 def test_invalid_format() -> None:
@@ -11,7 +15,7 @@ def test_invalid_format() -> None:
 
 
 def test_invalid_module() -> None:
-    with pytest.raises(ImportFromStringError) as exc_info:
+    with pytest.raises(ImportFromStringModuleNotFoundError) as exc_info:
         import_from_string("tests.importer.raise_import_error_does_not_exist:myattr")
     expected = "No module named 'does_not_exist'"
     assert expected in str(exc_info.value)
@@ -36,7 +40,7 @@ def test_circular_import_error() -> None:
 
 
 def test_internal_import_error() -> None:
-    with pytest.raises(ImportFromStringError):
+    with pytest.raises(ImportFromStringModuleNotFoundError):
         import_from_string("tests.importer.raise_import_error_does_not_exist:myattr")
 
 
