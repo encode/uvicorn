@@ -23,7 +23,9 @@ def import_from_string(import_str: Any) -> Any:
         if exc.name != module_str:
             raise exc from None
         message = 'Could not import module "{module_str}" due to ImportError: {exc}'
-        raise ImportFromStringError(message.format(module_str=module_str, exc=exc)) from exc
+        raise ImportFromStringError(
+            message.format(module_str=module_str, exc=exc)
+        ) from exc
 
     instance = module
     try:

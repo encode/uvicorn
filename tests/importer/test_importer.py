@@ -15,8 +15,8 @@ def test_invalid_module() -> None:
         import_from_string("raise_import_error_does_not_exist:myattr")
     expected = (
         'Could not import module "raise_import_error_does_not_exist"'
-        ' due to ImportError: No module named \'raise_import_error_does_not_exist\''
-        )
+        " due to ImportError: No module named 'raise_import_error_does_not_exist'"
+    )
     assert expected in str(exc_info.value)
 
 
