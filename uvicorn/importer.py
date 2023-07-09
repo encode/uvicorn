@@ -27,7 +27,6 @@ def import_from_string(import_str: Any) -> Any:
         raise ImportFromStringError(exc)
 
     instance = module
-    
     try:
         for attr_str in attrs_str.split("."):
             instance = getattr(instance, attr_str)
