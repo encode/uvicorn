@@ -132,8 +132,8 @@ Options:
                                   [default: auto]
   --ws-max-size INTEGER           WebSocket max size message in bytes
                                   [default: 16777216]
-  --ws-max-queue INTEGER          WebSocket maximum length of the queue that
-                                  holds incoming messages  [default: 32]
+  --ws-max-queue INTEGER          The maximum length of the WebSocket message
+                                  queue.  [default: 32]
   --ws-ping-interval FLOAT        WebSocket ping interval  [default: 20.0]
   --ws-ping-timeout FLOAT         WebSocket ping timeout  [default: 20.0]
   --ws-per-message-deflate BOOLEAN
