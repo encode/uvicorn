@@ -149,7 +149,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--ws-max-queue",
     type=int,
     default=32,
-    help="WebSocket maximum length of the queue that holds incoming messages",
+    help="The maximum length of the WebSocket message queue.",
     show_default=True,
 )
 @click.option(
