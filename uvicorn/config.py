@@ -196,6 +196,7 @@ class Config:
         http: Union[Type[asyncio.Protocol], HTTPProtocolType] = "auto",
         ws: Union[Type[asyncio.Protocol], WSProtocolType] = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
+        ws_max_queue: int = 32,
         ws_ping_interval: Optional[float] = 20.0,
         ws_ping_timeout: Optional[float] = 20.0,
         ws_per_message_deflate: bool = True,
@@ -244,6 +245,7 @@ class Config:
         self.http = http
         self.ws = ws
         self.ws_max_size = ws_max_size
+        self.ws_max_queue = ws_max_queue
         self.ws_ping_interval = ws_ping_interval
         self.ws_ping_timeout = ws_ping_timeout
         self.ws_per_message_deflate = ws_per_message_deflate

@@ -105,6 +105,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             ws_handler=self.ws_handler,
             ws_server=self.ws_server,  # type: ignore[arg-type]
             max_size=self.config.ws_max_size,
+            max_queue=self.config.ws_max_queue,
             ping_interval=self.config.ws_ping_interval,
             ping_timeout=self.config.ws_ping_timeout,
             extensions=extensions,
