@@ -98,13 +98,17 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 
 ## HTTPS
 
-* `--ssl-keyfile <path>` - SSL key file
-* `--ssl-keyfile-password <str>` - Password to decrypt the ssl key
-* `--ssl-certfile <path>` - SSL certificate file
-* `--ssl-version <int>` - SSL version to use (see stdlib ssl module's [SSL contexts](https://docs.python.org/3/library/ssl.html#ssl-contexts))
-* `--ssl-cert-reqs <int>` - Whether client certificate is required (see stdlib ssl module's [CERT_ constants](https://docs.python.org/3/library/ssl.html#ssl.CERT_NONE))
-* `--ssl-ca-certs <str>` - CA certificates file
-* `--ssl-ciphers <str>` - Ciphers to use (see stdlib ssl module's [cipher selection](https://docs.python.org/3/library/ssl.html#cipher-selection))
+The [SSL context](https://docs.python.org/3/library/ssl.html#ssl.SSLContext) can be configured with the following options:
+
+* `--ssl-keyfile <path>` - The SSL key file.
+* `--ssl-keyfile-password <str>` - The password to decrypt the ssl key.
+* `--ssl-certfile <path>` - The SSL certificate file.
+* `--ssl-version <int>` - The SSL version to use.
+* `--ssl-cert-reqs <int>` - Whether client certificate is required.
+* `--ssl-ca-certs <str>` - The CA certificates file.
+* `--ssl-ciphers <str>` - The ciphers to use.
+
+To understand more about the SSL context options, please refer to the [Python documentation](https://docs.python.org/3/library/ssl.html).
 
 ## Resource Limits
 
@@ -115,4 +119,4 @@ connecting IPs in the `forwarded-allow-ips` configuration.
 ## Timeouts
 
 * `--timeout-keep-alive <int>` - Close Keep-Alive connections if no new data is received within this timeout. **Default:** *5*.
-* `--timeout-graceful-shutdown <int>` - Maximum number of seconds to wait for graceful shutdown. After this timeout, the server will start terminating requests. 
+* `--timeout-graceful-shutdown <int>` - Maximum number of seconds to wait for graceful shutdown. After this timeout, the server will start terminating requests.
