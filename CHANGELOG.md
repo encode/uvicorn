@@ -1,5 +1,25 @@
 # Change Log
 
+## 0.23.0 - 2023-07-10
+
+### Added
+
+- Add `--ws-max-queue` parameter WebSockets (#2033) 10/07/23
+
+### Removed
+
+- Drop support for Python 3.7 (#1996) 19/06/23
+- Remove `asgiref` as typing dependency (#1999) 08/06/23
+
+### Fixed
+
+- Set `scope["scheme"]` to `ws` or `wss` instead of `http` or `https` on `ProxyHeadersMiddleware` for WebSockets (#2043) 12/07/23
+
+### Changed
+
+- Raise `ImportError` on circular import (#2040) 09/07/23
+- Use `logger.getEffectiveLevel()` instead of `logger.level` to check if log level is `TRACE` (#1966) 01/06/23
+
 ## 0.22.0 - 2023-04-28
 
 ### Added
