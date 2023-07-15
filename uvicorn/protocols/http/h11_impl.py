@@ -44,15 +44,6 @@ from uvicorn.protocols.utils import (
 )
 from uvicorn.server import ServerState
 
-H11Event = Union[
-    h11.Request,
-    h11.InformationalResponse,
-    h11.Response,
-    h11.Data,
-    h11.EndOfMessage,
-    h11.ConnectionClosed,
-]
-
 
 def _get_status_phrase(status_code: int) -> bytes:
     try:
@@ -214,7 +205,7 @@ class H11Protocol(asyncio.Protocol):
                 self.flow.pause_reading()
                 break
 
-            elif event_type is h11.Request:
+            elif isinstance(event, h11.Request):
                 self.headers = [(key.lower(), value) for key, value in event.headers]
                 raw_path, _, query_string = event.target.partition(b"?")
                 self.scope = {
@@ -268,7 +259,7 @@ class H11Protocol(asyncio.Protocol):
                 task.add_done_callback(self.tasks.discard)
                 self.tasks.add(task)
 
-            elif event_type is h11.Data:
+            elif isinstance(event, h11.Data):
                 if self.conn.our_state is h11.DONE:
                     continue
                 self.cycle.body += event.data
@@ -284,7 +275,7 @@ class H11Protocol(asyncio.Protocol):
                 self.cycle.more_body = False
                 self.cycle.message_event.set()
 
-    def handle_websocket_upgrade(self, event: H11Event) -> None:
+    def handle_websocket_upgrade(self, event: h11.Request) -> None:
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sUpgrading to WebSocket", prefix)
@@ -312,12 +303,13 @@ class H11Protocol(asyncio.Protocol):
         event = h11.Response(status_code=400, headers=headers, reason=reason)
         output = self.conn.send(event)
         self.transport.write(output)
-        event = h11.Data(data=msg.encode("ascii"))
-        output = self.conn.send(event)
+
+        output = self.conn.send(event=h11.Data(data=msg.encode("ascii")))
         self.transport.write(output)
-        event = h11.EndOfMessage()
-        output = self.conn.send(event)
+
+        output = self.conn.send(event=h11.EndOfMessage())
         self.transport.write(output)
+
         self.transport.close()
 
     def on_response_complete(self) -> None:
@@ -497,10 +489,10 @@ class RequestResponseCycle:
 
             # Write response status line and headers
             reason = STATUS_PHRASES[status_code]
-            event = h11.Response(
-                status_code=status_code, headers=headers, reason=reason
-            )
-            output = self.conn.send(event)
+            # fmt: off
+            response = h11.Response(status_code=status_code, headers=headers, reason=reason) # noqa: E501
+            output = self.conn.send(event=response)
+            # fmt: on
             self.transport.write(output)
 
         elif not self.response_complete:
@@ -514,19 +506,16 @@ class RequestResponseCycle:
             more_body = message.get("more_body", False)
 
             # Write response body
-            if self.scope["method"] == "HEAD":
-                event = h11.Data(data=b"")
-            else:
-                event = h11.Data(data=body)
-            output = self.conn.send(event)
+            data = b"" if self.scope["method"] == "HEAD" else body
+            output = self.conn.send(event=h11.Data(data=data))
             self.transport.write(output)
 
             # Handle response completion
             if not more_body:
                 self.response_complete = True
                 self.message_event.set()
-                event = h11.EndOfMessage()
-                output = self.conn.send(event)
+                eom_event = h11.EndOfMessage()
+                output = self.conn.send(eom_event)
                 self.transport.write(output)
 
         else:
@@ -543,10 +532,11 @@ class RequestResponseCycle:
 
     async def receive(self) -> "ASGIReceiveEvent":
         if self.waiting_for_100_continue and not self.transport.is_closing():
-            event = h11.InformationalResponse(
-                status_code=100, headers=[], reason="Continue"
-            )
-            output = self.conn.send(event)
+            # fmt: off
+            headers: List[Tuple[str, str]] = []
+            informational_response = h11.InformationalResponse(status_code=100, headers=headers, reason="Continue") # noqa: E501
+            output = self.conn.send(event=informational_response)
+            # fmt: on
             self.transport.write(output)
             self.waiting_for_100_continue = False
 
@@ -557,13 +547,9 @@ class RequestResponseCycle:
 
         message: "Union[HTTPDisconnectEvent, HTTPRequestEvent]"
         if self.disconnected or self.response_complete:
-            message = {"type": "http.disconnect"}
-        else:
-            message = {
-                "type": "http.request",
-                "body": self.body,
-                "more_body": self.more_body,
-            }
-            self.body = b""
-
+            return {"type": "http.disconnect"}
+        # fmt: off
+        message = {"type": "http.request", "body": self.body, "more_body": self.more_body}  # noqa: E501
+        # fmt: on
+        self.body = b""
         return message
