@@ -160,11 +160,6 @@ class MockTransport:
     def set_protocol(self, protocol):
         pass
 
-    def set_write_buffer_limits(
-        self, high: Union[None, int] = None, low: Union[None, int] = None
-    ):
-        pass
-
 
 class MockLoop:
     def __init__(self):
