@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import typing
 from copy import deepcopy
 
@@ -8,26 +9,19 @@ import pytest
 from tests.protocols.test_http import HTTP_PROTOCOLS
 from tests.utils import run_server
 from uvicorn.config import Config
-from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
-try:
-    import websockets
-    import websockets.client
-    import websockets.exceptions
-    from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
-    from websockets.typing import Subprotocol
+with contextlib.suppress(ModuleNotFoundError):
+    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
-    from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+import websockets
+import websockets.client
+import websockets.exceptions
+from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
+from websockets.typing import Subprotocol
 
-    ONLY_WEBSOCKETS_PROTOCOL = [WebSocketProtocol]
-    WS_PROTOCOLS = [WSProtocol, WebSocketProtocol]
-except ImportError:  # pragma: nocover
-    ONLY_WEBSOCKETS_PROTOCOL = []
-    WS_PROTOCOLS = [WSProtocol]
+from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 
-    pytestmark = pytest.mark.skip(reason="This test needs the websockets module")
-
-ONLY_WS_PROTOCOL = [WSProtocol]
+skip_if_no_wsproto = pytest.mark.skipif("WSProtocol" not in globals(), reason="wsproto is not installed.")
 
 
 class WebSocketResponse:
@@ -51,16 +45,17 @@ class WebSocketResponse:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_invalid_upgrade(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     def app(scope):
         return None
 
     config = Config(
-        app=app, ws=ws_protocol_cls, http=http_protocol_cls, port=unused_tcp_port
+        app=app, ws=ws_protocol, http=http_protocol_cls, port=unused_tcp_port
     )
     async with run_server(config):
         async with httpx.AsyncClient() as client:
@@ -89,10 +84,11 @@ async def test_invalid_upgrade(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_accept_connection(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -104,7 +100,7 @@ async def test_accept_connection(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -115,10 +111,11 @@ async def test_accept_connection(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_supports_permessage_deflate_extension(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -133,7 +130,7 @@ async def test_supports_permessage_deflate_extension(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -144,10 +141,11 @@ async def test_supports_permessage_deflate_extension(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_can_disable_permessage_deflate_extension(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -164,7 +162,7 @@ async def test_can_disable_permessage_deflate_extension(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         ws_per_message_deflate=False,
@@ -176,10 +174,11 @@ async def test_can_disable_permessage_deflate_extension(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_close_connection(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -194,7 +193,7 @@ async def test_close_connection(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -205,9 +204,12 @@ async def test_close_connection(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_headers(ws_protocol_cls, http_protocol_cls, unused_tcp_port: int):
+async def test_headers(
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
+):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
             headers = self.scope.get("headers")
@@ -224,7 +226,7 @@ async def test_headers(ws_protocol_cls, http_protocol_cls, unused_tcp_port: int)
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -235,9 +237,12 @@ async def test_headers(ws_protocol_cls, http_protocol_cls, unused_tcp_port: int)
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_extra_headers(ws_protocol_cls, http_protocol_cls, unused_tcp_port: int):
+async def test_extra_headers(
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
+):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
             await self.send(
@@ -250,7 +255,7 @@ async def test_extra_headers(ws_protocol_cls, http_protocol_cls, unused_tcp_port
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -261,10 +266,11 @@ async def test_extra_headers(ws_protocol_cls, http_protocol_cls, unused_tcp_port
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_path_and_raw_path(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -280,7 +286,7 @@ async def test_path_and_raw_path(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -291,10 +297,11 @@ async def test_path_and_raw_path(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_text_data_to_client(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -307,7 +314,7 @@ async def test_send_text_data_to_client(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -318,10 +325,11 @@ async def test_send_text_data_to_client(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_binary_data_to_client(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -334,7 +342,7 @@ async def test_send_binary_data_to_client(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -345,10 +353,11 @@ async def test_send_binary_data_to_client(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_and_close_connection(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -368,7 +377,7 @@ async def test_send_and_close_connection(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -380,10 +389,11 @@ async def test_send_and_close_connection(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_text_data_to_server(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -400,7 +410,7 @@ async def test_send_text_data_to_server(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -411,10 +421,11 @@ async def test_send_text_data_to_server(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_binary_data_to_server(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -431,7 +442,7 @@ async def test_send_binary_data_to_server(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -442,10 +453,9 @@ async def test_send_binary_data_to_server(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_after_protocol_close(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol, http_protocol_cls, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -467,7 +477,7 @@ async def test_send_after_protocol_close(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -479,11 +489,8 @@ async def test_send_after_protocol_close(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_missing_handshake(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
-):
+async def test_missing_handshake(ws_protocol, http_protocol_cls, unused_tcp_port: int):
     async def app(app, receive, send):
         pass
 
@@ -492,7 +499,7 @@ async def test_missing_handshake(
 
     config = Config(
         app=app,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -504,10 +511,9 @@ async def test_missing_handshake(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_before_handshake(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol, http_protocol_cls, unused_tcp_port: int
 ):
     async def app(scope, receive, send):
         await send({"type": "websocket.send", "text": "123"})
@@ -517,7 +523,7 @@ async def test_send_before_handshake(
 
     config = Config(
         app=app,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -529,10 +535,9 @@ async def test_send_before_handshake(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_duplicate_handshake(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol, http_protocol_cls, unused_tcp_port: int
 ):
     async def app(scope, receive, send):
         await send({"type": "websocket.accept"})
@@ -544,7 +549,7 @@ async def test_duplicate_handshake(
 
     config = Config(
         app=app,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -556,11 +561,8 @@ async def test_duplicate_handshake(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_asgi_return_value(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
-):
+async def test_asgi_return_value(ws_protocol, http_protocol_cls, unused_tcp_port: int):
     """
     The ASGI callable should return 'None'. If it doesn't make sure that
     the connection is closed with an error condition.
@@ -576,7 +578,7 @@ async def test_asgi_return_value(
 
     config = Config(
         app=app,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -588,7 +590,6 @@ async def test_asgi_return_value(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 @pytest.mark.parametrize("code", [None, 1000, 1001])
 @pytest.mark.parametrize(
@@ -597,7 +598,7 @@ async def test_asgi_return_value(
     ids=["none_as_reason", "normal_reason", "without_reason"],
 )
 async def test_app_close(
-    ws_protocol_cls, http_protocol_cls, code, reason, unused_tcp_port: int
+    ws_protocol, http_protocol_cls, code, reason, unused_tcp_port: int
 ):
     async def app(scope, receive, send):
         while True:
@@ -625,7 +626,7 @@ async def test_app_close(
 
     config = Config(
         app=app,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -638,9 +639,8 @@ async def test_app_close(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_client_close(ws_protocol_cls, http_protocol_cls, unused_tcp_port: int):
+async def test_client_close(ws_protocol, http_protocol_cls, unused_tcp_port: int):
     async def app(scope, receive, send):
         while True:
             message = await receive()
@@ -658,7 +658,7 @@ async def test_client_close(ws_protocol_cls, http_protocol_cls, unused_tcp_port:
 
     config = Config(
         app=app,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -668,10 +668,9 @@ async def test_client_close(ws_protocol_cls, http_protocol_cls, unused_tcp_port:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_client_connection_lost(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol, http_protocol_cls, unused_tcp_port: int
 ):
     got_disconnect_event = False
 
@@ -688,7 +687,7 @@ async def test_client_connection_lost(
 
     config = Config(
         app=app,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         ws_ping_interval=0.0,
@@ -706,10 +705,11 @@ async def test_client_connection_lost(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_connection_lost_before_handshake_complete(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     send_accept_task = asyncio.Event()
     disconnect_message = {}
@@ -738,7 +738,7 @@ async def test_connection_lost_before_handshake_complete(
 
     config = Config(
         app=app,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -759,10 +759,11 @@ async def test_connection_lost_before_handshake_complete(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_send_close_on_server_shutdown(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     disconnect_message = {}
     server_shutdown_event = asyncio.Event()
@@ -787,7 +788,7 @@ async def test_send_close_on_server_shutdown(
 
     config = Config(
         app=app,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -808,17 +809,19 @@ async def test_send_close_on_server_shutdown(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 @pytest.mark.parametrize("subprotocol", ["proto1", "proto2"])
 async def test_subprotocols(
-    ws_protocol_cls, http_protocol_cls, subprotocol, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    subprotocol,
+    unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.accept", "subprotocol": subprotocol})
 
-    async def get_subprotocol(url):
+    async def get_subprotocol(url: str):
         async with websockets.client.connect(
             url, subprotocols=[Subprotocol("proto1"), Subprotocol("proto2")]
         ) as websocket:
@@ -826,7 +829,7 @@ async def test_subprotocols(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -843,7 +846,6 @@ MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", ONLY_WEBSOCKETS_PROTOCOL)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 @pytest.mark.parametrize(
     "client_size_sent, server_size_max, expected_result",
@@ -860,12 +862,11 @@ MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
         "max=10 sent=11",
     ],
 )
-async def test_send_binary_data_to_server_bigger_than_default(
-    ws_protocol_cls,
+async def test_send_binary_data_to_server_bigger_than_default_on_websockets(
     http_protocol_cls,
-    client_size_sent,
-    server_size_max,
-    expected_result,
+    client_size_sent: int,
+    server_size_max: int,
+    expected_result: int,
     unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
@@ -885,7 +886,7 @@ async def test_send_binary_data_to_server_bigger_than_default(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=WebSocketProtocol,
         http=http_protocol_cls,
         lifespan="off",
         ws_max_size=server_size_max,
@@ -902,10 +903,11 @@ async def test_send_binary_data_to_server_bigger_than_default(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     async def app(scope, receive, send):
         assert scope["type"] == "websocket"
@@ -932,7 +934,7 @@ async def test_server_reject_connection(
 
     config = Config(
         app=app,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -942,10 +944,11 @@ async def test_server_reject_connection(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_can_read_messages_in_buffer_after_close(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     frames = []
     disconnect_message = {}
@@ -973,7 +976,7 @@ async def test_server_can_read_messages_in_buffer_after_close(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -986,10 +989,11 @@ async def test_server_can_read_messages_in_buffer_after_close(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_default_server_headers(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -1001,7 +1005,7 @@ async def test_default_server_headers(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -1012,10 +1016,11 @@ async def test_default_server_headers(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_no_server_headers(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -1027,7 +1032,7 @@ async def test_no_server_headers(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         server_header=False,
@@ -1039,9 +1044,12 @@ async def test_no_server_headers(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", ONLY_WS_PROTOCOL)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_no_date_header(ws_protocol_cls, http_protocol_cls, unused_tcp_port: int):
+@skip_if_no_wsproto
+async def test_no_date_header_on_wsproto(
+    http_protocol_cls,
+    unused_tcp_port: int,
+):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
             await self.send({"type": "websocket.accept"})
@@ -1052,7 +1060,7 @@ async def test_no_date_header(ws_protocol_cls, http_protocol_cls, unused_tcp_por
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=WSProtocol,
         http=http_protocol_cls,
         lifespan="off",
         date_header=False,
@@ -1064,10 +1072,11 @@ async def test_no_date_header(ws_protocol_cls, http_protocol_cls, unused_tcp_por
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_multiple_server_header(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -1087,7 +1096,7 @@ async def test_multiple_server_header(
 
     config = Config(
         app=App,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
@@ -1098,9 +1107,12 @@ async def test_multiple_server_header(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-async def test_lifespan_state(ws_protocol_cls, http_protocol_cls, unused_tcp_port: int):
+async def test_lifespan_state(
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
+):
     expected_states = [
         {"a": 123, "b": [1]},
         {"a": 123, "b": [1, 2]},
@@ -1137,7 +1149,7 @@ async def test_lifespan_state(ws_protocol_cls, http_protocol_cls, unused_tcp_por
 
     config = Config(
         app=app_wrapper,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="on",
         port=unused_tcp_port,

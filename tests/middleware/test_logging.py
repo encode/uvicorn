@@ -2,6 +2,7 @@ import contextlib
 import logging
 import socket
 import sys
+import typing
 
 import httpx
 import pytest
@@ -18,6 +19,10 @@ try:
     HTTP_PROTOCOLS = [H11Protocol, HttpToolsProtocol]
 except ImportError:  # pragma: nocover
     HTTP_PROTOCOLS = [H11Protocol]
+
+if typing.TYPE_CHECKING:
+    from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 
 @contextlib.contextmanager
@@ -90,9 +95,11 @@ async def test_trace_logging_on_http_protocol(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol", [("websockets"), ("wsproto")])
 async def test_trace_logging_on_ws_protocol(
-    ws_protocol, caplog, logging_config, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    caplog,
+    logging_config,
+    unused_tcp_port: int,
 ):
     async def websocket_app(scope, receive, send):
         assert scope["type"] == "websocket"

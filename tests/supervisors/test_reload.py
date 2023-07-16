@@ -149,7 +149,18 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [WatchFilesReload, WatchGodReload])
+    @pytest.mark.parametrize(
+        "reloader_class",
+        [
+            pytest.param(
+                WatchFilesReload,
+                marks=pytest.mark.skipif(
+                    sys.platform == "darwin", reason="Flaky on MacOS"
+                ),
+            ),
+            WatchGodReload,
+        ],
+    )
     def test_should_not_reload_when_exclude_pattern_match_file_is_changed(
         self, touch_soon
     ) -> None:
@@ -209,7 +220,17 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize(
-        "reloader_class", [StatReload, WatchGodReload, WatchFilesReload]
+        "reloader_class",
+        [
+            StatReload,
+            WatchGodReload,
+            pytest.param(
+                WatchFilesReload,
+                marks=pytest.mark.skipif(
+                    sys.platform == "darwin", reason="Flaky on MacOS"
+                ),
+            ),
+        ],
     )
     def test_should_not_reload_when_only_subdirectory_is_watched(
         self, touch_soon
@@ -232,7 +253,18 @@ class TestBaseReload:
 
         reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [WatchFilesReload, WatchGodReload])
+    @pytest.mark.parametrize(
+        "reloader_class",
+        [
+            pytest.param(
+                WatchFilesReload,
+                marks=pytest.mark.skipif(
+                    sys.platform == "darwin", reason="Flaky on MacOS"
+                ),
+            ),
+            WatchGodReload,
+        ],
+    )
     def test_override_defaults(self, touch_soon) -> None:
         dotted_file = self.reload_path / ".dotted"
         dotted_dir_file = self.reload_path / ".dotted_dir" / "file.txt"

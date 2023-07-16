@@ -1,4 +1,5 @@
-from typing import List, Union
+import contextlib
+from typing import TYPE_CHECKING, List, Union
 
 import httpx
 import pytest
@@ -9,16 +10,13 @@ from tests.utils import run_server
 from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.config import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
-try:
+with contextlib.suppress(ModuleNotFoundError):
     import websockets.client
 
+if TYPE_CHECKING:
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
-
-    WS_PROTOCOLS = [WSProtocol, WebSocketProtocol]
-except ImportError:  # pragma: nocover
-    WS_PROTOCOLS = []
+    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 
 async def app(
@@ -119,11 +117,11 @@ async def test_proxy_headers_invalid_x_forwarded_for() -> None:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
-@pytest.mark.skipif(not WS_PROTOCOLS, reason="websockets module not installed.")
 async def test_proxy_headers_websocket_x_forwarded_proto(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol: "type[WSProtocol] | type[WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ) -> None:
     async def websocket_app(scope, receive, send):
         scheme = scope["scheme"]
@@ -135,7 +133,7 @@ async def test_proxy_headers_websocket_x_forwarded_proto(
     app_with_middleware = ProxyHeadersMiddleware(websocket_app, trusted_hosts="*")
     config = Config(
         app=app_with_middleware,
-        ws=ws_protocol_cls,
+        ws=ws_protocol,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,
