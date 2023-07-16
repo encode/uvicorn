@@ -1,8 +1,8 @@
-import contextlib
 from typing import TYPE_CHECKING, List, Union
 
 import httpx
 import pytest
+import websockets.client
 
 from tests.protocols.test_http import HTTP_PROTOCOLS
 from tests.response import Response
@@ -10,9 +10,6 @@ from tests.utils import run_server
 from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.config import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-
-with contextlib.suppress(ModuleNotFoundError):
-    import websockets.client
 
 if TYPE_CHECKING:
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
