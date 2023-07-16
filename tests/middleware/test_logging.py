@@ -96,7 +96,7 @@ async def test_trace_logging_on_http_protocol(
 
 @pytest.mark.anyio
 async def test_trace_logging_on_ws_protocol(
-    ws_protocol_cls: "type[WSProtocol | WebSocketProtocol]",
+    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
     caplog,
     logging_config,
     unused_tcp_port: int,

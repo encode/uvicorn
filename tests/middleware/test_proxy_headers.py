@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, List, Type, Union
 
 import httpx
 import pytest
@@ -116,7 +116,7 @@ async def test_proxy_headers_invalid_x_forwarded_for() -> None:
 @pytest.mark.anyio
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_proxy_headers_websocket_x_forwarded_proto(
-    ws_protocol_cls: "type[WSProtocol] | type[WebSocketProtocol]",
+    ws_protocol_cls: "Type[WSProtocol | WebSocketProtocol]",
     http_protocol_cls,
     unused_tcp_port: int,
 ) -> None:

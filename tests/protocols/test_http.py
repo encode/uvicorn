@@ -2,7 +2,7 @@ import logging
 import socket
 import threading
 import time
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional, Type, Union
 
 import pytest
 
@@ -781,7 +781,7 @@ async def test_unsupported_ws_upgrade_request_warn_on_auto(
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 async def test_http2_upgrade_request(
-    protocol_cls, ws_protocol_cls: "type[WSProtocol | WebSocketProtocol]"
+    protocol_cls, ws_protocol_cls: "Type[WSProtocol | WebSocketProtocol]"
 ):
     app = Response("Hello, world", media_type="text/plain")
 
