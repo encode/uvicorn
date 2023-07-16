@@ -1,29 +1,26 @@
 import asyncio
-import contextlib
 import typing
 from copy import deepcopy
 
 import httpx
 import pytest
-
-from tests.protocols.test_http import HTTP_PROTOCOLS
-from tests.utils import run_server
-from uvicorn.config import Config
-
-with contextlib.suppress(ModuleNotFoundError):
-    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
-
 import websockets
 import websockets.client
 import websockets.exceptions
 from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from websockets.typing import Subprotocol
 
+from tests.protocols.test_http import HTTP_PROTOCOLS
+from tests.utils import run_server
+from uvicorn.config import Config
 from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 
-skip_if_no_wsproto = pytest.mark.skipif(
-    "WSProtocol" not in globals(), reason="wsproto is not installed."
-)
+try:
+    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
+
+    skip_if_no_wsproto = pytest.mark.skipif(False, reason="wsproto is installed.")
+except ModuleNotFoundError:
+    skip_if_no_wsproto = pytest.mark.skipif(True, reason="wsproto is not installed.")
 
 
 class WebSocketResponse:
