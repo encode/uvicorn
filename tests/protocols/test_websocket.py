@@ -614,8 +614,8 @@ async def test_app_close(
     ws_protocol_cls: "type[WSProtocol | WebSocketProtocol]",
     http_protocol_cls,
     unused_tcp_port: int,
-    code: typing.Optional[int],
-    reason: "str | bool | None",
+    code,
+    reason,
 ):
     async def app(scope, receive, send):
         while True:
