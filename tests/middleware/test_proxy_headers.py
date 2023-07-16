@@ -116,7 +116,7 @@ async def test_proxy_headers_invalid_x_forwarded_for() -> None:
 @pytest.mark.anyio
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_proxy_headers_websocket_x_forwarded_proto(
-    ws_protocol: "type[WSProtocol] | type[WebSocketProtocol]",
+    ws_protocol_cls: "type[WSProtocol] | type[WebSocketProtocol]",
     http_protocol_cls,
     unused_tcp_port: int,
 ) -> None:
@@ -130,7 +130,7 @@ async def test_proxy_headers_websocket_x_forwarded_proto(
     app_with_middleware = ProxyHeadersMiddleware(websocket_app, trusted_hosts="*")
     config = Config(
         app=app_with_middleware,
-        ws=ws_protocol,
+        ws=ws_protocol_cls,
         http=http_protocol_cls,
         lifespan="off",
         port=unused_tcp_port,

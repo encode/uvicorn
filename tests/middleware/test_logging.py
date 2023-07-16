@@ -96,7 +96,7 @@ async def test_trace_logging_on_http_protocol(
 
 @pytest.mark.anyio
 async def test_trace_logging_on_ws_protocol(
-    ws_protocol: "type[WSProtocol | WebSocketProtocol]",
+    ws_protocol_cls: "type[WSProtocol | WebSocketProtocol]",
     caplog,
     logging_config,
     unused_tcp_port: int,
@@ -118,7 +118,7 @@ async def test_trace_logging_on_ws_protocol(
         app=websocket_app,
         log_level="trace",
         log_config=logging_config,
-        ws=ws_protocol,
+        ws=ws_protocol_cls,
         port=unused_tcp_port,
     )
     with caplog_for_logger(caplog, "uvicorn.error"):

@@ -254,5 +254,5 @@ def unused_tcp_port() -> int:
         "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
     ]
 )
-def ws_protocol(request: pytest.FixtureRequest):
+def ws_protocol_cls(request: pytest.FixtureRequest):
     return import_from_string(request.param)
