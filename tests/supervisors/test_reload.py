@@ -1,4 +1,5 @@
 import logging
+import platform
 import signal
 import socket
 import sys
@@ -22,6 +23,13 @@ try:
     from uvicorn.supervisors.watchgodreload import WatchGodReload
 except ImportError:  # pragma: no cover
     WatchGodReload = None  # type: ignore[misc,assignment]
+
+
+# TODO: Investigate why this is flaky on MacOS M1.
+skip_if_m1 = pytest.mark.skipif(
+    sys.platform == "darwin" and platform.processor() == "arm",
+    reason="Flaky on MacOS M1",
+)
 
 
 def run(sockets):
@@ -152,12 +160,7 @@ class TestBaseReload:
     @pytest.mark.parametrize(
         "reloader_class",
         [
-            pytest.param(
-                WatchFilesReload,
-                marks=pytest.mark.skipif(
-                    sys.platform == "darwin", reason="Flaky on MacOS"
-                ),
-            ),
+            pytest.param(WatchFilesReload, marks=skip_if_m1),
             WatchGodReload,
         ],
     )
@@ -224,12 +227,7 @@ class TestBaseReload:
         [
             StatReload,
             WatchGodReload,
-            pytest.param(
-                WatchFilesReload,
-                marks=pytest.mark.skipif(
-                    sys.platform == "darwin", reason="Flaky on MacOS"
-                ),
-            ),
+            pytest.param(WatchFilesReload, marks=skip_if_m1),
         ],
     )
     def test_should_not_reload_when_only_subdirectory_is_watched(
@@ -256,12 +254,7 @@ class TestBaseReload:
     @pytest.mark.parametrize(
         "reloader_class",
         [
-            pytest.param(
-                WatchFilesReload,
-                marks=pytest.mark.skipif(
-                    sys.platform == "darwin", reason="Flaky on MacOS"
-                ),
-            ),
+            pytest.param(WatchFilesReload, marks=skip_if_m1),
             WatchGodReload,
         ],
     )
