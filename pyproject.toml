@@ -30,6 +30,7 @@ classifiers = [
 dependencies = [
     "click>=7.0",
     "h11>=0.8",
+    "typing_extensions>=4.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
