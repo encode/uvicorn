@@ -2,7 +2,7 @@ import logging
 import socket
 import threading
 import time
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Type, Union
 
 import pytest
 
@@ -18,6 +18,10 @@ try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 except ImportError:  # pragma: nocover
     HttpToolsProtocol = None  # type: ignore[misc,assignment]
+
+if TYPE_CHECKING:
+    from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 
 HTTP_PROTOCOLS = [p for p in [H11Protocol, HttpToolsProtocol] if p is not None]
@@ -729,6 +733,8 @@ async def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 async def test_supported_upgrade_request(protocol_cls):
+    pytest.importorskip("wsproto")
+
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls, ws="wsproto")
@@ -774,11 +780,12 @@ async def test_unsupported_ws_upgrade_request_warn_on_auto(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-@pytest.mark.parametrize("ws", WEBSOCKET_PROTOCOLS)
-async def test_http2_upgrade_request(protocol_cls, ws):
+async def test_http2_upgrade_request(
+    protocol_cls, ws_protocol_cls: "Type[WSProtocol | WebSocketProtocol]"
+):
     app = Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(app, protocol_cls, ws=ws)
+    protocol = get_connected_protocol(app, protocol_cls, ws=ws_protocol_cls)
     protocol.data_received(UPGRADE_HTTP2_REQUEST)
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer

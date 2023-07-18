@@ -1,4 +1,5 @@
 import contextlib
+import importlib.util
 import os
 import socket
 import ssl
@@ -22,6 +23,7 @@ except ImportError:  # pragma: no cover
     HAVE_TRUSTME = False
 
 from uvicorn.config import LOGGING_CONFIG
+from uvicorn.importer import import_from_string
 
 # Note: We explicitly turn the propagate on just for tests, because pytest
 # caplog not able to capture no-propagate loggers.
@@ -239,3 +241,18 @@ def _unused_port(socket_type: int) -> int:
 @pytest.fixture
 def unused_tcp_port() -> int:
     return _unused_port(socket.SOCK_STREAM)
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(
+            "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
+            marks=pytest.mark.skipif(
+                not importlib.util.find_spec("wsproto"), reason="wsproto not installed."
+            ),
+        ),
+        "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
+    ]
+)
+def ws_protocol_cls(request: pytest.FixtureRequest):
+    return import_from_string(request.param)
