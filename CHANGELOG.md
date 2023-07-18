@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.23.1 - 2023-07-18
+
+### Fixed
+
+- Add `typing_extensions` for Python 3.10 and lower (#2053) 18/07/23
+
 ## 0.23.0 - 2023-07-10
 
 ### Added
