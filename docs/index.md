@@ -348,7 +348,6 @@ if __name__ == "__main__":
 
 Or you can use via command line like below
 
-<!-- :cli_usage: -->
 ```
 $ uvicorn main:app --log-config ./logging.yaml
 ```
