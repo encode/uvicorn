@@ -348,7 +348,7 @@ if __name__ == "__main__":
     uvicorn.run("main:app", port=5000, log_level="info", log_config="./logging.yaml")
 ```
 
-Or you can use via command line like below
+Or you can use via command line like below:
 
 ```
 $ uvicorn main:app --log-config ./logging.yaml
