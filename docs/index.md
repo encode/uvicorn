@@ -332,7 +332,7 @@ loggers:
     handlers:
       - access
 ```
-> **_NOTE:_**  Using Uvicorn's formatter gives us access to the terminal colors and proper formatting
+> **_NOTE:_**  Using Uvicorn's formatter gives us access to the terminal colors and proper formatting.
 
 
 After you have configured the logging file above, you can use it programmatically as seen below:
