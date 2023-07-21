@@ -297,7 +297,7 @@ You can also customize your logs using a configuration file written in YAML or J
 
 Find more information on creating these files in the [official Python documentation](https://docs.python.org/3/howto/logging.html#configuring-logging).
 
-Below I have provided an example of a log file written in YAML that will get you started.
+Here's an example of a log file written in YAML that will get you started.
 
 **logging.yaml**:
 ```yaml
