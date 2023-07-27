@@ -82,17 +82,17 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         # extensions = []
         # if self.config.ws_per_message_deflate:
         #     extensions.append(ServerPerMessageDeflateFactory())
-        self.conn: typing.Optional[ServerConnection] = ServerConnection()
-        self.request: typing.Optional[Request] = None
-        self.response: typing.Optional[Response] = None
+        self.conn = ServerConnection()
+        self.request: Request
+        self.response: Response
+        self.curr_msg_data_type: str
 
         self.read_paused = False
         self.writable = asyncio.Event()
         self.writable.set()
 
         # Buffers
-        self.bytes = b""
-        self.text = ""
+        self.bytes: "bytes" = b""
         print(len(self.tasks))
 
     def connection_made(self, transport: BaseTransport) -> None:
@@ -216,6 +216,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             self.send_receive_event_to_app()
 
     def send_receive_event_to_app(self) -> None:
+        data: typing.Union[str, bytes]
         if self.curr_msg_data_type == "text":
             data = self.bytes.decode()
         else:
@@ -226,8 +227,6 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             self.curr_msg_data_type: data,
         }
         self.queue.put_nowait(msg)
-        self.bytes = b""
-        self.curr_msg_data_type = None
         if not self.read_paused:
             self.read_paused = True
             self.transport.pause_reading()
@@ -242,7 +241,10 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
     def handle_close(self, event: Frame) -> None:
         if not self.close_sent and not self.transport.is_closing():
             self.queue.put_nowait(
-                {"type": "websocket.disconnect", "code": self.conn.close_rcvd.code}
+                {
+                    "type": "websocket.disconnect",
+                    "code": self.conn.close_rcvd.code,  # type: ignore[union-attr]
+                }
             )
             output = self.conn.data_to_send()
             self.transport.writelines(output)
