@@ -322,7 +322,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                     get_path_with_query_string(self.scope),
                 )
                 extra_headers = [
-                    (key.decode(), value.decode())
+                    (key.decode("ascii"), value.decode("ascii", errors="surrogateescape"))
                     for key, value in self.default_headers
                     + list(message.get("headers", []))
                 ]
