@@ -80,10 +80,10 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         self.handshake_complete = False
         self.close_sent = False
 
-        # extensions = []
-        # if self.config.ws_per_message_deflate:
-        #     extensions.append(ServerPerMessageDeflateFactory())
-        self.conn = ServerConnection(extensions=[ServerPerMessageDeflateFactory()])
+        extensions = []
+        if self.config.ws_per_message_deflate:
+            extensions.append(ServerPerMessageDeflateFactory())
+        self.conn = ServerConnection(extensions=extensions)
         self.request: Request
         self.response: Response
         self.curr_msg_data_type: str
@@ -307,11 +307,9 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                     + list(message.get("headers", []))
                 ]
 
-                self.accepted_subprotocol: str = message.get("subprotocol")
-                if self.accepted_subprotocol:
-                    headers.append(
-                        ("Sec-WebSocket-Protocol", self.accepted_subprotocol)
-                    )
+                accepted_subprotocol: str = message.get("subprotocol")
+                if accepted_subprotocol:
+                    headers.append(("Sec-WebSocket-Protocol", accepted_subprotocol))
 
                 self.handshake_complete = True
                 self.response.headers.update(headers)
