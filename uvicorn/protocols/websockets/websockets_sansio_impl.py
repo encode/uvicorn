@@ -8,7 +8,7 @@ from urllib.parse import unquote
 
 import websockets
 from websockets.frames import Frame
-from websockets.http11 import Request
+from websockets.http11 import Request, Response
 from websockets.server import ServerConnection
 
 from uvicorn.config import Config
@@ -82,9 +82,9 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         # extensions = []
         # if self.config.ws_per_message_deflate:
         #     extensions.append(ServerPerMessageDeflateFactory())
-        self.conn = ServerConnection()
-        self.request = None
-        self.response = None
+        self.conn: typing.Optional[ServerConnection] = ServerConnection()
+        self.request: typing.Optional[Request] = None
+        self.response: typing.Optional[Response] = None
 
         self.read_paused = False
         self.writable = asyncio.Event()
@@ -177,7 +177,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             for key, value in event.headers.raw_items()
         ]
         raw_path, _, query_string = event.path.partition("?")
-        self.scope: "WebSocketScope" = {  # type: ignore[typeddict-item]
+        self.scope: "WebSocketScope" = {
             "type": "websocket",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
             "http_version": "1.1",
@@ -215,13 +215,13 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         if event.fin:
             self.send_receive_event_to_app()
 
-    def send_receive_event_to_app(self):
+    def send_receive_event_to_app(self) -> None:
         if self.curr_msg_data_type == "text":
             data = self.bytes.decode()
         else:
             data = self.bytes
 
-        msg: "WebSocketReceiveEvent" = {  # type: ignore[typeddict-item]
+        msg: "WebSocketReceiveEvent" = { 
             "type": "websocket.receive",
             self.curr_msg_data_type: data,
         }
