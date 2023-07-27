@@ -221,7 +221,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         else:
             data = self.bytes
 
-        msg: "WebSocketReceiveEvent" = { 
+        msg: "WebSocketReceiveEvent" = {
             "type": "websocket.receive",
             self.curr_msg_data_type: data,
         }
