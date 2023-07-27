@@ -7,6 +7,7 @@ from http import HTTPStatus
 from urllib.parse import unquote
 
 import websockets
+from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from websockets.frames import Frame
 from websockets.http11 import Request, Response
 from websockets.server import ServerConnection
@@ -82,7 +83,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         # extensions = []
         # if self.config.ws_per_message_deflate:
         #     extensions.append(ServerPerMessageDeflateFactory())
-        self.conn = ServerConnection()
+        self.conn = ServerConnection(extensions=[ServerPerMessageDeflateFactory()])
         self.request: Request
         self.response: Response
         self.curr_msg_data_type: str
