@@ -1,16 +1,15 @@
 import asyncio
 import logging
 import sys
-import time
 import typing
 from asyncio.transports import BaseTransport, Transport
+from http import HTTPStatus
 from urllib.parse import unquote
 
 import websockets
+from websockets.frames import Frame
 from websockets.http11 import Request
-from websockets.frames import Frame, Close
 from websockets.server import ServerConnection
-from websockets.connection import State
 
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
@@ -21,7 +20,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-from http import HTTPStatus
 
 if sys.version_info < (3, 8):
     from typing_extensions import Literal
@@ -31,7 +29,6 @@ else:
 if typing.TYPE_CHECKING:
     from asgiref.typing import (
         ASGISendEvent,
-        WebSocketAcceptEvent,
         WebSocketCloseEvent,
         WebSocketConnectEvent,
         WebSocketDisconnectEvent,
@@ -87,7 +84,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         #     extensions.append(ServerPerMessageDeflateFactory())
         self.conn = ServerConnection()
         self.request = None
-        self.response = None    
+        self.response = None
 
         self.read_paused = False
         self.writable = asyncio.Event()
@@ -97,7 +94,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         self.bytes = b""
         self.text = ""
         print(len(self.tasks))
-            
+
     def connection_made(self, transport: BaseTransport) -> None:
         """Called when a connection is made."""
         transport = typing.cast(Transport, transport)
@@ -113,24 +110,23 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
     def connection_lost(self, exc: typing.Optional[Exception]) -> None:
         self.connections.remove(self)
-        print('came in connection lost : ', exc)
+        print("came in connection lost : ", exc)
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection lost", prefix)
         if self.handshake_initiated and not self.close_sent:
             self.queue.put_nowait({"type": "websocket.disconnect", "code": 1006})
 
-
     def data_received(self, data: bytes) -> None:
         try:
             self.conn.receive_data(data)
-        except Exception as exc:
+        except Exception:
             self.logger.exception("Exception in ASGI server")
             self.transport.close()
         self.handle_events()
 
     def shutdown(self) -> None:
-        if not self.transport.is_closing(): 
+        if not self.transport.is_closing():
             if self.handshake_complete:
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
                 self.close_send = True
@@ -141,7 +137,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                 self.send_500_response()
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": 1006})
             self.transport.close()
-            
+
     def handle_events(self) -> None:
         for event in self.conn.events_received():
             if isinstance(event, Request):
@@ -165,7 +161,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
     def handle_connect(self, event: Request) -> None:
         self.request = event
         self.response = self.conn.accept(event)
-        self.handshake_initiated = True 
+        self.handshake_initiated = True
         # if status_code is not 101 return response
         if self.response.status_code != 101:
             self.handshake_complete = True
@@ -177,7 +173,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             return
 
         headers = [
-            (key.encode('ascii'), value.encode('ascii', errors='surrogateescape'))
+            (key.encode("ascii"), value.encode("ascii", errors="surrogateescape"))
             for key, value in event.headers.raw_items()
         ]
         raw_path, _, query_string = event.path.partition("?")
@@ -206,7 +202,6 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         self.bytes += event.data
         if event.fin:
             self.send_receive_event_to_app()
-            
 
     def handle_text(self, event: Frame) -> None:
         self.bytes = event.data
@@ -227,9 +222,9 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             data = self.bytes
 
         msg: "WebSocketReceiveEvent" = {  # type: ignore[typeddict-item]
-                "type": "websocket.receive",
-                self.curr_msg_data_type: data
-            }
+            "type": "websocket.receive",
+            self.curr_msg_data_type: data,
+        }
         self.queue.put_nowait(msg)
         self.bytes = b""
         self.curr_msg_data_type = None
@@ -246,7 +241,9 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
     def handle_close(self, event: Frame) -> None:
         if not self.close_sent and not self.transport.is_closing():
-            self.queue.put_nowait({"type": "websocket.disconnect", "code": self.conn.close_rcvd.code})
+            self.queue.put_nowait(
+                {"type": "websocket.disconnect", "code": self.conn.close_rcvd.code}
+            )
             output = self.conn.data_to_send()
             self.transport.writelines(output)
             self.close_sent = True
@@ -254,7 +251,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
     def on_task_complete(self, task: asyncio.Task) -> None:
         self.tasks.discard(task)
-        
+
     async def run_asgi(self) -> None:
         try:
             result = await self.app(self.scope, self.receive, self.send)
@@ -299,18 +296,23 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                     get_path_with_query_string(self.scope),
                 )
                 headers = [
-                    (key.decode("ascii"), value.decode("ascii", errors="surrogateescape"))
+                    (
+                        key.decode("ascii"),
+                        value.decode("ascii", errors="surrogateescape"),
+                    )
                     for key, value in self.default_headers
                     + list(message.get("headers", []))
                 ]
 
-                self.accepted_subprotocol : str = message.get("subprotocol")
+                self.accepted_subprotocol: str = message.get("subprotocol")
                 if self.accepted_subprotocol:
-                    headers.append(('Sec-WebSocket-Protocol', self.accepted_subprotocol))
+                    headers.append(
+                        ("Sec-WebSocket-Protocol", self.accepted_subprotocol)
+                    )
 
                 self.handshake_complete = True
                 self.response.headers.update(headers)
-                self.conn.send_response(self.response)   
+                self.conn.send_response(self.response)
                 output = self.conn.data_to_send()
                 self.transport.writelines(output)
 
@@ -322,11 +324,16 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                     get_path_with_query_string(self.scope),
                 )
                 extra_headers = [
-                    (key.decode("ascii"), value.decode("ascii", errors="surrogateescape"))
+                    (
+                        key.decode("ascii"),
+                        value.decode("ascii", errors="surrogateescape"),
+                    )
                     for key, value in self.default_headers
                     + list(message.get("headers", []))
                 ]
-                response = self.conn.reject(HTTPStatus.FORBIDDEN, message.get('reason', ''))
+                response = self.conn.reject(
+                    HTTPStatus.FORBIDDEN, message.get("reason", "")
+                )
                 response.headers.update(extra_headers)
                 self.conn.send_response(response)
                 output = self.conn.data_to_send()
@@ -345,8 +352,8 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         elif not self.close_sent:
             if message_type == "websocket.send" and not self.transport.is_closing():
                 message = typing.cast("WebSocketSendEvent", message)
-                bytes_data : bytes = message.get("bytes")
-                text_data : str = message.get("text")
+                bytes_data: bytes = message.get("bytes")
+                text_data: str = message.get("text")
                 if text_data:
                     # need to add the logic of sending fragmented data here
                     self.conn.send_text(text_data.encode())
