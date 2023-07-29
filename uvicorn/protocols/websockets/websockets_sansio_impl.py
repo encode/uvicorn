@@ -28,22 +28,17 @@ else:
     from typing import Literal
 
 if typing.TYPE_CHECKING:
-    from asgiref.typing import (
+    from uvicorn._types import (
+        ASGIReceiveEvent,
         ASGISendEvent,
-        WebSocketCloseEvent,
         WebSocketConnectEvent,
-        WebSocketDisconnectEvent,
+        WebSocketAcceptEvent,
         WebSocketReceiveEvent,
-        WebSocketScope,
         WebSocketSendEvent,
+        WebSocketCloseEvent,
+        WebSocketDisconnectEvent,
+        WebSocketScope,
     )
-
-    WebSocketEvent = typing.Union[
-        "WebSocketReceiveEvent",
-        "WebSocketDisconnectEvent",
-        "WebSocketConnectEvent",
-    ]
-
 
 class WebSocketsSansIOProtocol(asyncio.Protocol):
     def __init__(
@@ -75,7 +70,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         self.scheme: Literal["wss", "ws"] = None  # type: ignore[assignment]
 
         # WebSocket state
-        self.queue: asyncio.Queue["WebSocketEvent"] = asyncio.Queue()
+        self.queue: asyncio.Queue["ASGIReceiveEvent"] = asyncio.Queue()
         self.handshake_initiated = False
         self.handshake_complete = False
         self.close_sent = False
@@ -94,7 +89,6 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
         # Buffers
         self.bytes: "bytes" = b""
-        print(len(self.tasks))
 
     def connection_made(self, transport: BaseTransport) -> None:
         """Called when a connection is made."""
@@ -111,7 +105,6 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
     def connection_lost(self, exc: typing.Optional[Exception]) -> None:
         self.connections.remove(self)
-        print("came in connection lost : ", exc)
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection lost", prefix)
@@ -241,12 +234,11 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
     def handle_close(self, event: Frame) -> None:
         if not self.close_sent and not self.transport.is_closing():
-            self.queue.put_nowait(
-                {
-                    "type": "websocket.disconnect",
-                    "code": self.conn.close_rcvd.code,  # type: ignore[union-attr]
-                }
-            )
+            disconnect_event: "WebSocketDisconnectEvent" = {
+                "type": "websocket.disconnect",
+                "code": self.conn.close_rcvd.code 
+            }
+            self.queue.put_nowait(disconnect_event)
             output = self.conn.data_to_send()
             self.transport.writelines(output)
             self.close_sent = True
@@ -293,6 +285,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
         if not self.handshake_complete:
             if message_type == "websocket.accept" and not self.transport.is_closing():
+                message = typing.cast("WebSocketAcceptEvent", message)
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
                     self.scope["client"],
@@ -318,6 +311,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                 self.transport.writelines(output)
 
             elif message_type == "websocket.close" and not self.transport.is_closing():
+                message = typing.cast("WebSocketCloseEvent", message)
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": 1006})
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
@@ -384,7 +378,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
             raise RuntimeError(msg % message_type)
 
-    async def receive(self) -> "WebSocketEvent":
+    async def receive(self) -> "ASGIReceiveEvent":
         message = await self.queue.get()
         if self.read_paused and self.queue.empty():
             self.read_paused = False
