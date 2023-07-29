@@ -123,7 +123,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         if not self.transport.is_closing():
             if self.handshake_complete:
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
-                self.close_send = True
+                self.close_sent = True
                 self.conn.send_close(1012)
                 output = self.conn.data_to_send()
                 self.transport.writelines(output)
