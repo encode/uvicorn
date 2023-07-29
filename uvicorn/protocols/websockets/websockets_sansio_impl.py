@@ -31,14 +31,14 @@ if typing.TYPE_CHECKING:
     from uvicorn._types import (
         ASGIReceiveEvent,
         ASGISendEvent,
-        WebSocketConnectEvent,
         WebSocketAcceptEvent,
-        WebSocketReceiveEvent,
-        WebSocketSendEvent,
         WebSocketCloseEvent,
         WebSocketDisconnectEvent,
+        WebSocketReceiveEvent,
         WebSocketScope,
+        WebSocketSendEvent,
     )
+
 
 class WebSocketsSansIOProtocol(asyncio.Protocol):
     def __init__(
@@ -184,7 +184,6 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             "query_string": query_string.encode("ascii"),
             "headers": headers,
             "subprotocols": event.headers.get_all("Sec-WebSocket-Protocol"),
-            "extensions": None,
             "state": self.app_state.copy(),
         }
         self.queue.put_nowait({"type": "websocket.connect"})
@@ -218,7 +217,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
         msg: "WebSocketReceiveEvent" = {
             "type": "websocket.receive",
-            self.curr_msg_data_type: data,
+            self.curr_msg_data_type: data,  # type: ignore[misc]
         }
         self.queue.put_nowait(msg)
         if not self.read_paused:
@@ -236,7 +235,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         if not self.close_sent and not self.transport.is_closing():
             disconnect_event: "WebSocketDisconnectEvent" = {
                 "type": "websocket.disconnect",
-                "code": self.conn.close_rcvd.code 
+                "code": self.conn.close_rcvd.code,  # type: ignore[union-attr]
             }
             self.queue.put_nowait(disconnect_event)
             output = self.conn.data_to_send()
@@ -300,7 +299,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                     + list(message.get("headers", []))
                 ]
 
-                accepted_subprotocol: str = message.get("subprotocol")
+                accepted_subprotocol = message.get("subprotocol")
                 if accepted_subprotocol:
                     headers.append(("Sec-WebSocket-Protocol", accepted_subprotocol))
 
@@ -312,7 +311,12 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
             elif message_type == "websocket.close" and not self.transport.is_closing():
                 message = typing.cast("WebSocketCloseEvent", message)
-                self.queue.put_nowait({"type": "websocket.disconnect", "code": 1006})
+                self.queue.put_nowait(
+                    {
+                        "type": "websocket.disconnect",
+                        "code": message.get("code", 1000) or 1000,
+                    }
+                )
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
                     self.scope["client"],
@@ -324,10 +328,10 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                         value.decode("ascii", errors="surrogateescape"),
                     )
                     for key, value in self.default_headers
-                    + list(message.get("headers", []))
                 ]
+
                 response = self.conn.reject(
-                    HTTPStatus.FORBIDDEN, message.get("reason", "")
+                    HTTPStatus.FORBIDDEN, message.get("reason", "") or ""
                 )
                 response.headers.update(extra_headers)
                 self.conn.send_response(response)
@@ -347,10 +351,9 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         elif not self.close_sent:
             if message_type == "websocket.send" and not self.transport.is_closing():
                 message = typing.cast("WebSocketSendEvent", message)
-                bytes_data: bytes = message.get("bytes")
-                text_data: str = message.get("text")
+                bytes_data = message.get("bytes")
+                text_data = message.get("text")
                 if text_data:
-                    # need to add the logic of sending fragmented data here
                     self.conn.send_text(text_data.encode())
                 elif bytes_data:
                     self.conn.send_binary(bytes_data)
