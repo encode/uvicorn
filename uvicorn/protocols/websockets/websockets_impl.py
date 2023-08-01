@@ -236,7 +236,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         'send' and 'receive' events to drive the flow.
         """
         self.handshake_completed_event.set()
-        await self.closed_event.wait()
+        await self.wait_closed()
 
     async def run_asgi(self) -> None:
         """

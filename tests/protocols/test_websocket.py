@@ -577,7 +577,7 @@ async def test_asgi_return_value(
     unused_tcp_port: int,
 ):
     """
-    The ASGI callable should return 'None'. If it doesn't make sure that
+    The ASGI callable should return 'None'. If it doesn't, make sure that
     the connection is closed with an error condition.
     """
 

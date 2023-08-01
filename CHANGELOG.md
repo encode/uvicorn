@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.23.2 - 2023-07-31
+
+### Fixed
+
+- Maintain the same behavior of `websockets` from 10.4 on 11.0 (#2061) 30/07/23
+
 ## 0.23.1 - 2023-07-18
 
 ### Fixed
