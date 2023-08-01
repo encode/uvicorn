@@ -10,7 +10,7 @@ import websockets
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from websockets.frames import Frame
 from websockets.http11 import Request, Response
-from websockets.server import ServerConnection
+from websockets.server import ServerProtocol
 
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
@@ -78,7 +78,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         extensions = []
         if self.config.ws_per_message_deflate:
             extensions.append(ServerPerMessageDeflateFactory())
-        self.conn = ServerConnection(extensions=extensions)
+        self.conn = ServerProtocol(extensions=extensions)
         self.request: Request
         self.response: Response
         self.curr_msg_data_type: str
