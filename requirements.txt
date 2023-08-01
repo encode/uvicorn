@@ -14,7 +14,7 @@ build==0.10.0
 twine==4.0.2
 
 # Testing
-black==23.3.0
+black==23.7.0
 ruff==0.0.281
 pytest==7.4.0
 pytest-mock==3.11.1
