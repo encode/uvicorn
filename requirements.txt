@@ -30,4 +30,4 @@ watchgod==0.8.2
 
 # Documentation
 mkdocs==1.5.1
-mkdocs-material==9.1.8
+mkdocs-material==9.1.21
