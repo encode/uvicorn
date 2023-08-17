@@ -2,14 +2,34 @@ import asyncio
 import http
 import logging
 import re
-import sys
 import urllib
 from asyncio.events import TimerHandle
 from collections import deque
-from typing import TYPE_CHECKING, Callable, Deque, List, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Deque,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 import httptools
 
+from uvicorn._types import (
+    ASGI3Application,
+    ASGIReceiveEvent,
+    ASGISendEvent,
+    HTTPDisconnectEvent,
+    HTTPRequestEvent,
+    HTTPResponseBodyEvent,
+    HTTPResponseStartEvent,
+    HTTPScope,
+)
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import (
@@ -26,23 +46,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
-
-if TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGI3Application,
-        ASGIReceiveEvent,
-        ASGISendEvent,
-        HTTPDisconnectEvent,
-        HTTPRequestEvent,
-        HTTPResponseBodyEvent,
-        HTTPResponseStartEvent,
-        HTTPScope,
-    )
 
 HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")
@@ -66,6 +69,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
+        app_state: Dict[str, Any],
         _loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         if not config.loaded:
@@ -81,6 +85,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
         self.limit_concurrency = config.limit_concurrency
+        self.app_state = app_state
 
         # Timeouts
         self.timeout_keep_alive_task: Optional[TimerHandle] = None
@@ -166,7 +171,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.config.ws == "auto":
             msg = "Unsupported upgrade request."
             self.logger.warning(msg)
-            msg = "No supported WebSocket library detected. Please use 'pip install uvicorn[standard]', or install 'websockets' or 'wsproto' manually."  # noqa: E501
+            msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
             self.logger.warning(msg)
         return False
 
@@ -201,14 +206,15 @@ class HttpToolsProtocol(asyncio.Protocol):
             output += [name, b": ", value, b"\r\n"]
         output.append(b"\r\n")
         protocol = self.ws_protocol_class(  # type: ignore[call-arg, misc]
-            config=self.config, server_state=self.server_state
+            config=self.config,
+            server_state=self.server_state,
+            app_state=self.app_state,
         )
         protocol.connection_made(self.transport)
         protocol.data_received(b"".join(output))
         self.transport.set_protocol(protocol)
 
     def send_400_response(self, msg: str) -> None:
-
         content = [STATUS_LINE[400]]
         for name, value in self.server_state.default_headers:
             content.extend([name, b": ", value, b"\r\n"])
@@ -234,9 +240,10 @@ class HttpToolsProtocol(asyncio.Protocol):
             "http_version": "1.1",
             "server": self.server,
             "client": self.client,
-            "scheme": self.scheme,
+            "scheme": self.scheme,  # type: ignore[typeddict-item]
             "root_path": self.root_path,
             "headers": self.headers,
+            "state": self.app_state.copy(),
         }
 
     # Parser callbacks

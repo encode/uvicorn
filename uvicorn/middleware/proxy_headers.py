@@ -8,17 +8,16 @@ the connecting client, rather that the connecting proxy.
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union, cast
+from typing import List, Optional, Tuple, Union, cast
 
-if TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGI3Application,
-        ASGIReceiveCallable,
-        ASGISendCallable,
-        HTTPScope,
-        Scope,
-        WebSocketScope,
-    )
+from uvicorn._types import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    HTTPScope,
+    Scope,
+    WebSocketScope,
+)
 
 
 class ProxyHeadersMiddleware:
@@ -60,8 +59,15 @@ class ProxyHeadersMiddleware:
                 if b"x-forwarded-proto" in headers:
                     # Determine if the incoming request was http or https based on
                     # the X-Forwarded-Proto header.
-                    x_forwarded_proto = headers[b"x-forwarded-proto"].decode("latin1")
-                    scope["scheme"] = x_forwarded_proto.strip()  # type: ignore[index]
+                    x_forwarded_proto = (
+                        headers[b"x-forwarded-proto"].decode("latin1").strip()
+                    )
+                    if scope["type"] == "websocket":
+                        scope["scheme"] = (
+                            "wss" if x_forwarded_proto == "https" else "ws"
+                        )
+                    else:
+                        scope["scheme"] = x_forwarded_proto
 
                 if b"x-forwarded-for" in headers:
                     # Determine the client address from the last trusted IP in the

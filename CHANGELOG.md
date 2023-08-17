@@ -1,5 +1,96 @@
 # Change Log
 
+## 0.23.2 - 2023-07-31
+
+### Fixed
+
+- Maintain the same behavior of `websockets` from 10.4 on 11.0 (#2061) 30/07/23
+
+## 0.23.1 - 2023-07-18
+
+### Fixed
+
+- Add `typing_extensions` for Python 3.10 and lower (#2053) 18/07/23
+
+## 0.23.0 - 2023-07-10
+
+### Added
+
+- Add `--ws-max-queue` parameter WebSockets (#2033) 10/07/23
+
+### Removed
+
+- Drop support for Python 3.7 (#1996) 19/06/23
+- Remove `asgiref` as typing dependency (#1999) 08/06/23
+
+### Fixed
+
+- Set `scope["scheme"]` to `ws` or `wss` instead of `http` or `https` on `ProxyHeadersMiddleware` for WebSockets (#2043) 12/07/23
+
+### Changed
+
+- Raise `ImportError` on circular import (#2040) 09/07/23
+- Use `logger.getEffectiveLevel()` instead of `logger.level` to check if log level is `TRACE` (#1966) 01/06/23
+
+## 0.22.0 - 2023-04-28
+
+### Added
+
+- Add `--timeout-graceful-shutdown` parameter (#1950) 26/04/23
+- Handle `SIGBREAK` on Windows (#1909) 15/04/23
+
+### Fixed
+
+- Shutdown event is now being triggered on Windows when using hot reload (#1584) 13/04/23
+- `--reload-delay` is effectively used on the `watchfiles` reloader (#1930) 22/04/23
+
+## 0.21.1 - 2023-03-16
+
+### Fixed
+
+- Reset lifespan state on each request (#1903) 16/03/23
+
+## 0.21.0 - 2023-03-09
+
+### Added
+
+- Introduce lifespan state (#1818) 05/03/23
+- Allow headers to be sent as iterables on H11 implementation (#1782) 27/11/22
+- Improve discoverability when --port=0 is used (#1890) 09/03/23
+
+### Changed
+
+- Avoid importing `h11` and `pyyaml` when not needed to improve import time (#1846) 07/02/23
+- Replace current native `WSGIMiddleware` implementation by `a2wsgi` (#1825) 16/01/23
+- Change default `--app-dir` from "." (dot) to "" (empty string) (#1835) 06/01/23
+
+### Fixed
+
+- Send code 1012 on shutdown for WebSockets (#1816) 06/01/23
+- Use `surrogateescape` to encode headers on `websockets` implementation (#1005) 12/12/22
+- Fix warning message on reload failure (#1784) 29/11/22
+
+## 0.20.0 - 2022-11-20
+
+### Added
+
+- Check if handshake is completed before sending frame on `wsproto` shutdown (#1737)
+- Add default headers to WebSockets implementations (#1606 & #1747) 28/10/22
+- Warn user when `reload` and `workers` flag are used together (#1731) 31/10/22
+
+### Fixed
+
+- Use correct `WebSocket` error codes on `close` (#1753) 20/11/22
+- Send disconnect event on connection lost for `wsproto` (#996) 29/10/22
+- Add `SIGQUIT` handler to `UvicornWorker` (#1710) 01/11/22
+- Fix crash on exist with "--uds" if socket doesn't exist (#1725) 27/10/22
+- Annotate `CONFIG_KWARGS` in `UvicornWorker` class (#1746) 31/10/22
+
+### Removed
+
+- Remove conditional on `RemoteProtocolError.event_hint` on `wsproto` (#1486) 31/10/22
+- Remove unused `handle_no_connect` on `wsproto` implementation (#1759) 17/11/22
+
 ## 0.19.0 - 2022-10-19
 
 ### Added
@@ -14,7 +105,7 @@
 - Set `propagate` to `False` on "uvicorn" logger (#1288) 08/10/22
 - USR1 signal is now handled correctly on `UvicornWorker`. (#1565) 26/08/22
 - Use path with query string on `WebSockets` logs (#1385) 11/09/22
-- Fix behavior on which "Date" headers were not updated on the same connection (#1706) 19/10/22 
+- Fix behavior on which "Date" headers were not updated on the same connection (#1706) 19/10/22
 
 ### Removed
 

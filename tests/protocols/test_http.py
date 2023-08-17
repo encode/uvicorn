@@ -2,19 +2,26 @@ import logging
 import socket
 import threading
 import time
+from typing import TYPE_CHECKING, Optional, Type, Union
 
 import pytest
 
 from tests.response import Response
 from uvicorn import Server
 from uvicorn.config import WS_PROTOCOLS, Config
+from uvicorn.lifespan.off import LifespanOff
+from uvicorn.lifespan.on import LifespanOn
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
 
 try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 except ImportError:  # pragma: nocover
-    HttpToolsProtocol = None
+    HttpToolsProtocol = None  # type: ignore[misc,assignment]
+
+if TYPE_CHECKING:
+    from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 
 HTTP_PROTOCOLS = [p for p in [H11Protocol, HttpToolsProtocol] if p is not None]
@@ -33,6 +40,10 @@ SIMPLE_POST_REQUEST = b"\r\n".join(
         b"",
         b'{"hello": "world"}',
     ]
+)
+
+CONNECTION_CLOSE_REQUEST = b"\r\n".join(
+    [b"GET / HTTP/1.1", b"Host: example.org", b"Connection: close", b"", b""]
 )
 
 LARGE_POST_REQUEST = b"\r\n".join(
@@ -180,12 +191,23 @@ class MockTask:
         pass
 
 
-def get_connected_protocol(app, protocol_cls, **kwargs):
+def get_connected_protocol(
+    app,
+    protocol_cls,
+    lifespan: Optional[Union[LifespanOff, LifespanOn]] = None,
+    **kwargs,
+):
     loop = MockLoop()
     transport = MockTransport()
     config = Config(app=app, **kwargs)
+    lifespan = lifespan or LifespanOff(config)
     server_state = ServerState()
-    protocol = protocol_cls(config=config, server_state=server_state, _loop=loop)
+    protocol = protocol_cls(
+        config=config,
+        server_state=server_state,
+        app_state=lifespan.state,
+        _loop=loop,
+    )
     protocol.connection_made(transport)
     return protocol
 
@@ -711,6 +733,8 @@ async def test_100_continue_not_sent_when_body_not_consumed(protocol_cls):
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
 async def test_supported_upgrade_request(protocol_cls):
+    pytest.importorskip("wsproto")
+
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, protocol_cls, ws="wsproto")
@@ -750,17 +774,18 @@ async def test_unsupported_ws_upgrade_request_warn_on_auto(
         )
     ]
     assert "Unsupported upgrade request." in warnings
-    msg = "No supported WebSocket library detected. Please use 'pip install uvicorn[standard]', or install 'websockets' or 'wsproto' manually."  # noqa: E501
+    msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
     assert msg in warnings
 
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
-@pytest.mark.parametrize("ws", WEBSOCKET_PROTOCOLS)
-async def test_http2_upgrade_request(protocol_cls, ws):
+async def test_http2_upgrade_request(
+    protocol_cls, ws_protocol_cls: "Type[WSProtocol | WebSocketProtocol]"
+):
     app = Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(app, protocol_cls, ws=ws)
+    protocol = get_connected_protocol(app, protocol_cls, ws=ws_protocol_cls)
     protocol.data_received(UPGRADE_HTTP2_REQUEST)
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
@@ -818,7 +843,7 @@ async def test_invalid_http_request(request_line, protocol_cls, caplog):
 
 
 @pytest.mark.skipif(HttpToolsProtocol is None, reason="httptools is not installed")
-def test_fragmentation():
+def test_fragmentation(unused_tcp_port: int):
     def receive_all(sock):
         chunks = []
         while True:
@@ -831,9 +856,8 @@ def test_fragmentation():
     app = Response("Hello, world", media_type="text/plain")
 
     def send_fragmented_req(path):
-
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(("127.0.0.1", 8000))
+        sock.connect(("127.0.0.1", unused_tcp_port))
         d = (
             f"GET {path} HTTP/1.1\r\n" "Host: localhost\r\n" "Connection: close\r\n\r\n"
         ).encode()
@@ -851,7 +875,7 @@ def test_fragmentation():
         sock.close()
         return resp
 
-    config = Config(app=app, http="httptools")
+    config = Config(app=app, http="httptools", port=unused_tcp_port)
     server = Server(config=config)
     t = threading.Thread(target=server.run)
     t.daemon = True
@@ -936,3 +960,72 @@ async def test_huge_headers_h11_max_incomplete():
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "protocol_cls,close_header",
+    (
+        pytest.param(
+            HttpToolsProtocol,
+            b"connection: close",
+            marks=pytest.mark.skipif(
+                HttpToolsProtocol is None, reason="httptools is not installed"
+            ),
+        ),
+        (H11Protocol, b"Connection: close"),
+    ),
+)
+async def test_return_close_header(protocol_cls, close_header: bytes):
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(CONNECTION_CLOSE_REQUEST)
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"content-type: text/plain" in protocol.transport.buffer
+    assert b"content-length: 12" in protocol.transport.buffer
+    assert close_header in protocol.transport.buffer
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+async def test_iterator_headers(protocol_cls):
+    async def app(scope, receive, send):
+        headers = iter([(b"x-test-header", b"test value")])
+        await send({"type": "http.response.start", "status": 200, "headers": headers})
+        await send({"type": "http.response.body", "body": b""})
+
+    protocol = get_connected_protocol(app, protocol_cls)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    await protocol.loop.run_one()
+    assert b"x-test-header: test value" in protocol.transport.buffer
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("protocol_cls", HTTP_PROTOCOLS)
+async def test_lifespan_state(protocol_cls):
+    expected_states = [{"a": 123, "b": [1]}, {"a": 123, "b": [1, 2]}]
+
+    async def app(scope, receive, send):
+        expected_state = expected_states.pop(0)
+        assert scope["state"] == expected_state
+        # modifications to keys are not preserved
+        scope["state"]["a"] = 456
+        # unless of course the value itself is mutated
+        scope["state"]["b"].append(2)
+        return await Response("Hi!")(scope, receive, send)
+
+    lifespan = LifespanOn(config=Config(app=app))
+    # skip over actually running the lifespan, that is tested
+    # in the lifespan tests
+    lifespan.state.update({"a": 123, "b": [1]})
+
+    protocol = get_connected_protocol(app, protocol_cls, lifespan=lifespan)
+    for _ in range(2):
+        protocol.data_received(SIMPLE_GET_REQUEST)
+        await protocol.loop.run_one()
+        assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+        assert b"Hi!" in protocol.transport.buffer
+
+    assert not expected_states  # consumed

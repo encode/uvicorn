@@ -7,9 +7,9 @@ import sys
 import typing
 
 import click
-from h11._connection import DEFAULT_MAX_INCOMPLETE_EVENT_SIZE
 
 import uvicorn
+from uvicorn._types import ASGIApplication
 from uvicorn.config import (
     HTTP_PROTOCOLS,
     INTERFACES,
@@ -28,9 +28,6 @@ from uvicorn.config import (
 )
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
-
-if typing.TYPE_CHECKING:
-    from asgiref.typing import ASGIApplication
 
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
 HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
@@ -72,7 +69,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--port",
     type=int,
     default=8000,
-    help="Bind socket to this port.",
+    help="Bind socket to this port. If 0, an available port will be picked.",
     show_default=True,
 )
 @click.option("--uds", type=str, default=None, help="Bind to a UNIX domain socket.")
@@ -146,6 +143,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     type=int,
     default=16777216,
     help="WebSocket max size message in bytes",
+    show_default=True,
+)
+@click.option(
+    "--ws-max-queue",
+    type=int,
+    default=32,
+    help="The maximum length of the WebSocket message queue.",
     show_default=True,
 )
 @click.option(
@@ -275,6 +279,12 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
+    "--timeout-graceful-shutdown",
+    type=int,
+    default=None,
+    help="Maximum number of seconds to wait for graceful shutdown.",
+)
+@click.option(
     "--ssl-keyfile", type=str, default=None, help="SSL key file", show_default=True
 )
 @click.option(
@@ -342,7 +352,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 )
 @click.option(
     "--app-dir",
-    default=".",
+    default="",
     show_default=True,
     help="Look for APP in the specified directory, by adding this to the PYTHONPATH."
     " Defaults to the current working directory.",
@@ -351,7 +361,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--h11-max-incomplete-event-size",
     "h11_max_incomplete_event_size",
     type=int,
-    default=DEFAULT_MAX_INCOMPLETE_EVENT_SIZE,
+    default=None,
     help="For h11, the maximum number of bytes to buffer of an incomplete event.",
 )
 @click.option(
@@ -371,6 +381,7 @@ def main(
     http: HTTPProtocolType,
     ws: WSProtocolType,
     ws_max_size: int,
+    ws_max_queue: int,
     ws_ping_interval: float,
     ws_ping_timeout: float,
     ws_per_message_deflate: bool,
@@ -395,6 +406,7 @@ def main(
     backlog: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
+    timeout_graceful_shutdown: typing.Optional[int],
     ssl_keyfile: str,
     ssl_certfile: str,
     ssl_keyfile_password: str,
@@ -406,7 +418,7 @@ def main(
     headers: typing.List[str],
     use_colors: bool,
     app_dir: str,
-    h11_max_incomplete_event_size: int,
+    h11_max_incomplete_event_size: typing.Optional[int],
     factory: bool,
 ) -> None:
     run(
@@ -419,6 +431,7 @@ def main(
         http=http,
         ws=ws,
         ws_max_size=ws_max_size,
+        ws_max_queue=ws_max_queue,
         ws_ping_interval=ws_ping_interval,
         ws_ping_timeout=ws_ping_timeout,
         ws_per_message_deflate=ws_per_message_deflate,
@@ -443,6 +456,7 @@ def main(
         backlog=backlog,
         limit_max_requests=limit_max_requests,
         timeout_keep_alive=timeout_keep_alive,
+        timeout_graceful_shutdown=timeout_graceful_shutdown,
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
         ssl_keyfile_password=ssl_keyfile_password,
@@ -470,6 +484,7 @@ def run(
     http: typing.Union[typing.Type[asyncio.Protocol], HTTPProtocolType] = "auto",
     ws: typing.Union[typing.Type[asyncio.Protocol], WSProtocolType] = "auto",
     ws_max_size: int = 16777216,
+    ws_max_queue: int = 32,
     ws_ping_interval: typing.Optional[float] = 20.0,
     ws_ping_timeout: typing.Optional[float] = 20.0,
     ws_per_message_deflate: bool = True,
@@ -496,6 +511,7 @@ def run(
     backlog: int = 2048,
     limit_max_requests: typing.Optional[int] = None,
     timeout_keep_alive: int = 5,
+    timeout_graceful_shutdown: typing.Optional[int] = None,
     ssl_keyfile: typing.Optional[str] = None,
     ssl_certfile: typing.Optional[typing.Union[str, os.PathLike]] = None,
     ssl_keyfile_password: typing.Optional[str] = None,
@@ -508,7 +524,7 @@ def run(
     use_colors: typing.Optional[bool] = None,
     app_dir: typing.Optional[str] = None,
     factory: bool = False,
-    h11_max_incomplete_event_size: int = DEFAULT_MAX_INCOMPLETE_EVENT_SIZE,
+    h11_max_incomplete_event_size: typing.Optional[int] = None,
 ) -> None:
     if app_dir is not None:
         sys.path.insert(0, app_dir)
@@ -523,6 +539,7 @@ def run(
         http=http,
         ws=ws,
         ws_max_size=ws_max_size,
+        ws_max_queue=ws_max_queue,
         ws_ping_interval=ws_ping_interval,
         ws_ping_timeout=ws_ping_timeout,
         ws_per_message_deflate=ws_per_message_deflate,
@@ -547,6 +564,7 @@ def run(
         backlog=backlog,
         limit_max_requests=limit_max_requests,
         timeout_keep_alive=timeout_keep_alive,
+        timeout_graceful_shutdown=timeout_graceful_shutdown,
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
         ssl_keyfile_password=ssl_keyfile_password,

@@ -19,7 +19,7 @@ def import_from_string(import_str: Any) -> Any:
 
     try:
         module = importlib.import_module(module_str)
-    except ImportError as exc:
+    except ModuleNotFoundError as exc:
         if exc.name != module_str:
             raise exc from None
         message = 'Could not import module "{module_str}".'

@@ -1,6 +1,7 @@
 import logging
 import os
 import signal
+import sys
 import threading
 from pathlib import Path
 from socket import socket
@@ -32,13 +33,17 @@ class BaseReload:
         self.sockets = sockets
         self.should_exit = threading.Event()
         self.pid = os.getpid()
+        self.is_restarting = False
         self.reloader_name: Optional[str] = None
 
     def signal_handler(self, sig: int, frame: Optional[FrameType]) -> None:
         """
         A signal handler that is registered with the parent process.
         """
-        self.should_exit.set()
+        if sys.platform == "win32" and self.is_restarting:
+            self.is_restarting = False  # pragma: py-not-win32
+        else:
+            self.should_exit.set()  # pragma: py-win32
 
     def run(self) -> None:
         self.startup()
@@ -80,8 +85,12 @@ class BaseReload:
         self.process.start()
 
     def restart(self) -> None:
-
-        self.process.terminate()
+        if sys.platform == "win32":  # pragma: py-not-win32
+            self.is_restarting = True
+            assert self.process.pid is not None
+            os.kill(self.process.pid, signal.CTRL_C_EVENT)
+        else:  # pragma: py-win32
+            self.process.terminate()
         self.process.join()
 
         self.process = get_subprocess(
@@ -90,7 +99,10 @@ class BaseReload:
         self.process.start()
 
     def shutdown(self) -> None:
-        self.process.terminate()
+        if sys.platform == "win32":
+            self.should_exit.set()  # pragma: py-not-win32
+        else:
+            self.process.terminate()  # pragma: py-win32
         self.process.join()
 
         for sock in self.sockets:

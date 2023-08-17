@@ -9,45 +9,27 @@ import ssl
 import sys
 from pathlib import Path
 from typing import (
-    TYPE_CHECKING,
     Any,
     Awaitable,
     Callable,
     Dict,
     List,
+    Literal,
     Optional,
     Tuple,
     Type,
     Union,
 )
 
-from h11._connection import DEFAULT_MAX_INCOMPLETE_EVENT_SIZE
-
-from uvicorn.logging import TRACE_LOG_LEVEL
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
-
 import click
 
-try:
-    import yaml
-except ImportError:  # pragma: no cover
-    # If the code below that depends on yaml is exercised, it will raise a NameError.
-    # Install the PyYAML package or the uvicorn[standard] optional dependencies to
-    # enable this functionality.
-    pass
-
+from uvicorn._types import ASGIApplication
 from uvicorn.importer import ImportFromStringError, import_from_string
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
-
-if TYPE_CHECKING:
-    from asgiref.typing import ASGIApplication
 
 HTTPProtocolType = Literal["auto", "h11", "httptools"]
 WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
@@ -218,6 +200,7 @@ class Config:
         http: Union[Type[asyncio.Protocol], HTTPProtocolType] = "auto",
         ws: Union[Type[asyncio.Protocol], WSProtocolType] = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
+        ws_max_queue: int = 32,
         ws_ping_interval: Optional[float] = 20.0,
         ws_ping_timeout: Optional[float] = 20.0,
         ws_per_message_deflate: bool = True,
@@ -244,6 +227,7 @@ class Config:
         backlog: int = 2048,
         timeout_keep_alive: int = 5,
         timeout_notify: int = 30,
+        timeout_graceful_shutdown: Optional[int] = None,
         callback_notify: Optional[Callable[..., Awaitable[None]]] = None,
         ssl_keyfile: Optional[str] = None,
         ssl_certfile: Optional[Union[str, os.PathLike]] = None,
@@ -255,7 +239,7 @@ class Config:
         ssl_options: Optional[List[ssl.Options]] = None,
         headers: Optional[List[Tuple[str, str]]] = None,
         factory: bool = False,
-        h11_max_incomplete_event_size: int = DEFAULT_MAX_INCOMPLETE_EVENT_SIZE,
+        h11_max_incomplete_event_size: Optional[int] = None,
     ):
         self.app = app
         self.host = host
@@ -266,6 +250,7 @@ class Config:
         self.http = http
         self.ws = ws
         self.ws_max_size = ws_max_size
+        self.ws_max_queue = ws_max_queue
         self.ws_ping_interval = ws_ping_interval
         self.ws_ping_timeout = ws_ping_timeout
         self.ws_per_message_deflate = ws_per_message_deflate
@@ -287,6 +272,7 @@ class Config:
         self.backlog = backlog
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
+        self.timeout_graceful_shutdown = timeout_graceful_shutdown
         self.callback_notify = callback_notify
         self.ssl_keyfile = ssl_keyfile
         self.ssl_certfile = ssl_certfile
@@ -313,7 +299,7 @@ class Config:
             reload_dirs or reload_includes or reload_excludes
         ) and not self.should_reload:
             logger.warning(
-                "Current configuration will not reload as not all conditions are met,"
+                "Current configuration will not reload as not all conditions are met, "
                 "please refer to documentation."
             )
 
@@ -416,6 +402,10 @@ class Config:
                     loaded_config = json.load(file)
                     logging.config.dictConfig(loaded_config)
             elif self.log_config.endswith((".yaml", ".yml")):
+                # Install the PyYAML package or the uvicorn[standard] optional
+                # dependencies to enable this functionality.
+                import yaml
+
                 with open(self.log_config) as file:
                     loaded_config = yaml.safe_load(file)
                     logging.config.dictConfig(loaded_config)
@@ -515,7 +505,7 @@ class Config:
         elif self.interface == "asgi2":
             self.loaded_app = ASGI2Middleware(self.loaded_app)
 
-        if logger.level <= TRACE_LOG_LEVEL:
+        if logger.getEffectiveLevel() <= TRACE_LOG_LEVEL:
             self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
             self.loaded_app = ProxyHeadersMiddleware(
@@ -584,7 +574,7 @@ class Config:
                 + " (Press CTRL+C to quit)"
             )
             protocol_name = "https" if self.is_ssl else "http"
-            logger_args = [protocol_name, self.host, self.port]
+            logger_args = [protocol_name, self.host, sock.getsockname()[1]]
         logger.info(message, *logger_args, extra={"color_message": color_message})
         sock.set_inheritable(True)
         return sock

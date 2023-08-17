@@ -1,8 +1,17 @@
 import asyncio
 import http
 import logging
-import sys
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, Union, cast
+from typing import (
+    Any,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 from urllib.parse import unquote
 
 import websockets
@@ -13,6 +22,16 @@ from websockets.legacy.server import HTTPResponse
 from websockets.server import WebSocketServerProtocol
 from websockets.typing import Subprotocol
 
+from uvicorn._types import (
+    ASGISendEvent,
+    WebSocketAcceptEvent,
+    WebSocketCloseEvent,
+    WebSocketConnectEvent,
+    WebSocketDisconnectEvent,
+    WebSocketReceiveEvent,
+    WebSocketScope,
+    WebSocketSendEvent,
+)
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import (
@@ -22,23 +41,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
-
-if TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGISendEvent,
-        WebSocketAcceptEvent,
-        WebSocketCloseEvent,
-        WebSocketConnectEvent,
-        WebSocketDisconnectEvent,
-        WebSocketReceiveEvent,
-        WebSocketScope,
-        WebSocketSendEvent,
-    )
 
 
 class Server:
@@ -61,6 +63,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self,
         config: Config,
         server_state: ServerState,
+        app_state: Dict[str, Any],
         _loop: Optional[asyncio.AbstractEventLoop] = None,
     ):
         if not config.loaded:
@@ -70,6 +73,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
         self.root_path = config.root_path
+        self.app_state = app_state
 
         # Shared server state
         self.connections = server_state.connections
@@ -88,8 +92,8 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.closed_event = asyncio.Event()
         self.initial_response: Optional[HTTPResponse] = None
         self.connect_sent = False
+        self.lost_connection_before_handshake = False
         self.accepted_subprotocol: Optional[Subprotocol] = None
-        self.transfer_data_task: asyncio.Task = None  # type: ignore[assignment]
 
         self.ws_server: Server = Server()  # type: ignore[assignment]
 
@@ -101,6 +105,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             ws_handler=self.ws_handler,
             ws_server=self.ws_server,  # type: ignore[arg-type]
             max_size=self.config.ws_max_size,
+            max_queue=self.config.ws_max_queue,
             ping_interval=self.config.ws_ping_interval,
             ping_timeout=self.config.ws_ping_timeout,
             extensions=extensions,
@@ -134,6 +139,9 @@ class WebSocketProtocol(WebSocketServerProtocol):
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection lost", prefix)
 
+        self.lost_connection_before_handshake = (
+            not self.handshake_completed_event.is_set()
+        )
         self.handshake_completed_event.set()
         super().connection_lost(exc)
         if exc is None:
@@ -141,6 +149,10 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
     def shutdown(self) -> None:
         self.ws_server.closing = True
+        if self.handshake_completed_event.is_set():
+            self.fail_connection(1012)
+        else:
+            self.send_500_response()
         self.transport.close()
 
     def on_task_complete(self, task: asyncio.Task) -> None:
@@ -166,11 +178,11 @@ class WebSocketProtocol(WebSocketServerProtocol):
             subprotocols.extend([token.strip() for token in header.split(",")])
 
         asgi_headers = [
-            (name.encode("ascii"), value.encode("ascii"))
+            (name.encode("ascii"), value.encode("ascii", errors="surrogateescape"))
             for name, value in headers.raw_items()
         ]
 
-        self.scope = {  # type: ignore[typeddict-item]
+        self.scope = {
             "type": "websocket",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
             "http_version": "1.1",
@@ -183,6 +195,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             "query_string": query_string.encode("ascii"),
             "headers": asgi_headers,
             "subprotocols": subprotocols,
+            "state": self.app_state.copy(),
         }
         task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)
@@ -223,7 +236,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         'send' and 'receive' events to drive the flow.
         """
         self.handshake_completed_event.set()
-        await self.closed_event.wait()
+        await self.wait_closed()
 
     async def run_asgi(self) -> None:
         """
@@ -335,11 +348,13 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
         await self.handshake_completed_event.wait()
 
-        if self.closed_event.is_set():
-            # If client disconnected, use WebSocketServerProtocol.close_code property.
+        if self.lost_connection_before_handshake:
             # If the handshake failed or the app closed before handshake completion,
             # use 1006 Abnormal Closure.
-            return {"type": "websocket.disconnect", "code": self.close_code or 1006}
+            return {"type": "websocket.disconnect", "code": 1006}
+
+        if self.closed_event.is_set():
+            return {"type": "websocket.disconnect", "code": 1005}
 
         try:
             data = await self.recv()

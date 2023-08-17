@@ -52,7 +52,7 @@ class CustomWatcher(DefaultWatcher):
         entry_path = Path(entry)
 
         # cwd is not verified through should_watch_dir, so we need to verify here
-        if entry_path.parent == Path.cwd() and not Path.cwd() in self.dirs_includes:
+        if entry_path.parent == Path.cwd() and Path.cwd() not in self.dirs_includes:
             self.watched_files[entry.path] = False
             return False
         for include_pattern in self.includes:
@@ -131,7 +131,7 @@ class WatchGodReload(BaseReload):
         sockets: List[socket],
     ) -> None:
         warnings.warn(
-            '"watchgod" is depreciated, you should switch '
+            '"watchgod" is deprecated, you should switch '
             "to watchfiles (`pip install watchfiles`).",
             DeprecationWarning,
         )
