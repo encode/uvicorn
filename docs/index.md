@@ -343,9 +343,9 @@ An incoming HTTP request might have a connection `scope` like this:
     'method': 'GET',
     'path': '/',
     'headers': [
-        [b'host', b'127.0.0.1:8000'],
-        [b'user-agent', b'curl/7.51.0'],
-        [b'accept', b'*/*']
+        (b'host', b'127.0.0.1:8000'),
+        (b'user-agent', b'curl/7.51.0'),
+        (b'accept', b'*/*')
     ]
 }
 ```
