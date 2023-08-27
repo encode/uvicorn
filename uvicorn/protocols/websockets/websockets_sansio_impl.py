@@ -6,9 +6,8 @@ from http import HTTPStatus
 from typing import Literal
 from urllib.parse import unquote
 
-import websockets
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
-from websockets.frames import Frame
+from websockets.frames import Frame, Opcode
 from websockets.http11 import Request, Response
 from websockets.server import ServerProtocol
 
@@ -81,7 +80,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         self.writable.set()
 
         # Buffers
-        self.bytes: "bytes" = b""
+        self.bytes = b""
 
     def connection_made(self, transport: BaseTransport) -> None:
         """Called when a connection is made."""
@@ -130,17 +129,17 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             if isinstance(event, Request):
                 self.handle_connect(event)
             if isinstance(event, Frame):
-                if event.opcode == websockets.frames.Opcode.CONT:
+                if event.opcode == Opcode.CONT:
                     self.handle_cont(event)
-                elif event.opcode == websockets.frames.Opcode.TEXT:
+                elif event.opcode == Opcode.TEXT:
                     self.handle_text(event)
-                elif event.opcode == websockets.frames.Opcode.BINARY:
+                elif event.opcode == Opcode.BINARY:
                     self.handle_bytes(event)
-                elif event.opcode == websockets.frames.Opcode.PING:
+                elif event.opcode == Opcode.PING:
                     self.handle_ping(event)
-                elif event.opcode == websockets.frames.Opcode.PONG:
+                elif event.opcode == Opcode.PONG:
                     self.handle_pong(event)
-                elif event.opcode == websockets.frames.Opcode.CLOSE:
+                elif event.opcode == Opcode.CLOSE:
                     self.handle_close(event)
 
     # Event handlers
@@ -208,7 +207,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         else:
             data = self.bytes
 
-        msg: "WebSocketReceiveEvent" = {
+        msg: WebSocketReceiveEvent = {
             "type": "websocket.receive",
             self.curr_msg_data_type: data,  # type: ignore[misc]
         }
@@ -226,7 +225,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
     def handle_close(self, event: Frame) -> None:
         if not self.close_sent and not self.transport.is_closing():
-            disconnect_event: "WebSocketDisconnectEvent" = {
+            disconnect_event: WebSocketDisconnectEvent = {
                 "type": "websocket.disconnect",
                 "code": self.conn.close_rcvd.code,  # type: ignore[union-attr]
             }
@@ -270,7 +269,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         ]
         self.transport.write(b"".join(content))
 
-    async def send(self, message: "ASGISendEvent") -> None:
+    async def send(self, message: ASGISendEvent) -> None:
         await self.writable.wait()
 
         message_type = message["type"]
@@ -330,7 +329,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                 self.conn.send_response(response)
                 output = self.conn.data_to_send()
                 self.close_sent = True
-                self.hankshake_complete = True
+                self.handshake_complete = True
                 self.transport.writelines(output)
                 self.transport.close()
 
@@ -343,7 +342,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
         elif not self.close_sent:
             if message_type == "websocket.send" and not self.transport.is_closing():
-                message = typing.cast("WebSocketSendEvent", message)
+                message = typing.cast(WebSocketSendEvent, message)
                 bytes_data = message.get("bytes")
                 text_data = message.get("text")
                 if text_data:
@@ -354,7 +353,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                 self.transport.writelines(output)
 
             elif message_type == "websocket.close" and not self.transport.is_closing():
-                message = typing.cast("WebSocketCloseEvent", message)
+                message = typing.cast(WebSocketCloseEvent, message)
                 code = message.get("code", 1000)
                 reason = message.get("reason", "") or ""
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
@@ -374,7 +373,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
             raise RuntimeError(msg % message_type)
 
-    async def receive(self) -> "ASGIReceiveEvent":
+    async def receive(self) -> ASGIReceiveEvent:
         message = await self.queue.get()
         if self.read_paused and self.queue.empty():
             self.read_paused = False
