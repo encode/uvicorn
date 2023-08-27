@@ -1,9 +1,9 @@
 import asyncio
 import logging
-import sys
 import typing
 from asyncio.transports import BaseTransport, Transport
 from http import HTTPStatus
+from typing import Literal
 from urllib.parse import unquote
 
 import websockets
@@ -12,6 +12,16 @@ from websockets.frames import Frame
 from websockets.http11 import Request, Response
 from websockets.server import ServerProtocol
 
+from uvicorn._types import (
+    ASGIReceiveEvent,
+    ASGISendEvent,
+    WebSocketAcceptEvent,
+    WebSocketCloseEvent,
+    WebSocketDisconnectEvent,
+    WebSocketReceiveEvent,
+    WebSocketScope,
+    WebSocketSendEvent,
+)
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import (
@@ -21,23 +31,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
-if sys.version_info < (3, 8):
-    from typing_extensions import Literal
-else:
-    from typing import Literal
-
-if typing.TYPE_CHECKING:
-    from uvicorn._types import (
-        ASGIReceiveEvent,
-        ASGISendEvent,
-        WebSocketAcceptEvent,
-        WebSocketCloseEvent,
-        WebSocketDisconnectEvent,
-        WebSocketReceiveEvent,
-        WebSocketScope,
-        WebSocketSendEvent,
-    )
 
 
 class WebSocketsSansIOProtocol(asyncio.Protocol):
