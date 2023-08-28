@@ -51,7 +51,7 @@ class ServerState:
     def __init__(self) -> None:
         self.total_requests = 0
         self.connections: Set["Protocols"] = set()
-        self.tasks: Set[asyncio.Task[None]] = set()
+        self.tasks: Set["asyncio.Task[None]"] = set()
         self.default_headers: List[Tuple[bytes, bytes]] = []
 
 
