@@ -232,7 +232,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             self.close_sent = True
             self.transport.close()
 
-    def on_task_complete(self, task: asyncio.Task[None]) -> None:
+    def on_task_complete(self, task: "asyncio.Task[None]") -> None:
         self.tasks.discard(task)
 
     async def run_asgi(self) -> None:
