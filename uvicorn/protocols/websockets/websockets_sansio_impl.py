@@ -8,7 +8,7 @@ from urllib.parse import unquote
 
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from websockets.frames import Frame, Opcode
-from websockets.http11 import Request, Response
+from websockets.http11 import Request
 from websockets.server import ServerProtocol
 
 from uvicorn._types import (
@@ -62,18 +62,19 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         self.scheme: Literal["wss", "ws"] = None  # type: ignore[assignment]
 
         # WebSocket state
-        self.queue: asyncio.Queue["ASGIReceiveEvent"] = asyncio.Queue()
+        self.queue: asyncio.Queue[ASGIReceiveEvent] = asyncio.Queue()
         self.handshake_initiated = False
         self.handshake_complete = False
         self.close_sent = False
 
         extensions = []
         if self.config.ws_per_message_deflate:
-            extensions.append(ServerPerMessageDeflateFactory())
-        self.conn = ServerProtocol(extensions=extensions)
-        self.request: Request
-        self.response: Response
-        self.curr_msg_data_type: str
+            extensions = [ServerPerMessageDeflateFactory()]
+        self.conn = ServerProtocol(
+            extensions=extensions,
+            max_size=self.config.ws_max_size,
+            logger=logging.getLogger("uvicorn.error"),
+        )
 
         self.read_paused = False
         self.writable = asyncio.Event()
@@ -103,14 +104,6 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         if self.handshake_initiated and not self.close_sent:
             self.queue.put_nowait({"type": "websocket.disconnect", "code": 1006})
 
-    def data_received(self, data: bytes) -> None:
-        try:
-            self.conn.receive_data(data)
-        except Exception:
-            self.logger.exception("Exception in ASGI server")
-            self.transport.close()
-        self.handle_events()
-
     def shutdown(self) -> None:
         if not self.transport.is_closing():
             if self.handshake_complete:
@@ -123,6 +116,14 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                 self.send_500_response()
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": 1006})
             self.transport.close()
+
+    def data_received(self, data: bytes) -> None:
+        try:
+            self.conn.receive_data(data)
+        except Exception:
+            self.logger.exception("Exception in ASGI server")
+            self.transport.close()
+        self.handle_events()
 
     def handle_events(self) -> None:
         for event in self.conn.events_received():
@@ -190,7 +191,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
     def handle_text(self, event: Frame) -> None:
         self.bytes = event.data
-        self.curr_msg_data_type = "text"
+        self.curr_msg_data_type: Literal["text", "bytes"] = "text"
         if event.fin:
             self.send_receive_event_to_app()
 
@@ -201,16 +202,12 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             self.send_receive_event_to_app()
 
     def send_receive_event_to_app(self) -> None:
-        data: typing.Union[str, bytes]
-        if self.curr_msg_data_type == "text":
-            data = self.bytes.decode()
+        data_type = self.curr_msg_data_type
+        msg: WebSocketReceiveEvent
+        if data_type == "text":
+            msg = {"type": "websocket.receive", data_type: self.bytes.decode()}
         else:
-            data = self.bytes
-
-        msg: WebSocketReceiveEvent = {
-            "type": "websocket.receive",
-            self.curr_msg_data_type: data,  # type: ignore[misc]
-        }
+            msg = {"type": "websocket.receive", data_type: self.bytes}
         self.queue.put_nowait(msg)
         if not self.read_paused:
             self.read_paused = True
@@ -235,7 +232,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             self.close_sent = True
             self.transport.close()
 
-    def on_task_complete(self, task: asyncio.Task) -> None:
+    def on_task_complete(self, task: asyncio.Task[None]) -> None:
         self.tasks.discard(task)
 
     async def run_asgi(self) -> None:

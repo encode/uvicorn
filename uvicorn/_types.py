@@ -162,8 +162,8 @@ class WebSocketAcceptEvent(TypedDict):
 
 class WebSocketReceiveEvent(TypedDict):
     type: Literal["websocket.receive"]
-    bytes: Optional[bytes]
-    text: Optional[str]
+    bytes: NotRequired[bytes]
+    text: NotRequired[str]
 
 
 class WebSocketSendEvent(TypedDict):
