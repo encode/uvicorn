@@ -495,6 +495,90 @@ async def test_send_binary_data_to_server(
 
 
 @pytest.mark.anyio
+async def test_send_text_data_to_server_in_multiple_frames(
+    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
+    unused_tcp_port: int,
+):
+    message = (
+        "This is a long message that will be sent in "
+        "multiple frames and number of frames will be 5."
+    )
+
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+        async def websocket_receive(self, message):
+            _text = message.get("text")
+            await self.send({"type": "websocket.send", "text": _text})
+
+    async def send_text(url):
+        async with websockets.client.connect(url) as websocket:
+            assembled_frames = []
+            # send this message in 5 frames
+            for i in range(5):
+                # divide the message in 5 parts
+                msg = message[i * len(message) // 5 : (i + 1) * len(message) // 5]
+                assembled_frames.append(msg)
+            await websocket.send(assembled_frames)
+            return await websocket.recv()
+
+    config = Config(
+        app=App,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        port=unused_tcp_port,
+    )
+    async with run_server(config):
+        data = await send_text(f"ws://127.0.0.1:{unused_tcp_port}")
+        assert data == message
+
+
+@pytest.mark.anyio
+async def test_send_binary_data_to_server_in_multiple_frames(
+    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
+    unused_tcp_port: int,
+):
+    message = (
+        b"This is a long message that will be sent in "
+        b"multiple frames and number of frames will be 5."
+    )
+
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+        async def websocket_receive(self, message):
+            _bytes = message.get("bytes")
+            await self.send({"type": "websocket.send", "bytes": _bytes})
+
+    async def send_bytes(url):
+        async with websockets.client.connect(url) as websocket:
+            assembled_frames = []
+            # send this message in 5 frames
+            for i in range(5):
+                # divide the message in 5 parts
+                msg = message[i * len(message) // 5 : (i + 1) * len(message) // 5]
+                assembled_frames.append(msg)
+            await websocket.send(assembled_frames)
+            return await websocket.recv()
+
+    config = Config(
+        app=App,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        port=unused_tcp_port,
+    )
+    async with run_server(config):
+        data = await send_bytes(f"ws://127.0.0.1:{unused_tcp_port}")
+        assert data == message
+
+
+@pytest.mark.anyio
 async def test_send_after_protocol_close(
     ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
     http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
