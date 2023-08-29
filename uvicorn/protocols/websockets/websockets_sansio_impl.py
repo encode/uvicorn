@@ -138,8 +138,6 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                     self.handle_bytes(event)
                 elif event.opcode == Opcode.PING:
                     self.handle_ping(event)
-                elif event.opcode == Opcode.PONG:
-                    self.handle_pong(event)
                 elif event.opcode == Opcode.CLOSE:
                     self.handle_close(event)
 
@@ -216,9 +214,6 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
     def handle_ping(self, event: Frame) -> None:
         output = self.conn.data_to_send()
         self.transport.writelines(output)
-
-    def handle_pong(self, event: Frame) -> None:
-        pass
 
     def handle_close(self, event: Frame) -> None:
         if not self.close_sent and not self.transport.is_closing():
