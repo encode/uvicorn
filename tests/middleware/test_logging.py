@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import logging
 import socket
@@ -22,7 +24,12 @@ except ImportError:  # pragma: nocover
 
 if typing.TYPE_CHECKING:
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+    from uvicorn.protocols.websockets.websockets_sansio_impl import (
+        WebSocketsSansIOProtocol,
+    )
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
+
+    WSType = typing.Type["WSProtocol | WebSocketProtocol | WebSocketsSansIOProtocol"]
 
 
 @contextlib.contextmanager
@@ -96,7 +103,7 @@ async def test_trace_logging_on_http_protocol(
 
 @pytest.mark.anyio
 async def test_trace_logging_on_ws_protocol(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
+    ws_protocol_cls: WSType,
     caplog,
     logging_config,
     unused_tcp_port: int,
