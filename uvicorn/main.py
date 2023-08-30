@@ -577,7 +577,7 @@ def run(
         )
         sys.exit(1)
 
-    if config.should_reload:
+    if config.reload:
         sock = config.bind_socket()
         ChangeReload(config, target=server.run, sockets=[sock]).run()
     elif config.workers > 1:
@@ -588,7 +588,7 @@ def run(
     if config.uds and os.path.exists(config.uds):
         os.remove(config.uds)  # pragma: py-win32
 
-    if not server.started and not config.should_reload and config.workers == 1:
+    if not server.started and not config.reload and config.workers == 1:
         sys.exit(STARTUP_FAILURE)
 
 
