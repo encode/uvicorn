@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import typing
 from copy import deepcopy
@@ -23,6 +25,7 @@ from uvicorn._types import (
 )
 from uvicorn.config import Config
 from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+from uvicorn.protocols.websockets.websockets_sansio_impl import WebSocketsSansIOProtocol
 
 try:
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
@@ -34,6 +37,8 @@ except ModuleNotFoundError:
 if typing.TYPE_CHECKING:
     from uvicorn.protocols.http.h11_impl import H11Protocol
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
+
+    WSType = typing.Type["WSProtocol | WebSocketProtocol | WebSocketsSansIOProtocol"]
 
 
 class WebSocketResponse:

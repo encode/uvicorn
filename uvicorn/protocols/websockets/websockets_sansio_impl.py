@@ -41,7 +41,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         _loop: typing.Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         if not config.loaded:
-            config.load()
+            config.load()  # pragma: no cover
 
         self.config = config
         self.app = config.loaded_app
