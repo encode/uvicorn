@@ -32,7 +32,7 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
 HTTPProtocolType = Literal["auto", "h11", "httptools"]
-WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
+WSProtocolType = Literal["auto", "none", "websockets", "websockets-sansio", "wsproto"]
 LifespanType = Literal["auto", "on", "off"]
 LoopSetupType = Literal["none", "auto", "asyncio", "uvloop"]
 InterfaceType = Literal["auto", "asgi3", "asgi2", "wsgi"]
@@ -54,6 +54,7 @@ WS_PROTOCOLS: Dict[WSProtocolType, Optional[str]] = {
     "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",
     "none": None,
     "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
+    "websockets-sansio": "uvicorn.protocols.websockets.websockets_sansio_impl:WebSocketsSansIOProtocol",  # noqa: E501
     "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
 }
 LIFESPAN: Dict[LifespanType, str] = {

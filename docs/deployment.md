@@ -60,7 +60,7 @@ Options:
   --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
                                   auto]
-  --ws [auto|none|websockets|wsproto]
+  --ws [auto|none|websockets|websockets-sansio|wsproto]
                                   WebSocket protocol implementation.
                                   [default: auto]
   --ws-max-size INTEGER           WebSocket max size message in bytes
