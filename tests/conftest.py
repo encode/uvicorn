@@ -257,3 +257,13 @@ def unused_tcp_port() -> int:
 )
 def ws_protocol_cls(request: pytest.FixtureRequest):
     return import_from_string(request.param)
+
+
+@pytest.fixture(
+    params=[
+        "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
+        "uvicorn.protocols.websockets.websockets_sansio_impl:WebSocketsSansIOProtocol",
+    ]
+)
+def websockets_legay_plus_sansio_protocol_cls(request: pytest.FixtureRequest):
+    return import_from_string(request.param)

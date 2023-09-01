@@ -978,6 +978,7 @@ MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
     ],
 )
 async def test_send_binary_data_to_server_bigger_than_default_on_websockets(
+    websockets_legay_plus_sansio_protocol_cls,
     http_protocol_cls,
     client_size_sent: int,
     server_size_max: int,
@@ -1001,7 +1002,7 @@ async def test_send_binary_data_to_server_bigger_than_default_on_websockets(
 
     config = Config(
         app=App,
-        ws=WebSocketProtocol,
+        ws=websockets_legay_plus_sansio_protocol_cls,
         http=http_protocol_cls,
         lifespan="off",
         ws_max_size=server_size_max,
