@@ -6,9 +6,11 @@ from http import HTTPStatus
 from typing import Literal
 from urllib.parse import unquote
 
+from websockets.exceptions import PayloadTooBig
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from websockets.frames import Frame, Opcode
 from websockets.http11 import Request
+from websockets.protocol import State as WebSocketsState
 from websockets.server import ServerProtocol
 
 from uvicorn._types import (
@@ -118,11 +120,13 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             self.transport.close()
 
     def data_received(self, data: bytes) -> None:
-        try:
-            self.conn.receive_data(data)
-        except Exception:
-            self.logger.exception("Exception in ASGI server")
-            self.transport.close()
+        self.conn.receive_data(data)
+        parser_exc = self.conn.parser_exc
+        if parser_exc is not None:
+            self.conn = ServerProtocol(state=WebSocketsState.OPEN)
+            if isinstance(parser_exc, PayloadTooBig):
+                self.handle_payloadsize_bigger_than_limit_error()
+            return
         self.handle_events()
 
     def handle_events(self) -> None:
@@ -226,6 +230,18 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             self.transport.writelines(output)
             self.close_sent = True
             self.transport.close()
+
+    def handle_payloadsize_bigger_than_limit_error(self) -> None:
+        disconnect_event: WebSocketDisconnectEvent = {
+            "type": "websocket.disconnect",
+            "code": 1009,
+        }
+        self.queue.put_nowait(disconnect_event)
+        self.conn.send_close(1009)
+        output = self.conn.data_to_send()
+        self.transport.writelines(output)
+        self.close_sent = True
+        self.transport.close()
 
     def on_task_complete(self, task: "asyncio.Task[None]") -> None:
         self.tasks.discard(task)
