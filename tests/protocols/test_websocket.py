@@ -996,7 +996,7 @@ MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
         (MAX_WS_BYTES, MAX_WS_BYTES, 0),
         (MAX_WS_BYTES_PLUS1, MAX_WS_BYTES, 1009),
         (10, 10, 0),
-        (11, 10, 1009),
+        (32, 10, 1009),
     ],
     ids=[
         "max=defaults sent=defaults",
