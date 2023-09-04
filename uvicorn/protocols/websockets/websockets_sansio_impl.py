@@ -123,9 +123,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         self.conn.receive_data(data)
         parser_exc = self.conn.parser_exc
         if parser_exc is not None:
-            self.conn = ServerProtocol(state=WebSocketsState.OPEN)
-            if isinstance(parser_exc, PayloadTooBig):
-                self.handle_payloadsize_bigger_than_limit_error()
+            self.handle_parser_exception()
             return
         self.handle_events()
 
@@ -231,13 +229,12 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             self.close_sent = True
             self.transport.close()
 
-    def handle_payloadsize_bigger_than_limit_error(self) -> None:
+    def handle_parser_exception(self) -> None:
         disconnect_event: WebSocketDisconnectEvent = {
             "type": "websocket.disconnect",
-            "code": 1009,
+            "code": self.conn.close_sent.code,
         }
         self.queue.put_nowait(disconnect_event)
-        self.conn.send_close(1009)
         output = self.conn.data_to_send()
         self.transport.writelines(output)
         self.close_sent = True
