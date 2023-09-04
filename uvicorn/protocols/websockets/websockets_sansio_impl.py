@@ -6,11 +6,9 @@ from http import HTTPStatus
 from typing import Literal
 from urllib.parse import unquote
 
-from websockets.exceptions import PayloadTooBig
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from websockets.frames import Frame, Opcode
 from websockets.http11 import Request
-from websockets.protocol import State as WebSocketsState
 from websockets.server import ServerProtocol
 
 from uvicorn._types import (
@@ -232,7 +230,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
     def handle_parser_exception(self) -> None:
         disconnect_event: WebSocketDisconnectEvent = {
             "type": "websocket.disconnect",
-            "code": self.conn.close_sent.code,
+            "code": self.conn.close_sent.code,  # type: ignore[union-attr]
         }
         self.queue.put_nowait(disconnect_event)
         output = self.conn.data_to_send()
