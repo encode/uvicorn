@@ -968,7 +968,7 @@ MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
         (MAX_WS_BYTES, MAX_WS_BYTES, 0),
         (MAX_WS_BYTES_PLUS1, MAX_WS_BYTES, 1009),
         (10, 10, 0),
-        (32, 10, 1009),
+        (11, 10, 1009),
     ],
     ids=[
         "max=defaults sent=defaults",
@@ -994,9 +994,7 @@ async def test_send_binary_data_to_server_bigger_than_default_on_websockets(
             await self.send({"type": "websocket.send", "bytes": _bytes})
 
     async def send_text(url):
-        async with websockets.client.connect(
-            url, max_size=client_size_sent
-        ) as websocket:
+        async with websockets.client.connect(url, max_size=MAX_WS_BYTES) as websocket:
             await websocket.send(b"\x01" * client_size_sent)
             return await websocket.recv()
 
