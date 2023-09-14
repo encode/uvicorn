@@ -62,6 +62,9 @@ class ProxyHeadersMiddleware:
                     x_forwarded_proto = (
                         headers[b"x-forwarded-proto"].decode("latin1").strip()
                     )
+
+                    x_forwarded_proto, *_ = x_forwarded_proto.split(",", 1)
+
                     if scope["type"] == "websocket":
                         scope["scheme"] = (
                             "wss" if x_forwarded_proto == "https" else "ws"
