@@ -1,9 +1,11 @@
+import contextlib
 import importlib
 import os
 import platform
 import sys
 from pathlib import Path
 from textwrap import dedent
+from typing import Iterator
 from unittest import mock
 
 import pytest
@@ -17,6 +19,15 @@ from uvicorn.supervisors import ChangeReload, Multiprocess
 
 HEADERS = "Content-Security-Policy:default-src 'self'; script-src https://example.com"
 main = importlib.import_module("uvicorn.main")
+
+
+@contextlib.contextmanager
+def load_env_var(key: str, value: str) -> Iterator[None]:
+    old_environ = dict(os.environ)
+    os.environ[key] = value
+    yield
+    os.environ.clear()
+    os.environ.update(old_environ)
 
 
 class App:
@@ -146,29 +157,23 @@ def test_cli_event_size() -> None:
     assert mock_run.call_args[1]["h11_max_incomplete_event_size"] == 32768
 
 
-@pytest.fixture()
-def load_env_h11_protocol():
-    old_environ = dict(os.environ)
-    os.environ["UVICORN_HTTP"] = "h11"
-    yield
-    os.environ.clear()
-    os.environ.update(old_environ)
+@pytest.mark.parametrize("http_protocol", ["h11", "httptools"])
+def test_env_variables(http_protocol: str):
+    with load_env_var("UVICORN_HTTP", http_protocol):
+        runner = CliRunner(env=os.environ)
+        with mock.patch.object(main, "run") as mock_run:
+            runner.invoke(cli, ["tests.test_cli:App"])
+            _, kwargs = mock_run.call_args
+            assert kwargs["http"] == http_protocol
 
 
-def test_env_variables(load_env_h11_protocol: None):
-    runner = CliRunner(env=os.environ)
-    with mock.patch.object(main, "run") as mock_run:
-        runner.invoke(cli, ["tests.test_cli:App"])
-        _, kwargs = mock_run.call_args
-        assert kwargs["http"] == "h11"
-
-
-def test_mistmatch_env_variables(load_env_h11_protocol: None):
-    runner = CliRunner(env=os.environ)
-    with mock.patch.object(main, "run") as mock_run:
-        runner.invoke(cli, ["tests.test_cli:App", "--http=httptools"])
-        _, kwargs = mock_run.call_args
-        assert kwargs["http"] == "httptools"
+def test_ignore_environment_variable_when_set_on_cli():
+    with load_env_var("UVICORN_HTTP", "h11"):
+        runner = CliRunner(env=os.environ)
+        with mock.patch.object(main, "run") as mock_run:
+            runner.invoke(cli, ["tests.test_cli:App", "--http=httptools"])
+            _, kwargs = mock_run.call_args
+            assert kwargs["http"] == "httptools"
 
 
 def test_app_dir(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
@@ -191,3 +196,14 @@ def test_app_dir(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     assert result.exit_code == 3
     mock_run.assert_called_once()
     assert sys.path[0] == str(app_dir)
+
+
+def test_set_app_via_environment_variable():
+    app_path = "tests.test_cli:App"
+    with load_env_var("UVICORN_APP", app_path):
+        runner = CliRunner(env=os.environ)
+        with mock.patch.object(main, "run") as mock_run:
+            result = runner.invoke(cli)
+            args, _ = mock_run.call_args
+            assert result.exit_code == 0
+            assert args == (app_path,)
