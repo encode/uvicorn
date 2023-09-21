@@ -2,11 +2,11 @@ from typing import TYPE_CHECKING, List, Type, Union
 
 import httpx
 import pytest
-import websockets.client
 
 from tests.protocols.test_http import HTTP_PROTOCOLS
 from tests.response import Response
 from tests.utils import run_server
+from tests.ws_client import ws_connect
 from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.config import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -139,6 +139,6 @@ async def test_proxy_headers_websocket_x_forwarded_proto(
     async with run_server(config):
         url = f"ws://127.0.0.1:{unused_tcp_port}"
         headers = {"X-Forwarded-Proto": "https", "X-Forwarded-For": "1.2.3.4"}
-        async with websockets.client.connect(url, extra_headers=headers) as websocket:
+        async with ws_connect(url, extra_headers=headers) as websocket:
             data = await websocket.recv()
             assert data == "wss://1.2.3.4:0"

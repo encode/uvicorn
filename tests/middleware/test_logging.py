@@ -6,10 +6,9 @@ import typing
 
 import httpx
 import pytest
-import websockets
-import websockets.client
 
 from tests.utils import run_server
+from tests.ws_client import ws_connect
 from uvicorn import Config
 from uvicorn.protocols.http.h11_impl import H11Protocol
 
@@ -111,7 +110,7 @@ async def test_trace_logging_on_ws_protocol(
                 break
 
     async def open_connection(url):
-        async with websockets.client.connect(url) as websocket:
+        async with ws_connect(url) as websocket:
             return websocket.open
 
     config = Config(
