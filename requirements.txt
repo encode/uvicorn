@@ -10,7 +10,7 @@ wsproto==1.2.0
 websockets==11.0.3
 
 # Packaging
-build==0.10.0
+build==1.0.3
 twine==4.0.2
 
 # Testing
