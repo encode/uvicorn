@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, List, Optional, Sequence, Set, Tuple, Union
 
 import click
 
+from uvicorn._compat import asyncio_run
 from uvicorn.config import Config
 
 if TYPE_CHECKING:
@@ -57,8 +58,9 @@ class Server:
         self.last_notified = 0.0
 
     def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
-        self.config.setup_event_loop()
-        return asyncio.run(self.serve(sockets=sockets))
+        return asyncio_run(
+            self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory()
+        )
 
     async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
         process_id = os.getpid()
