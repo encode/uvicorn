@@ -57,7 +57,8 @@ else:
             try:
                 _cancel_all_tasks(loop)
                 loop.run_until_complete(loop.shutdown_asyncgens())
-                loop.run_until_complete(loop.shutdown_default_executor())
+                if sys.version_info >= (3, 9):
+                    loop.run_until_complete(loop.shutdown_default_executor())
             finally:
                 if loop_factory is None:
                     asyncio.set_event_loop(None)
