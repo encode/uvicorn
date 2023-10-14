@@ -53,11 +53,11 @@ LIFESPAN: dict[LifespanType, str] = {
     "on": "uvicorn.lifespan.on:LifespanOn",
     "off": "uvicorn.lifespan.off:LifespanOff",
 }
-LOOP_SETUPS: dict[LoopSetupType, str | None] = {
+LOOP_FACTORIES: dict[LoopSetupType, str | None] = {
     "none": None,
-    "auto": "uvicorn.loops.auto:auto_loop_setup",
-    "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
-    "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
+    "auto": "uvicorn.loops.auto:auto_loop_factory",
+    "asyncio": "uvicorn.loops.asyncio:asyncio_loop_factory",
+    "uvloop": "uvicorn.loops.uvloop:uvloop_loop_factory",
 }
 INTERFACES: list[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
 
@@ -471,10 +471,11 @@ class Config:
 
         self.loaded = True
 
-    def setup_event_loop(self) -> None:
-        loop_setup: Callable | None = import_from_string(LOOP_SETUPS[self.loop])
-        if loop_setup is not None:
-            loop_setup(use_subprocess=self.use_subprocess)
+    def get_loop_factory(self) -> Callable[[], asyncio.AbstractEventLoop] | None:
+        loop_factory: Callable | None = import_from_string(LOOP_FACTORIES[self.loop])
+        if loop_factory is None:
+            return None
+        return loop_factory(use_subprocess=self.use_subprocess)
 
     def bind_socket(self) -> socket.socket:
         logger_args: list[str | int]
