@@ -560,6 +560,12 @@ Its most distinctive features are built-in support for dependency injection, aut
 
 [Muffin](https://github.com/klen/muffin) is a fast, lightweight and asynchronous ASGI web-framework for Python 3.
 
+### Litestar
+
+[**Litestar**](https://litestar.dev) is a powerful, lightweight and flexible ASGI framework.
+
+It includes everything that's needed to build modern APIs - from data serialization and validation to websockets, ORM integration, session management, authentication and more.
+
 
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
