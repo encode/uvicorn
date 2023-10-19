@@ -266,8 +266,6 @@ class Server:
         # Stop accepting new connections.
         for server in self.servers:
             server.close()
-        for sock in sockets or []:
-            sock.close()
         for server in self.servers:
             await server.wait_closed()
 
