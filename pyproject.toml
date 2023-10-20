@@ -9,7 +9,9 @@ description = "The lightning-fast ASGI server."
 readme = "README.md"
 license = "BSD-3-Clause"
 requires-python = ">=3.8"
-authors = [{ name = "Tom Christie", email = "tom@tomchristie.com" }]
+authors = [
+    { name = "Tom Christie", email = "tom@tomchristie.com" },
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Web Environment",
@@ -85,13 +87,16 @@ filterwarnings = [
     "error",
     'ignore: \"watchgod\" is deprecated\, you should switch to watchfiles \(`pip install watchfiles`\)\.:DeprecationWarning',
     "ignore:Uvicorn's native WSGI implementation is deprecated.*:DeprecationWarning",
-    "ignore: 'cgi' is deprecated and slated for removal in Python 3.13:DeprecationWarning",
+    "ignore: 'cgi' is deprecated and slated for removal in Python 3.13:DeprecationWarning"
 ]
 
 [tool.coverage.run]
 source_pkgs = ["uvicorn", "tests"]
 plugins = ["coverage_conditional_plugin"]
-omit = ["uvicorn/workers.py", "uvicorn/__main__.py"]
+omit = [
+    "uvicorn/workers.py", 
+    "uvicorn/__main__.py",
+    ]
 
 [tool.coverage.report]
 precision = 2
