@@ -257,6 +257,10 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
+    
+When the `uvicorn.Server()`'s `serve()` and `run()` methods are used directly, the hot reload feature is not available.
+
+This is because the `serve()` and `run()` methods functions are usually used in production environments where automatic reloading is not desired. In production environments, the application is expected to be stable and changes are typically made through a deployment process rather than by modifying the code directly.
 
 ### Running with Gunicorn
 
