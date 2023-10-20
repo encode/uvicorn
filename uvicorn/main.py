@@ -23,7 +23,7 @@ from uvicorn.config import (
     HTTPProtocolType,
     InterfaceType,
     LifespanType,
-    LoopSetupType,
+    LoopFactoryType,
     WSProtocolType,
 )
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
@@ -370,7 +370,7 @@ def main(
     port: int,
     uds: str,
     fd: int,
-    loop: LoopSetupType,
+    loop: LoopFactoryType,
     http: HTTPProtocolType,
     ws: WSProtocolType,
     ws_max_size: int,
@@ -471,7 +471,7 @@ def run(
     port: int = 8000,
     uds: typing.Optional[str] = None,
     fd: typing.Optional[int] = None,
-    loop: LoopSetupType = "auto",
+    loop: LoopFactoryType = "auto",
     http: typing.Union[typing.Type[asyncio.Protocol], HTTPProtocolType] = "auto",
     ws: typing.Union[typing.Type[asyncio.Protocol], WSProtocolType] = "auto",
     ws_max_size: int = 16777216,
