@@ -26,7 +26,7 @@ from uvicorn.middleware.wsgi import WSGIMiddleware
 HTTPProtocolType = Literal["auto", "h11", "httptools"]
 WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
 LifespanType = Literal["auto", "on", "off"]
-LoopSetupType = Literal["none", "auto", "asyncio", "uvloop"]
+LoopFactoryType = Literal["none", "auto", "asyncio", "uvloop"]
 InterfaceType = Literal["auto", "asgi3", "asgi2", "wsgi"]
 
 LOG_LEVELS: dict[str, int] = {
@@ -53,7 +53,7 @@ LIFESPAN: dict[LifespanType, str] = {
     "on": "uvicorn.lifespan.on:LifespanOn",
     "off": "uvicorn.lifespan.off:LifespanOff",
 }
-LOOP_FACTORIES: dict[LoopSetupType, str | None] = {
+LOOP_FACTORIES: dict[LoopFactoryType, str | None] = {
     "none": None,
     "auto": "uvicorn.loops.auto:auto_loop_factory",
     "asyncio": "uvicorn.loops.asyncio:asyncio_loop_factory",
@@ -180,7 +180,7 @@ class Config:
         port: int = 8000,
         uds: str | None = None,
         fd: int | None = None,
-        loop: LoopSetupType = "auto",
+        loop: LoopFactoryType = "auto",
         http: type[asyncio.Protocol] | HTTPProtocolType = "auto",
         ws: type[asyncio.Protocol] | WSProtocolType = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
