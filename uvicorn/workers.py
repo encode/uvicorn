@@ -71,9 +71,6 @@ class UvicornWorker(Worker):
 
         self.config = Config(**config_kwargs)
 
-    def init_process(self) -> None:
-        super(UvicornWorker, self).init_process()
-
     def init_signals(self) -> None:
         # Reset signals so Gunicorn doesn't swallow subprocess return codes
         # other signals are set up by Server.install_signal_handlers()
