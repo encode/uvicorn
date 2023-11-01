@@ -268,8 +268,6 @@ class Server:
             server.close()
         for sock in sockets or []:
             sock.close()
-        for server in self.servers:
-            await server.wait_closed()
 
         # Request shutdown on all existing connections.
         for connection in list(self.server_state.connections):
@@ -310,6 +308,20 @@ class Server:
             msg = "Waiting for background tasks to complete. (CTRL+C to force quit)"
             logger.info(msg)
             while self.server_state.tasks and not self.force_exit:
+                await asyncio.sleep(0.1)
+
+        # Wait for servers to close. They won't do so until all connections are
+        # closed, which we've already waited for above, so this should be quick.
+        servers_closed = asyncio.gather(
+            *[server.wait_closed() for server in self.servers]
+        )
+        # Give the servers_closed future a chance to complete so we don't
+        # spuriously log about this operation.
+        await asyncio.sleep(0.1)
+        if not servers_closed.done() and not self.force_exit:
+            msg = "Waiting for servers to close. (CTRL+C to force quit)"
+            logger.info(msg)
+            while not servers_closed.done() and not self.force_exit:
                 await asyncio.sleep(0.1)
 
     def install_signal_handlers(self) -> None:
