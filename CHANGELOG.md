@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.24.0 - 2023-11-04
+
+### Added
+
+- Support Python 3.12 (#2145) 04/11/23
+- Allow setting `app` via environment variable `UVICORN_APP` (#2106) 21/09/23
+
 ## 0.23.2 - 2023-07-31
 
 ### Fixed
