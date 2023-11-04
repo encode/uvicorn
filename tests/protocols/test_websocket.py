@@ -111,6 +111,30 @@ async def test_accept_connection(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_shutdown(
+    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
+):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+    config = Config(
+        app=App,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        port=unused_tcp_port,
+    )
+    async with run_server(config) as server:
+        async with websockets.client.connect(f"ws://127.0.0.1:{unused_tcp_port}"):
+            # Attempt shutdown while connection is still open
+            await server.shutdown()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_supports_permessage_deflate_extension(
     ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
     http_protocol_cls,
