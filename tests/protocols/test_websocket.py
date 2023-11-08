@@ -71,15 +71,18 @@ async def test_invalid_upgrade(
             pass  # ok, wsproto 0.13
         else:
             assert response.status_code == 400
-            assert response.text.lower().strip().rstrip(".") in [
-                "missing sec-websocket-key header",
-                "missing sec-websocket-version header",  # websockets
-                "missing or empty sec-websocket-key header",  # wsproto
-                "failed to open a websocket connection: missing "
-                "sec-websocket-key header",
-                "failed to open a websocket connection: missing or empty "
-                "sec-websocket-key header",
-            ]
+            assert (
+                response.text.lower().strip().rstrip(".")
+                in [
+                    "missing sec-websocket-key header",
+                    "missing sec-websocket-version header",  # websockets
+                    "missing or empty sec-websocket-key header",  # wsproto
+                    "failed to open a websocket connection: missing "
+                    "sec-websocket-key header",
+                    "failed to open a websocket connection: missing or empty "
+                    "sec-websocket-key header",
+                ]
+            )
 
 
 @pytest.mark.anyio
