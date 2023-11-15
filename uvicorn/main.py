@@ -8,7 +8,6 @@ import typing
 
 import click
 
-import uvicorn
 from uvicorn._types import ASGIApplication
 from uvicorn.config import (
     HTTP_PROTOCOLS,
@@ -28,6 +27,7 @@ from uvicorn.config import (
 )
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
+import uvicorn
 
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
 HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
@@ -156,14 +156,14 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--ws-ping-interval",
     type=float,
     default=20.0,
-    help="WebSocket ping interval",
+    help="WebSocket ping interval, in seconds",
     show_default=True,
 )
 @click.option(
     "--ws-ping-timeout",
     type=float,
     default=20.0,
-    help="WebSocket ping timeout",
+    help="WebSocket ping timeout, in seconds",
     show_default=True,
 )
 @click.option(
