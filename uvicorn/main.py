@@ -163,7 +163,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--ws-ping-timeout",
     type=float,
     default=20.0,
-    help="WebSocket ping timeout, in seconds",
+    help="WebSocket ping timeout in seconds.",
     show_default=True,
 )
 @click.option(
