@@ -474,7 +474,7 @@ class RequestResponseCycle:
             await self.flow.drain()
 
         if self.disconnected:
-            return
+            raise IOError("Client disconnected.")
 
         if not self.response_started:
             # Sending response status line and headers

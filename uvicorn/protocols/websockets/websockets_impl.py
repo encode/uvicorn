@@ -16,7 +16,7 @@ from urllib.parse import unquote
 
 import websockets
 from websockets.datastructures import Headers
-from websockets.exceptions import ConnectionClosed
+from websockets.exceptions import ConnectionClosed, WebSocketException
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from websockets.legacy.server import HTTPResponse
 from websockets.server import WebSocketServerProtocol
@@ -312,20 +312,22 @@ class WebSocketProtocol(WebSocketServerProtocol):
         elif not self.closed_event.is_set():
             await self.handshake_completed_event.wait()
 
-            if message_type == "websocket.send":
-                message = cast("WebSocketSendEvent", message)
-                bytes_data = message.get("bytes")
-                text_data = message.get("text")
-                data = text_data if bytes_data is None else bytes_data
-                await self.send(data)  # type: ignore[arg-type]
+            try:
+                if message_type == "websocket.send":
+                    message = cast("WebSocketSendEvent", message)
+                    bytes_data = message.get("bytes")
+                    text_data = message.get("text")
+                    data = text_data if bytes_data is None else bytes_data
+                    await self.send(data)  # type: ignore[arg-type]
 
-            elif message_type == "websocket.close":
-                message = cast("WebSocketCloseEvent", message)
-                code = message.get("code", 1000)
-                reason = message.get("reason", "") or ""
-                await self.close(code, reason)
-                self.closed_event.set()
-
+                elif message_type == "websocket.close":
+                    message = cast("WebSocketCloseEvent", message)
+                    code = message.get("code", 1000)
+                    reason = message.get("reason", "") or ""
+                    await self.close(code, reason)
+                    self.closed_event.set()
+            except WebSocketException:
+                raise IOError("Client disconnected.")
             else:
                 msg = (
                     "Expected ASGI message 'websocket.send' or 'websocket.close',"
