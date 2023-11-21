@@ -29,11 +29,6 @@ from uvicorn.config import (
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
-if typing.TYPE_CHECKING:
-    PathLike = os.PathLike[str]
-else:
-    PathLike = os.PathLike
-
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
 HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
 WS_CHOICES = click.Choice(list(WS_PROTOCOLS.keys()))
@@ -492,7 +487,7 @@ def run(
     reload_excludes: typing.Optional[typing.Union[typing.List[str], str]] = None,
     reload_delay: float = 0.25,
     workers: typing.Optional[int] = None,
-    env_file: "str | PathLike | None" = None,
+    env_file: "str | os.PathLike[str] | None" = None,
     log_config: typing.Optional[
         typing.Union[typing.Dict[str, typing.Any], str]
     ] = LOGGING_CONFIG,
@@ -509,7 +504,7 @@ def run(
     timeout_keep_alive: int = 5,
     timeout_graceful_shutdown: typing.Optional[int] = None,
     ssl_keyfile: typing.Optional[str] = None,
-    ssl_certfile: "str | PathLike | None" = None,
+    ssl_certfile: "str | os.PathLike[str] | None" = None,
     ssl_keyfile_password: typing.Optional[str] = None,
     ssl_version: int = SSL_PROTOCOL_VERSION,
     ssl_cert_reqs: int = ssl.CERT_NONE,
