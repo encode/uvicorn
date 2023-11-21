@@ -30,7 +30,7 @@ from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defin
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
 if typing.TYPE_CHECKING:
-    PathLike: typing.TypeAlias = "os.PathLike[str]"
+    PathLike = os.PathLike[str]
 else:
     PathLike = os.PathLike
 
