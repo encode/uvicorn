@@ -187,7 +187,7 @@ def _normalize_dirs(dirs: Union[List[str], str, None]) -> List[str]:
 class Config:
     def __init__(
         self,
-        app: Union["ASGIApplication", Callable, str],
+        app: Union["ASGIApplication", Callable[..., Any], str],
         host: str = "127.0.0.1",
         port: int = 8000,
         uds: Optional[str] = None,
@@ -201,7 +201,7 @@ class Config:
         ws_ping_timeout: Optional[float] = 20.0,
         ws_per_message_deflate: bool = True,
         lifespan: LifespanType = "auto",
-        env_file: Optional[Union[str, os.PathLike]] = None,
+        env_file: "str | os.PathLike[str] | None" = None,
         log_config: Optional[Union[Dict[str, Any], str]] = LOGGING_CONFIG,
         log_level: Optional[Union[str, int]] = None,
         access_log: bool = True,
@@ -226,7 +226,7 @@ class Config:
         timeout_graceful_shutdown: Optional[int] = None,
         callback_notify: Optional[Callable[..., Awaitable[None]]] = None,
         ssl_keyfile: Optional[str] = None,
-        ssl_certfile: Optional[Union[str, os.PathLike]] = None,
+        ssl_certfile: "str | os.PathLike[str] | None" = None,
         ssl_keyfile_password: Optional[str] = None,
         ssl_version: int = SSL_PROTOCOL_VERSION,
         ssl_cert_reqs: int = ssl.CERT_NONE,
