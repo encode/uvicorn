@@ -326,15 +326,14 @@ class WebSocketProtocol(WebSocketServerProtocol):
                     reason = message.get("reason", "") or ""
                     await self.close(code, reason)
                     self.closed_event.set()
+                else:
+                    msg = (
+                        "Expected ASGI message 'websocket.send' or 'websocket.close',"
+                        " but got '%s'."
+                    )
+                    raise RuntimeError(msg % message_type)
             except WebSocketException:
                 raise IOError("Client disconnected.")
-            else:
-                msg = (
-                    "Expected ASGI message 'websocket.send' or 'websocket.close',"
-                    " but got '%s'."
-                )
-                raise RuntimeError(msg % message_type)
-
         else:
             msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
             raise RuntimeError(msg % message_type)

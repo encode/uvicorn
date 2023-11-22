@@ -325,15 +325,14 @@ class WSProtocol(asyncio.Protocol):
                     if not self.transport.is_closing():
                         self.transport.write(output)
                         self.transport.close()
+                else:
+                    msg = (
+                        "Expected ASGI message 'websocket.send' or 'websocket.close',"
+                        " but got '%s'."
+                    )
+                    raise RuntimeError(msg % message_type)
             except LocalProtocolError:
                 raise IOError("Connection closed")
-            else:
-                msg = (
-                    "Expected ASGI message 'websocket.send' or 'websocket.close',"
-                    " but got '%s'."
-                )
-                raise RuntimeError(msg % message_type)
-
         else:
             msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
             raise RuntimeError(msg % message_type)
