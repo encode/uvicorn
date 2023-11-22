@@ -332,7 +332,7 @@ class WSProtocol(asyncio.Protocol):
                     )
                     raise RuntimeError(msg % message_type)
             except LocalProtocolError:
-                raise IOError("Connection closed")
+                raise IOError("Connection is already closed.")
         else:
             msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
             raise RuntimeError(msg % message_type)

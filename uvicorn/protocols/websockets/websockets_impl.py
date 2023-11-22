@@ -333,7 +333,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                     )
                     raise RuntimeError(msg % message_type)
             except WebSocketException:
-                raise IOError("Client disconnected.")
+                raise IOError("Connection is already closed.")
         else:
             msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
             raise RuntimeError(msg % message_type)
