@@ -71,15 +71,18 @@ async def test_invalid_upgrade(
             pass  # ok, wsproto 0.13
         else:
             assert response.status_code == 400
-            assert response.text.lower().strip().rstrip(".") in [
-                "missing sec-websocket-key header",
-                "missing sec-websocket-version header",  # websockets
-                "missing or empty sec-websocket-key header",  # wsproto
-                "failed to open a websocket connection: missing "
-                "sec-websocket-key header",
-                "failed to open a websocket connection: missing or empty "
-                "sec-websocket-key header",
-            ]
+            assert (
+                response.text.lower().strip().rstrip(".")
+                in [
+                    "missing sec-websocket-key header",
+                    "missing sec-websocket-version header",  # websockets
+                    "missing or empty sec-websocket-key header",  # wsproto
+                    "failed to open a websocket connection: missing "
+                    "sec-websocket-key header",
+                    "failed to open a websocket connection: missing or empty "
+                    "sec-websocket-key header",
+                ]
+            )
 
 
 @pytest.mark.anyio
@@ -107,6 +110,30 @@ async def test_accept_connection(
     async with run_server(config):
         is_open = await open_connection(f"ws://127.0.0.1:{unused_tcp_port}")
         assert is_open
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
+async def test_shutdown(
+    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
+):
+    class App(WebSocketResponse):
+        async def websocket_connect(self, message):
+            await self.send({"type": "websocket.accept"})
+
+    config = Config(
+        app=App,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        port=unused_tcp_port,
+    )
+    async with run_server(config) as server:
+        async with websockets.client.connect(f"ws://127.0.0.1:{unused_tcp_port}"):
+            # Attempt shutdown while connection is still open
+            await server.shutdown()
 
 
 @pytest.mark.anyio

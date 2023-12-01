@@ -137,8 +137,10 @@ Options:
                                   [default: 16777216]
   --ws-max-queue INTEGER          The maximum length of the WebSocket message
                                   queue.  [default: 32]
-  --ws-ping-interval FLOAT        WebSocket ping interval  [default: 20.0]
-  --ws-ping-timeout FLOAT         WebSocket ping timeout  [default: 20.0]
+  --ws-ping-interval FLOAT        WebSocket ping interval in seconds.
+                                  [default: 20.0]
+  --ws-ping-timeout FLOAT         WebSocket ping timeout in seconds.
+                                  [default: 20.0]
   --ws-per-message-deflate BOOLEAN
                                   WebSocket per-message-deflate compression
                                   [default: True]
@@ -345,9 +347,9 @@ An incoming HTTP request might have a connection `scope` like this:
     'method': 'GET',
     'path': '/',
     'headers': [
-        [b'host', b'127.0.0.1:8000'],
-        [b'user-agent', b'curl/7.51.0'],
-        [b'accept', b'*/*']
+        (b'host', b'127.0.0.1:8000'),
+        (b'user-agent', b'curl/7.51.0'),
+        (b'accept', b'*/*')
     ]
 }
 ```
@@ -561,6 +563,12 @@ Its most distinctive features are built-in support for dependency injection, aut
 ### Muffin
 
 [Muffin](https://github.com/klen/muffin) is a fast, lightweight and asynchronous ASGI web-framework for Python 3.
+
+### Litestar
+
+[**Litestar**](https://litestar.dev) is a powerful, lightweight and flexible ASGI framework.
+
+It includes everything that's needed to build modern APIs - from data serialization and validation to websockets, ORM integration, session management, authentication and more.
 
 
 [uvloop]: https://github.com/MagicStack/uvloop

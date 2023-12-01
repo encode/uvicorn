@@ -268,8 +268,6 @@ class Server:
             server.close()
         for sock in sockets or []:
             sock.close()
-        for server in self.servers:
-            await server.wait_closed()
 
         # Request shutdown on all existing connections.
         for connection in list(self.server_state.connections):
@@ -311,6 +309,9 @@ class Server:
             logger.info(msg)
             while self.server_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
+
+        for server in self.servers:
+            await server.wait_closed()
 
     def install_signal_handlers(self) -> None:
         if threading.current_thread() is not threading.main_thread():
