@@ -14,7 +14,7 @@ build==1.0.3
 twine==4.0.2
 
 # Testing
-ruff==0.1.4
+ruff==0.1.6
 pytest==7.4.3
 pytest-mock==3.11.1
 mypy==1.7.1
