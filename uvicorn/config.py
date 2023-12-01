@@ -14,23 +14,18 @@ from typing import (
     Callable,
     Dict,
     List,
+    Literal,
     Optional,
     Tuple,
     Type,
     Union,
 )
 
-from uvicorn.logging import TRACE_LOG_LEVEL
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
-
 import click
 
 from uvicorn._types import ASGIApplication
 from uvicorn.importer import ImportFromStringError, import_from_string
+from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.middleware.asgi2 import ASGI2Middleware
 from uvicorn.middleware.message_logger import MessageLoggerMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -192,7 +187,7 @@ def _normalize_dirs(dirs: Union[List[str], str, None]) -> List[str]:
 class Config:
     def __init__(
         self,
-        app: Union["ASGIApplication", Callable, str],
+        app: Union["ASGIApplication", Callable[..., Any], str],
         host: str = "127.0.0.1",
         port: int = 8000,
         uds: Optional[str] = None,
@@ -201,11 +196,12 @@ class Config:
         http: Union[Type[asyncio.Protocol], HTTPProtocolType] = "auto",
         ws: Union[Type[asyncio.Protocol], WSProtocolType] = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
+        ws_max_queue: int = 32,
         ws_ping_interval: Optional[float] = 20.0,
         ws_ping_timeout: Optional[float] = 20.0,
         ws_per_message_deflate: bool = True,
         lifespan: LifespanType = "auto",
-        env_file: Optional[Union[str, os.PathLike]] = None,
+        env_file: "str | os.PathLike[str] | None" = None,
         log_config: Optional[Union[Dict[str, Any], str]] = LOGGING_CONFIG,
         log_level: Optional[Union[str, int]] = None,
         access_log: bool = True,
@@ -230,7 +226,7 @@ class Config:
         timeout_graceful_shutdown: Optional[int] = None,
         callback_notify: Optional[Callable[..., Awaitable[None]]] = None,
         ssl_keyfile: Optional[str] = None,
-        ssl_certfile: Optional[Union[str, os.PathLike]] = None,
+        ssl_certfile: "str | os.PathLike[str] | None" = None,
         ssl_keyfile_password: Optional[str] = None,
         ssl_version: int = SSL_PROTOCOL_VERSION,
         ssl_cert_reqs: int = ssl.CERT_NONE,
@@ -249,6 +245,7 @@ class Config:
         self.http = http
         self.ws = ws
         self.ws_max_size = ws_max_size
+        self.ws_max_queue = ws_max_queue
         self.ws_ping_interval = ws_ping_interval
         self.ws_ping_timeout = ws_ping_timeout
         self.ws_per_message_deflate = ws_per_message_deflate

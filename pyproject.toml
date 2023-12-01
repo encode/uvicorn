@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "The lightning-fast ASGI server."
 readme = "README.md"
 license = "BSD-3-Clause"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 authors = [
     { name = "Tom Christie", email = "tom@tomchristie.com" },
 ]
@@ -19,11 +19,11 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Internet :: WWW/HTTP",
@@ -31,7 +31,7 @@ classifiers = [
 dependencies = [
     "click>=7.0",
     "h11>=0.8",
-    "typing-extensions;python_version < '3.8'",
+    "typing_extensions>=4.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
@@ -64,7 +64,7 @@ include = ["/uvicorn"]
 select = ["E", "F", "I"]
 ignore = ["B904", "B028"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = true
 
 [tool.mypy]
@@ -100,7 +100,7 @@ omit = [
 
 [tool.coverage.report]
 precision = 2
-fail_under = 98.28
+fail_under = 98.35
 show_missing = true
 skip_covered = true
 exclude_lines = [
@@ -113,6 +113,7 @@ exclude_lines = [
 
 [tool.coverage.coverage_conditional_plugin.omit]
 "sys_platform == 'win32'" = ["uvicorn/loops/uvloop.py"]
+"sys_platform != 'win32'" = ["uvicorn/loops/asyncio.py"]
 
 [tool.coverage.coverage_conditional_plugin.rules]
 py-win32 = "sys_platform == 'win32'"
@@ -123,3 +124,5 @@ py-gte-38 = "sys_version_info >= (3, 8)"
 py-lt-38 =  "sys_version_info < (3, 8)"
 py-gte-39 = "sys_version_info >= (3, 9)"
 py-lt-39 = "sys_version_info < (3, 9)"
+py-gte-311 = "sys_version_info >= (3, 11)"
+py-lt-311 = "sys_version_info < (3, 11)"

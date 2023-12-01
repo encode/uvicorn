@@ -57,7 +57,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 
 
 @click.command(context_settings={"auto_envvar_prefix": "UVICORN"})
-@click.argument("app")
+@click.argument("app", envvar="UVICORN_APP")
 @click.option(
     "--host",
     type=str,
@@ -146,17 +146,24 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
+    "--ws-max-queue",
+    type=int,
+    default=32,
+    help="The maximum length of the WebSocket message queue.",
+    show_default=True,
+)
+@click.option(
     "--ws-ping-interval",
     type=float,
     default=20.0,
-    help="WebSocket ping interval",
+    help="WebSocket ping interval in seconds.",
     show_default=True,
 )
 @click.option(
     "--ws-ping-timeout",
     type=float,
     default=20.0,
-    help="WebSocket ping timeout",
+    help="WebSocket ping timeout in seconds.",
     show_default=True,
 )
 @click.option(
@@ -367,6 +374,7 @@ def main(
     http: HTTPProtocolType,
     ws: WSProtocolType,
     ws_max_size: int,
+    ws_max_queue: int,
     ws_ping_interval: float,
     ws_ping_timeout: float,
     ws_per_message_deflate: bool,
@@ -415,6 +423,7 @@ def main(
         http=http,
         ws=ws,
         ws_max_size=ws_max_size,
+        ws_max_queue=ws_max_queue,
         ws_ping_interval=ws_ping_interval,
         ws_ping_timeout=ws_ping_timeout,
         ws_per_message_deflate=ws_per_message_deflate,
@@ -456,7 +465,7 @@ def main(
 
 
 def run(
-    app: typing.Union["ASGIApplication", typing.Callable, str],
+    app: typing.Union["ASGIApplication", typing.Callable[..., typing.Any], str],
     *,
     host: str = "127.0.0.1",
     port: int = 8000,
@@ -466,6 +475,7 @@ def run(
     http: typing.Union[typing.Type[asyncio.Protocol], HTTPProtocolType] = "auto",
     ws: typing.Union[typing.Type[asyncio.Protocol], WSProtocolType] = "auto",
     ws_max_size: int = 16777216,
+    ws_max_queue: int = 32,
     ws_ping_interval: typing.Optional[float] = 20.0,
     ws_ping_timeout: typing.Optional[float] = 20.0,
     ws_per_message_deflate: bool = True,
@@ -477,7 +487,7 @@ def run(
     reload_excludes: typing.Optional[typing.Union[typing.List[str], str]] = None,
     reload_delay: float = 0.25,
     workers: typing.Optional[int] = None,
-    env_file: typing.Optional[typing.Union[str, os.PathLike]] = None,
+    env_file: "str | os.PathLike[str] | None" = None,
     log_config: typing.Optional[
         typing.Union[typing.Dict[str, typing.Any], str]
     ] = LOGGING_CONFIG,
@@ -494,7 +504,7 @@ def run(
     timeout_keep_alive: int = 5,
     timeout_graceful_shutdown: typing.Optional[int] = None,
     ssl_keyfile: typing.Optional[str] = None,
-    ssl_certfile: typing.Optional[typing.Union[str, os.PathLike]] = None,
+    ssl_certfile: "str | os.PathLike[str] | None" = None,
     ssl_keyfile_password: typing.Optional[str] = None,
     ssl_version: int = SSL_PROTOCOL_VERSION,
     ssl_cert_reqs: int = ssl.CERT_NONE,
@@ -519,6 +529,7 @@ def run(
         http=http,
         ws=ws,
         ws_max_size=ws_max_size,
+        ws_max_queue=ws_max_queue,
         ws_ping_interval=ws_ping_interval,
         ws_ping_timeout=ws_ping_timeout,
         ws_per_message_deflate=ws_per_message_deflate,

@@ -43,14 +43,14 @@ from typing import (
     Union,
 )
 
-if sys.version_info >= (3, 8):
+if sys.version_info >= (3, 8):  # pragma: py-lt-38
     from typing import Literal, Protocol, TypedDict
-else:
+else:  # pragma: py-gte-38
     from typing_extensions import Literal, Protocol, TypedDict
 
-if sys.version_info >= (3, 11):
+if sys.version_info >= (3, 11):  # pragma: py-lt-311
     from typing import NotRequired
-else:
+else:  # pragma: py-gte-311
     from typing_extensions import NotRequired
 
 # WSGI
@@ -261,12 +261,12 @@ ASGISendCallable = Callable[[ASGISendEvent], Awaitable[None]]
 
 class ASGI2Protocol(Protocol):
     def __init__(self, scope: Scope) -> None:
-        ...
+        ...  # pragma: no cover
 
     async def __call__(
         self, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
-        ...
+        ...  # pragma: no cover
 
 
 ASGI2Application = Type[ASGI2Protocol]
