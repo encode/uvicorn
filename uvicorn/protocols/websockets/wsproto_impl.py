@@ -307,6 +307,10 @@ class WSProtocol(asyncio.Protocol):
 
                 elif message_type == "websocket.http.response.start":
                     message = typing.cast("WebSocketResponseStartEvent", message)
+                    # ensure status code is in the valid range
+                    if not (100 <= message["status"] < 600):
+                        msg = "Invalid HTTP status code '%d' in response."
+                        raise RuntimeError(msg % message["status"])
                     self.logger.info(
                         '%s - "WebSocket %s" %d',
                         self.scope["client"],

@@ -1114,6 +1114,8 @@ async def test_server_reject_connection_with_invalid_status(
     http_protocol_cls,
     unused_tcp_port: int,
 ):
+    # this test checks that even if there is an error in the response, the server
+    # can successfully send a 500 error back to the client
     async def app(scope, receive, send):
         assert scope["type"] == "websocket"
         assert "websocket.http.response" in scope["extensions"]
