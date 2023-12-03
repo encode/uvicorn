@@ -4,7 +4,6 @@ import httpx
 import pytest
 import websockets.client
 
-from tests.protocols.test_http import HTTP_PROTOCOLS
 from tests.response import Response
 from tests.utils import run_server
 from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
@@ -12,6 +11,8 @@ from uvicorn.config import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 if TYPE_CHECKING:
+    from uvicorn.protocols.http.h11_impl import H11Protocol
+    from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
@@ -114,10 +115,9 @@ async def test_proxy_headers_invalid_x_forwarded_for() -> None:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_proxy_headers_websocket_x_forwarded_proto(
     ws_protocol_cls: "Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls,
+    http_protocol_cls: "Type[H11Protocol | HttpToolsProtocol]",
     unused_tcp_port: int,
 ) -> None:
     async def websocket_app(scope, receive, send):

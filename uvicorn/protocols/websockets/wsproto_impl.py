@@ -181,7 +181,7 @@ class WSProtocol(asyncio.Protocol):
     def handle_text(self, event: events.TextMessage) -> None:
         self.text += event.data
         if event.message_finished:
-            msg: "WebSocketReceiveEvent" = {  # type: ignore[typeddict-item]
+            msg: "WebSocketReceiveEvent" = {
                 "type": "websocket.receive",
                 "text": self.text,
             }
@@ -195,7 +195,7 @@ class WSProtocol(asyncio.Protocol):
         self.bytes += event.data
         # todo: we may want to guard the size of self.bytes and self.text
         if event.message_finished:
-            msg: "WebSocketReceiveEvent" = {  # type: ignore[typeddict-item]
+            msg: WebSocketReceiveEvent = {
                 "type": "websocket.receive",
                 "bytes": self.bytes,
             }
