@@ -997,10 +997,11 @@ async def test_server_reject_connection(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection_with_response(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     disconnected_message = {}
 
@@ -1037,10 +1038,11 @@ async def test_server_reject_connection_with_response(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection_with_multibody_response(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     disconnected_message = {}
 
@@ -1090,10 +1092,11 @@ async def test_server_reject_connection_with_multibody_response(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection_with_invalid_status(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     async def app(scope, receive, send):
         assert scope["type"] == "websocket"
@@ -1132,10 +1135,11 @@ async def test_server_reject_connection_with_invalid_status(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection_with_body_nolength(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     # test that the server can send a response with a body but no content-length
     async def app(scope, receive, send):
@@ -1181,10 +1185,11 @@ async def test_server_reject_connection_with_body_nolength(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection_with_invalid_msg(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     async def app(scope, receive, send):
         assert scope["type"] == "websocket"
@@ -1221,10 +1226,11 @@ async def test_server_reject_connection_with_invalid_msg(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
 @pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection_with_missing_body(
-    ws_protocol_cls, http_protocol_cls, unused_tcp_port: int
+    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls,
+    unused_tcp_port: int,
 ):
     async def app(scope, receive, send):
         assert scope["type"] == "websocket"
