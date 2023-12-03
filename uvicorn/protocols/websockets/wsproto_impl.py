@@ -1,7 +1,7 @@
 import asyncio
 import logging
-import sys
 import typing
+from typing import Literal
 from urllib.parse import unquote
 
 import wsproto
@@ -28,11 +28,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
 
 
 class WSProtocol(asyncio.Protocol):

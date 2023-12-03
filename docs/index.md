@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="320" height="320" src="https://raw.githubusercontent.com/tomchristie/uvicorn/master/docs/uvicorn.png" alt='uvicorn'>
+  <img width="320" height="320" src="../../uvicorn.png" alt='uvicorn'>
 </p>
 
 <p align="center">
@@ -13,6 +13,9 @@
 <a href="https://pypi.org/project/uvicorn/">
     <img src="https://badge.fury.io/py/uvicorn.svg" alt="Package version">
 </a>
+<a href="https://pypi.org/project/uvicorn" target="_blank">
+    <img src="https://img.shields.io/pypi/pyversions/uvicorn.svg?color=%2334D058" alt="Supported Python versions">
+</a>
 </p>
 
 ---
@@ -25,7 +28,7 @@ Until recently Python has lacked a minimal low-level server/application interfac
 async frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
 start building a common set of tooling usable across all async frameworks.
 
-Uvicorn currently supports HTTP/1.1 and WebSockets.
+Uvicorn currently supports **HTTP/1.1** and **WebSockets**.
 
 ## Quickstart
 
@@ -59,9 +62,9 @@ Moreover, "optional extras" means that:
 - `python-dotenv` will be installed should you want to use the `--env-file` option.
 - `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
 
-Create an application, in `example.py`:
+Create an application:
 
-```python
+```python title="main.py"
 async def app(scope, receive, send):
     assert scope['type'] == 'http'
 
@@ -81,14 +84,14 @@ async def app(scope, receive, send):
 Run the server:
 
 ```shell
-$ uvicorn example:app
+$ uvicorn main:app
 ```
 
 ---
 
 ## Usage
 
-The uvicorn command line tool is the easiest way to run your application...
+The uvicorn command line tool is the easiest way to run your application.
 
 ### Command line options
 
@@ -132,8 +135,12 @@ Options:
                                   [default: auto]
   --ws-max-size INTEGER           WebSocket max size message in bytes
                                   [default: 16777216]
-  --ws-ping-interval FLOAT        WebSocket ping interval  [default: 20.0]
-  --ws-ping-timeout FLOAT         WebSocket ping timeout  [default: 20.0]
+  --ws-max-queue INTEGER          The maximum length of the WebSocket message
+                                  queue.  [default: 32]
+  --ws-ping-interval FLOAT        WebSocket ping interval in seconds.
+                                  [default: 20.0]
+  --ws-ping-timeout FLOAT         WebSocket ping timeout in seconds.
+                                  [default: 20.0]
   --ws-per-message-deflate BOOLEAN
                                   WebSocket per-message-deflate compression
                                   [default: True]
@@ -209,8 +216,7 @@ There are several ways to run uvicorn directly from your application.
 
 If you're looking for a programmatic equivalent of the `uvicorn` command line interface, use `uvicorn.run()`:
 
-```python
-# main.py
+```py title="main.py"
 import uvicorn
 
 async def app(scope, receive, send):
@@ -224,7 +230,7 @@ if __name__ == "__main__":
 
 For more control over configuration and server lifecycle, use `uvicorn.Config` and `uvicorn.Server`:
 
-```python
+```py title="main.py"
 import uvicorn
 
 async def app(scope, receive, send):
@@ -238,7 +244,7 @@ if __name__ == "__main__":
 
 If you'd like to run Uvicorn from an already running async environment, use `uvicorn.Server.serve()` instead:
 
-```python
+```py title="main.py"
 import asyncio
 import uvicorn
 
@@ -279,16 +285,14 @@ For more information, see the [deployment documentation](deployment.md).
 
 The `--factory` flag allows loading the application from a factory function, rather than an application instance directly. The factory will be called with no arguments and should return an ASGI application.
 
-**example.py**:
-
-```python
+```py title="main.py"
 def create_app():
     app = ...
     return app
 ```
 
 ```shell
-$ uvicorn --factory example:create_app
+$ uvicorn --factory main:create_app
 ```
 
 ## The ASGI interface
@@ -341,9 +345,9 @@ An incoming HTTP request might have a connection `scope` like this:
     'method': 'GET',
     'path': '/',
     'headers': [
-        [b'host', b'127.0.0.1:8000'],
-        [b'user-agent', b'curl/7.51.0'],
-        [b'accept', b'*/*']
+        (b'host', b'127.0.0.1:8000'),
+        (b'user-agent', b'curl/7.51.0'),
+        (b'accept', b'*/*')
     ]
 }
 ```
@@ -557,6 +561,12 @@ Its most distinctive features are built-in support for dependency injection, aut
 ### Muffin
 
 [Muffin](https://github.com/klen/muffin) is a fast, lightweight and asynchronous ASGI web-framework for Python 3.
+
+### Litestar
+
+[**Litestar**](https://litestar.dev) is a powerful, lightweight and flexible ASGI framework.
+
+It includes everything that's needed to build modern APIs - from data serialization and validation to websockets, ORM integration, session management, authentication and more.
 
 
 [uvloop]: https://github.com/MagicStack/uvloop

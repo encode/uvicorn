@@ -10,10 +10,11 @@
 
 [![Build Status](https://github.com/encode/uvicorn/workflows/Test%20Suite/badge.svg)](https://github.com/encode/uvicorn/actions)
 [![Package version](https://badge.fury.io/py/uvicorn.svg)](https://pypi.python.org/pypi/uvicorn)
+[![Supported Python Version](https://img.shields.io/pypi/pyversions/uvicorn.svg?color=%2334D058)](https://pypi.org/project/uvicorn)
 
 **Documentation**: [https://www.uvicorn.org](https://www.uvicorn.org)
 
-**Requirements**: Python 3.7+ (For Python 3.6 support, install version 0.16.0.)
+**Requirements**: Python 3.8+
 
 Uvicorn is an ASGI web server implementation for Python.
 

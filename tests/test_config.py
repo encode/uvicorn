@@ -5,7 +5,7 @@ import socket
 import sys
 import typing
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 from unittest.mock import MagicMock
 
 import pytest
@@ -25,11 +25,6 @@ from uvicorn.config import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
 
 
 @pytest.fixture
@@ -102,10 +97,9 @@ def test_reload_dir_is_set(
             app="tests.test_config:asgi_app", reload=True, reload_dirs=[str(app_dir)]
         )
         assert len(caplog.records) == 1
-        assert (
-            caplog.records[-1].message
-            == f"Will watch for changes in these directories: {[str(app_dir)]}"
-        )
+        assert caplog.records[
+            -1
+        ].message == f"Will watch for changes in these directories: {[str(app_dir)]}"
         assert config.reload_dirs == [app_dir]
         config = Config(
             app="tests.test_config:asgi_app", reload=True, reload_dirs=str(app_dir)
@@ -517,6 +511,12 @@ def test_ws_max_size() -> None:
     config = Config(app=asgi_app, ws_max_size=1000)
     config.load()
     assert config.ws_max_size == 1000
+
+
+def test_ws_max_queue() -> None:
+    config = Config(app=asgi_app, ws_max_queue=64)
+    config.load()
+    assert config.ws_max_queue == 64
 
 
 @pytest.mark.parametrize(

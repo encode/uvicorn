@@ -14,7 +14,7 @@ As a general rule, you probably want to:
 Typically you'll run `uvicorn` from the command line.
 
 ```bash
-$ uvicorn example:app --reload --port 5000
+$ uvicorn main:app --reload --port 5000
 ```
 
 The ASGI application should be specified in the form `path.to.module:instance.path`.
@@ -65,8 +65,12 @@ Options:
                                   [default: auto]
   --ws-max-size INTEGER           WebSocket max size message in bytes
                                   [default: 16777216]
-  --ws-ping-interval FLOAT        WebSocket ping interval  [default: 20.0]
-  --ws-ping-timeout FLOAT         WebSocket ping timeout  [default: 20.0]
+  --ws-max-queue INTEGER          The maximum length of the WebSocket message
+                                  queue.  [default: 32]
+  --ws-ping-interval FLOAT        WebSocket ping interval in seconds.
+                                  [default: 20.0]
+  --ws-ping-timeout FLOAT         WebSocket ping timeout in seconds.
+                                  [default: 20.0]
   --ws-per-message-deflate BOOLEAN
                                   WebSocket per-message-deflate compression
                                   [default: True]
@@ -139,9 +143,7 @@ See the [settings documentation](settings.md) for more details on the supported 
 
 To run directly from within a Python program, you should use `uvicorn.run(app, **config)`. For example:
 
-**example.py**:
-
-```python
+```py title="main.py"
 import uvicorn
 
 class App:
@@ -150,7 +152,7 @@ class App:
 app = App()
 
 if __name__ == "__main__":
-    uvicorn.run("example:app", host="127.0.0.1", port=5000, log_level="info")
+    uvicorn.run("main:app", host="127.0.0.1", port=5000, log_level="info")
 ```
 
 The set of configuration options is the same as for the command line tool.
@@ -195,6 +197,8 @@ Gunicorn provides a different set of configuration options to Uvicorn, so  some 
 If you need to pass uvicorn's config arguments to gunicorn workers then you'll have to subclass `UvicornWorker`:
 
 ```python
+from uvicorn.workers import UvicornWorker
+
 class MyUvicornWorker(UvicornWorker):
     CONFIG_KWARGS = {"loop": "asyncio", "http": "h11", "lifespan": "off"}
 ```
@@ -208,14 +212,12 @@ To use `supervisor` as a process manager you should either:
 
 A simple supervisor configuration might look something like this:
 
-**supervisord.conf**:
-
-```ini
+```ini title="supervisord.conf"
 [supervisord]
 
 [fcgi-program:uvicorn]
 socket=tcp://localhost:8000
-command=venv/bin/uvicorn --fd 0 example:App
+command=venv/bin/uvicorn --fd 0 main:App
 numprocs=4
 process_name=uvicorn-%(process_num)d
 stdout_logfile=/dev/stdout
@@ -233,11 +235,9 @@ To use `circus` as a process manager, you should either:
 
 A simple circus configuration might look something like this:
 
-**circus.ini**:
-
-```ini
+```ini title="circus.ini"
 [watcher:web]
-cmd = venv/bin/uvicorn --fd $(circus.sockets.web) example:App
+cmd = venv/bin/uvicorn --fd $(circus.sockets.web) main:App
 use_sockets = True
 numprocesses = 4
 
@@ -323,7 +323,7 @@ For local development with https, it's possible to use [mkcert][mkcert]
 to generate a valid certificate and private key.
 
 ```bash
-$ uvicorn example:app --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.pem
+$ uvicorn main:app --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.pem
 ```
 
 ### Running gunicorn worker
@@ -331,7 +331,7 @@ $ uvicorn example:app --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.
 It's also possible to use certificates with uvicorn's worker for gunicorn.
 
 ```bash
-$ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornWorker example:app
+$ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornWorker main:app
 ```
 
 [nginx_websocket]: https://nginx.org/en/docs/http/websocket.html

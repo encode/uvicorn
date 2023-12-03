@@ -11,8 +11,8 @@ from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
 
 try:
     importlib.import_module("uvloop")
-    expected_loop = "uvloop"  # pragma: py-not-win32
-except ImportError:  # pragma: no cover
+    expected_loop = "uvloop"  # pragma: py-win32
+except ImportError:  # pragma: py-not-win32
     expected_loop = "asyncio"
 
 try:

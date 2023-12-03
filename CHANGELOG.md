@@ -1,5 +1,50 @@
 # Change Log
 
+## 0.24.0.post1 - 2023-11-06
+
+### Fixed
+
+* Revert mkdocs-material from 9.1.21 to 9.2.6 (#2148) 05/11/23
+
+## 0.24.0 - 2023-11-04
+
+### Added
+
+- Support Python 3.12 (#2145) 04/11/23
+- Allow setting `app` via environment variable `UVICORN_APP` (#2106) 21/09/23
+
+## 0.23.2 - 2023-07-31
+
+### Fixed
+
+- Maintain the same behavior of `websockets` from 10.4 on 11.0 (#2061) 30/07/23
+
+## 0.23.1 - 2023-07-18
+
+### Fixed
+
+- Add `typing_extensions` for Python 3.10 and lower (#2053) 18/07/23
+
+## 0.23.0 - 2023-07-10
+
+### Added
+
+- Add `--ws-max-queue` parameter WebSockets (#2033) 10/07/23
+
+### Removed
+
+- Drop support for Python 3.7 (#1996) 19/06/23
+- Remove `asgiref` as typing dependency (#1999) 08/06/23
+
+### Fixed
+
+- Set `scope["scheme"]` to `ws` or `wss` instead of `http` or `https` on `ProxyHeadersMiddleware` for WebSockets (#2043) 12/07/23
+
+### Changed
+
+- Raise `ImportError` on circular import (#2040) 09/07/23
+- Use `logger.getEffectiveLevel()` instead of `logger.level` to check if log level is `TRACE` (#1966) 01/06/23
+
 ## 0.22.0 - 2023-04-28
 
 ### Added

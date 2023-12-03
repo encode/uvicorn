@@ -1,11 +1,11 @@
 import asyncio
 import http
 import logging
-import sys
 from typing import (
     Any,
     Dict,
     List,
+    Literal,
     Optional,
     Sequence,
     Tuple,
@@ -41,11 +41,6 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
 
 
 class Server:
@@ -110,6 +105,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             ws_handler=self.ws_handler,
             ws_server=self.ws_server,  # type: ignore[arg-type]
             max_size=self.config.ws_max_size,
+            max_queue=self.config.ws_max_queue,
             ping_interval=self.config.ws_ping_interval,
             ping_timeout=self.config.ws_ping_timeout,
             extensions=extensions,
@@ -240,7 +236,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         'send' and 'receive' events to drive the flow.
         """
         self.handshake_completed_event.set()
-        await self.closed_event.wait()
+        await self.wait_closed()
 
     async def run_asgi(self) -> None:
         """
