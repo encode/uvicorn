@@ -56,6 +56,9 @@ class CustomWatcher(DefaultWatcher):
             self.watched_files[entry.path] = False
             return False
         for include_pattern in self.includes:
+            if str(entry_path).endswith(include_pattern):
+                self.watched_files[entry.path] = True
+                return True
             if entry_path.match(include_pattern):
                 for exclude_pattern in self.excludes:
                     if entry_path.match(exclude_pattern):
