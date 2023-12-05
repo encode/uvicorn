@@ -183,7 +183,7 @@ Uvicorn provides a lightweight way to run multiple worker processes, for example
 ### Using cloud provider process manager
 
 Modern deployments often are deployed on a Softare as a Service platform or a Platform as a Service.
-Examples include various offerings from AWS, GCP, Render, fly.io and Kubernetes (availble as a service on many cloud providers).
+Examples include various offerings from AWS, GCP, Render, fly.io and Kubernetes (available as a service on many cloud providers).
 These are just examples, Uvicorn does not necessarily recommend or endorse any of these above other options.
 Kubernetes for example functions both as a process manager and load balancer.
 These options can range form simple to complex, and they may not be better than other options listed below, but if you are already using Kubernetes or another option that offers load balancing and process maangement you do not need to also run your own process manager and load balancer.
