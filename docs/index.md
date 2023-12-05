@@ -271,7 +271,7 @@ fully-featured process management.
 This allows you to increase or decrease the number of worker processes on the
 fly, restart worker processes gracefully, or perform server upgrades without downtime.
 
-For production deployments we recommend using gunicorn with the uvicorn worker class.
+If you need multiple workers process, for example if your CPU has multiple cores, you can run gunicorn with uvicorn workers as follows:
 
 ```
 gunicorn example:app -w 4 -k uvicorn.workers.UvicornWorker
