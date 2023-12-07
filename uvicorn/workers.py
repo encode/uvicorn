@@ -48,6 +48,7 @@ class UvicornWorker(Worker):
                 "ssl_certfile": self.cfg.ssl_options.get("certfile"),
                 "ssl_keyfile_password": self.cfg.ssl_options.get("password"),
                 "ssl_version": self.cfg.ssl_options.get("ssl_version"),
+                "ssl_options": self.cfg.ssl_optinos.get("ssl_options"),
                 "ssl_cert_reqs": self.cfg.ssl_options.get("cert_reqs"),
                 "ssl_ca_certs": self.cfg.ssl_options.get("ca_certs"),
                 "ssl_ciphers": self.cfg.ssl_options.get("ciphers"),

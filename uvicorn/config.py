@@ -112,11 +112,13 @@ def create_ssl_context(
     keyfile: Optional[Union[str, os.PathLike]],
     password: Optional[str],
     ssl_version: int,
+    ssl_options: int,
     cert_reqs: int,
     ca_certs: Optional[Union[str, os.PathLike]],
     ciphers: Optional[str],
 ) -> ssl.SSLContext:
     ctx = ssl.SSLContext(ssl_version)
+    ctx.options = ssl_options
     get_password = (lambda: password) if password else None
     ctx.load_cert_chain(certfile, keyfile, get_password)
     ctx.verify_mode = ssl.VerifyMode(cert_reqs)
@@ -229,6 +231,7 @@ class Config:
         ssl_certfile: "str | os.PathLike[str] | None" = None,
         ssl_keyfile_password: Optional[str] = None,
         ssl_version: int = SSL_PROTOCOL_VERSION,
+        ssl_options: int = 0,
         ssl_cert_reqs: int = ssl.CERT_NONE,
         ssl_ca_certs: Optional[str] = None,
         ssl_ciphers: str = "TLSv1",
@@ -273,6 +276,7 @@ class Config:
         self.ssl_certfile = ssl_certfile
         self.ssl_keyfile_password = ssl_keyfile_password
         self.ssl_version = ssl_version
+        self.ssl_options = ssl_options
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
@@ -432,6 +436,7 @@ class Config:
                 certfile=self.ssl_certfile,
                 password=self.ssl_keyfile_password,
                 ssl_version=self.ssl_version,
+                ssl_options=self.ssl_options,
                 cert_reqs=self.ssl_cert_reqs,
                 ca_certs=self.ssl_ca_certs,
                 ciphers=self.ssl_ciphers,
