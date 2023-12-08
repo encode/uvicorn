@@ -105,6 +105,7 @@ The [SSL context](https://docs.python.org/3/library/ssl.html#ssl.SSLContext) can
 * `--ssl-keyfile-password <str>` - The password to decrypt the ssl key.
 * `--ssl-certfile <path>` - The SSL certificate file.
 * `--ssl-version <int>` - The SSL version to use.
+* `--ssl-options <int>` - The options of the SSL context to use.
 * `--ssl-cert-reqs <int>` - Whether client certificate is required.
 * `--ssl-ca-certs <str>` - The CA certificates file.
 * `--ssl-ciphers <str>` - The ciphers to use.

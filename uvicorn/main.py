@@ -309,6 +309,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
+    "--ssl-options",
+    type=int,
+    default=int(0),
+    help="Options of SSL context to use (see stdlib ssl module's)",
+    show_default=True,
+)
+@click.option(
     "--ssl-cert-reqs",
     type=int,
     default=int(ssl.CERT_NONE),
