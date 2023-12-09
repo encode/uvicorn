@@ -364,13 +364,6 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 return {"type": "websocket.disconnect", "code": 1012}
             return {"type": "websocket.disconnect", "code": exc.code}
 
-        msg: WebSocketReceiveEvent = {  # type: ignore[typeddict-item]
-            "type": "websocket.receive"
-        }
-
         if isinstance(data, str):
-            msg["text"] = data
-        else:
-            msg["bytes"] = data
-
-        return msg
+            return {"type": "websocket.receive", "text": data}
+        return {"type": "websocket.receive", "bytes": data}
