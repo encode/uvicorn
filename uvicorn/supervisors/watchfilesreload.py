@@ -43,6 +43,9 @@ class FileFilter:
     def __call__(self, path: Path) -> bool:
         for include_pattern in self.includes:
             if path.match(include_pattern):
+                if str(path).endswith(include_pattern):
+                    return True
+
                 for exclude_dir in self.exclude_dirs:
                     if exclude_dir in path.parents:
                         return False

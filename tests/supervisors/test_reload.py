@@ -279,6 +279,32 @@ class TestBaseReload:
 
             reloader.shutdown()
 
+    @pytest.mark.parametrize(
+        "reloader_class",
+        [
+            pytest.param(WatchFilesReload, marks=skip_if_m1),
+            WatchGodReload,
+        ],
+    )
+    def test_explicit_paths(self, touch_soon) -> None:
+        dotted_file = self.reload_path / ".dotted"
+        non_dotted_file = self.reload_path / "ext" / "ext.jpg"
+        python_file = self.reload_path / "main.py"
+
+        with as_cwd(self.reload_path):
+            config = Config(
+                app="tests.test_config:asgi_app",
+                reload=True,
+                reload_includes=[".dotted", "ext/ext.jpg"],
+            )
+            reloader = self._setup_reloader(config)
+
+            assert self._reload_tester(touch_soon, reloader, dotted_file)
+            assert self._reload_tester(touch_soon, reloader, non_dotted_file)
+            assert self._reload_tester(touch_soon, reloader, python_file)
+
+            reloader.shutdown()
+
     @pytest.mark.skipif(WatchFilesReload is None, reason="watchfiles not available")
     @pytest.mark.parametrize("reloader_class", [WatchFilesReload])
     def test_watchfiles_no_changes(self) -> None:

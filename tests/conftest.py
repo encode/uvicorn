@@ -124,6 +124,9 @@ def reload_directory_structure(tmp_path_factory: pytest.TempPathFactory):
     │       └── sub.py
     ├── ext
     │   └── ext.jpg
+    ├── .dotted
+    ├── .dotted_dir
+    │   └── file.txt
     └── main.py
     """
     root = tmp_path_factory.mktemp("reload_directory")
