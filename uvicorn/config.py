@@ -118,7 +118,7 @@ def create_ssl_context(
     ciphers: Optional[str],
 ) -> ssl.SSLContext:
     ctx = ssl.SSLContext(ssl_version)
-    ctx.options = ssl_options
+    ctx.options = ssl.Options(ssl_options)
     get_password = (lambda: password) if password else None
     ctx.load_cert_chain(certfile, keyfile, get_password)
     ctx.verify_mode = ssl.VerifyMode(cert_reqs)
