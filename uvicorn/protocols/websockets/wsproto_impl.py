@@ -15,7 +15,6 @@ from uvicorn._types import (
     WebSocketAcceptEvent,
     WebSocketCloseEvent,
     WebSocketEvent,
-    WebSocketReceiveEvent,
     WebSocketScope,
     WebSocketSendEvent,
 )
@@ -181,11 +180,7 @@ class WSProtocol(asyncio.Protocol):
     def handle_text(self, event: events.TextMessage) -> None:
         self.text += event.data
         if event.message_finished:
-            msg: "WebSocketReceiveEvent" = {  # type: ignore[typeddict-item]
-                "type": "websocket.receive",
-                "text": self.text,
-            }
-            self.queue.put_nowait(msg)
+            self.queue.put_nowait({"type": "websocket.receive", "text": self.text})
             self.text = ""
             if not self.read_paused:
                 self.read_paused = True
@@ -195,11 +190,7 @@ class WSProtocol(asyncio.Protocol):
         self.bytes += event.data
         # todo: we may want to guard the size of self.bytes and self.text
         if event.message_finished:
-            msg: "WebSocketReceiveEvent" = {  # type: ignore[typeddict-item]
-                "type": "websocket.receive",
-                "bytes": self.bytes,
-            }
-            self.queue.put_nowait(msg)
+            self.queue.put_nowait({"type": "websocket.receive", "bytes": self.bytes})
             self.bytes = b""
             if not self.read_paused:
                 self.read_paused = True

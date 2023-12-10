@@ -124,6 +124,9 @@ def reload_directory_structure(tmp_path_factory: pytest.TempPathFactory):
     │       └── sub.py
     ├── ext
     │   └── ext.jpg
+    ├── .dotted
+    ├── .dotted_dir
+    │   └── file.txt
     └── main.py
     """
     root = tmp_path_factory.mktemp("reload_directory")
@@ -255,4 +258,20 @@ def unused_tcp_port() -> int:
     ]
 )
 def ws_protocol_cls(request: pytest.FixtureRequest):
+    return import_from_string(request.param)
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(
+            "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
+            marks=pytest.mark.skipif(
+                not importlib.util.find_spec("httptools"),
+                reason="httptools not installed.",
+            ),
+        ),
+        "uvicorn.protocols.http.h11_impl:H11Protocol",
+    ]
+)
+def http_protocol_cls(request: pytest.FixtureRequest):
     return import_from_string(request.param)

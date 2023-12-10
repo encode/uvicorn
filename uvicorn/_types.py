@@ -124,14 +124,14 @@ class HTTPResponseDebugEvent(TypedDict):
 class HTTPResponseStartEvent(TypedDict):
     type: Literal["http.response.start"]
     status: int
-    headers: Iterable[Tuple[bytes, bytes]]
+    headers: NotRequired[Iterable[Tuple[bytes, bytes]]]
     trailers: NotRequired[bool]
 
 
 class HTTPResponseBodyEvent(TypedDict):
     type: Literal["http.response.body"]
     body: bytes
-    more_body: bool
+    more_body: NotRequired[bool]
 
 
 class HTTPResponseTrailersEvent(TypedDict):
@@ -156,20 +156,38 @@ class WebSocketConnectEvent(TypedDict):
 
 class WebSocketAcceptEvent(TypedDict):
     type: Literal["websocket.accept"]
-    subprotocol: Optional[str]
-    headers: Iterable[Tuple[bytes, bytes]]
+    subprotocol: NotRequired[Optional[str]]
+    headers: NotRequired[Iterable[Tuple[bytes, bytes]]]
 
 
-class WebSocketReceiveEvent(TypedDict):
+class _WebSocketReceiveEventBytes(TypedDict):
     type: Literal["websocket.receive"]
-    bytes: Optional[bytes]
-    text: Optional[str]
+    bytes: bytes
+    text: NotRequired[None]
 
 
-class WebSocketSendEvent(TypedDict):
+class _WebSocketReceiveEventText(TypedDict):
+    type: Literal["websocket.receive"]
+    bytes: NotRequired[None]
+    text: str
+
+
+WebSocketReceiveEvent = Union[_WebSocketReceiveEventBytes, _WebSocketReceiveEventText]
+
+
+class _WebSocketSendEventBytes(TypedDict):
     type: Literal["websocket.send"]
-    bytes: Optional[bytes]
-    text: Optional[str]
+    bytes: bytes
+    text: NotRequired[None]
+
+
+class _WebSocketSendEventText(TypedDict):
+    type: Literal["websocket.send"]
+    bytes: NotRequired[None]
+    text: str
+
+
+WebSocketSendEvent = Union[_WebSocketSendEventBytes, _WebSocketSendEventText]
 
 
 class WebSocketResponseStartEvent(TypedDict):
@@ -191,8 +209,8 @@ class WebSocketDisconnectEvent(TypedDict):
 
 class WebSocketCloseEvent(TypedDict):
     type: Literal["websocket.close"]
-    code: int
-    reason: Optional[str]
+    code: NotRequired[int]
+    reason: NotRequired[Optional[str]]
 
 
 class LifespanStartupEvent(TypedDict):
