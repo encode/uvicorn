@@ -118,7 +118,7 @@ Options:
   --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
                                   [default: 17]
   --ssl-options INTEGER           Options of SSL context to use (see stdlib
-                                  ssl module's) [default: 0]
+                                  ssl module's)  [default: 0]
   --ssl-cert-reqs INTEGER         Whether client certificate is required (see
                                   stdlib ssl module's)  [default: 0]
   --ssl-ca-certs TEXT             CA certificates file
