@@ -114,7 +114,6 @@ class Multiprocess:
         self.processes: List[Process] = []
 
         self.should_exit = threading.Event()
-        self.keep_alive_checking = threading.Event()
 
         self.signal_queue: List[int] = []
         for sig in UNIX_SIGNALS:
@@ -174,7 +173,6 @@ class Multiprocess:
         logger.info(message, extra={"color_message": color_message})
 
     def keep_subprocess_alive(self) -> None:
-        self.keep_alive_checking.clear()
         for idx, process in enumerate(tuple(self.processes)):
             if process.is_alive():
                 continue
@@ -186,7 +184,6 @@ class Multiprocess:
             process = Process(self.config, self.target, self.sockets)
             process.start()
             self.processes.append(process)
-        self.keep_alive_checking.set()
 
     def handle_signals(self) -> None:
         for sig in tuple(self.signal_queue):
@@ -202,7 +199,6 @@ class Multiprocess:
         if not self.should_exit.is_set():
             self.should_exit.set()
         else:
-            self.keep_alive_checking.wait()
             self.terminate_all()
 
     def handle_term(self) -> None:
@@ -210,7 +206,6 @@ class Multiprocess:
         if not self.should_exit.is_set():
             self.should_exit.set()
         else:
-            self.keep_alive_checking.wait()
             self.terminate_all()
 
     def handle_break(self) -> None:
@@ -218,7 +213,6 @@ class Multiprocess:
         if not self.should_exit.is_set():
             self.should_exit.set()
         else:
-            self.keep_alive_checking.wait()
             self.terminate_all()
 
     def handle_hup(self) -> None:
