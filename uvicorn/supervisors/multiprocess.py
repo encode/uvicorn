@@ -164,6 +164,7 @@ class Multiprocess:
             self.handle_signals()
             self.keep_subprocess_alive()
 
+        self.terminate_all()
         self.join_all()
 
         message = "Stopping parent process [{}]".format(os.getpid())
@@ -199,15 +200,19 @@ class Multiprocess:
 
     def handle_int(self) -> None:
         logger.info("Received SIGINT, exiting")
-        self.should_exit.set()
-        self.keep_alive_checking.wait()
-        self.terminate_all()
+        if not self.should_exit.is_set():
+            self.should_exit.set()
+        else:
+            self.keep_alive_checking.wait()
+            self.terminate_all()
 
     def handle_term(self) -> None:
         logger.info("Received SIGTERM, exiting")
-        self.should_exit.set()
-        self.keep_alive_checking.wait()
-        self.terminate_all()
+        if not self.should_exit.is_set():
+            self.should_exit.set()
+        else:
+            self.keep_alive_checking.wait()
+            self.terminate_all()
 
     def handle_break(self) -> None:
         logger.info("Received SIGBREAK, exiting")
