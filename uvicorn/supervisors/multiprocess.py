@@ -27,12 +27,10 @@ class Process:
         target: Callable[[Optional[List[socket]]], None],
         sockets: List[socket],
     ) -> None:
-        self.config = config
         self.real_target = target
-        self.sockets = sockets
 
         self.parent_conn, self.child_conn = Pipe()
-        self.process = get_subprocess(self.config, self.target, self.sockets)
+        self.process = get_subprocess(config, self.target, sockets)
 
     def ping(self, timeout: float = 5) -> bool:
         self.parent_conn.send(b"ping")
@@ -49,7 +47,7 @@ class Process:
         while True:
             self.pong()
 
-    def target(self) -> Any:
+    def target(self, sockets: Optional[List[socket]] = None) -> Any:
         if os.name == "nt":
             # Windows doesn't support SIGTERM, so we use SIGBREAK instead.
             # And then we raise SIGTERM when SIGBREAK is received.
@@ -60,7 +58,7 @@ class Process:
             )
 
         threading.Thread(target=self.always_pong, daemon=True).start()
-        return self.real_target(self.sockets)
+        return self.real_target(sockets)
 
     def is_alive(self, timeout: float = 5) -> bool:
         if not self.process.is_alive():
