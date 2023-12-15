@@ -4,7 +4,7 @@ import signal
 import threading
 from multiprocessing import Pipe
 from socket import socket
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, Union
 
 import click
 
@@ -55,7 +55,8 @@ class Process:
             # And then we raise SIGTERM when SIGBREAK is received.
             # https://learn.microsoft.com/zh-cn/cpp/c-runtime-library/reference/signal?view=msvc-170
             signal.signal(
-                signal.SIGBREAK, lambda sig, frame: signal.raise_signal(signal.SIGTERM)
+                signal.SIGBREAK,  # type: ignore[attr-defined]
+                lambda sig, frame: signal.raise_signal(signal.SIGTERM),
             )
 
         threading.Thread(target=self.always_pong, daemon=True).start()
@@ -78,7 +79,7 @@ class Process:
         if os.name == "nt":
             # Windows doesn't support SIGTERM.
             # So send SIGBREAK, and then in process raise SIGTERM.
-            os.kill(self.process.pid, signal.CTRL_BREAK_EVENT)
+            os.kill(self.process.pid, signal.CTRL_BREAK_EVENT)  # type: ignore[attr-defined]
         else:
             os.kill(self.process.pid, signal.SIGTERM)
         logger.info("Terminated child process [{}]".format(self.process.pid))
@@ -96,7 +97,7 @@ class Process:
         self.process.join()
 
     @property
-    def pid(self) -> int | None:
+    def pid(self) -> Union[int, None]:
         return self.process.pid
 
 
@@ -112,12 +113,12 @@ class Multiprocess:
         self.sockets = sockets
 
         self.processes_num = config.workers
-        self.processes: list[Process] = []
+        self.processes: List[Process] = []
 
         self.should_exit = threading.Event()
         self.keep_alive_checking = threading.Event()
 
-        self.signal_queue: list[int] = []
+        self.signal_queue: List[int] = []
         for sig in UNIX_SIGNALS:
             signal.signal(sig, lambda sig, frame: self.signal_queue.append(sig))
 
@@ -127,7 +128,7 @@ class Multiprocess:
         signal.signal(signal.SIGTERM, lambda sig, frame: self.handle_term())
         if os.name == "nt":
             # Sent by `Ctrl+Break` on Windows.
-            signal.signal(signal.SIGBREAK, lambda sig, frame: self.handle_break())
+            signal.signal(signal.SIGBREAK, lambda sig, frame: self.handle_break())  # type: ignore[attr-defined]
 
     def init_processes(self) -> None:
         for _ in range(self.processes_num):
@@ -155,7 +156,7 @@ class Multiprocess:
     def run(self) -> None:
         message = "Started parent process [{}]".format(os.getpid())
         color_message = "Started parent process [{}]".format(
-            click.style(os.getpid(), fg="cyan", bold=True)
+            click.style(str(os.getpid()), fg="cyan", bold=True)
         )
         logger.info(message, extra={"color_message": color_message})
 
@@ -169,7 +170,7 @@ class Multiprocess:
 
         message = "Stopping parent process [{}]".format(os.getpid())
         color_message = "Stopping parent process [{}]".format(
-            click.style(os.getpid(), fg="cyan", bold=True)
+            click.style(str(os.getpid()), fg="cyan", bold=True)
         )
         logger.info(message, extra={"color_message": color_message})
 
