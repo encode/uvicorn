@@ -1,4 +1,6 @@
 import socket
+import threading
+import time
 from typing import List, Optional
 
 from uvicorn import Config
@@ -16,6 +18,12 @@ def run(sockets: Optional[List[socket.socket]]) -> None:
     pass  # pragma: no cover
 
 
+def stop_run(stop) -> None:
+    while True:
+        time.sleep(1)
+        stop()
+
+
 def test_multiprocess_run() -> None:
     """
     A basic sanity check.
@@ -25,5 +33,7 @@ def test_multiprocess_run() -> None:
     """
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
-    supervisor.handle_int()
+    threading.Thread(
+        target=stop_run, args=(supervisor.handle_int,), daemon=True
+    ).start()
     supervisor.run()
