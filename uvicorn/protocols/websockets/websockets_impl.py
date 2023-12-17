@@ -353,7 +353,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 )
                 raise RuntimeError(msg % message_type)
 
-        elif not self.closed_event.is_set() and self.initial_response is not None:
+        elif self.initial_response is not None:
             if message_type == "websocket.http.response.body":
                 message = cast("WebSocketResponseBodyEvent", message)
                 body = self.initial_response[2] + message["body"]

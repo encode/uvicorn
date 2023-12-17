@@ -252,104 +252,78 @@ class WSProtocol(asyncio.Protocol):
         message_type = message["type"]
 
         if not self.handshake_complete:
-            if not self.response_started:
-                # a rejection event has not been sent yet
-                if message_type == "websocket.accept":
-                    message = typing.cast("WebSocketAcceptEvent", message)
-                    self.logger.info(
-                        '%s - "WebSocket %s" [accepted]',
-                        self.scope["client"],
-                        get_path_with_query_string(self.scope),
-                    )
-                    subprotocol = message.get("subprotocol")
-                    extra_headers = self.default_headers + list(
-                        message.get("headers", [])
-                    )
-                    extensions: typing.List[Extension] = []
-                    if self.config.ws_per_message_deflate:
-                        extensions.append(PerMessageDeflate())
-                    if not self.transport.is_closing():
-                        self.handshake_complete = True
-                        output = self.conn.send(
-                            wsproto.events.AcceptConnection(
-                                subprotocol=subprotocol,
-                                extensions=extensions,
-                                extra_headers=extra_headers,
-                            )
-                        )
-                        self.transport.write(output)
-
-                elif message_type == "websocket.close":
-                    self.queue.put_nowait(
-                        {"type": "websocket.disconnect", "code": 1006}
-                    )
-                    self.logger.info(
-                        '%s - "WebSocket %s" 403',
-                        self.scope["client"],
-                        get_path_with_query_string(self.scope),
-                    )
+            if message_type == "websocket.accept":
+                message = typing.cast("WebSocketAcceptEvent", message)
+                self.logger.info(
+                    '%s - "WebSocket %s" [accepted]',
+                    self.scope["client"],
+                    get_path_with_query_string(self.scope),
+                )
+                subprotocol = message.get("subprotocol")
+                extra_headers = self.default_headers + list(
+                    message.get("headers", [])
+                )
+                extensions: typing.List[Extension] = []
+                if self.config.ws_per_message_deflate:
+                    extensions.append(PerMessageDeflate())
+                if not self.transport.is_closing():
                     self.handshake_complete = True
-                    self.close_sent = True
-                    event = events.RejectConnection(status_code=403, headers=[])
-                    output = self.conn.send(event)
-                    self.transport.write(output)
-                    self.transport.close()
-
-                elif message_type == "websocket.http.response.start":
-                    message = typing.cast("WebSocketResponseStartEvent", message)
-                    # ensure status code is in the valid range
-                    if not (100 <= message["status"] < 600):
-                        msg = "Invalid HTTP status code '%d' in response."
-                        raise RuntimeError(msg % message["status"])
-                    self.logger.info(
-                        '%s - "WebSocket %s" %d',
-                        self.scope["client"],
-                        get_path_with_query_string(self.scope),
-                        message["status"],
-                    )
-                    event = events.RejectConnection(
-                        status_code=message["status"],
-                        headers=list(message["headers"]),
-                        has_body=True,
-                    )
-                    output = self.conn.send(event)
-                    self.transport.write(output)
-                    self.response_started = True
-
-                else:
-                    msg = (
-                        "Expected ASGI message 'websocket.accept', 'websocket.close' "
-                        "or 'websocket.http.response.start' "
-                        "but got '%s'."
-                    )
-                    raise RuntimeError(msg % message_type)
-            else:
-                # we have started a rejection process with http.response.start
-                if message_type == "websocket.http.response.body":
-                    message = typing.cast("WebSocketResponseBodyEvent", message)
-                    body_finished = not message.get("more_body", False)
-                    reject_data = events.RejectData(
-                        data=message["body"], body_finished=body_finished
-                    )
-                    output = self.conn.send(reject_data)
-                    self.transport.write(output)
-
-                    if body_finished:
-                        self.queue.put_nowait(
-                            {"type": "websocket.disconnect", "code": 1006}
+                    output = self.conn.send(
+                        wsproto.events.AcceptConnection(
+                            subprotocol=subprotocol,
+                            extensions=extensions,
+                            extra_headers=extra_headers,
                         )
-                        self.handshake_complete = True
-                        self.close_sent = True
-                        self.transport.close()
-
-                else:
-                    msg = (
-                        "Expected ASGI message 'websocket.http.response.body' "
-                        "but got '%s'."
                     )
-                    raise RuntimeError(msg % message_type)
+                    self.transport.write(output)
 
-        elif not self.close_sent:
+            elif message_type == "websocket.close":
+                self.queue.put_nowait(
+                    {"type": "websocket.disconnect", "code": 1006}
+                )
+                self.logger.info(
+                    '%s - "WebSocket %s" 403',
+                    self.scope["client"],
+                    get_path_with_query_string(self.scope),
+                )
+                self.handshake_complete = True
+                self.close_sent = True
+                event = events.RejectConnection(status_code=403, headers=[])
+                output = self.conn.send(event)
+                self.transport.write(output)
+                self.transport.close()
+
+            elif message_type == "websocket.http.response.start":
+                message = typing.cast("WebSocketResponseStartEvent", message)
+                # ensure status code is in the valid range
+                if not (100 <= message["status"] < 600):
+                    msg = "Invalid HTTP status code '%d' in response."
+                    raise RuntimeError(msg % message["status"])
+                self.logger.info(
+                    '%s - "WebSocket %s" %d',
+                    self.scope["client"],
+                    get_path_with_query_string(self.scope),
+                    message["status"],
+                )
+                self.handshake_complete = True
+                event = events.RejectConnection(
+                    status_code=message["status"],
+                    headers=list(message["headers"]),
+                    has_body=True,
+                )
+                output = self.conn.send(event)
+                self.transport.write(output)
+                self.response_started = True
+
+            else:
+                msg = (
+                    "Expected ASGI message 'websocket.accept', 'websocket.close' "
+                    "or 'websocket.http.response.start' "
+                    "but got '%s'."
+                )
+                raise RuntimeError(msg % message_type)
+
+        elif not self.close_sent and not self.response_started:
             if message_type == "websocket.send":
                 message = typing.cast("WebSocketSendEvent", message)
                 bytes_data = message.get("bytes")
@@ -378,6 +352,30 @@ class WSProtocol(asyncio.Protocol):
                 msg = (
                     "Expected ASGI message 'websocket.send' or 'websocket.close',"
                     " but got '%s'."
+                )
+                raise RuntimeError(msg % message_type)
+        elif self.response_started:
+            if message_type == "websocket.http.response.body":
+                message = typing.cast("WebSocketResponseBodyEvent", message)
+                body_finished = not message.get("more_body", False)
+                reject_data = events.RejectData(
+                    data=message["body"], body_finished=body_finished
+                )
+                output = self.conn.send(reject_data)
+                self.transport.write(output)
+
+                if body_finished:
+                    self.queue.put_nowait(
+                        {"type": "websocket.disconnect", "code": 1006}
+                    )
+                    self.handshake_complete = True
+                    self.close_sent = True
+                    self.transport.close()
+
+            else:
+                msg = (
+                    "Expected ASGI message 'websocket.http.response.body' "
+                    "but got '%s'."
                 )
                 raise RuntimeError(msg % message_type)
 
