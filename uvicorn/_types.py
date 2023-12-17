@@ -199,7 +199,7 @@ class WebSocketResponseStartEvent(TypedDict):
 class WebSocketResponseBodyEvent(TypedDict):
     type: Literal["websocket.http.response.body"]
     body: bytes
-    more_body: bool
+    more_body: NotRequired[bool]
 
 
 class WebSocketDisconnectEvent(TypedDict):
