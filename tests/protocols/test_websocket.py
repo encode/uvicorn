@@ -10,11 +10,11 @@ import websockets.exceptions
 from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from websockets.typing import Subprotocol
 
-from tests.protocols.test_http import HTTP_PROTOCOLS
 from tests.response import Response
 from tests.utils import run_server
 from uvicorn._types import (
     ASGIReceiveCallable,
+    ASGIReceiveEvent,
     ASGISendCallable,
     Scope,
     WebSocketCloseEvent,
@@ -959,7 +959,7 @@ async def test_server_reject_connection(
     http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
     unused_tcp_port: int,
 ):
-    disconnected_message = {}
+    disconnected_message: ASGIReceiveEvent = {}  # type: ignore
 
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         nonlocal disconnected_message
@@ -997,10 +997,9 @@ async def test_server_reject_connection(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection_with_response(
     ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls,
+    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
     unused_tcp_port: int,
 ):
     disconnected_message = {}
@@ -1038,10 +1037,9 @@ async def test_server_reject_connection_with_response(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection_with_multibody_response(
     ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls,
+    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
     unused_tcp_port: int,
 ):
     disconnected_message = {}
@@ -1092,10 +1090,9 @@ async def test_server_reject_connection_with_multibody_response(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection_with_invalid_status(
     ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls,
+    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
     unused_tcp_port: int,
 ):
     # this test checks that even if there is an error in the response, the server
@@ -1137,10 +1134,9 @@ async def test_server_reject_connection_with_invalid_status(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection_with_body_nolength(
     ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls,
+    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
     unused_tcp_port: int,
 ):
     # test that the server can send a response with a body but no content-length
@@ -1187,10 +1183,9 @@ async def test_server_reject_connection_with_body_nolength(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection_with_invalid_msg(
     ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls,
+    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
     unused_tcp_port: int,
 ):
     async def app(scope, receive, send):
@@ -1228,10 +1223,9 @@ async def test_server_reject_connection_with_invalid_msg(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_reject_connection_with_missing_body(
     ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls,
+    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
     unused_tcp_port: int,
 ):
     async def app(scope, receive, send):
@@ -1268,8 +1262,6 @@ async def test_server_reject_connection_with_missing_body(
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol_cls", WS_PROTOCOLS)
-@pytest.mark.parametrize("http_protocol_cls", HTTP_PROTOCOLS)
 async def test_server_can_read_messages_in_buffer_after_close(
     ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
     http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
