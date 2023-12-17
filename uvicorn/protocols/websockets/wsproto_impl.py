@@ -364,7 +364,6 @@ class WSProtocol(asyncio.Protocol):
                     self.queue.put_nowait(
                         {"type": "websocket.disconnect", "code": 1006}
                     )
-                    self.handshake_complete = True
                     self.close_sent = True
                     self.transport.close()
 
