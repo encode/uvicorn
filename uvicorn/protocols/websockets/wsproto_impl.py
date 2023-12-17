@@ -260,9 +260,7 @@ class WSProtocol(asyncio.Protocol):
                     get_path_with_query_string(self.scope),
                 )
                 subprotocol = message.get("subprotocol")
-                extra_headers = self.default_headers + list(
-                    message.get("headers", [])
-                )
+                extra_headers = self.default_headers + list(message.get("headers", []))
                 extensions: typing.List[Extension] = []
                 if self.config.ws_per_message_deflate:
                     extensions.append(PerMessageDeflate())
@@ -278,9 +276,7 @@ class WSProtocol(asyncio.Protocol):
                     self.transport.write(output)
 
             elif message_type == "websocket.close":
-                self.queue.put_nowait(
-                    {"type": "websocket.disconnect", "code": 1006}
-                )
+                self.queue.put_nowait({"type": "websocket.disconnect", "code": 1006})
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
                     self.scope["client"],
