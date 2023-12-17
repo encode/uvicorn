@@ -325,8 +325,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             else:
                 msg = (
                     "Expected ASGI message 'websocket.accept', 'websocket.close', "
-                    "or 'websocket.http.response.start' "
-                    "but got '%s'."
+                    "or 'websocket.http.response.start' but got '%s'."
                 )
                 raise RuntimeError(msg % message_type)
 
