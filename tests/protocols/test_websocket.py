@@ -1044,9 +1044,10 @@ async def test_server_reject_connection_with_multibody_response(
 ):
     disconnected_message = {}
 
-    async def app(scope, receive, send):
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         nonlocal disconnected_message
         assert scope["type"] == "websocket"
+        assert "extensions" in scope
         assert "websocket.http.response" in scope["extensions"]
 
         # Pull up first recv message.
@@ -1140,8 +1141,9 @@ async def test_server_reject_connection_with_body_nolength(
     unused_tcp_port: int,
 ):
     # test that the server can send a response with a body but no content-length
-    async def app(scope, receive, send):
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         assert scope["type"] == "websocket"
+        assert "extensions" in scope
         assert "websocket.http.response" in scope["extensions"]
 
         # Pull up first recv message.
@@ -1164,10 +1166,10 @@ async def test_server_reject_connection_with_body_nolength(
         response = await wsresponse(url)
         assert response.status_code == 403
         assert response.content == b"hardbody"
-        if ws_protocol_cls == WSProtocol:
+        if ws_protocol_cls == WSProtocol:  # pragma: no cover
             # wsproto automatically makes the message chunked
             assert response.headers["transfer-encoding"] == "chunked"
-        else:
+        else:  # pragma: no cover
             # websockets automatically adds a content-length
             assert response.headers["content-length"] == "8"
 
@@ -1209,7 +1211,7 @@ async def test_server_reject_connection_with_invalid_msg(
         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
             async with websockets.client.connect(url):
                 pass  # pragma: no cover
-        assert exc_info.value.status_code == 500
+        assert exc_info.value.status_code == 404
 
     config = Config(
         app=app,
@@ -1248,7 +1250,7 @@ async def test_server_reject_connection_with_missing_body(
         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
             async with websockets.client.connect(url):
                 pass  # pragma: no cover
-        assert exc_info.value.status_code == 500
+        assert exc_info.value.status_code == 404
 
     config = Config(
         app=app,

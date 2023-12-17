@@ -66,8 +66,7 @@ class WSProtocol(asyncio.Protocol):
         self.close_sent = False
 
         # Rejection state
-        self.reject_event: typing.Optional[typing.Any] = None
-        self.response_started: bool = False  # we have sent response start
+        self.response_started = False
 
         self.conn = wsproto.WSConnection(connection_type=ConnectionType.SERVER)
 
@@ -253,7 +252,7 @@ class WSProtocol(asyncio.Protocol):
         message_type = message["type"]
 
         if not self.handshake_complete:
-            if not (self.response_started or self.reject_event):
+            if not self.response_started:
                 # a rejection event has not been sent yet
                 if message_type == "websocket.accept":
                     message = typing.cast("WebSocketAcceptEvent", message)
@@ -313,10 +312,9 @@ class WSProtocol(asyncio.Protocol):
                         headers=list(message["headers"]),
                         has_body=True,
                     )
-                    # Create the event here but do not send it, the ASGI spec
-                    # suggest that we wait for the body event before sending.
-                    # https://asgi.readthedocs.io/en/latest/specs/www.html#response-start-send-event
-                    self.reject_event = event
+                    output = self.conn.send(event)
+                    self.transport.write(output)
+                    self.response_started = True
 
                 else:
                     msg = (
@@ -333,13 +331,6 @@ class WSProtocol(asyncio.Protocol):
                     reject_data = events.RejectData(
                         data=message["body"], body_finished=body_finished
                     )
-                    if self.reject_event is not None:
-                        # Prepend with the reject event now that we have a body event.
-                        output = self.conn.send(self.reject_event)
-                        self.transport.write(output)
-                        self.reject_event = None
-                        self.response_started = True
-
                     output = self.conn.send(reject_data)
                     self.transport.write(output)
 
