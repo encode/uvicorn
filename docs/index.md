@@ -568,6 +568,12 @@ Its most distinctive features are built-in support for dependency injection, aut
 
 It includes everything that's needed to build modern APIs - from data serialization and validation to websockets, ORM integration, session management, authentication and more.
 
+### Panther
+
+[**Panther**](https://PantherPy.github.io/) is a fast & friendly web framework for building async APIs with Python 3.10+
+
+It has built-in Document-oriented Database, Caching System, Authentication and Permission Classes, Visual API Monitoring and also supports Websocket, Throttling, Middlewares
+
 
 [uvloop]: https://github.com/MagicStack/uvloop
 [httptools]: https://github.com/MagicStack/httptools
