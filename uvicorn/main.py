@@ -16,14 +16,14 @@ from uvicorn.config import (
     LIFESPAN,
     LOG_LEVELS,
     LOGGING_CONFIG,
-    LOOP_SETUPS,
+    LOOP_FACTORIES,
     SSL_PROTOCOL_VERSION,
     WS_PROTOCOLS,
     Config,
     HTTPProtocolType,
     InterfaceType,
     LifespanType,
-    LoopSetupType,
+    LoopFactoryType,
     WSProtocolType,
 )
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
@@ -33,7 +33,7 @@ LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
 HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
 WS_CHOICES = click.Choice(list(WS_PROTOCOLS.keys()))
 LIFESPAN_CHOICES = click.Choice(list(LIFESPAN.keys()))
-LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"])
+LOOP_CHOICES = click.Choice([key for key in LOOP_FACTORIES.keys() if key != "none"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
 STARTUP_FAILURE = 3
@@ -370,7 +370,7 @@ def main(
     port: int,
     uds: str,
     fd: int,
-    loop: LoopSetupType,
+    loop: LoopFactoryType,
     http: HTTPProtocolType,
     ws: WSProtocolType,
     ws_max_size: int,
@@ -471,7 +471,7 @@ def run(
     port: int = 8000,
     uds: typing.Optional[str] = None,
     fd: typing.Optional[int] = None,
-    loop: LoopSetupType = "auto",
+    loop: LoopFactoryType = "auto",
     http: typing.Union[typing.Type[asyncio.Protocol], HTTPProtocolType] = "auto",
     ws: typing.Union[typing.Type[asyncio.Protocol], WSProtocolType] = "auto",
     ws_max_size: int = 16777216,

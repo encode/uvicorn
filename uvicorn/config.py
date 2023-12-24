@@ -34,7 +34,7 @@ from uvicorn.middleware.wsgi import WSGIMiddleware
 HTTPProtocolType = Literal["auto", "h11", "httptools"]
 WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
 LifespanType = Literal["auto", "on", "off"]
-LoopSetupType = Literal["none", "auto", "asyncio", "uvloop"]
+LoopFactoryType = Literal["none", "auto", "asyncio", "uvloop"]
 InterfaceType = Literal["auto", "asgi3", "asgi2", "wsgi"]
 
 LOG_LEVELS: Dict[str, int] = {
@@ -61,11 +61,11 @@ LIFESPAN: Dict[LifespanType, str] = {
     "on": "uvicorn.lifespan.on:LifespanOn",
     "off": "uvicorn.lifespan.off:LifespanOff",
 }
-LOOP_SETUPS: Dict[LoopSetupType, Optional[str]] = {
+LOOP_FACTORIES: Dict[LoopFactoryType, Optional[str]] = {
     "none": None,
-    "auto": "uvicorn.loops.auto:auto_loop_setup",
-    "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
-    "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
+    "auto": "uvicorn.loops.auto:auto_loop_factory",
+    "asyncio": "uvicorn.loops.asyncio:asyncio_loop_factory",
+    "uvloop": "uvicorn.loops.uvloop:uvloop_loop_factory",
 }
 INTERFACES: List[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
 
@@ -192,7 +192,7 @@ class Config:
         port: int = 8000,
         uds: Optional[str] = None,
         fd: Optional[int] = None,
-        loop: LoopSetupType = "auto",
+        loop: LoopFactoryType = "auto",
         http: Union[Type[asyncio.Protocol], HTTPProtocolType] = "auto",
         ws: Union[Type[asyncio.Protocol], WSProtocolType] = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
@@ -507,10 +507,11 @@ class Config:
 
         self.loaded = True
 
-    def setup_event_loop(self) -> None:
-        loop_setup: Optional[Callable] = import_from_string(LOOP_SETUPS[self.loop])
-        if loop_setup is not None:
-            loop_setup(use_subprocess=self.use_subprocess)
+    def get_loop_factory(self) -> Union[Callable[[], asyncio.AbstractEventLoop], None]:
+        loop_factory: Optional[Callable] = import_from_string(LOOP_FACTORIES[self.loop])
+        if loop_factory is None:
+            return None
+        return loop_factory(use_subprocess=self.use_subprocess)
 
     def bind_socket(self) -> socket.socket:
         logger_args: List[Union[str, int]]

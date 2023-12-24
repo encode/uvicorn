@@ -7,6 +7,7 @@ from typing import Any, Dict
 from gunicorn.arbiter import Arbiter
 from gunicorn.workers.base import Worker
 
+from uvicorn._compat import asyncio_run
 from uvicorn.config import Config
 from uvicorn.main import Server
 
@@ -61,10 +62,6 @@ class UvicornWorker(Worker):
 
         self.config = Config(**config_kwargs)
 
-    def init_process(self) -> None:
-        self.config.setup_event_loop()
-        super(UvicornWorker, self).init_process()
-
     def init_signals(self) -> None:
         # Reset signals so Gunicorn doesn't swallow subprocess return codes
         # other signals are set up by Server.install_signal_handlers()
@@ -95,7 +92,7 @@ class UvicornWorker(Worker):
             sys.exit(Arbiter.WORKER_BOOT_ERROR)
 
     def run(self) -> None:
-        return asyncio.run(self._serve())
+        return asyncio_run(self._serve(), loop_factory=self.config.get_loop_factory())
 
     async def callback_notify(self) -> None:
         self.notify()
