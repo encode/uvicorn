@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 import logging
-import typing
 from asyncio.transports import BaseTransport, Transport
 from http import HTTPStatus
-from typing import Literal
+from typing import Any, Literal, cast
 from urllib.parse import unquote
 
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
@@ -37,8 +38,8 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
-        app_state: typing.Dict[str, typing.Any],
-        _loop: typing.Optional[asyncio.AbstractEventLoop] = None,
+        app_state: dict[str, Any],
+        _loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         if not config.loaded:
             config.load()  # pragma: no cover
@@ -57,8 +58,8 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
         # Connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
-        self.server: typing.Optional[typing.Tuple[str, int]] = None
-        self.client: typing.Optional[typing.Tuple[str, int]] = None
+        self.server: tuple[str, int] | None = None
+        self.client: tuple[str, int] | None = None
         self.scheme: Literal["wss", "ws"] = None  # type: ignore[assignment]
 
         # WebSocket state
@@ -85,7 +86,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
     def connection_made(self, transport: BaseTransport) -> None:
         """Called when a connection is made."""
-        transport = typing.cast(Transport, transport)
+        transport = cast(Transport, transport)
         self.connections.add(self)
         self.transport = transport
         self.server = get_local_addr(transport)
@@ -96,7 +97,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection made", prefix)
 
-    def connection_lost(self, exc: typing.Optional[Exception]) -> None:
+    def connection_lost(self, exc: Exception | None) -> None:
         self.connections.remove(self)
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
@@ -238,7 +239,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         self.close_sent = True
         self.transport.close()
 
-    def on_task_complete(self, task: "asyncio.Task[None]") -> None:
+    def on_task_complete(self, task: asyncio.Task[None]) -> None:
         self.tasks.discard(task)
 
     async def run_asgi(self) -> None:
@@ -279,7 +280,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
         if not self.handshake_complete:
             if message_type == "websocket.accept" and not self.transport.is_closing():
-                message = typing.cast("WebSocketAcceptEvent", message)
+                message = cast(WebSocketAcceptEvent, message)
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
                     self.scope["client"],
@@ -305,7 +306,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                 self.transport.writelines(output)
 
             elif message_type == "websocket.close" and not self.transport.is_closing():
-                message = typing.cast("WebSocketCloseEvent", message)
+                message = cast(WebSocketCloseEvent, message)
                 self.queue.put_nowait(
                     {
                         "type": "websocket.disconnect",
@@ -345,7 +346,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
         elif not self.close_sent:
             if message_type == "websocket.send" and not self.transport.is_closing():
-                message = typing.cast(WebSocketSendEvent, message)
+                message = cast(WebSocketSendEvent, message)
                 bytes_data = message.get("bytes")
                 text_data = message.get("text")
                 if text_data:
@@ -356,7 +357,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                 self.transport.writelines(output)
 
             elif message_type == "websocket.close" and not self.transport.is_closing():
-                message = typing.cast(WebSocketCloseEvent, message)
+                message = cast(WebSocketCloseEvent, message)
                 code = message.get("code", 1000)
                 reason = message.get("reason", "") or ""
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
