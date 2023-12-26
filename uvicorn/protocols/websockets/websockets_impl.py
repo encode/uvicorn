@@ -290,8 +290,11 @@ class WebSocketProtocol(WebSocketServerProtocol):
                     self.extra_headers.extend(
                         # ASGI spec requires bytes
                         # But for compatibility we need to convert it to strings
-                        (name.decode("latin-1"), value.decode("latin-1"))
-                        for name, value in message["headers"]
+                        (
+                            name.decode("latin-1").lower(),
+                            value.decode("latin-1").lower(),
+                        )
+                        for name, value in list(message.get("headers", []))
                     )
                 self.handshake_started_event.set()
 
@@ -317,7 +320,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 # websockets requires the status to be an enum. look it up.
                 status = http.HTTPStatus(message["status"])
                 headers = [
-                    (name.decode("latin-1"), value.decode("latin-1"))
+                    (name.decode("latin-1").lower(), value.decode("latin-1").lower())
                     for name, value in message.get("headers", [])
                 ]
                 self.initial_response = (status, headers, b"")

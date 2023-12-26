@@ -155,7 +155,7 @@ class WSProtocol(asyncio.Protocol):
             self.send_500_response()
         self.transport.close()
 
-    def on_task_complete(self, task: asyncio.Task) -> None:
+    def on_task_complete(self, task: asyncio.Task[None]) -> None:
         self.tasks.discard(task)
 
     # Event handlers
