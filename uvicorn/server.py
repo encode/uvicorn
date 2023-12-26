@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
@@ -9,7 +11,7 @@ import threading
 import time
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, List, Optional, Sequence, Set, Tuple, Union
+from typing import TYPE_CHECKING, Sequence, Union
 
 import click
 
@@ -32,7 +34,6 @@ if TYPE_CHECKING:
         WebSocketsSansIOProtocol,
     ]
 
-
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
@@ -50,9 +51,9 @@ class ServerState:
 
     def __init__(self) -> None:
         self.total_requests = 0
-        self.connections: Set["Protocols"] = set()
-        self.tasks: Set["asyncio.Task[None]"] = set()
-        self.default_headers: List[Tuple[bytes, bytes]] = []
+        self.connections: set[Protocols] = set()
+        self.tasks: set[asyncio.Task[None]] = set()
+        self.default_headers: list[tuple[bytes, bytes]] = []
 
 
 class Server:
@@ -65,11 +66,11 @@ class Server:
         self.force_exit = False
         self.last_notified = 0.0
 
-    def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
+    def run(self, sockets: list[socket.socket] | None = None) -> None:
         self.config.setup_event_loop()
         return asyncio.run(self.serve(sockets=sockets))
 
-    async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
+    async def serve(self, sockets: list[socket.socket] | None = None) -> None:
         process_id = os.getpid()
 
         config = self.config
@@ -94,7 +95,7 @@ class Server:
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
         logger.info(message, process_id, extra={"color_message": color_message})
 
-    async def startup(self, sockets: Optional[List[socket.socket]] = None) -> None:
+    async def startup(self, sockets: list[socket.socket] | None = None) -> None:
         await self.lifespan.startup()
         if self.lifespan.should_exit:
             self.should_exit = True
@@ -103,7 +104,7 @@ class Server:
         config = self.config
 
         def create_protocol(
-            _loop: Optional[asyncio.AbstractEventLoop] = None,
+            _loop: asyncio.AbstractEventLoop | None = None,
         ) -> asyncio.Protocol:
             return config.http_protocol_class(  # type: ignore[call-arg]
                 config=config,
@@ -129,7 +130,7 @@ class Server:
                 sock_data = sock.share(os.getpid())  # type: ignore[attr-defined]
                 return fromshare(sock_data)
 
-            self.servers: List[asyncio.base_events.Server] = []
+            self.servers: list[asyncio.base_events.Server] = []
             for sock in sockets:
                 is_windows = platform.system() == "Windows"
                 if config.workers > 1 and is_windows:  # pragma: py-not-win32
@@ -269,7 +270,7 @@ class Server:
             return self.server_state.total_requests >= self.config.limit_max_requests
         return False
 
-    async def shutdown(self, sockets: Optional[List[socket.socket]] = None) -> None:
+    async def shutdown(self, sockets: list[socket.socket] | None = None) -> None:
         logger.info("Shutting down")
 
         # Stop accepting new connections.
@@ -277,8 +278,6 @@ class Server:
             server.close()
         for sock in sockets or []:
             sock.close()
-        for server in self.servers:
-            await server.wait_closed()
 
         # Request shutdown on all existing connections.
         for connection in list(self.server_state.connections):
@@ -321,6 +320,9 @@ class Server:
             while self.server_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
 
+        for server in self.servers:
+            await server.wait_closed()
+
     def install_signal_handlers(self) -> None:
         if threading.current_thread() is not threading.main_thread():
             # Signals can only be listened to from the main thread.
@@ -336,7 +338,7 @@ class Server:
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)
 
-    def handle_exit(self, sig: int, frame: Optional[FrameType]) -> None:
+    def handle_exit(self, sig: int, frame: FrameType | None) -> None:
         if self.should_exit and sig == signal.SIGINT:
             self.force_exit = True
         else:

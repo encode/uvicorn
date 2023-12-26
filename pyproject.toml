@@ -23,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Internet :: WWW/HTTP",
@@ -63,7 +64,7 @@ include = ["/uvicorn"]
 select = ["E", "F", "I"]
 ignore = ["B904", "B028"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = true
 
 [tool.mypy]
@@ -123,5 +124,7 @@ py-gte-38 = "sys_version_info >= (3, 8)"
 py-lt-38 =  "sys_version_info < (3, 8)"
 py-gte-39 = "sys_version_info >= (3, 9)"
 py-lt-39 = "sys_version_info < (3, 9)"
+py-gte-310 = "sys_version_info >= (3, 10)"
+py-lt-310 = "sys_version_info < (3, 10)"
 py-gte-311 = "sys_version_info >= (3, 11)"
 py-lt-311 = "sys_version_info < (3, 11)"

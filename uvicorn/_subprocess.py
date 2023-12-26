@@ -2,12 +2,14 @@
 Some light wrappers around Python's multiprocessing, to deal with cleanly
 starting child processes.
 """
+from __future__ import annotations
+
 import multiprocessing
 import os
 import sys
 from multiprocessing.context import SpawnProcess
 from socket import socket
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 from uvicorn.config import Config
 
@@ -18,7 +20,7 @@ spawn = multiprocessing.get_context("spawn")
 def get_subprocess(
     config: Config,
     target: Callable[..., None],
-    sockets: List[socket],
+    sockets: list[socket],
 ) -> SpawnProcess:
     """
     Called in the parent process, to instantiate a new child process instance.
@@ -51,8 +53,8 @@ def get_subprocess(
 def subprocess_started(
     config: Config,
     target: Callable[..., None],
-    sockets: List[socket],
-    stdin_fileno: Optional[int],
+    sockets: list[socket],
+    stdin_fileno: int | None,
 ) -> None:
     """
     Called when the child process starts.

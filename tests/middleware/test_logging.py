@@ -13,14 +13,6 @@ import websockets.client
 
 from tests.utils import run_server
 from uvicorn import Config
-from uvicorn.protocols.http.h11_impl import H11Protocol
-
-try:
-    from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
-
-    HTTP_PROTOCOLS = [H11Protocol, HttpToolsProtocol]
-except ImportError:  # pragma: nocover
-    HTTP_PROTOCOLS = [H11Protocol]
 
 if typing.TYPE_CHECKING:
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
@@ -76,14 +68,13 @@ async def test_trace_logging(caplog, logging_config, unused_tcp_port: int):
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("http_protocol", HTTP_PROTOCOLS)
 async def test_trace_logging_on_http_protocol(
-    http_protocol, caplog, logging_config, unused_tcp_port: int
+    http_protocol_cls, caplog, logging_config, unused_tcp_port: int
 ):
     config = Config(
         app=app,
         log_level="trace",
-        http=http_protocol,
+        http=http_protocol_cls,
         log_config=logging_config,
         port=unused_tcp_port,
     )
