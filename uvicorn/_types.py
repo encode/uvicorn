@@ -27,6 +27,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
+from __future__ import annotations
 
 import sys
 import types
@@ -34,7 +35,6 @@ from typing import (
     Any,
     Awaitable,
     Callable,
-    Dict,
     Iterable,
     MutableMapping,
     Optional,
@@ -63,7 +63,7 @@ WSGIApp = Callable[[Environ, StartResponse], Union[Iterable[bytes], BaseExceptio
 # ASGI
 class ASGIVersions(TypedDict):
     spec_version: str
-    version: Union[Literal["2.0"], Literal["3.0"]]
+    version: Literal["2.0"] | Literal["3.0"]
 
 
 class HTTPScope(TypedDict):
@@ -76,11 +76,11 @@ class HTTPScope(TypedDict):
     raw_path: bytes
     query_string: bytes
     root_path: str
-    headers: Iterable[Tuple[bytes, bytes]]
-    client: Optional[Tuple[str, int]]
-    server: Optional[Tuple[str, Optional[int]]]
-    state: NotRequired[Dict[str, Any]]
-    extensions: NotRequired[Dict[str, Dict[object, object]]]
+    headers: Iterable[tuple[bytes, bytes]]
+    client: tuple[str, int] | None
+    server: tuple[str, int | None] | None
+    state: NotRequired[dict[str, Any]]
+    extensions: NotRequired[dict[str, dict[object, object]]]
 
 
 class WebSocketScope(TypedDict):
@@ -92,18 +92,18 @@ class WebSocketScope(TypedDict):
     raw_path: bytes
     query_string: bytes
     root_path: str
-    headers: Iterable[Tuple[bytes, bytes]]
-    client: Optional[Tuple[str, int]]
-    server: Optional[Tuple[str, Optional[int]]]
+    headers: Iterable[tuple[bytes, bytes]]
+    client: tuple[str, int] | None
+    server: tuple[str, int | None] | None
     subprotocols: Iterable[str]
-    state: NotRequired[Dict[str, Any]]
-    extensions: NotRequired[Dict[str, Dict[object, object]]]
+    state: NotRequired[dict[str, Any]]
+    extensions: NotRequired[dict[str, dict[object, object]]]
 
 
 class LifespanScope(TypedDict):
     type: Literal["lifespan"]
     asgi: ASGIVersions
-    state: NotRequired[Dict[str, Any]]
+    state: NotRequired[dict[str, Any]]
 
 
 WWWScope = Union[HTTPScope, WebSocketScope]
@@ -118,13 +118,13 @@ class HTTPRequestEvent(TypedDict):
 
 class HTTPResponseDebugEvent(TypedDict):
     type: Literal["http.response.debug"]
-    info: Dict[str, object]
+    info: dict[str, object]
 
 
 class HTTPResponseStartEvent(TypedDict):
     type: Literal["http.response.start"]
     status: int
-    headers: NotRequired[Iterable[Tuple[bytes, bytes]]]
+    headers: NotRequired[Iterable[tuple[bytes, bytes]]]
     trailers: NotRequired[bool]
 
 
@@ -136,14 +136,14 @@ class HTTPResponseBodyEvent(TypedDict):
 
 class HTTPResponseTrailersEvent(TypedDict):
     type: Literal["http.response.trailers"]
-    headers: Iterable[Tuple[bytes, bytes]]
+    headers: Iterable[tuple[bytes, bytes]]
     more_trailers: bool
 
 
 class HTTPServerPushEvent(TypedDict):
     type: Literal["http.response.push"]
     path: str
-    headers: Iterable[Tuple[bytes, bytes]]
+    headers: Iterable[tuple[bytes, bytes]]
 
 
 class HTTPDisconnectEvent(TypedDict):
@@ -156,8 +156,8 @@ class WebSocketConnectEvent(TypedDict):
 
 class WebSocketAcceptEvent(TypedDict):
     type: Literal["websocket.accept"]
-    subprotocol: NotRequired[Optional[str]]
-    headers: NotRequired[Iterable[Tuple[bytes, bytes]]]
+    subprotocol: NotRequired[str | None]
+    headers: NotRequired[Iterable[tuple[bytes, bytes]]]
 
 
 class _WebSocketReceiveEventBytes(TypedDict):
@@ -193,7 +193,7 @@ WebSocketSendEvent = Union[_WebSocketSendEventBytes, _WebSocketSendEventText]
 class WebSocketResponseStartEvent(TypedDict):
     type: Literal["websocket.http.response.start"]
     status: int
-    headers: Iterable[Tuple[bytes, bytes]]
+    headers: Iterable[tuple[bytes, bytes]]
 
 
 class WebSocketResponseBodyEvent(TypedDict):
@@ -210,7 +210,7 @@ class WebSocketDisconnectEvent(TypedDict):
 class WebSocketCloseEvent(TypedDict):
     type: Literal["websocket.close"]
     code: NotRequired[int]
-    reason: NotRequired[Optional[str]]
+    reason: NotRequired[str | None]
 
 
 class LifespanStartupEvent(TypedDict):

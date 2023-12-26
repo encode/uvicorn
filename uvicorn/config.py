@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import inspect
 import json
@@ -8,18 +10,7 @@ import socket
 import ssl
 import sys
 from pathlib import Path
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Awaitable, Callable, Literal
 
 import click
 
@@ -37,7 +28,7 @@ LifespanType = Literal["auto", "on", "off"]
 LoopSetupType = Literal["none", "auto", "asyncio", "uvloop"]
 InterfaceType = Literal["auto", "asgi3", "asgi2", "wsgi"]
 
-LOG_LEVELS: Dict[str, int] = {
+LOG_LEVELS: dict[str, int] = {
     "critical": logging.CRITICAL,
     "error": logging.ERROR,
     "warning": logging.WARNING,
@@ -45,33 +36,33 @@ LOG_LEVELS: Dict[str, int] = {
     "debug": logging.DEBUG,
     "trace": TRACE_LOG_LEVEL,
 }
-HTTP_PROTOCOLS: Dict[HTTPProtocolType, str] = {
+HTTP_PROTOCOLS: dict[HTTPProtocolType, str] = {
     "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
     "h11": "uvicorn.protocols.http.h11_impl:H11Protocol",
     "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
 }
-WS_PROTOCOLS: Dict[WSProtocolType, Optional[str]] = {
+WS_PROTOCOLS: dict[WSProtocolType, str | None] = {
     "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",
     "none": None,
     "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
     "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
 }
-LIFESPAN: Dict[LifespanType, str] = {
+LIFESPAN: dict[LifespanType, str] = {
     "auto": "uvicorn.lifespan.on:LifespanOn",
     "on": "uvicorn.lifespan.on:LifespanOn",
     "off": "uvicorn.lifespan.off:LifespanOff",
 }
-LOOP_SETUPS: Dict[LoopSetupType, Optional[str]] = {
+LOOP_SETUPS: dict[LoopSetupType, str | None] = {
     "none": None,
     "auto": "uvicorn.loops.auto:auto_loop_setup",
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
 }
-INTERFACES: List[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
+INTERFACES: list[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
 
 SSL_PROTOCOL_VERSION: int = ssl.PROTOCOL_TLS_SERVER
 
-LOGGING_CONFIG: Dict[str, Any] = {
+LOGGING_CONFIG: dict[str, Any] = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
@@ -108,13 +99,13 @@ logger = logging.getLogger("uvicorn.error")
 
 
 def create_ssl_context(
-    certfile: Union[str, os.PathLike],
-    keyfile: Optional[Union[str, os.PathLike]],
-    password: Optional[str],
+    certfile: str | os.PathLike[str],
+    keyfile: str | os.PathLike[str] | None,
+    password: str | None,
     ssl_version: int,
     cert_reqs: int,
-    ca_certs: Optional[Union[str, os.PathLike]],
-    ciphers: Optional[str],
+    ca_certs: str | os.PathLike[str] | None,
+    ciphers: str | None,
 ) -> ssl.SSLContext:
     ctx = ssl.SSLContext(ssl_version)
     get_password = (lambda: password) if password else None
@@ -137,10 +128,10 @@ def is_dir(path: Path) -> bool:
 
 
 def resolve_reload_patterns(
-    patterns_list: List[str], directories_list: List[str]
-) -> Tuple[List[str], List[Path]]:
-    directories: List[Path] = list(set(map(Path, directories_list.copy())))
-    patterns: List[str] = patterns_list.copy()
+    patterns_list: list[str], directories_list: list[str]
+) -> tuple[list[str], list[Path]]:
+    directories: list[Path] = list(set(map(Path, directories_list.copy())))
+    patterns: list[str] = patterns_list.copy()
 
     current_working_directory = Path.cwd()
     for pattern in patterns_list:
@@ -176,7 +167,7 @@ def resolve_reload_patterns(
     return list(set(patterns)), directories
 
 
-def _normalize_dirs(dirs: Union[List[str], str, None]) -> List[str]:
+def _normalize_dirs(dirs: list[str] | str | None) -> list[str]:
     if dirs is None:
         return []
     if isinstance(dirs, str):
@@ -187,54 +178,54 @@ def _normalize_dirs(dirs: Union[List[str], str, None]) -> List[str]:
 class Config:
     def __init__(
         self,
-        app: Union["ASGIApplication", Callable[..., Any], str],
+        app: ASGIApplication | Callable[..., Any] | str,
         host: str = "127.0.0.1",
         port: int = 8000,
-        uds: Optional[str] = None,
-        fd: Optional[int] = None,
+        uds: str | None = None,
+        fd: int | None = None,
         loop: LoopSetupType = "auto",
-        http: Union[Type[asyncio.Protocol], HTTPProtocolType] = "auto",
-        ws: Union[Type[asyncio.Protocol], WSProtocolType] = "auto",
+        http: type[asyncio.Protocol] | HTTPProtocolType = "auto",
+        ws: type[asyncio.Protocol] | WSProtocolType = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
         ws_max_queue: int = 32,
-        ws_ping_interval: Optional[float] = 20.0,
-        ws_ping_timeout: Optional[float] = 20.0,
+        ws_ping_interval: float | None = 20.0,
+        ws_ping_timeout: float | None = 20.0,
         ws_per_message_deflate: bool = True,
         lifespan: LifespanType = "auto",
-        env_file: "str | os.PathLike[str] | None" = None,
-        log_config: Optional[Union[Dict[str, Any], str]] = LOGGING_CONFIG,
-        log_level: Optional[Union[str, int]] = None,
+        env_file: str | os.PathLike[str] | None = None,
+        log_config: dict[str, Any] | str | None = LOGGING_CONFIG,
+        log_level: str | int | None = None,
         access_log: bool = True,
-        use_colors: Optional[bool] = None,
+        use_colors: bool | None = None,
         interface: InterfaceType = "auto",
         reload: bool = False,
-        reload_dirs: Optional[Union[List[str], str]] = None,
+        reload_dirs: list[str] | str | None = None,
         reload_delay: float = 0.25,
-        reload_includes: Optional[Union[List[str], str]] = None,
-        reload_excludes: Optional[Union[List[str], str]] = None,
-        workers: Optional[int] = None,
+        reload_includes: list[str] | str | None = None,
+        reload_excludes: list[str] | str | None = None,
+        workers: int | None = None,
         proxy_headers: bool = True,
         server_header: bool = True,
         date_header: bool = True,
-        forwarded_allow_ips: Optional[Union[List[str], str]] = None,
+        forwarded_allow_ips: list[str] | str | None = None,
         root_path: str = "",
-        limit_concurrency: Optional[int] = None,
-        limit_max_requests: Optional[int] = None,
+        limit_concurrency: int | None = None,
+        limit_max_requests: int | None = None,
         backlog: int = 2048,
         timeout_keep_alive: int = 5,
         timeout_notify: int = 30,
-        timeout_graceful_shutdown: Optional[int] = None,
-        callback_notify: Optional[Callable[..., Awaitable[None]]] = None,
-        ssl_keyfile: Optional[str] = None,
-        ssl_certfile: "str | os.PathLike[str] | None" = None,
-        ssl_keyfile_password: Optional[str] = None,
+        timeout_graceful_shutdown: int | None = None,
+        callback_notify: Callable[..., Awaitable[None]] | None = None,
+        ssl_keyfile: str | None = None,
+        ssl_certfile: str | os.PathLike[str] | None = None,
+        ssl_keyfile_password: str | None = None,
         ssl_version: int = SSL_PROTOCOL_VERSION,
         ssl_cert_reqs: int = ssl.CERT_NONE,
-        ssl_ca_certs: Optional[str] = None,
+        ssl_ca_certs: str | None = None,
         ssl_ciphers: str = "TLSv1",
-        headers: Optional[List[Tuple[str, str]]] = None,
+        headers: list[tuple[str, str]] | None = None,
         factory: bool = False,
-        h11_max_incomplete_event_size: Optional[int] = None,
+        h11_max_incomplete_event_size: int | None = None,
     ):
         self.app = app
         self.host = host
@@ -276,18 +267,18 @@ class Config:
         self.ssl_cert_reqs = ssl_cert_reqs
         self.ssl_ca_certs = ssl_ca_certs
         self.ssl_ciphers = ssl_ciphers
-        self.headers: List[Tuple[str, str]] = headers or []
-        self.encoded_headers: List[Tuple[bytes, bytes]] = []
+        self.headers: list[tuple[str, str]] = headers or []
+        self.encoded_headers: list[tuple[bytes, bytes]] = []
         self.factory = factory
         self.h11_max_incomplete_event_size = h11_max_incomplete_event_size
 
         self.loaded = False
         self.configure_logging()
 
-        self.reload_dirs: List[Path] = []
-        self.reload_dirs_excludes: List[Path] = []
-        self.reload_includes: List[str] = []
-        self.reload_excludes: List[str] = []
+        self.reload_dirs: list[Path] = []
+        self.reload_dirs_excludes: list[Path] = []
+        self.reload_includes: list[str] = []
+        self.reload_excludes: list[str] = []
 
         if (
             reload_dirs or reload_includes or reload_excludes
@@ -350,7 +341,7 @@ class Config:
         if workers is None and "WEB_CONCURRENCY" in os.environ:
             self.workers = int(os.environ["WEB_CONCURRENCY"])
 
-        self.forwarded_allow_ips: Union[List[str], str]
+        self.forwarded_allow_ips: list[str] | str
         if forwarded_allow_ips is None:
             self.forwarded_allow_ips = os.environ.get(
                 "FORWARDED_ALLOW_IPS", "127.0.0.1"
@@ -363,7 +354,7 @@ class Config:
 
     @property
     def asgi_version(self) -> Literal["2.0", "3.0"]:
-        mapping: Dict[str, Literal["2.0", "3.0"]] = {
+        mapping: dict[str, Literal["2.0", "3.0"]] = {
             "asgi2": "2.0",
             "asgi3": "3.0",
             "wsgi": "3.0",
@@ -427,7 +418,7 @@ class Config:
 
         if self.is_ssl:
             assert self.ssl_certfile
-            self.ssl: Optional[ssl.SSLContext] = create_ssl_context(
+            self.ssl: ssl.SSLContext | None = create_ssl_context(
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
                 password=self.ssl_keyfile_password,
@@ -451,13 +442,13 @@ class Config:
 
         if isinstance(self.http, str):
             http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
-            self.http_protocol_class: Type[asyncio.Protocol] = http_protocol_class
+            self.http_protocol_class: type[asyncio.Protocol] = http_protocol_class
         else:
             self.http_protocol_class = self.http
 
         if isinstance(self.ws, str):
             ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
-            self.ws_protocol_class: Optional[Type[asyncio.Protocol]] = ws_protocol_class
+            self.ws_protocol_class: type[asyncio.Protocol] | None = ws_protocol_class
         else:
             self.ws_protocol_class = self.ws
 
@@ -508,12 +499,12 @@ class Config:
         self.loaded = True
 
     def setup_event_loop(self) -> None:
-        loop_setup: Optional[Callable] = import_from_string(LOOP_SETUPS[self.loop])
+        loop_setup: Callable | None = import_from_string(LOOP_SETUPS[self.loop])
         if loop_setup is not None:
             loop_setup(use_subprocess=self.use_subprocess)
 
     def bind_socket(self) -> socket.socket:
-        logger_args: List[Union[str, int]]
+        logger_args: list[str | int]
         if self.uds:  # pragma: py-win32
             path = self.uds
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)

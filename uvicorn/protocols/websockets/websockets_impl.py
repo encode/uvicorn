@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 import http
 import logging
 from typing import (
     Any,
-    Dict,
     List,
     Literal,
     Optional,
@@ -65,8 +66,8 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self,
         config: Config,
         server_state: ServerState,
-        app_state: Dict[str, Any],
-        _loop: Optional[asyncio.AbstractEventLoop] = None,
+        app_state: dict[str, Any],
+        _loop: asyncio.AbstractEventLoop | None = None,
     ):
         if not config.loaded:
             config.load()
@@ -83,19 +84,19 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
         # Connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
-        self.server: Optional[Tuple[str, int]] = None
-        self.client: Optional[Tuple[str, int]] = None
+        self.server: tuple[str, int] | None = None
+        self.client: tuple[str, int] | None = None
         self.scheme: Literal["wss", "ws"] = None  # type: ignore[assignment]
 
         # Connection events
-        self.scope: WebSocketScope = None  # type: ignore[assignment]
+        self.scope: WebSocketScope
         self.handshake_started_event = asyncio.Event()
         self.handshake_completed_event = asyncio.Event()
         self.closed_event = asyncio.Event()
-        self.initial_response: Optional[HTTPResponse] = None
+        self.initial_response: HTTPResponse | None = None
         self.connect_sent = False
         self.lost_connection_before_handshake = False
-        self.accepted_subprotocol: Optional[Subprotocol] = None
+        self.accepted_subprotocol: Subprotocol | None = None
 
         self.ws_server: Server = Server()  # type: ignore[assignment]
 
