@@ -994,25 +994,20 @@ async def test_huge_headers_h11_max_incomplete():
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize(
-    "protocol_cls,close_header",
-    (
-        pytest.param(
-            HttpToolsProtocol, b"connection: close", marks=skip_if_no_httptools
-        ),
-        (H11Protocol, b"Connection: close"),
-    ),
-)
-async def test_return_close_header(protocol_cls, close_header: bytes):
+async def test_return_close_header(
+    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"
+):
     app = Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(app, protocol_cls)
+    protocol = get_connected_protocol(app, http_protocol_cls)
     protocol.data_received(CONNECTION_CLOSE_REQUEST)
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"content-type: text/plain" in protocol.transport.buffer
     assert b"content-length: 12" in protocol.transport.buffer
-    assert close_header in protocol.transport.buffer
+    # NOTE: We need to use `.lower()` because H11 implementation doesn't allow Uvicorn
+    # to lowercase them. See: https://github.com/python-hyper/h11/issues/156
+    assert b"connection: close" in protocol.transport.buffer.lower()
 
 
 @pytest.mark.anyio
