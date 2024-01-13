@@ -632,7 +632,9 @@ async def test_root_path(http_protocol_cls: "Type[HttpToolsProtocol | H11Protoco
         assert scope["type"] == "http"
         root_path = scope.get("root_path", "")
         path = scope["path"]
-        response = Response(f"root_path={root_path} path={path}", media_type="text/plain")
+        response = Response(
+            f"root_path={root_path} path={path}", media_type="text/plain"
+        )
         await response(scope, receive, send)
 
     protocol = get_connected_protocol(app, http_protocol_cls, root_path="/app")
