@@ -641,7 +641,6 @@ async def test_root_path(http_protocol_cls: "Type[HttpToolsProtocol | H11Protoco
     protocol.data_received(SIMPLE_GET_REQUEST)
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-    # assert b"Path: /app/" in protocol.transport.buffer
     assert b"root_path=/app path=/app/" in protocol.transport.buffer
 
 
