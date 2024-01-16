@@ -261,7 +261,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         if "%" in path:
             path = urllib.parse.unquote(path)
         full_path = self.root_path + path
-        full_raw_path = self.root_path.encode() + raw_path
+        full_raw_path = self.root_path.encode("ascii") + raw_path
         self.scope["path"] = full_path
         self.scope["raw_path"] = full_raw_path
         self.scope["query_string"] = parsed_url.query or b""
