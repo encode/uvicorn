@@ -763,6 +763,44 @@ async def test_client_connection_lost(
 
 
 @pytest.mark.anyio
+async def test_client_connection_lost_on_send(
+    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
+    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
+    unused_tcp_port: int,
+):
+    disconnect = asyncio.Event()
+    got_disconnect_event = False
+
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
+        nonlocal got_disconnect_event
+        message = await receive()
+        if message["type"] == "websocket.connect":
+            await send({"type": "websocket.accept"})
+        try:
+            await disconnect.wait()
+            await send({"type": "websocket.send", "text": "123"})
+        except IOError:
+            got_disconnect_event = True
+
+    config = Config(
+        app=app,
+        ws=ws_protocol_cls,
+        http=http_protocol_cls,
+        lifespan="off",
+        port=unused_tcp_port,
+    )
+    async with run_server(config):
+        url = f"ws://127.0.0.1:{unused_tcp_port}"
+        async with websockets.client.connect(url):
+            await asyncio.sleep(0.1)
+        disconnect.set()
+        await asyncio.sleep(0.1)
+        got_disconnect_event_before_shutdown = got_disconnect_event
+
+    assert got_disconnect_event_before_shutdown is True
+
+
+@pytest.mark.anyio
 async def test_connection_lost_before_handshake_complete(
     ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
     http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",

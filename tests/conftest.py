@@ -253,8 +253,12 @@ def unused_tcp_port() -> int:
             marks=pytest.mark.skipif(
                 not importlib.util.find_spec("wsproto"), reason="wsproto not installed."
             ),
+            id="wsproto",
         ),
-        "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
+        pytest.param(
+            "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
+            id="websockets",
+        ),
     ]
 )
 def ws_protocol_cls(request: pytest.FixtureRequest):
@@ -269,8 +273,9 @@ def ws_protocol_cls(request: pytest.FixtureRequest):
                 not importlib.util.find_spec("httptools"),
                 reason="httptools not installed.",
             ),
+            id="httptools",
         ),
-        "uvicorn.protocols.http.h11_impl:H11Protocol",
+        pytest.param("uvicorn.protocols.http.h11_impl:H11Protocol", id="h11"),
     ]
 )
 def http_protocol_cls(request: pytest.FixtureRequest):
