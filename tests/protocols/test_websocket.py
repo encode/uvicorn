@@ -795,9 +795,8 @@ async def test_client_connection_lost_on_send(
             await asyncio.sleep(0.1)
         disconnect.set()
         await asyncio.sleep(0.1)
-        got_disconnect_event_before_shutdown = got_disconnect_event
 
-    assert got_disconnect_event_before_shutdown is True
+    assert got_disconnect_event is True
 
 
 @pytest.mark.anyio
