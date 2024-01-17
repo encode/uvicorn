@@ -794,7 +794,6 @@ async def test_client_connection_lost_on_send(
         async with websockets.client.connect(url):
             await asyncio.sleep(0.1)
         disconnect.set()
-        await asyncio.sleep(0.1)
 
     assert got_disconnect_event is True
 
