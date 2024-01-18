@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.26.0 - 2024-01-16
+
+### Changed
+
+- Update `--root-path` to include the root path prefix in the full ASGI `path` as per the ASGI spec (#2213) 16/01/24
+- Use `__future__.annotations` on some internal modules (#2199) 16/01/24
+
 ## 0.25.0 - 2023-12-17
 
 ### Added

@@ -630,15 +630,18 @@ async def test_http10_request(
 async def test_root_path(http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         assert scope["type"] == "http"
-        path = scope.get("root_path", "") + scope["path"]
-        response = Response("Path: " + path, media_type="text/plain")
+        root_path = scope.get("root_path", "")
+        path = scope["path"]
+        response = Response(
+            f"root_path={root_path} path={path}", media_type="text/plain"
+        )
         await response(scope, receive, send)
 
     protocol = get_connected_protocol(app, http_protocol_cls, root_path="/app")
     protocol.data_received(SIMPLE_GET_REQUEST)
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-    assert b"Path: /app/" in protocol.transport.buffer
+    assert b"root_path=/app path=/app/" in protocol.transport.buffer
 
 
 @pytest.mark.anyio
@@ -647,8 +650,8 @@ async def test_raw_path(http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol
         assert scope["type"] == "http"
         path = scope["path"]
         raw_path = scope.get("raw_path", None)
-        assert "/one/two" == path
-        assert b"/one%2Ftwo" == raw_path
+        assert "/app/one/two" == path
+        assert b"/app/one%2Ftwo" == raw_path
 
         response = Response("Done", media_type="text/plain")
         await response(scope, receive, send)

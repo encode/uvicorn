@@ -184,6 +184,9 @@ class WebSocketProtocol(WebSocketServerProtocol):
             (name.encode("ascii"), value.encode("ascii", errors="surrogateescape"))
             for name, value in headers.raw_items()
         ]
+        path = unquote(path_portion)
+        full_path = self.root_path + path
+        full_raw_path = self.root_path.encode("ascii") + path_portion.encode("ascii")
 
         self.scope = {
             "type": "websocket",
@@ -193,8 +196,8 @@ class WebSocketProtocol(WebSocketServerProtocol):
             "server": self.server,
             "client": self.client,
             "root_path": self.root_path,
-            "path": unquote(path_portion),
-            "raw_path": path_portion.encode("ascii"),
+            "path": full_path,
+            "raw_path": full_raw_path,
             "query_string": query_string.encode("ascii"),
             "headers": asgi_headers,
             "subprotocols": subprotocols,

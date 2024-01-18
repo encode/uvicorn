@@ -164,6 +164,9 @@ class WSProtocol(asyncio.Protocol):
         headers = [(b"host", event.host.encode())]
         headers += [(key.lower(), value) for key, value in event.extra_headers]
         raw_path, _, query_string = event.target.partition("?")
+        path = unquote(raw_path)
+        full_path = self.root_path + path
+        full_raw_path = self.root_path.encode("ascii") + raw_path.encode("ascii")
         self.scope: "WebSocketScope" = {
             "type": "websocket",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
@@ -172,8 +175,8 @@ class WSProtocol(asyncio.Protocol):
             "server": self.server,
             "client": self.client,
             "root_path": self.root_path,
-            "path": unquote(raw_path),
-            "raw_path": raw_path.encode("ascii"),
+            "path": full_path,
+            "raw_path": full_raw_path,
             "query_string": query_string.encode("ascii"),
             "headers": headers,
             "subprotocols": event.subprotocols,
