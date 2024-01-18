@@ -998,7 +998,7 @@ async def test_huge_headers_h11_max_incomplete():
 
 @pytest.mark.anyio
 async def test_return_close_header(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"
+    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
 ):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -1015,7 +1015,7 @@ async def test_return_close_header(
 
 @pytest.mark.anyio
 async def test_iterator_headers(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"
+    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         headers = iter([(b"x-test-header", b"test value")])
@@ -1030,7 +1030,7 @@ async def test_iterator_headers(
 
 @pytest.mark.anyio
 async def test_lifespan_state(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"
+    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
 ):
     expected_states = [{"a": 123, "b": [1]}, {"a": 123, "b": [1, 2]}]
 
