@@ -38,7 +38,7 @@ from uvicorn._types import (
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import (
-    Disconnected,
+    ClientDisconnected,
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
@@ -253,7 +253,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         """
         try:
             result = await self.app(self.scope, self.asgi_receive, self.asgi_send)
-        except Disconnected:
+        except ClientDisconnected:
             self.closed_event.set()
             self.transport.close()
         except BaseException as exc:
@@ -362,7 +362,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                     )
                     raise RuntimeError(msg % message_type)
             except ConnectionClosed as exc:
-                raise Disconnected from exc
+                raise ClientDisconnected from exc
 
         elif self.initial_response is not None:
             if message_type == "websocket.http.response.body":

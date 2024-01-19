@@ -6,7 +6,7 @@ import urllib.parse
 from uvicorn._types import WWWScope
 
 
-class Disconnected(IOError):
+class ClientDisconnected(IOError):
     ...
 
 

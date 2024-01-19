@@ -25,7 +25,7 @@ from uvicorn._types import (
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import (
-    Disconnected,
+    ClientDisconnected,
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
@@ -237,7 +237,7 @@ class WSProtocol(asyncio.Protocol):
     async def run_asgi(self) -> None:
         try:
             result = await self.app(self.scope, self.receive, self.send)
-        except Disconnected:
+        except ClientDisconnected:
             self.transport.close()
         except BaseException:
             self.logger.exception("Exception in ASGI application\n")
@@ -360,7 +360,7 @@ class WSProtocol(asyncio.Protocol):
                     )
                     raise RuntimeError(msg % message_type)
             except LocalProtocolError as exc:
-                raise Disconnected from exc
+                raise ClientDisconnected from exc
         elif self.response_started:
             if message_type == "websocket.http.response.body":
                 message = typing.cast("WebSocketResponseBodyEvent", message)
