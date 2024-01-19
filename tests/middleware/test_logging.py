@@ -13,7 +13,6 @@ from tests.utils import run_server
 from uvicorn import Config
 
 if typing.TYPE_CHECKING:
-    from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 
@@ -87,7 +86,7 @@ async def test_trace_logging_on_http_protocol(
 
 @pytest.mark.anyio
 async def test_trace_logging_on_ws_protocol(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
+    ws_protocol_cls: WSProtocol,
     caplog,
     logging_config,
     unused_tcp_port: int,
