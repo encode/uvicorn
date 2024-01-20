@@ -18,7 +18,7 @@ if typing.TYPE_CHECKING:
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol as _WSProtocol
 
-    WSProtocol = typing.Union[WebSocketProtocol, _WSProtocol]
+    WSProtocol = type[WebSocketProtocol | _WSProtocol]
 
 
 @contextlib.contextmanager
