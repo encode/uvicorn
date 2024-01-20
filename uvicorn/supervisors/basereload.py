@@ -87,14 +87,8 @@ class BaseReload:
         self.process.start()
 
     def restart(self) -> None:
-        if sys.platform == "win32":  # pragma: py-not-win32
-            self.is_restarting = True
-            assert self.process.pid is not None
-            os.kill(self.process.pid, signal.CTRL_C_EVENT)
-        else:  # pragma: py-win32
-            self.process.terminate()
+        self.process.terminate()
         self.process.join()
-
         self.process = get_subprocess(
             config=self.config, target=self.target, sockets=self.sockets
         )
