@@ -170,7 +170,7 @@ class WSProtocol(asyncio.Protocol):
         full_raw_path = self.root_path.encode("ascii") + raw_path.encode("ascii")
         self.scope: "WebSocketScope" = {
             "type": "websocket",
-            "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
+            "asgi": {"version": self.config.asgi_version, "spec_version": "2.4"},
             "http_version": "1.1",
             "scheme": self.scheme,
             "server": self.server,
