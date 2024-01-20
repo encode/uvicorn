@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import typing
 from copy import deepcopy
@@ -25,15 +27,26 @@ from uvicorn.config import Config
 from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
 
 try:
-    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
+    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol as _WSProtocol
 
     skip_if_no_wsproto = pytest.mark.skipif(False, reason="wsproto is installed.")
 except ModuleNotFoundError:
     skip_if_no_wsproto = pytest.mark.skipif(True, reason="wsproto is not installed.")
 
 if typing.TYPE_CHECKING:
+    import sys
+
     from uvicorn.protocols.http.h11_impl import H11Protocol
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
+    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol as _WSProtocol
+
+    if sys.version_info >= (3, 10):  # pragma: no cover
+        from typing import TypeAlias
+    else:  # pragma: no cover
+        from typing_extensions import TypeAlias
+
+    HTTPProtocol: TypeAlias = "type[H11Protocol | HttpToolsProtocol]"
+    WSProtocol: TypeAlias = "type[_WSProtocol | WebSocketProtocol]"
 
 
 class WebSocketResponse:
@@ -75,9 +88,7 @@ async def wsresponse(url):
 
 @pytest.mark.anyio
 async def test_invalid_upgrade(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     def app(scope: Scope):
         return None
@@ -116,9 +127,7 @@ async def test_invalid_upgrade(
 
 @pytest.mark.anyio
 async def test_accept_connection(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -142,9 +151,7 @@ async def test_accept_connection(
 
 @pytest.mark.anyio
 async def test_shutdown(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -165,9 +172,7 @@ async def test_shutdown(
 
 @pytest.mark.anyio
 async def test_supports_permessage_deflate_extension(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -194,9 +199,7 @@ async def test_supports_permessage_deflate_extension(
 
 @pytest.mark.anyio
 async def test_can_disable_permessage_deflate_extension(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -226,9 +229,7 @@ async def test_can_disable_permessage_deflate_extension(
 
 @pytest.mark.anyio
 async def test_close_connection(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -255,9 +256,7 @@ async def test_close_connection(
 
 @pytest.mark.anyio
 async def test_headers(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -287,9 +286,7 @@ async def test_headers(
 
 @pytest.mark.anyio
 async def test_extra_headers(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -315,9 +312,7 @@ async def test_extra_headers(
 
 @pytest.mark.anyio
 async def test_path_and_raw_path(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -345,9 +340,7 @@ async def test_path_and_raw_path(
 
 @pytest.mark.anyio
 async def test_send_text_data_to_client(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -372,9 +365,7 @@ async def test_send_text_data_to_client(
 
 @pytest.mark.anyio
 async def test_send_binary_data_to_client(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -399,9 +390,7 @@ async def test_send_binary_data_to_client(
 
 @pytest.mark.anyio
 async def test_send_and_close_connection(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -434,9 +423,7 @@ async def test_send_and_close_connection(
 
 @pytest.mark.anyio
 async def test_send_text_data_to_server(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -465,9 +452,7 @@ async def test_send_text_data_to_server(
 
 @pytest.mark.anyio
 async def test_send_binary_data_to_server(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -496,9 +481,7 @@ async def test_send_binary_data_to_server(
 
 @pytest.mark.anyio
 async def test_send_after_protocol_close(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -533,9 +516,7 @@ async def test_send_after_protocol_close(
 
 @pytest.mark.anyio
 async def test_missing_handshake(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         pass
@@ -558,9 +539,7 @@ async def test_missing_handshake(
 
 @pytest.mark.anyio
 async def test_send_before_handshake(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "websocket.send", "text": "123"})
@@ -583,9 +562,7 @@ async def test_send_before_handshake(
 
 @pytest.mark.anyio
 async def test_duplicate_handshake(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "websocket.accept"})
@@ -610,9 +587,7 @@ async def test_duplicate_handshake(
 
 @pytest.mark.anyio
 async def test_asgi_return_value(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     """
     The ASGI callable should return 'None'. If it doesn't, make sure that
@@ -648,11 +623,11 @@ async def test_asgi_return_value(
     ids=["none_as_reason", "normal_reason", "without_reason"],
 )
 async def test_app_close(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
+    ws_protocol_cls: WSProtocol,
+    http_protocol_cls: HTTPProtocol,
     unused_tcp_port: int,
-    code: typing.Optional[int],
-    reason: typing.Optional[str],
+    code: int | None,
+    reason: str | None,
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         while True:
@@ -694,9 +669,7 @@ async def test_app_close(
 
 @pytest.mark.anyio
 async def test_client_close(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         while True:
@@ -726,9 +699,7 @@ async def test_client_close(
 
 @pytest.mark.anyio
 async def test_client_connection_lost(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     got_disconnect_event = False
 
@@ -764,9 +735,7 @@ async def test_client_connection_lost(
 
 @pytest.mark.anyio
 async def test_client_connection_lost_on_send(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     disconnect = asyncio.Event()
     got_disconnect_event = False
@@ -800,9 +769,7 @@ async def test_client_connection_lost_on_send(
 
 @pytest.mark.anyio
 async def test_connection_lost_before_handshake_complete(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     send_accept_task = asyncio.Event()
     disconnect_message: WebSocketDisconnectEvent = {}  # type: ignore
@@ -853,9 +820,7 @@ async def test_connection_lost_before_handshake_complete(
 
 @pytest.mark.anyio
 async def test_send_close_on_server_shutdown(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     disconnect_message: WebSocketDisconnectEvent = {}  # type: ignore
     server_shutdown_event = asyncio.Event()
@@ -903,8 +868,8 @@ async def test_send_close_on_server_shutdown(
 @pytest.mark.anyio
 @pytest.mark.parametrize("subprotocol", ["proto1", "proto2"])
 async def test_subprotocols(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
+    ws_protocol_cls: WSProtocol,
+    http_protocol_cls: HTTPProtocol,
     subprotocol: str,
     unused_tcp_port: int,
 ):
@@ -953,7 +918,7 @@ MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
     ],
 )
 async def test_send_binary_data_to_server_bigger_than_default_on_websockets(
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
+    http_protocol_cls: HTTPProtocol,
     client_size_sent: int,
     server_size_max: int,
     expected_result: int,
@@ -992,9 +957,7 @@ async def test_send_binary_data_to_server_bigger_than_default_on_websockets(
 
 @pytest.mark.anyio
 async def test_server_reject_connection(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     disconnected_message: ASGIReceiveEvent = {}  # type: ignore
 
@@ -1035,9 +998,7 @@ async def test_server_reject_connection(
 
 @pytest.mark.anyio
 async def test_server_reject_connection_with_response(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     disconnected_message = {}
 
@@ -1075,9 +1036,7 @@ async def test_server_reject_connection_with_response(
 
 @pytest.mark.anyio
 async def test_server_reject_connection_with_multibody_response(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     disconnected_message: ASGIReceiveEvent = {}  # type: ignore
 
@@ -1130,9 +1089,7 @@ async def test_server_reject_connection_with_multibody_response(
 
 @pytest.mark.anyio
 async def test_server_reject_connection_with_invalid_status(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     # this test checks that even if there is an error in the response, the server
     # can successfully send a 500 error back to the client
@@ -1174,9 +1131,7 @@ async def test_server_reject_connection_with_invalid_status(
 
 @pytest.mark.anyio
 async def test_server_reject_connection_with_body_nolength(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     # test that the server can send a response with a body but no content-length
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
@@ -1201,10 +1156,10 @@ async def test_server_reject_connection_with_body_nolength(
         response = await wsresponse(url)
         assert response.status_code == 403
         assert response.content == b"hardbody"
-        if ws_protocol_cls == WSProtocol:  # pragma: no cover
+        if ws_protocol_cls == _WSProtocol:
             # wsproto automatically makes the message chunked
             assert response.headers["transfer-encoding"] == "chunked"
-        else:  # pragma: no cover
+        else:
             # websockets automatically adds a content-length
             assert response.headers["content-length"] == "8"
 
@@ -1221,9 +1176,7 @@ async def test_server_reject_connection_with_body_nolength(
 
 @pytest.mark.anyio
 async def test_server_reject_connection_with_invalid_msg(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     async def app(scope, receive, send):
         assert scope["type"] == "websocket"
@@ -1261,9 +1214,7 @@ async def test_server_reject_connection_with_invalid_msg(
 
 @pytest.mark.anyio
 async def test_server_reject_connection_with_missing_body(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     async def app(scope, receive, send):
         assert scope["type"] == "websocket"
@@ -1300,9 +1251,7 @@ async def test_server_reject_connection_with_missing_body(
 
 @pytest.mark.anyio
 async def test_server_multiple_websocket_http_response_start_events(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     """
     The server should raise an exception if it sends multiple
@@ -1355,9 +1304,7 @@ async def test_server_multiple_websocket_http_response_start_events(
 
 @pytest.mark.anyio
 async def test_server_can_read_messages_in_buffer_after_close(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     frames = []
     disconnect_message = {}
@@ -1399,9 +1346,7 @@ async def test_server_can_read_messages_in_buffer_after_close(
 
 @pytest.mark.anyio
 async def test_default_server_headers(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -1425,9 +1370,7 @@ async def test_default_server_headers(
 
 @pytest.mark.anyio
 async def test_no_server_headers(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -1453,8 +1396,7 @@ async def test_no_server_headers(
 @pytest.mark.anyio
 @skip_if_no_wsproto
 async def test_no_date_header_on_wsproto(
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -1466,7 +1408,7 @@ async def test_no_date_header_on_wsproto(
 
     config = Config(
         app=App,
-        ws=WSProtocol,
+        ws=_WSProtocol,
         http=http_protocol_cls,
         lifespan="off",
         date_header=False,
@@ -1479,9 +1421,7 @@ async def test_no_date_header_on_wsproto(
 
 @pytest.mark.anyio
 async def test_multiple_server_header(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     class App(WebSocketResponse):
         async def websocket_connect(self, message):
@@ -1513,9 +1453,7 @@ async def test_multiple_server_header(
 
 @pytest.mark.anyio
 async def test_lifespan_state(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "typing.Type[H11Protocol | HttpToolsProtocol]",
-    unused_tcp_port: int,
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
     expected_states = [
         {"a": 123, "b": [1]},
