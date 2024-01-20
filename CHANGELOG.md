@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.27.0 - 2024-01-20
+
+### Added
+
+- Raise `ClientDisconnect(IOError)` on `send()` when client disconnected (#2218) 19/01/24
+- Bump ASGI WebSocket spec version to 2.4 (#2221) 20/01/24
+
 ## 0.26.0 - 2024-01-16
 
 ### Changed
