@@ -34,12 +34,19 @@ except ModuleNotFoundError:
     skip_if_no_wsproto = pytest.mark.skipif(True, reason="wsproto is not installed.")
 
 if typing.TYPE_CHECKING:
+    import sys
+
     from uvicorn.protocols.http.h11_impl import H11Protocol
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol as _WSProtocol
 
-    HTTPProtocol = typing.Type[H11Protocol | HttpToolsProtocol]
-    WSProtocol = typing.Type[_WSProtocol | WebSocketProtocol]
+    if sys.version_info >= (3, 10):  # pragma: no cover
+        from typing import TypeAlias
+    else:  # pragma: no cover
+        from typing_extensions import TypeAlias
+
+    HTTPProtocol: TypeAlias = "type[H11Protocol | HttpToolsProtocol]"
+    WSProtocol: TypeAlias = "type[_WSProtocol | WebSocketProtocol]"
 
 
 class WebSocketResponse:
