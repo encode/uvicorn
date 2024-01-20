@@ -206,7 +206,7 @@ class H11Protocol(asyncio.Protocol):
                     "type": "http",
                     "asgi": {
                         "version": self.config.asgi_version,
-                        "spec_version": "2.3",
+                        "spec_version": "2.4",
                     },
                     "http_version": event.http_version.decode("ascii"),
                     "server": self.server,
