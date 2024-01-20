@@ -4,7 +4,7 @@ import logging
 import socket
 import threading
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Type
 
 import pytest
 
@@ -29,8 +29,8 @@ if TYPE_CHECKING:
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol as _WSProtocol
 
-    HTTPProtocol = type[HttpToolsProtocol | H11Protocol]
-    WSProtocol = type[WebSocketProtocol | _WSProtocol]
+    HTTPProtocol = Type[HttpToolsProtocol | H11Protocol]
+    WSProtocol = Type[WebSocketProtocol | _WSProtocol]
 
 
 WEBSOCKET_PROTOCOLS = WS_PROTOCOLS.keys()

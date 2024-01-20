@@ -38,8 +38,8 @@ if typing.TYPE_CHECKING:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol as _WSProtocol
 
-    HTTPProtocol = type[H11Protocol | HttpToolsProtocol]
-    WSProtocol = type[_WSProtocol | WebSocketProtocol]
+    HTTPProtocol = typing.Type[H11Protocol | HttpToolsProtocol]
+    WSProtocol = typing.Type[_WSProtocol | WebSocketProtocol]
 
 
 class WebSocketResponse:
