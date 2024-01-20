@@ -1401,7 +1401,7 @@ async def test_no_date_header_on_wsproto(
 
     config = Config(
         app=App,
-        ws=WSProtocol,
+        ws=_WSProtocol,
         http=http_protocol_cls,
         lifespan="off",
         date_header=False,
