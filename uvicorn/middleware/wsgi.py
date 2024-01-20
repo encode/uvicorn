@@ -28,10 +28,14 @@ def build_environ(
     """
     Builds a scope and request message into a WSGI environ object.
     """
+    script_name = scope.get("root_path", "").encode("utf8").decode("latin1")
+    path_info = scope["path"].encode("utf8").decode("latin1")
+    if path_info.startswith(script_name):
+        path_info = path_info[len(script_name) :]
     environ = {
         "REQUEST_METHOD": scope["method"],
-        "SCRIPT_NAME": "",
-        "PATH_INFO": scope["path"].encode("utf8").decode("latin1"),
+        "SCRIPT_NAME": script_name,
+        "PATH_INFO": path_info,
         "QUERY_STRING": scope["query_string"].decode("ascii"),
         "SERVER_PROTOCOL": "HTTP/%s" % scope["http_version"],
         "wsgi.version": (1, 0),

@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import socket
 import threading
 import time
-from typing import TYPE_CHECKING, Any, Dict, List, Type
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -23,8 +25,19 @@ except ModuleNotFoundError:
     skip_if_no_httptools = pytest.mark.skipif(True, reason="httptools is not installed")
 
 if TYPE_CHECKING:
+    import sys
+
+    from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
-    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
+    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol as _WSProtocol
+
+    if sys.version_info >= (3, 10):  # pragma: no cover
+        from typing import TypeAlias
+    else:  # pragma: no cover
+        from typing_extensions import TypeAlias
+
+    HTTPProtocol: TypeAlias = "type[HttpToolsProtocol | H11Protocol]"
+    WSProtocol: TypeAlias = "type[WebSocketProtocol | _WSProtocol]"
 
 
 WEBSOCKET_PROTOCOLS = WS_PROTOCOLS.keys()
@@ -195,8 +208,8 @@ class MockTask:
 
 def get_connected_protocol(
     app: ASGIApplication,
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
-    lifespan: "LifespanOff | LifespanOn | None" = None,
+    http_protocol_cls: HTTPProtocol,
+    lifespan: LifespanOff | LifespanOn | None = None,
     **kwargs: Any,
 ):
     loop = MockLoop()
@@ -215,7 +228,7 @@ def get_connected_protocol(
 
 
 @pytest.mark.anyio
-async def test_get_request(http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"):
+async def test_get_request(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, http_protocol_cls)
@@ -228,7 +241,7 @@ async def test_get_request(http_protocol_cls: "Type[HttpToolsProtocol | H11Proto
 @pytest.mark.anyio
 @pytest.mark.parametrize("path", ["/", "/?foo", "/?foo=bar", "/?foo=bar&baz=1"])
 async def test_request_logging(
-    path, http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]", caplog
+    path: str, http_protocol_cls: HTTPProtocol, caplog: pytest.LogCaptureFixture
 ):
     get_request_with_query_string = b"\r\n".join(
         ["GET {} HTTP/1.1".format(path).encode("ascii"), b"Host: example.org", b"", b""]
@@ -245,7 +258,7 @@ async def test_request_logging(
 
 
 @pytest.mark.anyio
-async def test_head_request(http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"):
+async def test_head_request(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, http_protocol_cls)
@@ -256,7 +269,7 @@ async def test_head_request(http_protocol_cls: "Type[HttpToolsProtocol | H11Prot
 
 
 @pytest.mark.anyio
-async def test_post_request(http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"):
+async def test_post_request(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         body = b""
         more_body = True
@@ -276,7 +289,7 @@ async def test_post_request(http_protocol_cls: "Type[HttpToolsProtocol | H11Prot
 
 
 @pytest.mark.anyio
-async def test_keepalive(http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"):
+async def test_keepalive(http_protocol_cls: HTTPProtocol):
     app = Response(b"", status_code=204)
 
     protocol = get_connected_protocol(app, http_protocol_cls)
@@ -288,9 +301,7 @@ async def test_keepalive(http_protocol_cls: "Type[HttpToolsProtocol | H11Protoco
 
 
 @pytest.mark.anyio
-async def test_keepalive_timeout(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
-):
+async def test_keepalive_timeout(http_protocol_cls: HTTPProtocol):
     app = Response(b"", status_code=204)
 
     protocol = get_connected_protocol(app, http_protocol_cls)
@@ -305,7 +316,7 @@ async def test_keepalive_timeout(
 
 
 @pytest.mark.anyio
-async def test_close(http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"):
+async def test_close(http_protocol_cls: HTTPProtocol):
     app = Response(b"", status_code=204, headers={"connection": "close"})
 
     protocol = get_connected_protocol(app, http_protocol_cls)
@@ -317,7 +328,7 @@ async def test_close(http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]")
 
 @pytest.mark.anyio
 async def test_chunked_encoding(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     app = Response(
         b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
@@ -333,7 +344,7 @@ async def test_chunked_encoding(
 
 @pytest.mark.anyio
 async def test_chunked_encoding_empty_body(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     app = Response(
         b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
@@ -349,7 +360,7 @@ async def test_chunked_encoding_empty_body(
 
 @pytest.mark.anyio
 async def test_chunked_encoding_head_request(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     app = Response(
         b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
@@ -364,7 +375,7 @@ async def test_chunked_encoding_head_request(
 
 @pytest.mark.anyio
 async def test_pipelined_requests(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -388,7 +399,7 @@ async def test_pipelined_requests(
 
 @pytest.mark.anyio
 async def test_undersized_request(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     app = Response(b"xxx", headers={"content-length": "10"})
 
@@ -400,7 +411,7 @@ async def test_undersized_request(
 
 @pytest.mark.anyio
 async def test_oversized_request(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     app = Response(b"xxx" * 20, headers={"content-length": "10"})
 
@@ -412,7 +423,7 @@ async def test_oversized_request(
 
 @pytest.mark.anyio
 async def test_large_post_request(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -424,7 +435,7 @@ async def test_large_post_request(
 
 
 @pytest.mark.anyio
-async def test_invalid_http(http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"):
+async def test_invalid_http(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, http_protocol_cls)
@@ -434,7 +445,7 @@ async def test_invalid_http(http_protocol_cls: "Type[HttpToolsProtocol | H11Prot
 
 @pytest.mark.anyio
 async def test_app_exception(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         raise Exception()
@@ -448,7 +459,7 @@ async def test_app_exception(
 
 @pytest.mark.anyio
 async def test_exception_during_response(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
@@ -464,7 +475,7 @@ async def test_exception_during_response(
 
 @pytest.mark.anyio
 async def test_no_response_returned(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         ...
@@ -478,7 +489,7 @@ async def test_no_response_returned(
 
 @pytest.mark.anyio
 async def test_partial_response_returned(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
@@ -492,7 +503,7 @@ async def test_partial_response_returned(
 
 @pytest.mark.anyio
 async def test_duplicate_start_message(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
@@ -507,7 +518,7 @@ async def test_duplicate_start_message(
 
 @pytest.mark.anyio
 async def test_missing_start_message(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.body", "body": b""})
@@ -521,7 +532,7 @@ async def test_missing_start_message(
 
 @pytest.mark.anyio
 async def test_message_after_body_complete(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
@@ -537,7 +548,7 @@ async def test_message_after_body_complete(
 
 @pytest.mark.anyio
 async def test_value_returned(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
@@ -553,7 +564,7 @@ async def test_value_returned(
 
 @pytest.mark.anyio
 async def test_early_disconnect(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     got_disconnect_event = False
 
@@ -577,7 +588,7 @@ async def test_early_disconnect(
 
 @pytest.mark.anyio
 async def test_early_response(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -591,7 +602,7 @@ async def test_early_response(
 
 @pytest.mark.anyio
 async def test_read_after_response(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     message_after_response = None
 
@@ -611,7 +622,7 @@ async def test_read_after_response(
 
 @pytest.mark.anyio
 async def test_http10_request(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         assert scope["type"] == "http"
@@ -627,28 +638,31 @@ async def test_http10_request(
 
 
 @pytest.mark.anyio
-async def test_root_path(http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"):
+async def test_root_path(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         assert scope["type"] == "http"
-        path = scope.get("root_path", "") + scope["path"]
-        response = Response("Path: " + path, media_type="text/plain")
+        root_path = scope.get("root_path", "")
+        path = scope["path"]
+        response = Response(
+            f"root_path={root_path} path={path}", media_type="text/plain"
+        )
         await response(scope, receive, send)
 
     protocol = get_connected_protocol(app, http_protocol_cls, root_path="/app")
     protocol.data_received(SIMPLE_GET_REQUEST)
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
-    assert b"Path: /app/" in protocol.transport.buffer
+    assert b"root_path=/app path=/app/" in protocol.transport.buffer
 
 
 @pytest.mark.anyio
-async def test_raw_path(http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"):
+async def test_raw_path(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         assert scope["type"] == "http"
         path = scope["path"]
         raw_path = scope.get("raw_path", None)
-        assert "/one/two" == path
-        assert b"/one%2Ftwo" == raw_path
+        assert "/app/one/two" == path
+        assert b"/app/one%2Ftwo" == raw_path
 
         response = Response("Done", media_type="text/plain")
         await response(scope, receive, send)
@@ -660,9 +674,7 @@ async def test_raw_path(http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol
 
 
 @pytest.mark.anyio
-async def test_max_concurrency(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
-):
+async def test_max_concurrency(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, http_protocol_cls, limit_concurrency=1)
@@ -672,9 +684,7 @@ async def test_max_concurrency(
 
 
 @pytest.mark.anyio
-async def test_shutdown_during_request(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
-):
+async def test_shutdown_during_request(http_protocol_cls: HTTPProtocol):
     app = Response(b"", status_code=204)
 
     protocol = get_connected_protocol(app, http_protocol_cls)
@@ -686,9 +696,7 @@ async def test_shutdown_during_request(
 
 
 @pytest.mark.anyio
-async def test_shutdown_during_idle(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
-):
+async def test_shutdown_during_idle(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, http_protocol_cls)
@@ -698,9 +706,7 @@ async def test_shutdown_during_idle(
 
 
 @pytest.mark.anyio
-async def test_100_continue_sent_when_body_consumed(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
-):
+async def test_100_continue_sent_when_body_consumed(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         body = b""
         more_body = True
@@ -733,7 +739,7 @@ async def test_100_continue_sent_when_body_consumed(
 
 @pytest.mark.anyio
 async def test_100_continue_not_sent_when_body_not_consumed(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    http_protocol_cls: HTTPProtocol,
 ):
     app = Response(b"", status_code=204)
 
@@ -756,9 +762,7 @@ async def test_100_continue_not_sent_when_body_not_consumed(
 
 
 @pytest.mark.anyio
-async def test_supported_upgrade_request(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
-):
+async def test_supported_upgrade_request(http_protocol_cls: HTTPProtocol):
     pytest.importorskip("wsproto")
 
     app = Response("Hello, world", media_type="text/plain")
@@ -769,9 +773,7 @@ async def test_supported_upgrade_request(
 
 
 @pytest.mark.anyio
-async def test_unsupported_ws_upgrade_request(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
-):
+async def test_unsupported_ws_upgrade_request(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, http_protocol_cls, ws="none")
@@ -783,8 +785,7 @@ async def test_unsupported_ws_upgrade_request(
 
 @pytest.mark.anyio
 async def test_unsupported_ws_upgrade_request_warn_on_auto(
-    caplog: pytest.LogCaptureFixture,
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    caplog: pytest.LogCaptureFixture, http_protocol_cls: HTTPProtocol
 ):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -807,8 +808,7 @@ async def test_unsupported_ws_upgrade_request_warn_on_auto(
 
 @pytest.mark.anyio
 async def test_http2_upgrade_request(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
-    ws_protocol_cls: "Type[WebSocketProtocol | WSProtocol]",
+    http_protocol_cls: HTTPProtocol, ws_protocol_cls: WSProtocol
 ):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -840,8 +840,8 @@ def asgi2app(scope: Scope):
 )
 async def test_scopes(
     asgi2or3_app: ASGIApplication,
-    expected_scopes: Dict[str, str],
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]",
+    expected_scopes: dict[str, str],
+    http_protocol_cls: HTTPProtocol,
 ):
     protocol = get_connected_protocol(asgi2or3_app, http_protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -859,7 +859,7 @@ async def test_scopes(
     ],
 )
 async def test_invalid_http_request(
-    request_line, http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]", caplog
+    request_line: str, http_protocol_cls: HTTPProtocol, caplog: pytest.LogCaptureFixture
 ):
     app = Response("Hello, world", media_type="text/plain")
     request = INVALID_REQUEST_TEMPLATE % request_line
@@ -876,7 +876,7 @@ async def test_invalid_http_request(
 @skip_if_no_httptools
 def test_fragmentation(unused_tcp_port: int):
     def receive_all(sock: socket.socket):
-        chunks: List[bytes] = []
+        chunks: list[bytes] = []
         while True:
             chunk = sock.recv(1024)
             if not chunk:
@@ -994,9 +994,7 @@ async def test_huge_headers_h11_max_incomplete():
 
 
 @pytest.mark.anyio
-async def test_return_close_header(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"
-):
+async def test_return_close_header(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, http_protocol_cls)
@@ -1011,9 +1009,7 @@ async def test_return_close_header(
 
 
 @pytest.mark.anyio
-async def test_iterator_headers(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"
-):
+async def test_iterator_headers(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         headers = iter([(b"x-test-header", b"test value")])
         await send({"type": "http.response.start", "status": 200, "headers": headers})
@@ -1026,9 +1022,7 @@ async def test_iterator_headers(
 
 
 @pytest.mark.anyio
-async def test_lifespan_state(
-    http_protocol_cls: "Type[HttpToolsProtocol | H11Protocol]"
-):
+async def test_lifespan_state(http_protocol_cls: HTTPProtocol):
     expected_states = [{"a": 123, "b": [1]}, {"a": 123, "b": [1, 2]}]
 
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):

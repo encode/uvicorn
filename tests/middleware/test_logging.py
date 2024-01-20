@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import logging
 import socket
@@ -13,8 +15,17 @@ from tests.utils import run_server
 from uvicorn import Config
 
 if typing.TYPE_CHECKING:
+    import sys
+
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
-    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
+    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol as _WSProtocol
+
+    if sys.version_info >= (3, 10):  # pragma: no cover
+        from typing import TypeAlias
+    else:  # pragma: no cover
+        from typing_extensions import TypeAlias
+
+    WSProtocol: TypeAlias = "type[WebSocketProtocol | _WSProtocol]"
 
 
 @contextlib.contextmanager
@@ -87,7 +98,7 @@ async def test_trace_logging_on_http_protocol(
 
 @pytest.mark.anyio
 async def test_trace_logging_on_ws_protocol(
-    ws_protocol_cls: "typing.Type[WSProtocol | WebSocketProtocol]",
+    ws_protocol_cls: WSProtocol,
     caplog,
     logging_config,
     unused_tcp_port: int,
