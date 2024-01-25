@@ -51,39 +51,40 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         ## Never Trust trust
         ## -----------------------------
         # Test IPv4 Addresses
-        (_TRUSTED_EVERYTHING, "127.0.0.0", False),
-        (_TRUSTED_EVERYTHING, "127.0.0.1", False),
-        (_TRUSTED_EVERYTHING, "127.1.1.1", False),
-        (_TRUSTED_EVERYTHING, "127.255.255.255", False),
-        (_TRUSTED_EVERYTHING, "10.0.0.0", False),
-        (_TRUSTED_EVERYTHING, "10.0.0.1", False),
-        (_TRUSTED_EVERYTHING, "10.1.1.1", False),
-        (_TRUSTED_EVERYTHING, "10.255.255.255", False),
-        (_TRUSTED_EVERYTHING, "192.168.0.0", False),
-        (_TRUSTED_EVERYTHING, "192.168.0.1", False),
-        (_TRUSTED_EVERYTHING, "1.1.1.1", False),
+        (_TRUSTED_NOTHING, "127.0.0.0", False),
+        (_TRUSTED_NOTHING, "127.0.0.1", False),
+        (_TRUSTED_NOTHING, "127.1.1.1", False),
+        (_TRUSTED_NOTHING, "127.255.255.255", False),
+        (_TRUSTED_NOTHING, "10.0.0.0", False),
+        (_TRUSTED_NOTHING, "10.0.0.1", False),
+        (_TRUSTED_NOTHING, "10.1.1.1", False),
+        (_TRUSTED_NOTHING, "10.255.255.255", False),
+        (_TRUSTED_NOTHING, "192.168.0.0", False),
+        (_TRUSTED_NOTHING, "192.168.0.1", False),
+        (_TRUSTED_NOTHING, "1.1.1.1", False),
         # Test IPv6 Addresses
-        (_TRUSTED_EVERYTHING, "2001:db8::", False),
-        (_TRUSTED_EVERYTHING, "2001:db8:abcd:0012::0", False),
-        (_TRUSTED_EVERYTHING, "2001:db8:abcd:0012::1:1", False),
-        (_TRUSTED_EVERYTHING, "::", False),
-        (_TRUSTED_EVERYTHING, "::1", False),
+        (_TRUSTED_NOTHING, "2001:db8::", False),
+        (_TRUSTED_NOTHING, "2001:db8:abcd:0012::0", False),
+        (_TRUSTED_NOTHING, "2001:db8:abcd:0012::1:1", False),
+        (_TRUSTED_NOTHING, "::", False),
+        (_TRUSTED_NOTHING, "::1", False),
         (
-            _TRUSTED_EVERYTHING,
+            _TRUSTED_NOTHING,
             "2001:db8:3333:4444:5555:6666:102:304",
             False,
         ),  # aka 2001:db8:3333:4444:5555:6666:1.2.3.4
-        (_TRUSTED_EVERYTHING, "::b16:212c", False),  # aka ::11.22.33.44
-        (_TRUSTED_EVERYTHING, "a:b:c:d::", False),
-        (_TRUSTED_EVERYTHING, "::a:b:c:d", False),
+        (_TRUSTED_NOTHING, "::b16:212c", False),  # aka ::11.22.33.44
+        (_TRUSTED_NOTHING, "a:b:c:d::", False),
+        (_TRUSTED_NOTHING, "::a:b:c:d", False),
         # Test Literals
-        (_TRUSTED_EVERYTHING, "some-literal", False),
-        (_TRUSTED_EVERYTHING, "unix::///foo/bar", False),
-        (_TRUSTED_EVERYTHING, "/foo/bar", False),
-        (_TRUSTED_EVERYTHING, "*", False),
-        (_TRUSTED_EVERYTHING, "another-literal", False),
-        (_TRUSTED_EVERYTHING, "unix:///another/path", False),
-        (_TRUSTED_EVERYTHING, "/another/path", False),
+        (_TRUSTED_NOTHING, "some-literal", False),
+        (_TRUSTED_NOTHING, "unix:///foo/bar", False),
+        (_TRUSTED_NOTHING, "/foo/bar", False),
+        (_TRUSTED_NOTHING, "*", False),
+        (_TRUSTED_NOTHING, "another-literal", False),
+        (_TRUSTED_NOTHING, "unix:///another/path", False),
+        (_TRUSTED_NOTHING, "/another/path", False),
+
         ## Always trust
         ## -----------------------------
         # Test IPv4 Addresses
@@ -114,12 +115,13 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_EVERYTHING, "::a:b:c:d", True),
         # Test Literals
         (_TRUSTED_EVERYTHING, "some-literal", True),
-        (_TRUSTED_EVERYTHING, "unix::///foo/bar", True),
+        (_TRUSTED_EVERYTHING, "unix:///foo/bar", True),
         (_TRUSTED_EVERYTHING, "/foo/bar", True),
         (_TRUSTED_EVERYTHING, "*", True),
         (_TRUSTED_EVERYTHING, "another-literal", True),
         (_TRUSTED_EVERYTHING, "unix:///another/path", True),
         (_TRUSTED_EVERYTHING, "/another/path", True),
+
         ## Trust IPv4 Addresses
         ## -----------------------------
         # Test IPv4 Addresses
@@ -150,12 +152,13 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_IPv4_ADDRESSES, "::a:b:c:d", False),
         # Test Literals
         (_TRUSTED_IPv4_ADDRESSES, "some-literal", False),
-        (_TRUSTED_IPv4_ADDRESSES, "unix::///foo/bar", False),
+        (_TRUSTED_IPv4_ADDRESSES, "unix:///foo/bar", False),
         (_TRUSTED_IPv4_ADDRESSES, "*", False),
         (_TRUSTED_IPv4_ADDRESSES, "/foo/bar", False),
         (_TRUSTED_IPv4_ADDRESSES, "another-literal", False),
         (_TRUSTED_IPv4_ADDRESSES, "unix:///another/path", False),
         (_TRUSTED_IPv4_ADDRESSES, "/another/path", False),
+
         ## Trust IPv6 Addresses
         ## -----------------------------
         # Test IPv4 Addresses
@@ -186,12 +189,13 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_IPv6_ADDRESSES, "::a:b:c:d", False),
         # Test Literals
         (_TRUSTED_IPv6_ADDRESSES, "some-literal", False),
-        (_TRUSTED_IPv6_ADDRESSES, "unix::///foo/bar", False),
+        (_TRUSTED_IPv6_ADDRESSES, "unix:///foo/bar", False),
         (_TRUSTED_IPv6_ADDRESSES, "*", False),
         (_TRUSTED_IPv6_ADDRESSES, "/foo/bar", False),
         (_TRUSTED_IPv6_ADDRESSES, "another-literal", False),
         (_TRUSTED_IPv6_ADDRESSES, "unix:///another/path", False),
         (_TRUSTED_IPv6_ADDRESSES, "/another/path", False),
+
         ## Trust IPv4 Networks
         ## -----------------------------
         # Test IPv4 Addresses
@@ -222,12 +226,13 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_IPv4_NETWORKS, "::a:b:c:d", False),
         # Test Literals
         (_TRUSTED_IPv4_NETWORKS, "some-literal", False),
-        (_TRUSTED_IPv4_NETWORKS, "unix::///foo/bar", False),
+        (_TRUSTED_IPv4_NETWORKS, "unix:///foo/bar", False),
         (_TRUSTED_IPv4_NETWORKS, "*", False),
         (_TRUSTED_IPv4_NETWORKS, "/foo/bar", False),
         (_TRUSTED_IPv4_NETWORKS, "another-literal", False),
         (_TRUSTED_IPv4_NETWORKS, "unix:///another/path", False),
         (_TRUSTED_IPv4_NETWORKS, "/another/path", False),
+
         ## Trust IPv6 Networks
         ## -----------------------------
         # Test IPv4 Addresses
@@ -258,12 +263,13 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_IPv6_NETWORKS, "::a:b:c:d", False),
         # Test Literals
         (_TRUSTED_IPv6_NETWORKS, "some-literal", False),
-        (_TRUSTED_IPv6_NETWORKS, "unix::///foo/bar", False),
+        (_TRUSTED_IPv6_NETWORKS, "unix:///foo/bar", False),
         (_TRUSTED_IPv6_NETWORKS, "*", False),
         (_TRUSTED_IPv6_NETWORKS, "/foo/bar", False),
         (_TRUSTED_IPv6_NETWORKS, "another-literal", False),
         (_TRUSTED_IPv6_NETWORKS, "unix:///another/path", False),
         (_TRUSTED_IPv6_NETWORKS, "/another/path", False),
+
         ## Trust Literals
         ## -----------------------------
         # Test IPv4 Addresses
@@ -294,7 +300,7 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_LITERALS, "::a:b:c:d", False),
         # Test Literals
         (_TRUSTED_LITERALS, "some-literal", True),
-        (_TRUSTED_LITERALS, "unix::///foo/bar", True),
+        (_TRUSTED_LITERALS, "unix:///foo/bar", True),
         (_TRUSTED_LITERALS, "*", False),
         (_TRUSTED_LITERALS, "/foo/bar", True),
         (_TRUSTED_LITERALS, "another-literal", False),
@@ -306,7 +312,7 @@ def test_forwarded_hosts(
     init_hosts: Union[str, List[str]], test_host: str, expected: bool
 ) -> None:
     trusted_hosts = _TrustedHosts(init_hosts)
-    assert test_host in trusted_hosts is expected
+    assert (test_host in trusted_hosts) is expected
 
 
 @pytest.mark.anyio
