@@ -1,6 +1,7 @@
-from typing import TYPE_CHECKING, List, Type, Union
+from typing import TYPE_CHECKING, List, Type, Union, cast
 
 import httpx
+import httpx._transports.asgi
 import pytest
 import websockets.client
 
@@ -438,7 +439,9 @@ async def test_proxy_headers_websocket_x_forwarded_proto(
 async def test_proxy_headers_empty_x_forwarded_for() -> None:
     # fallback to the default behavior if x-forwarded-for is an empty list
     # https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
-    app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts="*")
+    app_with_middleware = cast(
+        httpx._transports.asgi._ASGIApp, ProxyHeadersMiddleware(app, trusted_hosts="*")
+    )
     transport = httpx.ASGITransport(app=app_with_middleware, client=("1.2.3.4", 8080))
     async with httpx.AsyncClient(
         transport=transport, base_url="http://testserver"
