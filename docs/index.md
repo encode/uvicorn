@@ -1,26 +1,24 @@
 <p align="center">
-  <img width="320" height="320" src="../../uvicorn.png" alt='uvicorn'>
+  <img width="320" height="320" src="https://raw.githubusercontent.com/tomchristie/uvicorn/master/docs/uvicorn.png" alt='uvicorn'>
 </p>
 
 <p align="center">
 <em>An ASGI web server, for Python.</em>
 </p>
 
-<p align="center">
-<a href="https://github.com/encode/uvicorn/actions">
-    <img src="https://github.com/encode/uvicorn/workflows/Test%20Suite/badge.svg" alt="Test Suite">
-</a>
-<a href="https://pypi.org/project/uvicorn/">
-    <img src="https://badge.fury.io/py/uvicorn.svg" alt="Package version">
-</a>
-<a href="https://pypi.org/project/uvicorn" target="_blank">
-    <img src="https://img.shields.io/pypi/pyversions/uvicorn.svg?color=%2334D058" alt="Supported Python versions">
-</a>
-</p>
+---
+
+[![Build Status](https://github.com/encode/uvicorn/workflows/Test%20Suite/badge.svg)](https://github.com/encode/uvicorn/actions)
+[![Package version](https://badge.fury.io/py/uvicorn.svg)](https://pypi.python.org/pypi/uvicorn)
+[![Supported Python Version](https://img.shields.io/pypi/pyversions/uvicorn.svg?color=%2334D058)](https://pypi.org/project/uvicorn)
 
 ---
 
-# Introduction
+**Documentation**: [https://www.uvicorn.org](https://www.uvicorn.org)
+
+**Source Code**: [https://github.com/encode/uvicorn](https://github.com/encode/uvicorn)
+
+---
 
 Uvicorn is an ASGI web server implementation for Python.
 

@@ -12,9 +12,13 @@
 [![Package version](https://badge.fury.io/py/uvicorn.svg)](https://pypi.python.org/pypi/uvicorn)
 [![Supported Python Version](https://img.shields.io/pypi/pyversions/uvicorn.svg?color=%2334D058)](https://pypi.org/project/uvicorn)
 
+---
+
 **Documentation**: [https://www.uvicorn.org](https://www.uvicorn.org)
 
-**Requirements**: Python 3.8+
+**Source Code**: [https://github.com/encode/uvicorn](https://github.com/encode/uvicorn)
+
+---
 
 Uvicorn is an ASGI web server implementation for Python.
 

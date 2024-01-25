@@ -3,7 +3,6 @@ site_description: The lightning-fast ASGI server.
 
 theme:
   name: "material"
-  custom_dir: docs/overrides
   palette:
     - scheme: "default"
       media: "(prefers-color-scheme: light)"
