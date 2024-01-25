@@ -84,7 +84,6 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_NOTHING, "another-literal", False),
         (_TRUSTED_NOTHING, "unix:///another/path", False),
         (_TRUSTED_NOTHING, "/another/path", False),
-
         ## Always trust
         ## -----------------------------
         # Test IPv4 Addresses
@@ -121,7 +120,6 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_EVERYTHING, "another-literal", True),
         (_TRUSTED_EVERYTHING, "unix:///another/path", True),
         (_TRUSTED_EVERYTHING, "/another/path", True),
-
         ## Trust IPv4 Addresses
         ## -----------------------------
         # Test IPv4 Addresses
@@ -158,7 +156,6 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_IPv4_ADDRESSES, "another-literal", False),
         (_TRUSTED_IPv4_ADDRESSES, "unix:///another/path", False),
         (_TRUSTED_IPv4_ADDRESSES, "/another/path", False),
-
         ## Trust IPv6 Addresses
         ## -----------------------------
         # Test IPv4 Addresses
@@ -195,7 +192,6 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_IPv6_ADDRESSES, "another-literal", False),
         (_TRUSTED_IPv6_ADDRESSES, "unix:///another/path", False),
         (_TRUSTED_IPv6_ADDRESSES, "/another/path", False),
-
         ## Trust IPv4 Networks
         ## -----------------------------
         # Test IPv4 Addresses
@@ -232,7 +228,6 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_IPv4_NETWORKS, "another-literal", False),
         (_TRUSTED_IPv4_NETWORKS, "unix:///another/path", False),
         (_TRUSTED_IPv4_NETWORKS, "/another/path", False),
-
         ## Trust IPv6 Networks
         ## -----------------------------
         # Test IPv4 Addresses
@@ -269,7 +264,6 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_IPv6_NETWORKS, "another-literal", False),
         (_TRUSTED_IPv6_NETWORKS, "unix:///another/path", False),
         (_TRUSTED_IPv6_NETWORKS, "/another/path", False),
-
         ## Trust Literals
         ## -----------------------------
         # Test IPv4 Addresses

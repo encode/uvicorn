@@ -255,7 +255,7 @@ Using Nginx as a proxy in front of your Uvicorn processes may not be necessary, 
 In managed environments such as `Heroku`, you won't typically need to configure Nginx, as your server processes will already be running behind load balancing proxies.
 
 The recommended configuration for proxying from Nginx is to use a UNIX domain socket between Nginx and whatever the process manager that is being used to run Uvicorn.
-Note that when doing this you will need to run Uvicorn with `--forwarded-allow-ips='*'` to ensure that the domain socket is trusted as a source from which to proxy headers.
+Note that when doing this you will need to run Uvicorn with `--forwarded-allow-ips='/path/to/socket'` to ensure that the domain socket is trusted as a source from which to proxy headers.
 
 When fronting the application with a proxy server you want to make sure that the proxy sets headers to ensure that the application can properly determine the client address of the incoming connection, and if the connection was over `http` or `https`.
 

@@ -81,22 +81,20 @@ class _TrustedHosts:
         """
         x_forwarded_for_hosts = _parse_raw_hosts(x_forwarded_for)
 
+        if not x_forwarded_for_hosts:
+            return None
+
         if self.always_trust:
             return x_forwarded_for_hosts[0]
 
-        host: Optional[str] = None
-
-        # Note: each proxy appends to the list so check it in reverse order
+        # Note: each proxy appends to the header list so check it in reverse order
         for host in reversed(x_forwarded_for_hosts):
             if host not in self:
                 return host
 
-        # The request came from a client on the proxy itself. Trust it.
+        # All hosts are trusted meaning that the client was also a trusted proxy
         # See https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
-        if host in self:
-            return x_forwarded_for_hosts[0]
-
-        return host
+        return x_forwarded_for_hosts[0]
 
 
 class ProxyHeadersMiddleware:
@@ -114,9 +112,6 @@ class ProxyHeadersMiddleware:
     - <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies>
     - <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For>
     """
-
-    # TODO: We should probably also support the Forwarded header:
-    # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Forwarded
 
     def __init__(
         self,
@@ -151,17 +146,29 @@ class ProxyHeadersMiddleware:
                         scope["scheme"] = x_forwarded_proto
 
                 if b"x-forwarded-for" in headers:
-                    # Determine the client address from the last trusted IP in the
-                    # X-Forwarded-For header. We've lost the connecting client's port
-                    # information by now, so only include the host.
                     x_forwarded_for = headers[b"x-forwarded-for"].decode("latin1")
                     host = self.trusted_hosts.get_trusted_client_host(x_forwarded_for)
 
-                    # Host is None or an empty string
-                    # if the x-forwarded-for header is empty.
-                    # See https://github.com/encode/uvicorn/issues/1068
                     if host:
+                        # If the x-forwarded-for header is empty then host is None or
+                        # an empty string.
+                        # Only set the client if we actually got something usable.
+                        # See: https://github.com/encode/uvicorn/issues/1068
+
+                        # Unless we can relaibly use x-forwarded-port (see below) then
+                        # we will not have any port information so set it to 0.
                         port = 0
                         scope["client"] = (host, port)
+
+                    # if b"x-forwarded-port" in headers:
+                    #     ...
+                    # TODO: Are we able to reliabily extract x-forwarded-port?
+                    # https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/x-forwarded-headers.html#x-forwarded-port
+                    # If yes we should update the NGINX in docs/deployment.md
+
+                # if b"forwarded" in headers:
+                #     ...
+                # TODO: We should probably also support the Forwarded header:
+                # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Forwarded
 
         return await self.app(scope, receive, send)
