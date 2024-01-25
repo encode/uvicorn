@@ -162,6 +162,6 @@ class ProxyHeadersMiddleware:
                     # See https://github.com/encode/uvicorn/issues/1068
                     if host:
                         port = 0
-                        scope["client"] = (host, port)  # type: ignore[arg-type]
+                        scope["client"] = (host, port)
 
         return await self.app(scope, receive, send)

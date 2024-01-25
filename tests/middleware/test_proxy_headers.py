@@ -31,7 +31,7 @@ async def app(
 
 # Note: we vary the format here to also test some of the functionality
 # of the _TrustedHosts.__init__ method.
-_TRUSTED_NOTHING = []
+_TRUSTED_NOTHING: List[str] = []
 _TRUSTED_EVERYTHING = "*"
 _TRUSTED_IPv4_ADDRESSES = "127.0.0.1, 10.0.0.1"
 _TRUSTED_IPv4_NETWORKS = ["127.0.0.0/8", "10.0.0.0/8"]
