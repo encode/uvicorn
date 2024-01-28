@@ -169,6 +169,10 @@ Options:
                                   to the $FORWARDED_ALLOW_IPS environment
                                   variable if available, or '127.0.0.1'. The
                                   literal '*' means trust everything.
+  --forwarded-trust-literals      Trust all literals in proxy headers.
+                                  Defaults to False. Useful when using
+                                  multiple proxies with UNIX Domain Sockets
+                                  for transport.
   --root-path TEXT                Set the ASGI 'root_path' for applications
                                   submounted below a given URL path.
   --limit-concurrency INTEGER     Maximum number of concurrent connections or

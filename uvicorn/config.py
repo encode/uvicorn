@@ -208,6 +208,7 @@ class Config:
         server_header: bool = True,
         date_header: bool = True,
         forwarded_allow_ips: list[str] | str | None = None,
+        forwarded_trust_literals: bool = False,
         root_path: str = "",
         limit_concurrency: int | None = None,
         limit_max_requests: int | None = None,
@@ -348,6 +349,8 @@ class Config:
             )
         else:
             self.forwarded_allow_ips = forwarded_allow_ips
+
+        self.forwarded_trust_literals = forwarded_trust_literals
 
         if self.reload and self.workers > 1:
             logger.warning('"workers" flag is ignored when reloading is enabled.')
@@ -493,7 +496,10 @@ class Config:
             self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
             self.loaded_app = ProxyHeadersMiddleware(
-                self.loaded_app, trusted_hosts=self.forwarded_allow_ips
+                self.loaded_app,
+                trusted_hosts=self.forwarded_allow_ips,
+                trust_none_client=bool(self.uds),
+                trust_all_literal_clients=self.forwarded_trust_literals,
             )
 
         self.loaded = True

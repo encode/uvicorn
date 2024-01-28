@@ -251,6 +251,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "The literal '*' means trust everything.",
 )
 @click.option(
+    "--forwarded-trust-literals",
+    is_flag=True,
+    default=False,
+    help="Trust all literals in proxy headers. Defaults to False. Useful when using "
+    "multiple proxies with UNIX Domain Sockets for transport.",
+)
+@click.option(
     "--root-path",
     type=str,
     default="",
@@ -398,6 +405,7 @@ def main(
     server_header: bool,
     date_header: bool,
     forwarded_allow_ips: str,
+    forwarded_trust_literals: bool,
     root_path: str,
     limit_concurrency: int,
     backlog: int,
@@ -447,6 +455,7 @@ def main(
         server_header=server_header,
         date_header=date_header,
         forwarded_allow_ips=forwarded_allow_ips,
+        forwarded_trust_literals=forwarded_trust_literals,
         root_path=root_path,
         limit_concurrency=limit_concurrency,
         backlog=backlog,
@@ -499,6 +508,7 @@ def run(
     server_header: bool = True,
     date_header: bool = True,
     forwarded_allow_ips: list[str] | str | None = None,
+    forwarded_trust_literals: bool = False,
     root_path: str = "",
     limit_concurrency: int | None = None,
     backlog: int = 2048,
@@ -551,6 +561,7 @@ def run(
         server_header=server_header,
         date_header=date_header,
         forwarded_allow_ips=forwarded_allow_ips,
+        forwarded_trust_literals=forwarded_trust_literals,
         root_path=root_path,
         limit_concurrency=limit_concurrency,
         backlog=backlog,

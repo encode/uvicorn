@@ -18,8 +18,13 @@ def _parse_raw_hosts(value: str) -> List[str]:
 class _TrustedHosts:
     """Container for trusted hosts and networks"""
 
-    def __init__(self, trusted_hosts: Union[List[str], str]) -> None:
+    def __init__(
+        self,
+        trusted_hosts: Union[List[str], str],
+        trust_all_literal_clients: bool = False,
+    ) -> None:
         self.always_trust: bool = trusted_hosts == "*"
+        self.trust_all_literal_clients = trust_all_literal_clients
 
         self.trusted_literals: Set[str] = set()
         self.trusted_hosts: Set[ipaddress._BaseAddress] = set()
@@ -72,6 +77,8 @@ class _TrustedHosts:
             return any(ip in net for net in self.trusted_networks)
 
         except ValueError:
+            if self.trust_all_literal_clients:
+                return True
             return item in self.trusted_literals
 
     def get_trusted_client_host(self, x_forwarded_for: str) -> Optional[str]:
@@ -96,6 +103,13 @@ class _TrustedHosts:
         # See https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
         return x_forwarded_for_hosts[0]
 
+    def __str__(self) -> str:
+        return (
+            f"{self.__class__.__name__}({self.trusted_hosts=}, "
+            f"{self.trusted_networks=}, {self.trusted_literals=}, "
+            f"{self.trust_all_literal_clients=}"
+        )
+
 
 class ProxyHeadersMiddleware:
     """Middleware for handling known proxy headers
@@ -107,6 +121,16 @@ class ProxyHeadersMiddleware:
     Modifies the `client` and `scheme` information so that they reference
     the connecting client, rather that the connecting proxy.
 
+    Use `trust_none_client = True` to continue with proxy header handling when
+    the initial client is `None`. This does not affect the handling of client
+    adddresses in the proxy headers. If you are listening on a UNIX Domain Sockets
+    you will need to set this to `True` to enable proxy handling.
+
+    Use `trust_all_literal_clients = True` to trust all non-IP clients in the header.
+    This is useful if you are using UNIX Domain Sockets to communicate between your
+    proxies and do not wish to list each literal or if you do not know the value of
+    each literal and startup.
+
     References:
 
     - <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies>
@@ -117,9 +141,13 @@ class ProxyHeadersMiddleware:
         self,
         app: "ASGI3Application",
         trusted_hosts: Union[List[str], str] = "127.0.0.1",
+        trust_none_client: bool = False,
+        trust_all_literal_clients: bool = False,
     ) -> None:
         self.app = app
-        self.trusted_hosts = _TrustedHosts(trusted_hosts)
+        self.trusted_hosts = _TrustedHosts(trusted_hosts, trust_all_literal_clients)
+        self.trust_none_client = trust_none_client
+        print(self.trusted_hosts)
         return
 
     async def __call__(
@@ -129,8 +157,16 @@ class ProxyHeadersMiddleware:
             scope = cast(Union[HTTPScope, WebSocketScope], scope)
             client_addr: Optional[Tuple[str, int]] = scope.get("client")
 
-            if client_addr and client_addr[0] in self.trusted_hosts:
+            if (client_addr is None and self.trust_none_client) or (
+                client_addr is not None and client_addr[0] in self.trusted_hosts
+            ):
                 headers = dict(scope["headers"])
+
+                # if b"forwarded" in headers:
+                #     ...
+                # TODO: We should probably also support the Forwarded header:
+                # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Forwarded
+                # If we do it should take precedence over the x-forwarded-* headers.
 
                 if b"x-forwarded-proto" in headers:
                     # Determine if the incoming request was http or https based on
@@ -165,10 +201,5 @@ class ProxyHeadersMiddleware:
                     # TODO: Are we able to reliabily extract x-forwarded-port?
                     # https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/x-forwarded-headers.html#x-forwarded-port
                     # If yes we should update the NGINX in docs/deployment.md
-
-                # if b"forwarded" in headers:
-                #     ...
-                # TODO: We should probably also support the Forwarded header:
-                # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Forwarded
 
         return await self.app(scope, receive, send)
