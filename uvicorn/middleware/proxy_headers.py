@@ -164,7 +164,9 @@ class ProxyHeadersMiddleware:
 
                 # if b"forwarded" in headers:
                 #     ...
+                # https://github.com/encode/uvicorn/discussions/2236
                 # TODO: We should probably also support the Forwarded header:
+                # https://datatracker.ietf.org/doc/html/rfc7239
                 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Forwarded
                 # If we do it should take precedence over the x-forwarded-* headers.
 
@@ -198,6 +200,7 @@ class ProxyHeadersMiddleware:
 
                     # if b"x-forwarded-port" in headers:
                     #     ...
+                    # https://github.com/encode/uvicorn/issues/1974
                     # TODO: Are we able to reliabily extract x-forwarded-port?
                     # https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/x-forwarded-headers.html#x-forwarded-port
                     # If yes we should update the NGINX in docs/deployment.md

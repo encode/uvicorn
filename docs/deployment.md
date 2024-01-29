@@ -358,7 +358,9 @@ Uvicorn can be configured to trust IP Addresses (e.g. `127.0.0.1`), IP Networks 
     Incorrectly trusting other clients can lead to malicious actors spoofing their apparent client address to your application.
 
 For more informations see [`ProxyHeadersMiddleware`](https://github.com/encode/uvicorn/blob/master/uvicorn/middleware/proxy_headers.py)
+### Client Port
 
+Currently if the `ProxyHeadersMiddleware` is able to retrieve a trusted client value then the client's port will be set to `0`. This is because port information is lost when using these headers.
 
 ### UNIX Domain Sockets (UDS)
 
