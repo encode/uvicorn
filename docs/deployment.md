@@ -260,12 +260,9 @@ Using Nginx as a proxy in front of your Uvicorn processes may not be necessary, 
 
 In managed environments such as `Heroku`, you won't typically need to configure Nginx, as your server processes will already be running behind load balancing proxies.
 
-The recommended configuration for proxying from Nginx is to use a UNIX domain socket between Nginx and whatever the process manager that is being used to run Uvicorn.
-Note that when doing this you will need to run Uvicorn with `--forwarded-allow-ips='unix:'` (or `--forwarded-trust-literals` to trust all literal "clients") to ensure that the domain socket is trusted as a source from which to proxy headers.
+The recommended configuration for proxying from Nginx is to use a UNIX domain socket between Nginx and whatever the process manager that is being used to run Uvicorn. If using Uvicorn directly you can bind it to a UNIX domain socket using `uvicorn --uds /path/to/socket.sock <...>`.
 
-When fronting the application with a proxy server you want to make sure that the proxy sets headers to ensure that the application can properly determine the client address of the incoming connection, and if the connection was over `http` or `https`.
-
-You should ensure that the `X-Forwarded-For` and `X-Forwarded-Proto` headers are set by the proxy, and that Uvicorn is run using the `--proxy-headers` setting. This ensures that the ASGI scope includes correct `client` and `scheme` information.
+When running your application behind one or more proxies you will want to make sure that each proxy sets appropriate headers to ensure that your application can properly determine the client address of the incoming connection, and if the connection was over `http` or `https`. For more information see [Proxies and Forwarded Headers][#proxies-and-forwarded-headers] below.
 
 Here's how a simple Nginx configuration might look. This example includes setting proxy headers, and using a UNIX domain socket to communicate with the application server.
 
@@ -343,3 +340,42 @@ $ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornW
 [nginx_websocket]: https://nginx.org/en/docs/http/websocket.html
 [letsencrypt]: https://letsencrypt.org/
 [mkcert]: https://github.com/FiloSottile/mkcert
+
+## Proxies and Forwarded Headers
+
+When running an application behind one or more proxies, certain information about the request is lost. To avoid this most proxies will add headers containing this information for downstream servers to read.
+
+Uvicorn currently supports the following headers:
+
+- `X-Forwarded-For` ([MDN Reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For))
+- `X-Forwarded-Proto`([MDN Reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto))
+
+Uvicorn can use these headers to correctly set the client and protocol in the request. However as anyone can set these headers you must configure which "clients" you will trust to have set them correctly.
+
+Uvicorn can be configured to trust IP Addresses (e.g. `127.0.0.1`), IP Networks (e.g. `10.100.0.0/16`), or Literals (e.g. `/path/to/socket.sock`). When running from CLI these are configured using `--forwarded-trust-ips`.
+
+!!! Warning: Only trust clients you can actually trust
+    Incorrectly trusting other clients can lead to malicious actors spoofing their apparent client address to your application.
+
+For more informations see [`ProxyHeadersMiddleware`](https://github.com/encode/uvicorn/blob/master/uvicorn/middleware/proxy_headers.py)
+
+
+### UNIX Domain Sockets (UDS)
+
+Although it is common for UNIX Domain Sockets to be used for communicating between various HTTP servers, they can mess with some of the expected received values as they will be various non-address strings or missing values.
+
+For example:
+- when NGINX itself is running behind a UDS it will add the literal `unix:` as the client in the `X-Forwarded-For` header.
+- When Uvicorn is running behind a UDS the initial client will be `None`.
+
+In the case of Uvicorn, if it run using `--uds`, then it will automatically trust `None` as the initial client.
+
+If you are running Uvicorn behind multiple layers of proxies which use UDS, or you are not able to know the path of the sockets at initialisation, you can use the `--forwarded-trust-literals` setting to trust all literals without specifying them. You can still set `--forwarded-trust-ips` to trust other addresses and networks.
+
+!!! Warning: Malformed `X-Forwarded-For` values
+    `X-Forwarded-For` values that cannot be converted to an IP Address will be treated as literals when processing the header. This means that if a proxy adds a malformed value it will be treated as a literal, in combination with `--forwarded-trust-literals` this may result in unexpected values being trusted.
+
+
+### Trust Everything
+
+Rather than specifying what to trust, you can instruct Uvicorn to trust all clients using the literal `"*"`. You should only set this when you know you can trust all values within the forwarded headers (e.g. because your proxies remove the existing headers before setting their own).
