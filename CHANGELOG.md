@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.27.0.post1 - 2024-01-29
+
+### Fixed
+
+- Fix nav overrides for newer version of Mkdocs Material (#2233) 26/01/24
+
 ## 0.27.0 - 2024-01-20
 
 ### Added
