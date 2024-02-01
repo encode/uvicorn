@@ -226,6 +226,7 @@ class Config:
         headers: list[tuple[str, str]] | None = None,
         factory: bool = False,
         h11_max_incomplete_event_size: int | None = None,
+        before_graceful_exit_hook: Callable[[], Any] | str | None = None,
     ):
         self.app = app
         self.host = host
@@ -271,6 +272,7 @@ class Config:
         self.encoded_headers: list[tuple[bytes, bytes]] = []
         self.factory = factory
         self.h11_max_incomplete_event_size = h11_max_incomplete_event_size
+        self.before_graceful_exit_hook = before_graceful_exit_hook
 
         self.loaded = False
         self.configure_logging()
@@ -472,6 +474,11 @@ class Config:
                     "ASGI app factory detected. Using it, "
                     "but please consider setting the --factory flag explicitly."
                 )
+
+        if isinstance(self.before_graceful_exit_hook, str):
+            self.before_graceful_exit_hook = import_from_string(
+                self.before_graceful_exit_hook
+            )
 
         if self.interface == "auto":
             if inspect.isclass(self.loaded_app):
