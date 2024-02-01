@@ -97,9 +97,10 @@ def test_reload_dir_is_set(
             app="tests.test_config:asgi_app", reload=True, reload_dirs=[str(app_dir)]
         )
         assert len(caplog.records) == 1
-        assert caplog.records[
-            -1
-        ].message == f"Will watch for changes in these directories: {[str(app_dir)]}"
+        assert (
+            caplog.records[-1].message
+            == f"Will watch for changes in these directories: {[str(app_dir)]}"
+        )
         assert config.reload_dirs == [app_dir]
         config = Config(
             app="tests.test_config:asgi_app", reload=True, reload_dirs=str(app_dir)
