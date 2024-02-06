@@ -176,6 +176,20 @@ class MockTransport:
         pass
 
 
+class MockTimerHandle:
+    def __init__(self, loop_later_list, delay, callback, args):
+        self.loop_later_list = loop_later_list
+        self.delay = delay
+        self.callback = callback
+        self.args = args
+        self.cancelled = False
+
+    def cancel(self):
+        if not self.cancelled:
+            self.cancelled = True
+            self.loop_later_list.remove(self)
+
+
 class MockLoop:
     def __init__(self):
         self._tasks = []
@@ -186,18 +200,20 @@ class MockLoop:
         return MockTask()
 
     def call_later(self, delay, callback, *args):
-        self._later.insert(0, (delay, callback, args))
+        handle = MockTimerHandle(self._later, delay, callback, args)
+        self._later.insert(0, handle)
+        return handle
 
     async def run_one(self):
         return await self._tasks.pop()
 
     def run_later(self, with_delay):
         later = []
-        for delay, callback, args in self._later:
-            if with_delay >= delay:
-                callback(*args)
+        for timer_handle in self._later:
+            if with_delay >= timer_handle.delay:
+                timer_handle.callback(*timer_handle.args)
             else:
-                later.append((delay, callback, args))
+                later.append(timer_handle)
         self._later = later
 
 
@@ -313,6 +329,32 @@ async def test_keepalive_timeout(http_protocol_cls: HTTPProtocol):
     assert not protocol.transport.is_closing()
     protocol.loop.run_later(with_delay=5)
     assert protocol.transport.is_closing()
+
+
+@pytest.mark.anyio
+async def test_keepalive_timeout_with_pipelined_requests(
+    http_protocol_cls: HTTPProtocol,
+):
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, http_protocol_cls)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+
+    # After processing the first request, the keep-alive task should be
+    # disabled because the second request is not responded yet.
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
+    assert protocol.timeout_keep_alive_task is None
+
+    # Process the second request and ensure that the keep-alive task
+    # has been enabled again as the connection is now idle.
+    protocol.transport.clear_buffer()
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
+    assert protocol.timeout_keep_alive_task is not None
 
 
 @pytest.mark.anyio
