@@ -80,7 +80,7 @@ LOGGING_CONFIG: dict[str, Any] = {
         "default": {
             "formatter": "default",
             "class": "logging.StreamHandler",
-            "stream": "ext://sys.stderr",
+            "stream": "ext://sys.stdout",
         },
         "access": {
             "formatter": "access",
