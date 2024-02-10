@@ -6,7 +6,7 @@ import os
 import platform
 import ssl
 import sys
-from typing import Any, Callable
+from typing import Any, Awaitable, Callable
 
 import click
 
@@ -523,7 +523,7 @@ def run(
     app_dir: str | None = None,
     factory: bool = False,
     h11_max_incomplete_event_size: int | None = None,
-    before_graceful_exit_hook: Callable[[], Any] | str | None = None,
+    before_graceful_exit_hook: Callable[[], Any] | Callable[[], Awaitable[Any]] | str | None = None,
 ) -> None:
     if app_dir is not None:
         sys.path.insert(0, app_dir)
