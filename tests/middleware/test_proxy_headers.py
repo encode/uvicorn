@@ -36,50 +36,20 @@ async def default_app(
     await response(scope, receive, send)
 
 
-class UdsMiddleware:
-    """Middleware that mimics ProxyHeadersMiddleware but first sets client to `None`
-
-    Manually acts as if Uvicorn is running behind a UNIX Domain Socket
-    """
-
-    def __init__(self, *args, **kwargs) -> None:
-        self.app = ProxyHeadersMiddleware(*args, **kwargs)
-        return
-
-    async def __call__(
-        self,
-        scope: Scope,
-        receive: ASGIReceiveCallable,
-        send: ASGISendCallable,
-    ) -> None:
-        if scope["type"] in ("http", "websocket"):
-            scope["client"] = None  # type: ignore
-        return await self.app(scope, receive, send)
-
-
 def make_httpx_client(
     trusted_hosts: str | list[str],
     client: tuple[str, int] = ("127.0.0.1", 123),
-    trust_none_client: bool = False,
-    trust_all_literal_clients: bool = False,
-    app_class: type = ProxyHeadersMiddleware,
 ) -> httpx.AsyncClient:
     """Create async client for use in test cases
 
     Args:
         trusted_hosts: trusted_hosts for proxy middleware
         client: transport client to use
-        trust_none_client: trust_none_client for proxy middleware
-        trust_all_literal_clients: trust_all_literal_clients for proxy middleware
-        app_class: ASGI app to use with transport.
-            This is so that can use `UdsMiddleware`.
     """
 
     app = cast(
         httpx._transports.asgi._ASGIApp,
-        app_class(
-            default_app, trusted_hosts, trust_none_client, trust_all_literal_clients
-        ),
+        ProxyHeadersMiddleware(default_app, trusted_hosts),
     )
     transport = httpx.ASGITransport(app=app, client=client)
     return httpx.AsyncClient(transport=transport, base_url="http://testserver")
@@ -391,25 +361,6 @@ def test_forwarded_hosts(
     assert (test_host in trusted_hosts) is expected
 
 
-@pytest.mark.parametrize(
-    ("test_host", "expected"),
-    [
-        ("127.0.0.1", True),
-        ("192.168.0.1", False),
-        ("::1", True),
-        ("ff::1", False),
-        ("some-literal", True),
-        ("1.2.34.5.6.7", True),  # invalid ipv4
-        (":::1", True),  # invalip ipv6
-        ("unix:", True),
-        ("", False),  # empty string is not literal
-    ],
-)
-def test_forwarded_hosts_trust_literals(test_host: str, expected: bool) -> None:
-    trusted_hosts = _TrustedHosts("127.0.0.1, ::1, some-literal", True)
-    assert (test_host in trusted_hosts) is expected
-
-
 @pytest.mark.anyio
 @pytest.mark.parametrize(
     ("trusted_hosts", "expected"),
@@ -515,20 +466,6 @@ async def test_proxy_headers_websocket_x_forwarded_proto(
         ) as websocket:
             data = await websocket.recv()
             assert data == "wss://1.2.3.4:0"
-
-
-@pytest.mark.anyio
-@pytest.mark.parametrize(
-    ("trust_none_client", "expected"),
-    [(False, "http://NONE"), (True, "https://1.2.3.4:0")],
-)
-async def test_proxy_headers_uds(trust_none_client: bool, expected: str) -> None:
-    async with make_httpx_client(
-        "10.0.0.0/8", trust_none_client=trust_none_client, app_class=UdsMiddleware
-    ) as client:
-        response = await client.get("/", headers=make_x_headers("1.2.3.4, 10.1.1.1"))
-    assert response.status_code == 200
-    assert response.text == expected
 
 
 @pytest.mark.anyio

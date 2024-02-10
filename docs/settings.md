@@ -88,10 +88,9 @@ Note that WSGI mode always disables WebSocket support, as it is not supported by
 ## HTTP
 
 * `--root-path <str>` - Set the ASGI `root_path` for applications submounted below a given URL path.
-* `--proxy-headers` / `--no-proxy-headers` - Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to populate remote address info. Defaults to enabled, but is restricted to only trusting
+* `--proxy-headers` / `--no-proxy-headers` - Enable/Disable X-Forwarded-Proto, X-Forwarded-For to populate remote address info. Defaults to enabled, but is restricted to only trusting
 connecting IPs in the `forwarded-allow-ips` configuration.
 * `--forwarded-allow-ips` <comma-separated-list> Comma separated list of IP Addresses, IP Networks, or literals (e.g. UNIX Socket path) to trust with proxy headers. Defaults to the `$FORWARDED_ALLOW_IPS` environment variable if available, or '127.0.0.1'. The literal `'*'` means trust everything.
-* `--forwarded-trust-literals` - Trust all literals in proxy headers. Defaults to False. Useful when using multiple proxies with UNIX Domain Sockets for transport.
 * `--server-header` / `--no-server-header` - Enable/Disable default `Server` header.
 * `--date-header` / `--no-date-header` - Enable/Disable default `Date` header.
 

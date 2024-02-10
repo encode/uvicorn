@@ -99,10 +99,6 @@ Options:
                                   to the $FORWARDED_ALLOW_IPS environment
                                   variable if available, or '127.0.0.1'. The
                                   literal '*' means trust everything.
-  --forwarded-trust-literals      Trust all literals in proxy headers.
-                                  Defaults to False. Useful when using
-                                  multiple proxies with UNIX Domain Sockets
-                                  for transport.
   --root-path TEXT                Set the ASGI 'root_path' for applications
                                   submounted below a given URL path.
   --limit-concurrency INTEGER     Maximum number of concurrent connections or
@@ -369,13 +365,6 @@ Although it is common for UNIX Domain Sockets to be used for communicating betwe
 For example:
 - when NGINX itself is running behind a UDS it will add the literal `unix:` as the client in the `X-Forwarded-For` header.
 - When Uvicorn is running behind a UDS the initial client will be `None`.
-
-In the case of Uvicorn, if it run using `--uds`, then it will automatically trust `None` as the initial client.
-
-If you are running Uvicorn behind multiple layers of proxies which use UDS, or you are not able to know the path of the sockets at initialisation, you can use the `--forwarded-trust-literals` setting to trust all literals without specifying them. You can still set `--forwarded-trust-ips` to trust other addresses and networks.
-
-!!! Warning: Malformed `X-Forwarded-For` values
-    `X-Forwarded-For` values that cannot be converted to an IP Address will be treated as literals when processing the header. This means that if a proxy adds a malformed value it will be treated as a literal, in combination with `--forwarded-trust-literals` this may result in unexpected values being trusted.
 
 
 ### Trust Everything
