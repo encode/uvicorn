@@ -1,12 +1,16 @@
 # Change Log
 
+## 0.27.1 - 2024-02-10
+
+- Fix spurious LocalProtocolError errors when processing pipelined requests (#2243) 10/02/24
+
 ## 0.27.0.post1 - 2024-01-29
 
 ### Fixed
 
 - Fix nav overrides for newer version of Mkdocs Material (#2233) 26/01/24
 
-## 0.27.0 - 2024-01-20
+## 0.27.0 - 2024-01-22
 
 ### Added
 
