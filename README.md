@@ -14,7 +14,7 @@
 
 **Documentation**: [https://www.uvicorn.org](https://www.uvicorn.org)
 
-**Requirements**: Python 3.8+
+---
 
 Uvicorn is an ASGI web server implementation for Python.
 
