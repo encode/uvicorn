@@ -523,9 +523,9 @@ def run(
     app_dir: str | None = None,
     factory: bool = False,
     h11_max_incomplete_event_size: int | None = None,
-    before_graceful_exit_hook: Callable[[], Any] 
-    | Callable[[], Awaitable[Any]] 
-    | str 
+    before_graceful_exit_hook: Callable[[], Any]
+    | Callable[[], Awaitable[Any]]
+    | str
     | None = None,
 ) -> None:
     if app_dir is not None:
