@@ -236,6 +236,14 @@ class H11Protocol(asyncio.Protocol):
                 else:
                     app = self.app
 
+                # When starting to process a request, disable the keep-alive
+                # timeout. Normally we disable this when receiving data from
+                # client and set back when finishing processing its request.
+                # However, for pipelined requests processing finishes after
+                # already receiving the next request and thus the timer may
+                # be set here, which we don't want.
+                self._unset_keepalive_if_required()
+
                 self.cycle = RequestResponseCycle(
                     scope=self.scope,
                     conn=self.conn,
