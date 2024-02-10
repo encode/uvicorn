@@ -326,22 +326,22 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.transport.is_closing():
             return
 
-        # Set a short Keep-Alive timeout.
         self._unset_keepalive_if_required()
-
-        self.timeout_keep_alive_task = self.loop.call_later(
-            self.timeout_keep_alive, self.timeout_keep_alive_handler
-        )
 
         # Unpause data reads if needed.
         self.flow.resume_reading()
 
-        # Unblock any pipelined events.
+        # Unblock any pipelined events. If there are none, arm the
+        # Keep-Alive timeout instead.
         if self.pipeline:
             cycle, app = self.pipeline.pop()
             task = self.loop.create_task(cycle.run_asgi(app))
             task.add_done_callback(self.tasks.discard)
             self.tasks.add(task)
+        else:
+            self.timeout_keep_alive_task = self.loop.call_later(
+                self.timeout_keep_alive, self.timeout_keep_alive_handler
+            )
 
     def shutdown(self) -> None:
         """
