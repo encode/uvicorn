@@ -226,7 +226,10 @@ class Config:
         headers: list[tuple[str, str]] | None = None,
         factory: bool = False,
         h11_max_incomplete_event_size: int | None = None,
-        before_graceful_exit_hook: Callable[[], Any] | str | None = None,
+        before_graceful_exit_hook: Callable[[], Any]
+        | Callable[[], Awaitable[Any]]
+        | str
+        | None = None,
     ):
         self.app = app
         self.host = host
