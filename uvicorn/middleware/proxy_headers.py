@@ -99,16 +99,6 @@ class _TrustedHosts:
         # See https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
         return x_forwarded_for_hosts[0]
 
-    def __str__(self) -> str:
-        if self.always_trust:
-            return f"{self.__class__.__name__}(always_trust=True)"
-
-        return (
-            f"{self.__class__.__name__}({self.trusted_hosts=}, "
-            f"{self.trusted_networks=}, {self.trusted_literals=}"
-            ")"
-        )
-
 
 class ProxyHeadersMiddleware:
     """Middleware for handling known proxy headers
