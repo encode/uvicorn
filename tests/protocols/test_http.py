@@ -4,7 +4,7 @@ import logging
 import socket
 import threading
 import time
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -223,32 +223,12 @@ class MockTask:
         pass
 
 
-@overload
-def get_connected_protocol(
-    app: ASGIApplication,
-    http_protocol_cls: type[HttpToolsProtocol],
-    lifespan: LifespanOff | LifespanOn | None = ...,
-    **kwargs: Any,
-) -> HttpToolsProtocol:
-    ...
-
-
-@overload
-def get_connected_protocol(
-    app: ASGIApplication,
-    http_protocol_cls: type[H11Protocol],
-    lifespan: LifespanOff | LifespanOn | None = ...,
-    **kwargs: Any,
-) -> H11Protocol:
-    ...
-
-
 def get_connected_protocol(
     app: ASGIApplication,
     http_protocol_cls: HTTPProtocol,
     lifespan: LifespanOff | LifespanOn | None = None,
     **kwargs: Any,
-) -> HttpToolsProtocol | H11Protocol:
+):
     loop = MockLoop()
     transport = MockTransport()
     config = Config(app=app, **kwargs)
