@@ -4,7 +4,7 @@ import logging
 import socket
 import threading
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, overload
 
 import pytest
 
@@ -16,6 +16,7 @@ from uvicorn.lifespan.off import LifespanOff
 from uvicorn.lifespan.on import LifespanOn
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
+from uvicorn.protocols.utils import ClientDisconnected
 
 try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
@@ -222,12 +223,32 @@ class MockTask:
         pass
 
 
+@overload
+def get_connected_protocol(
+    app: ASGIApplication,
+    http_protocol_cls: type[HttpToolsProtocol],
+    lifespan: LifespanOff | LifespanOn | None = ...,
+    **kwargs: Any,
+) -> HttpToolsProtocol:
+    ...
+
+
+@overload
+def get_connected_protocol(
+    app: ASGIApplication,
+    http_protocol_cls: type[H11Protocol],
+    lifespan: LifespanOff | LifespanOn | None = ...,
+    **kwargs: Any,
+) -> H11Protocol:
+    ...
+
+
 def get_connected_protocol(
     app: ASGIApplication,
     http_protocol_cls: HTTPProtocol,
     lifespan: LifespanOff | LifespanOn | None = None,
     **kwargs: Any,
-):
+) -> HttpToolsProtocol | H11Protocol:
     loop = MockLoop()
     transport = MockTransport()
     config = Config(app=app, **kwargs)
@@ -369,9 +390,7 @@ async def test_close(http_protocol_cls: HTTPProtocol):
 
 
 @pytest.mark.anyio
-async def test_chunked_encoding(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_chunked_encoding(http_protocol_cls: HTTPProtocol):
     app = Response(
         b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
     )
@@ -385,9 +404,7 @@ async def test_chunked_encoding(
 
 
 @pytest.mark.anyio
-async def test_chunked_encoding_empty_body(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_chunked_encoding_empty_body(http_protocol_cls: HTTPProtocol):
     app = Response(
         b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
     )
@@ -416,9 +433,7 @@ async def test_chunked_encoding_head_request(
 
 
 @pytest.mark.anyio
-async def test_pipelined_requests(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_pipelined_requests(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, http_protocol_cls)
@@ -440,9 +455,7 @@ async def test_pipelined_requests(
 
 
 @pytest.mark.anyio
-async def test_undersized_request(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_undersized_request(http_protocol_cls: HTTPProtocol):
     app = Response(b"xxx", headers={"content-length": "10"})
 
     protocol = get_connected_protocol(app, http_protocol_cls)
@@ -452,9 +465,7 @@ async def test_undersized_request(
 
 
 @pytest.mark.anyio
-async def test_oversized_request(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_oversized_request(http_protocol_cls: HTTPProtocol):
     app = Response(b"xxx" * 20, headers={"content-length": "10"})
 
     protocol = get_connected_protocol(app, http_protocol_cls)
@@ -464,9 +475,7 @@ async def test_oversized_request(
 
 
 @pytest.mark.anyio
-async def test_large_post_request(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_large_post_request(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, http_protocol_cls)
@@ -486,9 +495,7 @@ async def test_invalid_http(http_protocol_cls: HTTPProtocol):
 
 
 @pytest.mark.anyio
-async def test_app_exception(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_app_exception(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         raise Exception()
 
@@ -500,9 +507,7 @@ async def test_app_exception(
 
 
 @pytest.mark.anyio
-async def test_exception_during_response(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_exception_during_response(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
         await send({"type": "http.response.body", "body": b"1", "more_body": True})
@@ -516,9 +521,7 @@ async def test_exception_during_response(
 
 
 @pytest.mark.anyio
-async def test_no_response_returned(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_no_response_returned(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         ...
 
@@ -530,9 +533,7 @@ async def test_no_response_returned(
 
 
 @pytest.mark.anyio
-async def test_partial_response_returned(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_partial_response_returned(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
 
@@ -544,9 +545,7 @@ async def test_partial_response_returned(
 
 
 @pytest.mark.anyio
-async def test_duplicate_start_message(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_duplicate_start_message(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
         await send({"type": "http.response.start", "status": 200})
@@ -559,9 +558,7 @@ async def test_duplicate_start_message(
 
 
 @pytest.mark.anyio
-async def test_missing_start_message(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_missing_start_message(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.body", "body": b""})
 
@@ -573,9 +570,7 @@ async def test_missing_start_message(
 
 
 @pytest.mark.anyio
-async def test_message_after_body_complete(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_message_after_body_complete(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
         await send({"type": "http.response.body", "body": b""})
@@ -589,9 +584,7 @@ async def test_message_after_body_complete(
 
 
 @pytest.mark.anyio
-async def test_value_returned(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_value_returned(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
         await send({"type": "http.response.body", "body": b""})
@@ -605,9 +598,7 @@ async def test_value_returned(
 
 
 @pytest.mark.anyio
-async def test_early_disconnect(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_early_disconnect(http_protocol_cls: HTTPProtocol):
     got_disconnect_event = False
 
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
@@ -629,9 +620,26 @@ async def test_early_disconnect(
 
 
 @pytest.mark.anyio
-async def test_early_response(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_disconnect_on_send(http_protocol_cls: HTTPProtocol) -> None:
+    got_disconnected = False
+
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
+        try:
+            await send({"type": "http.response.start", "status": 200})
+        except ClientDisconnected:
+            nonlocal got_disconnected
+            got_disconnected = True
+
+    protocol = get_connected_protocol(app, http_protocol_cls)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    protocol.eof_received()
+    protocol.connection_lost(None)
+    await protocol.loop.run_one()
+    assert got_disconnected
+
+
+@pytest.mark.anyio
+async def test_early_response(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, http_protocol_cls)
@@ -643,9 +651,7 @@ async def test_early_response(
 
 
 @pytest.mark.anyio
-async def test_read_after_response(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_read_after_response(http_protocol_cls: HTTPProtocol):
     message_after_response = None
 
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
@@ -663,9 +669,7 @@ async def test_read_after_response(
 
 
 @pytest.mark.anyio
-async def test_http10_request(
-    http_protocol_cls: HTTPProtocol,
-):
+async def test_http10_request(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         assert scope["type"] == "http"
         content = "Version: %s" % scope["http_version"]

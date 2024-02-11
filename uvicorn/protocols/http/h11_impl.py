@@ -414,7 +414,7 @@ class RequestResponseCycle:
                 self.scope, self.receive, self.send
             )
         except ClientDisconnected:
-            ...
+            pass
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
