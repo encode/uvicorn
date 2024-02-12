@@ -27,6 +27,7 @@ from uvicorn.protocols.http.flow_control import (
     service_unavailable,
 )
 from uvicorn.protocols.utils import (
+    ClientDisconnected,
     get_client_addr,
     get_local_addr,
     get_path_with_query_string,
@@ -205,7 +206,7 @@ class H11Protocol(asyncio.Protocol):
                     "type": "http",
                     "asgi": {
                         "version": self.config.asgi_version,
-                        "spec_version": "2.3",
+                        "spec_version": "2.4",
                     },
                     "http_version": event.http_version.decode("ascii"),
                     "server": self.server,
@@ -235,6 +236,14 @@ class H11Protocol(asyncio.Protocol):
                     self.logger.warning(message)
                 else:
                     app = self.app
+
+                # When starting to process a request, disable the keep-alive
+                # timeout. Normally we disable this when receiving data from
+                # client and set back when finishing processing its request.
+                # However, for pipelined requests processing finishes after
+                # already receiving the next request and thus the timer may
+                # be set here, which we don't want.
+                self._unset_keepalive_if_required()
 
                 self.cycle = RequestResponseCycle(
                     scope=self.scope,
@@ -404,6 +413,8 @@ class RequestResponseCycle:
             result = await app(  # type: ignore[func-returns-value]
                 self.scope, self.receive, self.send
             )
+        except ClientDisconnected:
+            pass
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
@@ -428,7 +439,7 @@ class RequestResponseCycle:
             self.on_response = lambda: None
 
     async def send_500_response(self) -> None:
-        response_start_event: "HTTPResponseStartEvent" = {
+        response_start_event: HTTPResponseStartEvent = {
             "type": "http.response.start",
             "status": 500,
             "headers": [
@@ -437,7 +448,7 @@ class RequestResponseCycle:
             ],
         }
         await self.send(response_start_event)
-        response_body_event: "HTTPResponseBodyEvent" = {
+        response_body_event: HTTPResponseBodyEvent = {
             "type": "http.response.body",
             "body": b"Internal Server Error",
             "more_body": False,
@@ -445,14 +456,14 @@ class RequestResponseCycle:
         await self.send(response_body_event)
 
     # ASGI interface
-    async def send(self, message: "ASGISendEvent") -> None:
+    async def send(self, message: ASGISendEvent) -> None:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
             await self.flow.drain()
 
         if self.disconnected:
-            return
+            raise ClientDisconnected
 
         if not self.response_started:
             # Sending response status line and headers
@@ -519,7 +530,7 @@ class RequestResponseCycle:
                 self.transport.close()
             self.on_response()
 
-    async def receive(self) -> "ASGIReceiveEvent":
+    async def receive(self) -> ASGIReceiveEvent:
         if self.waiting_for_100_continue and not self.transport.is_closing():
             headers: list[tuple[str, str]] = []
             event = h11.InformationalResponse(
@@ -537,7 +548,7 @@ class RequestResponseCycle:
         if self.disconnected or self.response_complete:
             return {"type": "http.disconnect"}
 
-        message: "HTTPRequestEvent" = {
+        message: HTTPRequestEvent = {
             "type": "http.request",
             "body": self.body,
             "more_body": self.more_body,
