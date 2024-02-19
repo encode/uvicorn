@@ -50,7 +50,7 @@ def return_exc_info(environ: Environ, start_response: StartResponse) -> List[byt
         return [output]
 
 
-@pytest.fixture(params=[wsgi._WSGIMiddleware, a2wsgi.WSGIMiddleware])
+@pytest.fixture(params=[wsgi._WSGIMiddleware, a2wsgi.WSGIMiddleware])  # type: ignore
 def wsgi_middleware(request: pytest.FixtureRequest) -> Callable:
     return request.param
 
@@ -122,11 +122,11 @@ def test_build_environ_encoding() -> None:
     scope: "HTTPScope" = {
         "asgi": {"version": "3.0", "spec_version": "2.0"},
         "scheme": "http",
-        "raw_path": b"/\xe6\x96\x87",
+        "raw_path": b"/\xe6\x96\x87%2Fall",
         "type": "http",
         "http_version": "1.1",
         "method": "GET",
-        "path": "/文",
+        "path": "/文/all",
         "root_path": "/文",
         "client": None,
         "server": None,
@@ -140,5 +140,6 @@ def test_build_environ_encoding() -> None:
         "more_body": False,
     }
     environ = wsgi.build_environ(scope, message, io.BytesIO(b""))
-    assert environ["PATH_INFO"] == "/文".encode("utf8").decode("latin-1")
+    assert environ["SCRIPT_NAME"] == "/文".encode("utf8").decode("latin-1")
+    assert environ["PATH_INFO"] == "/all".encode("utf8").decode("latin-1")
     assert environ["HTTP_KEY"] == "value1,value2"

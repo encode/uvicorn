@@ -1,16 +1,9 @@
+from __future__ import annotations
+
 import asyncio
 import http
 import logging
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    cast,
-)
+from typing import Any, Callable, Literal, cast
 from urllib.parse import unquote
 
 import h11
@@ -60,8 +53,8 @@ class H11Protocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
-        app_state: Dict[str, Any],
-        _loop: Optional[asyncio.AbstractEventLoop] = None,
+        app_state: dict[str, Any],
+        _loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         if not config.loaded:
             config.load()
@@ -84,7 +77,7 @@ class H11Protocol(asyncio.Protocol):
         self.app_state = app_state
 
         # Timeouts
-        self.timeout_keep_alive_task: Optional[asyncio.TimerHandle] = None
+        self.timeout_keep_alive_task: asyncio.TimerHandle | None = None
         self.timeout_keep_alive = config.timeout_keep_alive
 
         # Shared server state
@@ -95,13 +88,13 @@ class H11Protocol(asyncio.Protocol):
         # Per-connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
         self.flow: FlowControl = None  # type: ignore[assignment]
-        self.server: Optional[Tuple[str, int]] = None
-        self.client: Optional[Tuple[str, int]] = None
-        self.scheme: Optional[Literal["http", "https"]] = None
+        self.server: tuple[str, int] | None = None
+        self.client: tuple[str, int] | None = None
+        self.scheme: Literal["http", "https"] | None = None
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
-        self.headers: List[Tuple[bytes, bytes]] = None  # type: ignore[assignment]
+        self.headers: list[tuple[bytes, bytes]] = None  # type: ignore[assignment]
         self.cycle: RequestResponseCycle = None  # type: ignore[assignment]
 
     # Protocol interface
@@ -120,7 +113,7 @@ class H11Protocol(asyncio.Protocol):
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sHTTP connection made", prefix)
 
-    def connection_lost(self, exc: Optional[Exception]) -> None:
+    def connection_lost(self, exc: Exception | None) -> None:
         self.connections.discard(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
@@ -153,7 +146,7 @@ class H11Protocol(asyncio.Protocol):
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
 
-    def _get_upgrade(self) -> Optional[bytes]:
+    def _get_upgrade(self) -> bytes | None:
         connection = []
         upgrade = None
         for name, value in self.headers:
@@ -205,6 +198,9 @@ class H11Protocol(asyncio.Protocol):
             elif isinstance(event, h11.Request):
                 self.headers = [(key.lower(), value) for key, value in event.headers]
                 raw_path, _, query_string = event.target.partition(b"?")
+                path = unquote(raw_path.decode("ascii"))
+                full_path = self.root_path + path
+                full_raw_path = self.root_path.encode("ascii") + raw_path
                 self.scope = {
                     "type": "http",
                     "asgi": {
@@ -217,8 +213,8 @@ class H11Protocol(asyncio.Protocol):
                     "scheme": self.scheme,  # type: ignore[typeddict-item]
                     "method": event.method.decode("ascii"),
                     "root_path": self.root_path,
-                    "path": unquote(raw_path.decode("ascii")),
-                    "raw_path": raw_path,
+                    "path": full_path,
+                    "raw_path": full_raw_path,
                     "query_string": query_string,
                     "headers": self.headers,
                     "state": self.app_state.copy(),
@@ -293,7 +289,7 @@ class H11Protocol(asyncio.Protocol):
 
     def send_400_response(self, msg: str) -> None:
         reason = STATUS_PHRASES[400]
-        headers: List[Tuple[bytes, bytes]] = [
+        headers: list[tuple[bytes, bytes]] = [
             (b"content-type", b"text/plain; charset=utf-8"),
             (b"connection", b"close"),
         ]
@@ -374,7 +370,7 @@ class RequestResponseCycle:
         logger: logging.Logger,
         access_logger: logging.Logger,
         access_log: bool,
-        default_headers: List[Tuple[bytes, bytes]],
+        default_headers: list[tuple[bytes, bytes]],
         message_event: asyncio.Event,
         on_response: Callable[..., None],
     ) -> None:
@@ -525,7 +521,7 @@ class RequestResponseCycle:
 
     async def receive(self) -> "ASGIReceiveEvent":
         if self.waiting_for_100_continue and not self.transport.is_closing():
-            headers: List[Tuple[str, str]] = []
+            headers: list[tuple[str, str]] = []
             event = h11.InformationalResponse(
                 status_code=100, headers=headers, reason="Continue"
             )

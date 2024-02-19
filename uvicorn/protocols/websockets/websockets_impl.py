@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 import http
 import logging
 from typing import (
     Any,
-    Dict,
     List,
     Literal,
     Optional,
@@ -29,12 +30,15 @@ from uvicorn._types import (
     WebSocketConnectEvent,
     WebSocketDisconnectEvent,
     WebSocketReceiveEvent,
+    WebSocketResponseBodyEvent,
+    WebSocketResponseStartEvent,
     WebSocketScope,
     WebSocketSendEvent,
 )
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import (
+    ClientDisconnected,
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
@@ -63,8 +67,8 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self,
         config: Config,
         server_state: ServerState,
-        app_state: Dict[str, Any],
-        _loop: Optional[asyncio.AbstractEventLoop] = None,
+        app_state: dict[str, Any],
+        _loop: asyncio.AbstractEventLoop | None = None,
     ):
         if not config.loaded:
             config.load()
@@ -81,19 +85,19 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
         # Connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
-        self.server: Optional[Tuple[str, int]] = None
-        self.client: Optional[Tuple[str, int]] = None
+        self.server: tuple[str, int] | None = None
+        self.client: tuple[str, int] | None = None
         self.scheme: Literal["wss", "ws"] = None  # type: ignore[assignment]
 
         # Connection events
-        self.scope: WebSocketScope = None  # type: ignore[assignment]
+        self.scope: WebSocketScope
         self.handshake_started_event = asyncio.Event()
         self.handshake_completed_event = asyncio.Event()
         self.closed_event = asyncio.Event()
-        self.initial_response: Optional[HTTPResponse] = None
+        self.initial_response: HTTPResponse | None = None
         self.connect_sent = False
         self.lost_connection_before_handshake = False
-        self.accepted_subprotocol: Optional[Subprotocol] = None
+        self.accepted_subprotocol: Subprotocol | None = None
 
         self.ws_server: Server = Server()  # type: ignore[assignment]
 
@@ -181,21 +185,25 @@ class WebSocketProtocol(WebSocketServerProtocol):
             (name.encode("ascii"), value.encode("ascii", errors="surrogateescape"))
             for name, value in headers.raw_items()
         ]
+        path = unquote(path_portion)
+        full_path = self.root_path + path
+        full_raw_path = self.root_path.encode("ascii") + path_portion.encode("ascii")
 
         self.scope = {
             "type": "websocket",
-            "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
+            "asgi": {"version": self.config.asgi_version, "spec_version": "2.4"},
             "http_version": "1.1",
             "scheme": self.scheme,
             "server": self.server,
             "client": self.client,
             "root_path": self.root_path,
-            "path": unquote(path_portion),
-            "raw_path": path_portion.encode("ascii"),
+            "path": full_path,
+            "raw_path": full_raw_path,
             "query_string": query_string.encode("ascii"),
             "headers": asgi_headers,
             "subprotocols": subprotocols,
             "state": self.app_state.copy(),
+            "extensions": {"websocket.http.response": {}},
         }
         task = self.loop.create_task(self.run_asgi())
         task.add_done_callback(self.on_task_complete)
@@ -245,6 +253,9 @@ class WebSocketProtocol(WebSocketServerProtocol):
         """
         try:
             result = await self.app(self.scope, self.asgi_receive, self.asgi_send)
+        except ClientDisconnected:
+            self.closed_event.set()
+            self.transport.close()
         except BaseException as exc:
             self.closed_event.set()
             msg = "Exception in ASGI application\n"
@@ -302,39 +313,76 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 self.handshake_started_event.set()
                 self.closed_event.set()
 
+            elif message_type == "websocket.http.response.start":
+                message = cast("WebSocketResponseStartEvent", message)
+                self.logger.info(
+                    '%s - "WebSocket %s" %d',
+                    self.scope["client"],
+                    get_path_with_query_string(self.scope),
+                    message["status"],
+                )
+                # websockets requires the status to be an enum. look it up.
+                status = http.HTTPStatus(message["status"])
+                headers = [
+                    (name.decode("latin-1"), value.decode("latin-1"))
+                    for name, value in message.get("headers", [])
+                ]
+                self.initial_response = (status, headers, b"")
+                self.handshake_started_event.set()
+
             else:
                 msg = (
-                    "Expected ASGI message 'websocket.accept' or 'websocket.close', "
+                    "Expected ASGI message 'websocket.accept', 'websocket.close', "
+                    "or 'websocket.http.response.start' but got '%s'."
+                )
+                raise RuntimeError(msg % message_type)
+
+        elif not self.closed_event.is_set() and self.initial_response is None:
+            await self.handshake_completed_event.wait()
+
+            try:
+                if message_type == "websocket.send":
+                    message = cast("WebSocketSendEvent", message)
+                    bytes_data = message.get("bytes")
+                    text_data = message.get("text")
+                    data = text_data if bytes_data is None else bytes_data
+                    await self.send(data)  # type: ignore[arg-type]
+
+                elif message_type == "websocket.close":
+                    message = cast("WebSocketCloseEvent", message)
+                    code = message.get("code", 1000)
+                    reason = message.get("reason", "") or ""
+                    await self.close(code, reason)
+                    self.closed_event.set()
+
+                else:
+                    msg = (
+                        "Expected ASGI message 'websocket.send' or 'websocket.close',"
+                        " but got '%s'."
+                    )
+                    raise RuntimeError(msg % message_type)
+            except ConnectionClosed as exc:
+                raise ClientDisconnected from exc
+
+        elif self.initial_response is not None:
+            if message_type == "websocket.http.response.body":
+                message = cast("WebSocketResponseBodyEvent", message)
+                body = self.initial_response[2] + message["body"]
+                self.initial_response = self.initial_response[:2] + (body,)
+                if not message.get("more_body", False):
+                    self.closed_event.set()
+            else:
+                msg = (
+                    "Expected ASGI message 'websocket.http.response.body' "
                     "but got '%s'."
                 )
                 raise RuntimeError(msg % message_type)
 
-        elif not self.closed_event.is_set():
-            await self.handshake_completed_event.wait()
-
-            if message_type == "websocket.send":
-                message = cast("WebSocketSendEvent", message)
-                bytes_data = message.get("bytes")
-                text_data = message.get("text")
-                data = text_data if bytes_data is None else bytes_data
-                await self.send(data)  # type: ignore[arg-type]
-
-            elif message_type == "websocket.close":
-                message = cast("WebSocketCloseEvent", message)
-                code = message.get("code", 1000)
-                reason = message.get("reason", "") or ""
-                await self.close(code, reason)
-                self.closed_event.set()
-
-            else:
-                msg = (
-                    "Expected ASGI message 'websocket.send' or 'websocket.close',"
-                    " but got '%s'."
-                )
-                raise RuntimeError(msg % message_type)
-
         else:
-            msg = "Unexpected ASGI message '%s', after sending 'websocket.close'."
+            msg = (
+                "Unexpected ASGI message '%s', after sending 'websocket.close' "
+                "or response already completed."
+            )
             raise RuntimeError(msg % message_type)
 
     async def asgi_receive(
@@ -364,13 +412,6 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 return {"type": "websocket.disconnect", "code": 1012}
             return {"type": "websocket.disconnect", "code": exc.code}
 
-        msg: WebSocketReceiveEvent = {  # type: ignore[typeddict-item]
-            "type": "websocket.receive"
-        }
-
         if isinstance(data, str):
-            msg["text"] = data
-        else:
-            msg["bytes"] = data
-
-        return msg
+            return {"type": "websocket.receive", "text": data}
+        return {"type": "websocket.receive", "bytes": data}

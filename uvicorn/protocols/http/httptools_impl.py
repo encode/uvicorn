@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import http
 import logging
@@ -5,18 +7,7 @@ import re
 import urllib
 from asyncio.events import TimerHandle
 from collections import deque
-from typing import (
-    Any,
-    Callable,
-    Deque,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Deque, Literal, cast
 
 import httptools
 
@@ -69,8 +60,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
-        app_state: Dict[str, Any],
-        _loop: Optional[asyncio.AbstractEventLoop] = None,
+        app_state: dict[str, Any],
+        _loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         if not config.loaded:
             config.load()
@@ -88,7 +79,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.app_state = app_state
 
         # Timeouts
-        self.timeout_keep_alive_task: Optional[TimerHandle] = None
+        self.timeout_keep_alive_task: TimerHandle | None = None
         self.timeout_keep_alive = config.timeout_keep_alive
 
         # Global state
@@ -99,14 +90,14 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Per-connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
         self.flow: FlowControl = None  # type: ignore[assignment]
-        self.server: Optional[Tuple[str, int]] = None
-        self.client: Optional[Tuple[str, int]] = None
-        self.scheme: Optional[Literal["http", "https"]] = None
-        self.pipeline: Deque[Tuple[RequestResponseCycle, ASGI3Application]] = deque()
+        self.server: tuple[str, int] | None = None
+        self.client: tuple[str, int] | None = None
+        self.scheme: Literal["http", "https"] | None = None
+        self.pipeline: Deque[tuple[RequestResponseCycle, ASGI3Application]] = deque()
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
-        self.headers: List[Tuple[bytes, bytes]] = None  # type: ignore[assignment]
+        self.headers: list[tuple[bytes, bytes]] = None  # type: ignore[assignment]
         self.expect_100_continue = False
         self.cycle: RequestResponseCycle = None  # type: ignore[assignment]
 
@@ -126,7 +117,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sHTTP connection made", prefix)
 
-    def connection_lost(self, exc: Optional[Exception]) -> None:
+    def connection_lost(self, exc: Exception | None) -> None:
         self.connections.discard(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
@@ -153,7 +144,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
 
-    def _get_upgrade(self) -> Optional[bytes]:
+    def _get_upgrade(self) -> bytes | None:
         connection = []
         upgrade = None
         for name, value in self.headers:
@@ -165,7 +156,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             return upgrade
         return None
 
-    def _should_upgrade_to_ws(self, upgrade: Optional[bytes]) -> bool:
+    def _should_upgrade_to_ws(self, upgrade: bytes | None) -> bool:
         if upgrade == b"websocket" and self.ws_protocol_class is not None:
             return True
         if self.config.ws == "auto":
@@ -269,8 +260,10 @@ class HttpToolsProtocol(asyncio.Protocol):
         path = raw_path.decode("ascii")
         if "%" in path:
             path = urllib.parse.unquote(path)
-        self.scope["path"] = path
-        self.scope["raw_path"] = raw_path
+        full_path = self.root_path + path
+        full_raw_path = self.root_path.encode("ascii") + raw_path
+        self.scope["path"] = full_path
+        self.scope["raw_path"] = full_raw_path
         self.scope["query_string"] = parsed_url.query or b""
 
         # Handle 503 responses when 'limit_concurrency' is exceeded.
@@ -389,7 +382,7 @@ class RequestResponseCycle:
         logger: logging.Logger,
         access_logger: logging.Logger,
         access_log: bool,
-        default_headers: List[Tuple[bytes, bytes]],
+        default_headers: list[tuple[bytes, bytes]],
         message_event: asyncio.Event,
         expect_100_continue: bool,
         keep_alive: bool,
@@ -417,7 +410,7 @@ class RequestResponseCycle:
         # Response state
         self.response_started = False
         self.response_complete = False
-        self.chunked_encoding: Optional[bool] = None
+        self.chunked_encoding: bool | None = None
         self.expected_content_length = 0
 
     # ASGI exception wrapper
@@ -587,7 +580,7 @@ class RequestResponseCycle:
             await self.message_event.wait()
             self.message_event.clear()
 
-        message: "Union[HTTPDisconnectEvent, HTTPRequestEvent]"
+        message: HTTPDisconnectEvent | HTTPRequestEvent
         if self.disconnected or self.response_complete:
             message = {"type": "http.disconnect"}
         else:

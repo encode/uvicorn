@@ -5,7 +5,7 @@
 h11 @ git+https://github.com/python-hyper/h11.git@master
 
 # Explicit optionals
-a2wsgi==1.8.0
+a2wsgi==1.10.0
 wsproto==1.2.0
 websockets==12.0
 
@@ -14,19 +14,19 @@ build==1.0.3
 twine==4.0.2
 
 # Testing
-ruff==0.1.6
-pytest==7.4.3
-pytest-mock==3.11.1
-mypy==1.7.1
+ruff==0.1.13
+pytest==7.4.4
+pytest-mock==3.12.0
+mypy==1.8.0
 types-click==7.1.8
 types-pyyaml==6.0.12.12
 trustme==1.1.0
-cryptography==41.0.6
-coverage==7.3.1
+cryptography==41.0.7
+coverage==7.4.0
 coverage-conditional-plugin==0.9.0
-httpx==0.25.2
+httpx==0.26.0
 watchgod==0.8.2
 
 # Documentation
-mkdocs==1.5.2
-mkdocs-material==9.1.21
+mkdocs==1.5.3
+mkdocs-material==9.5.5
