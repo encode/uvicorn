@@ -6,7 +6,7 @@ import os
 import platform
 import ssl
 import sys
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import click
 
@@ -333,7 +333,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 )
 @click.option(
     "--ssl-context",
-    type=typing.Callable,
+    type=Callable,
     default=None,
     help="Custom ssl_context that returns ssl.SSLContext to set on config",
     show_default=True,
@@ -416,7 +416,7 @@ def main(
     ssl_cert_reqs: int,
     ssl_ca_certs: str,
     ssl_ciphers: str,
-    ssl_context: typing.Callable,
+    ssl_context: Callable,
     headers: list[str],
     use_colors: bool,
     app_dir: str,
@@ -519,11 +519,10 @@ def run(
     ssl_cert_reqs: int = ssl.CERT_NONE,
     ssl_ca_certs: str | None = None,
     ssl_ciphers: str = "TLSv1",
-    ssl_context: typing.Optional[typing.Callable] = None,
+    ssl_context: Optional[Callable] = None,
     headers: list[tuple[str, str]] | None = None,
     use_colors: bool | None = None,
     app_dir: str | None = None,
-
     factory: bool = False,
     h11_max_incomplete_event_size: int | None = None,
 ) -> None:
