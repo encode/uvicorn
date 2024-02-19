@@ -1,16 +1,14 @@
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGI3Application,
-        ASGIReceiveCallable,
-        ASGIReceiveEvent,
-        ASGISendCallable,
-        ASGISendEvent,
-        WWWScope,
-    )
-
+from uvicorn._types import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGIReceiveEvent,
+    ASGISendCallable,
+    ASGISendEvent,
+    WWWScope,
+)
 from uvicorn.logging import TRACE_LOG_LEVEL
 
 PLACEHOLDER_FORMAT = {

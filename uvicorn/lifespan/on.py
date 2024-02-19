@@ -1,28 +1,26 @@
 import asyncio
 import logging
 from asyncio import Queue
-from typing import TYPE_CHECKING, Union
+from typing import Any, Dict, Union
 
 from uvicorn import Config
+from uvicorn._types import (
+    LifespanScope,
+    LifespanShutdownCompleteEvent,
+    LifespanShutdownEvent,
+    LifespanShutdownFailedEvent,
+    LifespanStartupCompleteEvent,
+    LifespanStartupEvent,
+    LifespanStartupFailedEvent,
+)
 
-if TYPE_CHECKING:
-    from asgiref.typing import (
-        LifespanScope,
-        LifespanShutdownCompleteEvent,
-        LifespanShutdownEvent,
-        LifespanShutdownFailedEvent,
-        LifespanStartupCompleteEvent,
-        LifespanStartupEvent,
-        LifespanStartupFailedEvent,
-    )
-
-    LifespanReceiveMessage = Union[LifespanStartupEvent, LifespanShutdownEvent]
-    LifespanSendMessage = Union[
-        LifespanStartupFailedEvent,
-        LifespanShutdownFailedEvent,
-        LifespanStartupCompleteEvent,
-        LifespanShutdownCompleteEvent,
-    ]
+LifespanReceiveMessage = Union[LifespanStartupEvent, LifespanShutdownEvent]
+LifespanSendMessage = Union[
+    LifespanStartupFailedEvent,
+    LifespanShutdownFailedEvent,
+    LifespanStartupCompleteEvent,
+    LifespanShutdownCompleteEvent,
+]
 
 
 STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
@@ -42,6 +40,7 @@ class LifespanOn:
         self.startup_failed = False
         self.shutdown_failed = False
         self.should_exit = False
+        self.state: Dict[str, Any] = {}
 
     async def startup(self) -> None:
         self.logger.info("Waiting for application startup.")
@@ -82,6 +81,7 @@ class LifespanOn:
             scope: LifespanScope = {
                 "type": "lifespan",
                 "asgi": {"version": self.config.asgi_version, "spec_version": "2.0"},
+                "state": self.state,
             }
             await app(scope, self.receive, self.send)
         except BaseException as exc:

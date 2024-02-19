@@ -1,33 +1,32 @@
 -e .[standard]
 
-# Type annotation
-asgiref==3.5.2
+# TODO: Remove this after h11 makes a release. By this writing, h11 was on 0.14.0.
+# Core dependencies
+h11 @ git+https://github.com/python-hyper/h11.git@master
 
 # Explicit optionals
+a2wsgi==1.10.0
 wsproto==1.2.0
+websockets==12.0
 
 # Packaging
-build==0.8.0
-twine==4.0.1
+build==1.0.3
+twine==4.0.2
 
 # Testing
-autoflake==1.7.7
-black==22.10.0
-flake8==3.9.2
-importlib-metadata==4.13.0; python_version>='3.7'
-isort==5.10.1
-pytest==7.1.3
-pytest-mock==3.10.0
-mypy==0.982
+ruff==0.1.15
+pytest==8.0.0
+pytest-mock==3.12.0
+mypy==1.8.0
 types-click==7.1.8
-types-pyyaml==6.0.12.1
-trustme==0.9.0
-cryptography==38.0.1
-coverage==6.5.0
-coverage-conditional-plugin==0.7.0
-httpx==0.23.0
+types-pyyaml==6.0.12.12
+trustme==1.1.0
+cryptography==42.0.2
+coverage==7.4.1
+coverage-conditional-plugin==0.9.0
+httpx==0.26.0
 watchgod==0.8.2
 
 # Documentation
-mkdocs==1.4.0
-mkdocs-material==8.5.4
+mkdocs==1.5.3
+mkdocs-material==9.5.6

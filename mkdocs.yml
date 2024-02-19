@@ -16,6 +16,9 @@ theme:
       toggle:
         icon: "material/lightbulb-outline"
         name: "Switch to light mode"
+  features:
+    - content.code.copy
+
 
 repo_name: encode/uvicorn
 repo_url: https://github.com/encode/uvicorn
@@ -29,13 +32,12 @@ nav:
   - Contributing: "contributing.md"
 
 markdown_extensions:
-  - pymdownx.superfences
   - admonition
   - codehilite:
       css_class: highlight
   - toc:
       permalink: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
 
-extra_javascript:
-  - "js/chat.js"
-  - "js/sidecar-1.5.0.js"

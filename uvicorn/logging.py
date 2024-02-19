@@ -1,15 +1,12 @@
+from __future__ import annotations
+
 import http
 import logging
 import sys
 from copy import copy
-from typing import Optional
+from typing import Literal
 
 import click
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
 
 TRACE_LOG_LEVEL = 5
 
@@ -36,10 +33,10 @@ class ColourizedFormatter(logging.Formatter):
 
     def __init__(
         self,
-        fmt: Optional[str] = None,
-        datefmt: Optional[str] = None,
+        fmt: str | None = None,
+        datefmt: str | None = None,
         style: Literal["%", "{", "$"] = "%",
-        use_colors: Optional[bool] = None,
+        use_colors: bool | None = None,
     ):
         if use_colors in (True, False):
             self.use_colors = use_colors

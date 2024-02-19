@@ -10,10 +10,11 @@
 
 [![Build Status](https://github.com/encode/uvicorn/workflows/Test%20Suite/badge.svg)](https://github.com/encode/uvicorn/actions)
 [![Package version](https://badge.fury.io/py/uvicorn.svg)](https://pypi.python.org/pypi/uvicorn)
+[![Supported Python Version](https://img.shields.io/pypi/pyversions/uvicorn.svg?color=%2334D058)](https://pypi.org/project/uvicorn)
 
 **Documentation**: [https://www.uvicorn.org](https://www.uvicorn.org)
 
-**Requirements**: Python 3.7+ (For Python 3.6 support, install version 0.16.0.)
+---
 
 Uvicorn is an ASGI web server implementation for Python.
 
@@ -34,7 +35,7 @@ $ pip install uvicorn
 This will install uvicorn with minimal (pure Python) dependencies.
 
 ```shell
-$ pip install uvicorn[standard]
+$ pip install 'uvicorn[standard]'
 ```
 
 This will install uvicorn with "Cython-based" dependencies (where possible) and other "optional extras".
@@ -52,9 +53,9 @@ Moreover, "optional extras" means that:
 - `python-dotenv` will be installed should you want to use the `--env-file` option.
 - `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
 
-Create an application:
+Create an application, in `example.py`:
 
-```py title="main.py"
+```python
 async def app(scope, receive, send):
     assert scope['type'] == 'http'
 
@@ -62,7 +63,7 @@ async def app(scope, receive, send):
         'type': 'http.response.start',
         'status': 200,
         'headers': [
-            [b'content-type', b'text/plain'],
+            (b'content-type', b'text/plain'),
         ],
     })
     await send({
@@ -74,7 +75,7 @@ async def app(scope, receive, send):
 Run the server:
 
 ```shell
-$ uvicorn main:app
+$ uvicorn example:app
 ```
 
 ---
@@ -136,6 +137,6 @@ $ hypercorn app:App
 
 [asgi]: https://asgi.readthedocs.io/en/latest/
 [daphne]: https://github.com/django/daphne
-[hypercorn]: https://gitlab.com/pgjones/hypercorn
+[hypercorn]: https://github.com/pgjones/hypercorn
 [mangum]: https://mangum.io
 [trio]: https://trio.readthedocs.io

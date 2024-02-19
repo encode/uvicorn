@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import asyncio
-import functools
 import logging
 import os
 import platform
@@ -10,7 +11,7 @@ import threading
 import time
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, List, Optional, Sequence, Set, Tuple, Union
+from typing import TYPE_CHECKING, Sequence, Union
 
 import click
 
@@ -24,11 +25,12 @@ if TYPE_CHECKING:
 
     Protocols = Union[H11Protocol, HttpToolsProtocol, WSProtocol, WebSocketProtocol]
 
-
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
 )
+if sys.platform == "win32":  # pragma: py-not-win32
+    HANDLED_SIGNALS += (signal.SIGBREAK,)  # Windows signal 21. Sent by Ctrl+Break.
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -40,9 +42,9 @@ class ServerState:
 
     def __init__(self) -> None:
         self.total_requests = 0
-        self.connections: Set["Protocols"] = set()
-        self.tasks: Set[asyncio.Task] = set()
-        self.default_headers: List[Tuple[bytes, bytes]] = []
+        self.connections: set[Protocols] = set()
+        self.tasks: set[asyncio.Task[None]] = set()
+        self.default_headers: list[tuple[bytes, bytes]] = []
 
 
 class Server:
@@ -55,11 +57,11 @@ class Server:
         self.force_exit = False
         self.last_notified = 0.0
 
-    def run(self, sockets: Optional[List[socket.socket]] = None) -> None:
+    def run(self, sockets: list[socket.socket] | None = None) -> None:
         self.config.setup_event_loop()
         return asyncio.run(self.serve(sockets=sockets))
 
-    async def serve(self, sockets: Optional[List[socket.socket]] = None) -> None:
+    async def serve(self, sockets: list[socket.socket] | None = None) -> None:
         process_id = os.getpid()
 
         config = self.config
@@ -84,7 +86,7 @@ class Server:
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
         logger.info(message, process_id, extra={"color_message": color_message})
 
-    async def startup(self, sockets: list = None) -> None:
+    async def startup(self, sockets: list[socket.socket] | None = None) -> None:
         await self.lifespan.startup()
         if self.lifespan.should_exit:
             self.should_exit = True
@@ -92,9 +94,16 @@ class Server:
 
         config = self.config
 
-        create_protocol = functools.partial(
-            config.http_protocol_class, config=config, server_state=self.server_state
-        )
+        def create_protocol(
+            _loop: asyncio.AbstractEventLoop | None = None,
+        ) -> asyncio.Protocol:
+            return config.http_protocol_class(  # type: ignore[call-arg]
+                config=config,
+                server_state=self.server_state,
+                app_state=self.lifespan.state,
+                _loop=_loop,
+            )
+
         loop = asyncio.get_running_loop()
 
         listeners: Sequence[socket.SocketType]
@@ -107,15 +116,16 @@ class Server:
             ) -> socket.SocketType:  # pragma py-linux pragma: py-darwin
                 # Windows requires the socket be explicitly shared across
                 # multiple workers (processes).
-                from socket import fromshare  # type: ignore
+                from socket import fromshare  # type: ignore[attr-defined]
 
-                sock_data = sock.share(os.getpid())  # type: ignore
+                sock_data = sock.share(os.getpid())  # type: ignore[attr-defined]
                 return fromshare(sock_data)
 
-            self.servers = []
+            self.servers: list[asyncio.base_events.Server] = []
             for sock in sockets:
-                if config.workers > 1 and platform.system() == "Windows":
-                    sock = _share_socket(sock)  # pragma py-linux pragma: py-darwin
+                is_windows = platform.system() == "Windows"
+                if config.workers > 1 and is_windows:  # pragma: py-not-win32
+                    sock = _share_socket(sock)  # type: ignore[assignment]
                 server = await loop.create_server(
                     create_protocol, sock=sock, ssl=config.ssl, backlog=config.backlog
                 )
@@ -251,7 +261,7 @@ class Server:
             return self.server_state.total_requests >= self.config.limit_max_requests
         return False
 
-    async def shutdown(self, sockets: Optional[List[socket.socket]] = None) -> None:
+    async def shutdown(self, sockets: list[socket.socket] | None = None) -> None:
         logger.info("Shutting down")
 
         # Stop accepting new connections.
@@ -259,14 +269,34 @@ class Server:
             server.close()
         for sock in sockets or []:
             sock.close()
-        for server in self.servers:
-            await server.wait_closed()
 
         # Request shutdown on all existing connections.
         for connection in list(self.server_state.connections):
             connection.shutdown()
         await asyncio.sleep(0.1)
 
+        # When 3.10 is not supported anymore, use `async with asyncio.timeout(...):`.
+        try:
+            await asyncio.wait_for(
+                self._wait_tasks_to_complete(),
+                timeout=self.config.timeout_graceful_shutdown,
+            )
+        except asyncio.TimeoutError:
+            logger.error(
+                "Cancel %s running task(s), timeout graceful shutdown exceeded",
+                len(self.server_state.tasks),
+            )
+            for t in self.server_state.tasks:
+                if sys.version_info < (3, 9):  # pragma: py-gte-39
+                    t.cancel()
+                else:  # pragma: py-lt-39
+                    t.cancel(msg="Task cancelled, timeout graceful shutdown exceeded")
+
+        # Send the lifespan shutdown event, and wait for application shutdown.
+        if not self.force_exit:
+            await self.lifespan.shutdown()
+
+    async def _wait_tasks_to_complete(self) -> None:
         # Wait for existing connections to finish sending responses.
         if self.server_state.connections and not self.force_exit:
             msg = "Waiting for connections to close. (CTRL+C to force quit)"
@@ -281,9 +311,8 @@ class Server:
             while self.server_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
 
-        # Send the lifespan shutdown event, and wait for application shutdown.
-        if not self.force_exit:
-            await self.lifespan.shutdown()
+        for server in self.servers:
+            await server.wait_closed()
 
     def install_signal_handlers(self) -> None:
         if threading.current_thread() is not threading.main_thread():
@@ -300,8 +329,7 @@ class Server:
             for sig in HANDLED_SIGNALS:
                 signal.signal(sig, self.handle_exit)
 
-    def handle_exit(self, sig: int, frame: Optional[FrameType]) -> None:
-
+    def handle_exit(self, sig: int, frame: FrameType | None) -> None:
         if self.should_exit and sig == signal.SIGINT:
             self.force_exit = True
         else:

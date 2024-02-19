@@ -14,7 +14,7 @@ As a general rule, you probably want to:
 Typically you'll run `uvicorn` from the command line.
 
 ```bash
-$ uvicorn example:app --reload --port 5000
+$ uvicorn main:app --reload --port 5000
 ```
 
 The ASGI application should be specified in the form `path.to.module:instance.path`.
@@ -33,7 +33,8 @@ Usage: uvicorn [OPTIONS] APP
 Options:
   --host TEXT                     Bind socket to this host.  [default:
                                   127.0.0.1]
-  --port INTEGER                  Bind socket to this port.  [default: 8000]
+  --port INTEGER                  Bind socket to this port. If 0, an available
+                                  port will be picked.  [default: 8000]
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
   --reload                        Enable auto-reload.
@@ -64,8 +65,12 @@ Options:
                                   [default: auto]
   --ws-max-size INTEGER           WebSocket max size message in bytes
                                   [default: 16777216]
-  --ws-ping-interval FLOAT        WebSocket ping interval  [default: 20.0]
-  --ws-ping-timeout FLOAT         WebSocket ping timeout  [default: 20.0]
+  --ws-max-queue INTEGER          The maximum length of the WebSocket message
+                                  queue.  [default: 32]
+  --ws-ping-interval FLOAT        WebSocket ping interval in seconds.
+                                  [default: 20.0]
+  --ws-ping-timeout FLOAT         WebSocket ping timeout in seconds.
+                                  [default: 20.0]
   --ws-per-message-deflate BOOLEAN
                                   WebSocket per-message-deflate compression
                                   [default: True]
@@ -104,6 +109,9 @@ Options:
   --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
                                   is received within this timeout.  [default:
                                   5]
+  --timeout-graceful-shutdown INTEGER
+                                  Maximum number of seconds to wait for
+                                  graceful shutdown.
   --ssl-keyfile TEXT              SSL key file
   --ssl-certfile TEXT             SSL certificate file
   --ssl-keyfile-password TEXT     SSL keyfile password
@@ -121,7 +129,7 @@ Options:
   --version                       Display the uvicorn version and exit.
   --app-dir TEXT                  Look for APP in the specified directory, by
                                   adding this to the PYTHONPATH. Defaults to
-                                  the current working directory.  [default: .]
+                                  the current working directory.
   --h11-max-incomplete-event-size INTEGER
                                   For h11, the maximum number of bytes to
                                   buffer of an incomplete event.
@@ -166,34 +174,6 @@ Also note that in this case, you should put `uvicorn.run` into `if __name__ == '
 !!! note
     The `reload` and `workers` parameters are **mutually exclusive**.
 
-
-To run the server programmatically with the `reload` option, you should additionally use the `ChangeReload` supervisor. For example:
-
-```py title="main.py"
-import os
-import uvicorn
-from uvicorn.supervisors import ChangeReload
-
-class App:
-    ...
-
-app = App()
-
-if __name__ == "__main__":
-    reload_dir = os.path.dirname(__file__)
-    config = uvicorn.Config(
-        "main:app",
-        host="127.0.0.1",
-        port=5000,
-        log_level="info",
-        reload=True,
-        reload_dirs=[reload_dir]
-    )
-    server = uvicorn.Server(config)
-    sock = config.bind_socket()
-    ChangeReload(config, target=server.run, sockets=[sock]).run()
-```
-
 ## Using a process manager
 
 Running Uvicorn using a process manager ensures that you can run multiple processes in a resilient manner, and allows you to perform server upgrades without dropping requests.
@@ -219,6 +199,8 @@ Gunicorn provides a different set of configuration options to Uvicorn, so  some 
 If you need to pass uvicorn's config arguments to gunicorn workers then you'll have to subclass `UvicornWorker`:
 
 ```python
+from uvicorn.workers import UvicornWorker
+
 class MyUvicornWorker(UvicornWorker):
     CONFIG_KWARGS = {"loop": "asyncio", "http": "h11", "lifespan": "off"}
 ```
@@ -232,14 +214,12 @@ To use `supervisor` as a process manager you should either:
 
 A simple supervisor configuration might look something like this:
 
-**supervisord.conf**:
-
-```ini
+```ini title="supervisord.conf"
 [supervisord]
 
 [fcgi-program:uvicorn]
 socket=tcp://localhost:8000
-command=venv/bin/uvicorn --fd 0 example:App
+command=venv/bin/uvicorn --fd 0 main:App
 numprocs=4
 process_name=uvicorn-%(process_num)d
 stdout_logfile=/dev/stdout
@@ -257,11 +237,9 @@ To use `circus` as a process manager, you should either:
 
 A simple circus configuration might look something like this:
 
-**circus.ini**:
-
-```ini
+```ini title="circus.ini"
 [watcher:web]
-cmd = venv/bin/uvicorn --fd $(circus.sockets.web) example:App
+cmd = venv/bin/uvicorn --fd $(circus.sockets.web) main:App
 use_sockets = True
 numprocesses = 4
 
@@ -347,7 +325,7 @@ For local development with https, it's possible to use [mkcert][mkcert]
 to generate a valid certificate and private key.
 
 ```bash
-$ uvicorn example:app --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.pem
+$ uvicorn main:app --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.pem
 ```
 
 ### Running gunicorn worker
@@ -355,7 +333,7 @@ $ uvicorn example:app --port 5000 --ssl-keyfile=./key.pem --ssl-certfile=./cert.
 It's also possible to use certificates with uvicorn's worker for gunicorn.
 
 ```bash
-$ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornWorker example:app
+$ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornWorker main:app
 ```
 
 [nginx_websocket]: https://nginx.org/en/docs/http/websocket.html

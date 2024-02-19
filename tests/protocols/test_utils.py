@@ -1,4 +1,5 @@
 import socket
+from asyncio import Transport
 
 import pytest
 
@@ -18,7 +19,7 @@ class MockSocket:
         return self.sockname
 
 
-class MockTransport:
+class MockTransport(Transport):
     def __init__(self, info):
         self.info = info
 

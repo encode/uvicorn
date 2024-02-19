@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="320" height="320" src="https://raw.githubusercontent.com/tomchristie/uvicorn/master/docs/uvicorn.png" alt='uvicorn'>
+  <img width="320" height="320" src="../../uvicorn.png" alt='uvicorn'>
 </p>
 
 <p align="center">
@@ -13,6 +13,9 @@
 <a href="https://pypi.org/project/uvicorn/">
     <img src="https://badge.fury.io/py/uvicorn.svg" alt="Package version">
 </a>
+<a href="https://pypi.org/project/uvicorn" target="_blank">
+    <img src="https://img.shields.io/pypi/pyversions/uvicorn.svg?color=%2334D058" alt="Supported Python versions">
+</a>
 </p>
 
 ---
@@ -25,7 +28,7 @@ Until recently Python has lacked a minimal low-level server/application interfac
 async frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
 start building a common set of tooling usable across all async frameworks.
 
-Uvicorn currently supports HTTP/1.1 and WebSockets.
+Uvicorn currently supports **HTTP/1.1** and **WebSockets**.
 
 ## Quickstart
 
@@ -38,7 +41,7 @@ $ pip install uvicorn
 This will install uvicorn with minimal (pure Python) dependencies.
 
 ```shell
-$ pip install uvicorn[standard]
+$ pip install 'uvicorn[standard]'
 ```
 
 This will install uvicorn with "Cython-based" dependencies (where possible) and other "optional extras".
@@ -61,7 +64,7 @@ Moreover, "optional extras" means that:
 
 Create an application:
 
-```py title="main.py"
+```python title="main.py"
 async def app(scope, receive, send):
     assert scope['type'] == 'http'
 
@@ -88,7 +91,7 @@ $ uvicorn main:app
 
 ## Usage
 
-The uvicorn command line tool is the easiest way to run your application...
+The uvicorn command line tool is the easiest way to run your application.
 
 ### Command line options
 
@@ -100,7 +103,8 @@ Usage: uvicorn [OPTIONS] APP
 Options:
   --host TEXT                     Bind socket to this host.  [default:
                                   127.0.0.1]
-  --port INTEGER                  Bind socket to this port.  [default: 8000]
+  --port INTEGER                  Bind socket to this port. If 0, an available
+                                  port will be picked.  [default: 8000]
   --uds TEXT                      Bind to a UNIX domain socket.
   --fd INTEGER                    Bind to socket from this file descriptor.
   --reload                        Enable auto-reload.
@@ -131,8 +135,12 @@ Options:
                                   [default: auto]
   --ws-max-size INTEGER           WebSocket max size message in bytes
                                   [default: 16777216]
-  --ws-ping-interval FLOAT        WebSocket ping interval  [default: 20.0]
-  --ws-ping-timeout FLOAT         WebSocket ping timeout  [default: 20.0]
+  --ws-max-queue INTEGER          The maximum length of the WebSocket message
+                                  queue.  [default: 32]
+  --ws-ping-interval FLOAT        WebSocket ping interval in seconds.
+                                  [default: 20.0]
+  --ws-ping-timeout FLOAT         WebSocket ping timeout in seconds.
+                                  [default: 20.0]
   --ws-per-message-deflate BOOLEAN
                                   WebSocket per-message-deflate compression
                                   [default: True]
@@ -171,6 +179,9 @@ Options:
   --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
                                   is received within this timeout.  [default:
                                   5]
+  --timeout-graceful-shutdown INTEGER
+                                  Maximum number of seconds to wait for
+                                  graceful shutdown.
   --ssl-keyfile TEXT              SSL key file
   --ssl-certfile TEXT             SSL certificate file
   --ssl-keyfile-password TEXT     SSL keyfile password
@@ -188,7 +199,7 @@ Options:
   --version                       Display the uvicorn version and exit.
   --app-dir TEXT                  Look for APP in the specified directory, by
                                   adding this to the PYTHONPATH. Defaults to
-                                  the current working directory.  [default: .]
+                                  the current working directory.
   --h11-max-incomplete-event-size INTEGER
                                   For h11, the maximum number of bytes to
                                   buffer of an incomplete event.
@@ -328,7 +339,7 @@ An incoming HTTP request might have a connection `scope` like this:
 
 ```python
 {
-    'type': 'http.request',
+    'type': 'http',
     'scheme': 'http',
     'root_path': '',
     'server': ('127.0.0.1', 8000),
@@ -336,9 +347,9 @@ An incoming HTTP request might have a connection `scope` like this:
     'method': 'GET',
     'path': '/',
     'headers': [
-        [b'host', b'127.0.0.1:8000'],
-        [b'user-agent', b'curl/7.51.0'],
-        [b'accept', b'*/*']
+        (b'host', b'127.0.0.1:8000'),
+        (b'user-agent', b'curl/7.51.0'),
+        (b'accept', b'*/*')
     ]
 }
 ```
@@ -416,7 +427,8 @@ async def app(scope, receive, send):
         'type': 'http.response.start',
         'status': 200,
         'headers': [
-            [b'content-type', b'text/plain'],
+            (b'content-type', b'text/plain'),
+            (b'content-length', str(len(body)).encode())
         ]
     })
     await send({
@@ -498,7 +510,7 @@ $ daphne app:App
 [Hypercorn][hypercorn] was initially part of the Quart web framework, before
 being separated out into a standalone ASGI server.
 
-Hypercorn supports HTTP/1.1, HTTP/2, and WebSockets.
+Hypercorn supports HTTP/1.1, HTTP/2, HTTP/3 and WebSockets.
 
 ```
 $ pip install hypercorn
@@ -551,6 +563,18 @@ Its most distinctive features are built-in support for dependency injection, aut
 ### Muffin
 
 [Muffin](https://github.com/klen/muffin) is a fast, lightweight and asynchronous ASGI web-framework for Python 3.
+
+### Litestar
+
+[Litestar](https://litestar.dev) is a powerful, lightweight and flexible ASGI framework.
+
+It includes everything that's needed to build modern APIs - from data serialization and validation to websockets, ORM integration, session management, authentication and more.
+
+### Panther
+
+[Panther](https://PantherPy.github.io/) is a fast & friendly web framework for building async APIs with Python 3.10+.
+
+It has built-in Document-oriented Database, Caching System, Authentication and Permission Classes, Visual API Monitoring and also supports Websocket, Throttling, Middlewares.
 
 
 [uvloop]: https://github.com/MagicStack/uvloop

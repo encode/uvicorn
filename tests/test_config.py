@@ -6,6 +6,7 @@ import ssl
 import sys
 import typing
 from pathlib import Path
+from typing import Literal, Optional
 from unittest.mock import MagicMock
 
 import pytest
@@ -13,24 +14,18 @@ import yaml
 from pytest_mock import MockerFixture
 
 from tests.utils import as_cwd
-from uvicorn._types import Environ, StartResponse
+from uvicorn._types import (
+    ASGIApplication,
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    Environ,
+    Scope,
+    StartResponse,
+)
 from uvicorn.config import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
-
-if sys.version_info < (3, 8):  # pragma: py-gte-38
-    from typing_extensions import Literal
-else:  # pragma: py-lt-38
-    from typing import Literal
-
-if typing.TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGIApplication,
-        ASGIReceiveCallable,
-        ASGISendCallable,
-        Scope,
-    )
 
 
 @pytest.fixture
@@ -78,7 +73,7 @@ def test_should_warn_on_invalid_reload_configuration(
     assert len(caplog.records) == 1
     assert (
         caplog.records[-1].message
-        == "Current configuration will not reload as not all conditions are met,"
+        == "Current configuration will not reload as not all conditions are met, "
         "please refer to documentation."
     )
 
@@ -89,7 +84,7 @@ def test_should_warn_on_invalid_reload_configuration(
     assert len(caplog.records) == 2
     assert (
         caplog.records[-1].message
-        == "Current configuration will not reload as not all conditions are met,"
+        == "Current configuration will not reload as not all conditions are met, "
         "please refer to documentation."
     )
 
@@ -451,14 +446,14 @@ def test_log_config_file(mocked_logging_config_module: MagicMock) -> None:
 
 @pytest.fixture(params=[0, 1])
 def web_concurrency(request: pytest.FixtureRequest) -> typing.Iterator[int]:
-    yield getattr(request, "param")
+    yield request.param
     if os.getenv("WEB_CONCURRENCY"):
         del os.environ["WEB_CONCURRENCY"]
 
 
 @pytest.fixture(params=["127.0.0.1", "127.0.0.2"])
 def forwarded_allow_ips(request: pytest.FixtureRequest) -> typing.Iterator[str]:
-    yield getattr(request, "param")
+    yield request.param
     if os.getenv("FORWARDED_ALLOW_IPS"):
         del os.environ["FORWARDED_ALLOW_IPS"]
 
@@ -514,10 +509,38 @@ def test_config_log_level(log_level: int) -> None:
     assert config.log_level == log_level
 
 
+@pytest.mark.parametrize("log_level", [None, 0, 5, 10, 20, 30, 40, 50])
+@pytest.mark.parametrize("uvicorn_logger_level", [0, 5, 10, 20, 30, 40, 50])
+def test_config_log_effective_level(
+    log_level: Optional[int], uvicorn_logger_level: Optional[int]
+) -> None:
+    default_level = 30
+    log_config = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "loggers": {
+            "uvicorn": {"level": uvicorn_logger_level},
+        },
+    }
+    config = Config(app=asgi_app, log_level=log_level, log_config=log_config)
+    config.load()
+
+    effective_level = log_level or uvicorn_logger_level or default_level
+    assert logging.getLogger("uvicorn.error").getEffectiveLevel() == effective_level
+    assert logging.getLogger("uvicorn.access").getEffectiveLevel() == effective_level
+    assert logging.getLogger("uvicorn.asgi").getEffectiveLevel() == effective_level
+
+
 def test_ws_max_size() -> None:
     config = Config(app=asgi_app, ws_max_size=1000)
     config.load()
     assert config.ws_max_size == 1000
+
+
+def test_ws_max_queue() -> None:
+    config = Config(app=asgi_app, ws_max_queue=64)
+    config.load()
+    assert config.ws_max_queue == 64
 
 
 @pytest.mark.parametrize(

@@ -1,12 +1,9 @@
-import typing
-
-if typing.TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGI2Application,
-        ASGIReceiveCallable,
-        ASGISendCallable,
-        Scope,
-    )
+from uvicorn._types import (
+    ASGI2Application,
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    Scope,
+)
 
 
 class ASGI2Middleware:

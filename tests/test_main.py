@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 from tests.utils import run_server
+from uvicorn import Server
 from uvicorn.config import Config
 from uvicorn.main import run
 
@@ -14,21 +15,6 @@ async def app(scope, receive, send):
     assert scope["type"] == "http"
     await send({"type": "http.response.start", "status": 204, "headers": []})
     await send({"type": "http.response.body", "body": b"", "more_body": False})
-
-
-@pytest.mark.anyio
-async def test_return_close_header():
-    config = Config(app=app, host="localhost", loop="asyncio", limit_max_requests=1)
-    async with run_server(config):
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "http://127.0.0.1:8000", headers={"connection": "close"}
-            )
-
-    assert response.status_code == 204
-    assert (
-        "connection" in response.headers and response.headers["connection"] == "close"
-    )
 
 
 def _has_ipv6(host):
@@ -50,39 +36,45 @@ def _has_ipv6(host):
 @pytest.mark.parametrize(
     "host, url",
     [
-        pytest.param(None, "http://127.0.0.1:8000", id="default"),
-        pytest.param("localhost", "http://127.0.0.1:8000", id="hostname"),
+        pytest.param(None, "http://127.0.0.1", id="default"),
+        pytest.param("localhost", "http://127.0.0.1", id="hostname"),
         pytest.param(
             "::1",
-            "http://[::1]:8000",
+            "http://[::1]",
             id="ipv6",
             marks=pytest.mark.skipif(not _has_ipv6("::1"), reason="IPV6 not enabled"),
         ),
     ],
 )
-async def test_run(host, url):
-    config = Config(app=app, host=host, loop="asyncio", limit_max_requests=1)
+async def test_run(host, url: str, unused_tcp_port: int):
+    config = Config(
+        app=app, host=host, loop="asyncio", limit_max_requests=1, port=unused_tcp_port
+    )
     async with run_server(config):
         async with httpx.AsyncClient() as client:
-            response = await client.get(url)
+            response = await client.get(f"{url}:{unused_tcp_port}")
     assert response.status_code == 204
 
 
 @pytest.mark.anyio
-async def test_run_multiprocess():
-    config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1)
+async def test_run_multiprocess(unused_tcp_port: int):
+    config = Config(
+        app=app, loop="asyncio", workers=2, limit_max_requests=1, port=unused_tcp_port
+    )
     async with run_server(config):
         async with httpx.AsyncClient() as client:
-            response = await client.get("http://127.0.0.1:8000")
+            response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
     assert response.status_code == 204
 
 
 @pytest.mark.anyio
-async def test_run_reload():
-    config = Config(app=app, loop="asyncio", reload=True, limit_max_requests=1)
+async def test_run_reload(unused_tcp_port: int):
+    config = Config(
+        app=app, loop="asyncio", reload=True, limit_max_requests=1, port=unused_tcp_port
+    )
     async with run_server(config):
         async with httpx.AsyncClient() as client:
-            response = await client.get("http://127.0.0.1:8000")
+            response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
     assert response.status_code == 204
 
 
@@ -122,3 +114,12 @@ def test_run_match_config_params() -> None:
         if key not in ("app_dir",)
     }
     assert config_params == run_params
+
+
+@pytest.mark.anyio
+async def test_exit_on_create_server_with_invalid_host() -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        config = Config(app=app, host="illegal_host")
+        server = Server(config=config)
+        await server.serve()
+    assert exc_info.value.code == 1
