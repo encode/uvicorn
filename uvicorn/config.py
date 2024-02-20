@@ -10,7 +10,7 @@ import socket
 import ssl
 import sys
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Literal
+from typing import Any, Awaitable, Callable, List, Literal, Optional, Union
 
 import click
 
