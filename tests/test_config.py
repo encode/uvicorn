@@ -309,9 +309,8 @@ def test_ssl_config(
     assert config.is_ssl is True
 
 
-# ignore
 def ssl_context():
-    context = ssl.SSLContext(int(ssl.PROTOCOL_TLS_SERVER))  # type: ignore
+    context = ssl.SSLContext(int(ssl.PROTOCOL_TLS_SERVER))
     allowed_ciphers = (
         "DEFAULT:!aNULL:!eNULL:!MD5:!3DES:!DES:!RC4:!IDEA:!SEED:!aDSS:!SRP:!PSK"
     )

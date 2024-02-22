@@ -10,7 +10,7 @@ import socket
 import ssl
 import sys
 from pathlib import Path
-from typing import Any, Awaitable, Callable, List, Literal, Optional, Union
+from typing import Any, Awaitable, Callable, Literal, Optional
 
 import click
 
@@ -100,12 +100,12 @@ logger = logging.getLogger("uvicorn.error")
 
 def update_ssl_context(
     ctx: ssl.SSLContext,
-    certfile: Optional[Union[str, os.PathLike]],
-    keyfile: Optional[Union[str, os.PathLike]],
-    password: Optional[str],
+    certfile: str | os.PathLike[str],
+    keyfile: str | os.PathLike[str] | None,
+    password: str | None,
     cert_reqs: int,
-    ca_certs: Optional[Union[str, os.PathLike]],
-    ciphers: Optional[str],
+    ca_certs: str | os.PathLike[str] | None,
+    ciphers: str | None,
 ) -> ssl.SSLContext:
     get_password = (lambda: password) if password else None
     if certfile and keyfile:
@@ -244,9 +244,8 @@ class Config:
         ssl_cert_reqs: int = ssl.CERT_NONE,
         ssl_ca_certs: str | None = None,
         ssl_ciphers: str = "TLSv1",
-        ssl_context: Optional[Callable] = None,
+        ssl_context: Optional[str] = None,
         headers: list[tuple[str, str]] | None = None,
-
         factory: bool = False,
         h11_max_incomplete_event_size: int | None = None,
     ):
@@ -454,7 +453,7 @@ class Config:
         elif self.is_ssl and not self.ssl_context:
             assert self.ssl_certfile
 
-            self.ssl: ssl.SSLContext | None = create_ssl_context(
+            self.ssl = create_ssl_context(
                 keyfile=self.ssl_keyfile,
                 certfile=self.ssl_certfile,
                 password=self.ssl_keyfile_password,
