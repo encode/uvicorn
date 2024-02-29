@@ -142,3 +142,8 @@ async def test_proxy_headers_websocket_x_forwarded_proto(
         async with websockets.client.connect(url, extra_headers=headers) as websocket:
             data = await websocket.recv()
             assert data == "wss://1.2.3.4:0"
+
+        headers = {"X-Forwarded-Proto": "wss", "X-Forwarded-For": "1.2.3.4"}
+        async with websockets.client.connect(url, extra_headers=headers) as websocket:
+            data = await websocket.recv()
+            assert data == "wss://1.2.3.4:0"
