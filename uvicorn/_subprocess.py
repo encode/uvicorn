@@ -37,6 +37,7 @@ def get_subprocess(
     stdin_fileno: Optional[int]
     try:
         stdin_fileno = sys.stdin.fileno()
+    # The `sys.stdin` can be `None`, see https://docs.python.org/3/library/sys.html#sys.__stdin__.
     except (AttributeError, OSError):
         stdin_fileno = None
 
