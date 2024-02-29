@@ -62,12 +62,10 @@ class ProxyHeadersMiddleware:
                     x_forwarded_proto = (
                         headers[b"x-forwarded-proto"].decode("latin1").strip()
                     )
-                    if scope["type"] == "websocket" and x_forwarded_proto == "http":
-                        scope["scheme"] = "ws"
-                    elif scope["type"] == "websocket" and x_forwarded_proto == "https":
-                        scope["scheme"] = "wss"
-                    else:
-                        scope["scheme"] = x_forwarded_proto
+                    scope["scheme"] = x_forwarded_proto
+
+                    if scope["type"] == "websocket":
+                        scope["scheme"] = x_forwarded_proto.replace("http", "ws")
 
                 if b"x-forwarded-for" in headers:
                     # Determine the client address from the last trusted IP in the
