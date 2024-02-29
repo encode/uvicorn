@@ -9,7 +9,7 @@ import os
 import sys
 from multiprocessing.context import SpawnProcess
 from socket import socket
-from typing import Callable, Optional
+from typing import Callable
 
 from uvicorn.config import Config
 
