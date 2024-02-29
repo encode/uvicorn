@@ -4,21 +4,22 @@ import io
 import sys
 import warnings
 from collections import deque
-from typing import TYPE_CHECKING, Deque, Iterable, Optional, Tuple
+from typing import Deque, Iterable, Optional, Tuple
 
-if TYPE_CHECKING:
-    from asgiref.typing import (
-        ASGIReceiveCallable,
-        ASGIReceiveEvent,
-        ASGISendCallable,
-        ASGISendEvent,
-        HTTPRequestEvent,
-        HTTPResponseBodyEvent,
-        HTTPResponseStartEvent,
-        HTTPScope,
-    )
-
-from uvicorn._types import Environ, ExcInfo, StartResponse, WSGIApp
+from uvicorn._types import (
+    ASGIReceiveCallable,
+    ASGIReceiveEvent,
+    ASGISendCallable,
+    ASGISendEvent,
+    Environ,
+    ExcInfo,
+    HTTPRequestEvent,
+    HTTPResponseBodyEvent,
+    HTTPResponseStartEvent,
+    HTTPScope,
+    StartResponse,
+    WSGIApp,
+)
 
 
 def build_environ(
@@ -27,10 +28,14 @@ def build_environ(
     """
     Builds a scope and request message into a WSGI environ object.
     """
+    script_name = scope.get("root_path", "").encode("utf8").decode("latin1")
+    path_info = scope["path"].encode("utf8").decode("latin1")
+    if path_info.startswith(script_name):
+        path_info = path_info[len(script_name) :]
     environ = {
         "REQUEST_METHOD": scope["method"],
-        "SCRIPT_NAME": "",
-        "PATH_INFO": scope["path"].encode("utf8").decode("latin1"),
+        "SCRIPT_NAME": script_name,
+        "PATH_INFO": path_info,
         "QUERY_STRING": scope["query_string"].decode("ascii"),
         "SERVER_PROTOCOL": "HTTP/%s" % scope["http_version"],
         "wsgi.version": (1, 0),
@@ -198,5 +203,5 @@ class WSGIResponder:
 
 try:
     from a2wsgi import WSGIMiddleware
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: no cover
     WSGIMiddleware = _WSGIMiddleware  # type: ignore[misc, assignment]

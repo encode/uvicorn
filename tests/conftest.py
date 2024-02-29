@@ -1,4 +1,5 @@
 import contextlib
+import importlib.util
 import os
 import socket
 import ssl
@@ -22,6 +23,7 @@ except ImportError:  # pragma: no cover
     HAVE_TRUSTME = False
 
 from uvicorn.config import LOGGING_CONFIG
+from uvicorn.importer import import_from_string
 
 # Note: We explicitly turn the propagate on just for tests, because pytest
 # caplog not able to capture no-propagate loggers.
@@ -122,6 +124,9 @@ def reload_directory_structure(tmp_path_factory: pytest.TempPathFactory):
     │       └── sub.py
     ├── ext
     │   └── ext.jpg
+    ├── .dotted
+    ├── .dotted_dir
+    │   └── file.txt
     └── main.py
     """
     root = tmp_path_factory.mktemp("reload_directory")
@@ -239,3 +244,39 @@ def _unused_port(socket_type: int) -> int:
 @pytest.fixture
 def unused_tcp_port() -> int:
     return _unused_port(socket.SOCK_STREAM)
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(
+            "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
+            marks=pytest.mark.skipif(
+                not importlib.util.find_spec("wsproto"), reason="wsproto not installed."
+            ),
+            id="wsproto",
+        ),
+        pytest.param(
+            "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
+            id="websockets",
+        ),
+    ]
+)
+def ws_protocol_cls(request: pytest.FixtureRequest):
+    return import_from_string(request.param)
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(
+            "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
+            marks=pytest.mark.skipif(
+                not importlib.util.find_spec("httptools"),
+                reason="httptools not installed.",
+            ),
+            id="httptools",
+        ),
+        pytest.param("uvicorn.protocols.http.h11_impl:H11Protocol", id="h11"),
+    ]
+)
+def http_protocol_cls(request: pytest.FixtureRequest):
+    return import_from_string(request.param)

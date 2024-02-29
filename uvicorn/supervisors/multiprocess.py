@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 import signal
@@ -5,7 +7,7 @@ import threading
 from multiprocessing.context import SpawnProcess
 from socket import socket
 from types import FrameType
-from typing import Callable, List, Optional
+from typing import Callable
 
 import click
 
@@ -24,17 +26,17 @@ class Multiprocess:
     def __init__(
         self,
         config: Config,
-        target: Callable[[Optional[List[socket]]], None],
-        sockets: List[socket],
+        target: Callable[[list[socket] | None], None],
+        sockets: list[socket],
     ) -> None:
         self.config = config
         self.target = target
         self.sockets = sockets
-        self.processes: List[SpawnProcess] = []
+        self.processes: list[SpawnProcess] = []
         self.should_exit = threading.Event()
         self.pid = os.getpid()
 
-    def signal_handler(self, sig: int, frame: Optional[FrameType]) -> None:
+    def signal_handler(self, sig: int, frame: FrameType | None) -> None:
         """
         A signal handler that is registered with the parent process.
         """

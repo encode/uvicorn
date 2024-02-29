@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "The lightning-fast ASGI server."
 readme = "README.md"
 license = "BSD-3-Clause"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 authors = [
     { name = "Tom Christie", email = "tom@tomchristie.com" },
 ]
@@ -19,11 +19,11 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Internet :: WWW/HTTP",
@@ -31,7 +31,7 @@ classifiers = [
 dependencies = [
     "click>=7.0",
     "h11>=0.8",
-    "typing-extensions;python_version < '3.8'",
+    "typing_extensions>=4.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
@@ -58,14 +58,73 @@ Source = "https://github.com/encode/uvicorn"
 path = "uvicorn/__init__.py"
 
 [tool.hatch.build.targets.sdist]
-include = [
-    "/uvicorn",
-]
+include = ["/uvicorn"]
 
 [tool.ruff]
 select = ["E", "F", "I"]
 ignore = ["B904", "B028"]
-line-length = 120
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = true
+
+[tool.mypy]
+warn_unused_ignores = true
+warn_redundant_casts = true
+show_error_codes = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+follow_imports = "silent"
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+addopts = "-rxXs --strict-config --strict-markers"
+xfail_strict = true
+filterwarnings = [
+    "error",
+    'ignore: \"watchgod\" is deprecated\, you should switch to watchfiles \(`pip install watchfiles`\)\.:DeprecationWarning',
+    "ignore:Uvicorn's native WSGI implementation is deprecated.*:DeprecationWarning",
+    "ignore: 'cgi' is deprecated and slated for removal in Python 3.13:DeprecationWarning"
+]
+
+[tool.coverage.run]
+source_pkgs = ["uvicorn", "tests"]
+plugins = ["coverage_conditional_plugin"]
+omit = [
+    "uvicorn/workers.py",
+    "uvicorn/__main__.py",
+]
+
+[tool.coverage.report]
+precision = 2
+fail_under = 98.35
+show_missing = true
+skip_covered = true
+exclude_lines = [
+    "pragma: no cover",
+    "pragma: nocover",
+    "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+
+[tool.coverage.coverage_conditional_plugin.omit]
+"sys_platform == 'win32'" = ["uvicorn/loops/uvloop.py"]
+"sys_platform != 'win32'" = ["uvicorn/loops/asyncio.py"]
+
+[tool.coverage.coverage_conditional_plugin.rules]
+py-win32 = "sys_platform == 'win32'"
+py-not-win32 = "sys_platform != 'win32'"
+py-linux = "sys_platform == 'linux'"
+py-darwin = "sys_platform == 'darwin'"
+py-gte-38 = "sys_version_info >= (3, 8)"
+py-lt-38 =  "sys_version_info < (3, 8)"
+py-gte-39 = "sys_version_info >= (3, 9)"
+py-lt-39 = "sys_version_info < (3, 9)"
+py-gte-310 = "sys_version_info >= (3, 10)"
+py-lt-310 = "sys_version_info < (3, 10)"
+py-gte-311 = "sys_version_info >= (3, 11)"
+py-lt-311 = "sys_version_info < (3, 11)"

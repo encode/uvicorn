@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import warnings
 from pathlib import Path
 from socket import socket
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Callable
 
 from watchgod import DefaultWatcher
 
@@ -37,8 +39,8 @@ class CustomWatcher(DefaultWatcher):
         self.excludes.extend(config.reload_excludes)
         self.excludes = list(set(self.excludes))
 
-        self.watched_dirs: Dict[str, bool] = {}
-        self.watched_files: Dict[str, bool] = {}
+        self.watched_dirs: dict[str, bool] = {}
+        self.watched_files: dict[str, bool] = {}
         self.dirs_includes = set(config.reload_dirs)
         self.dirs_excludes = set(config.reload_dirs_excludes)
         self.resolved_root = root_path
@@ -56,6 +58,9 @@ class CustomWatcher(DefaultWatcher):
             self.watched_files[entry.path] = False
             return False
         for include_pattern in self.includes:
+            if str(entry_path).endswith(include_pattern):
+                self.watched_files[entry.path] = True
+                return True
             if entry_path.match(include_pattern):
                 for exclude_pattern in self.excludes:
                     if entry_path.match(exclude_pattern):
@@ -127,8 +132,8 @@ class WatchGodReload(BaseReload):
     def __init__(
         self,
         config: Config,
-        target: Callable[[Optional[List[socket]]], None],
-        sockets: List[socket],
+        target: Callable[[list[socket] | None], None],
+        sockets: list[socket],
     ) -> None:
         warnings.warn(
             '"watchgod" is deprecated, you should switch '
@@ -147,7 +152,7 @@ class WatchGodReload(BaseReload):
         for w in reload_dirs:
             self.watchers.append(CustomWatcher(w.resolve(), self.config))
 
-    def should_restart(self) -> Optional[List[Path]]:
+    def should_restart(self) -> list[Path] | None:
         self.pause()
 
         for watcher in self.watchers:
