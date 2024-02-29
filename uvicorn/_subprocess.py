@@ -34,7 +34,6 @@ def get_subprocess(
     """
     # We pass across the stdin fileno, and reopen it in the child process.
     # This is required for some debugging environments.
-    stdin_fileno: Optional[int]
     try:
         stdin_fileno = sys.stdin.fileno()
     # The `sys.stdin` can be `None`, see https://docs.python.org/3/library/sys.html#sys.__stdin__.
