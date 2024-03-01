@@ -115,7 +115,18 @@ async def test_proxy_headers_invalid_x_forwarded_for() -> None:
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "x_forwarded_proto,addr",
+    [
+        ("http", "ws://1.2.3.4:0"),
+        ("https", "wss://1.2.3.4:0"),
+        ("ws", "ws://1.2.3.4:0"),
+        ("wss", "wss://1.2.3.4:0"),
+    ],
+)
 async def test_proxy_headers_websocket_x_forwarded_proto(
+    x_forwarded_proto: str,
+    addr: str,
     ws_protocol_cls: "Type[WSProtocol | WebSocketProtocol]",
     http_protocol_cls: "Type[H11Protocol | HttpToolsProtocol]",
     unused_tcp_port: int,
@@ -138,7 +149,7 @@ async def test_proxy_headers_websocket_x_forwarded_proto(
 
     async with run_server(config):
         url = f"ws://127.0.0.1:{unused_tcp_port}"
-        headers = {"X-Forwarded-Proto": "https", "X-Forwarded-For": "1.2.3.4"}
+        headers = {"X-Forwarded-Proto": x_forwarded_proto, "X-Forwarded-For": "1.2.3.4"}
         async with websockets.client.connect(url, extra_headers=headers) as websocket:
             data = await websocket.recv()
-            assert data == "wss://1.2.3.4:0"
+            assert data == addr
