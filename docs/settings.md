@@ -102,7 +102,7 @@ Here's how you can use a JSON file to configure the logger so that the uvicorn w
     $ uvicorn main:app --log-config ./logger-config.json
     ```
 
-The [official Python documentation](https://docs.python.org/3/howto/logging.html#configuring-logging) has more information and details on how to create these files.
+The [official Python documentation](https://docs.python.org/3/howto/logging.html#configuring-logging) has more information and details on how to create logger config files.
 
 ## Implementation
 
