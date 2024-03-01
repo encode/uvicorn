@@ -589,3 +589,15 @@ def test_warn_when_using_reload_and_workers(caplog: pytest.LogCaptureFixture) ->
         '"workers" flag is ignored when reloading is enabled.'
         in caplog.records[0].message
     )
+
+
+def test_import_before_graceful_exit_hook() -> None:
+    config = Config(app=asgi_app, before_graceful_exit_hook=lambda: None)
+    config.load()
+    assert callable(config.before_graceful_exit_hook)
+
+    config = Config(
+        app=asgi_app, before_graceful_exit_hook="tests.test_config:asgi_app"
+    )
+    config.load()
+    assert callable(config.before_graceful_exit_hook)

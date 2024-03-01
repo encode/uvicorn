@@ -203,6 +203,8 @@ Options:
                                   buffer of an incomplete event.
   --factory                       Treat APP as an application factory, i.e. a
                                   () -> <ASGI app> callable.
+  --before-graceful-exit TEXT     A callable to be executed before the server
+                                  starts the graceful shutdown.
   --help                          Show this message and exit.
 ```
 

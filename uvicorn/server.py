@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import os
 import platform
@@ -269,6 +270,11 @@ class Server:
             server.close()
         for sock in sockets or []:
             sock.close()
+
+        if callable(self.config.before_graceful_exit_hook):
+            f = self.config.before_graceful_exit_hook()
+            if inspect.isawaitable(f):
+                await f
 
         # Request shutdown on all existing connections.
         for connection in list(self.server_state.connections):

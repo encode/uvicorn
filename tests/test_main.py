@@ -123,3 +123,12 @@ async def test_exit_on_create_server_with_invalid_host() -> None:
         server = Server(config=config)
         await server.serve()
     assert exc_info.value.code == 1
+
+
+@pytest.mark.anyio
+async def test_before_graceful_exit_hook() -> None:
+    config = Config(
+        app=app, before_graceful_exit_hook=lambda: print("Before graceful exit")
+    )
+    async with run_server(config):
+        pass

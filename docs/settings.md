@@ -121,3 +121,35 @@ To understand more about the SSL context options, please refer to the [Python do
 
 * `--timeout-keep-alive <int>` - Close Keep-Alive connections if no new data is received within this timeout. **Default:** *5*.
 * `--timeout-graceful-shutdown <int>` - Maximum number of seconds to wait for graceful shutdown. After this timeout, the server will start terminating requests.
+
+## Hooks
+
+### Before graceful exit
+
+* `--before-graceful-exit <str>` - A callable object to be executed before the server graceful exit.
+
+```python
+from starlette.applications import Starlette
+
+app = Starlette()
+app.state.should_exit = False
+
+
+@app.websocket_route('/ws')
+async def ws(websocket):
+    await websocket.accept()
+
+    while not app.state.should_exit:
+        # How to interrupt this while loop on the shutdown event?
+        await asyncio.sleep(0.1)
+
+    await websocket.close()
+
+
+def before_graceful_exit():
+    app.state.should_exit = True
+
+
+if __name__ == "__main__":
+    uvicorn.run("example:app", before_graceful_exit_hook="example:before_graceful_exit")
+```

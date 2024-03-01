@@ -6,7 +6,7 @@ import os
 import platform
 import ssl
 import sys
-from typing import Any, Callable
+from typing import Any, Awaitable, Callable
 
 import click
 
@@ -366,6 +366,12 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     help="Treat APP as an application factory, i.e. a () -> <ASGI app> callable.",
     show_default=True,
 )
+@click.option(
+    "--before-graceful-exit",
+    type=str,
+    default=None,
+    help="A callable to be executed before the server starts the graceful shutdown.",
+)
 def main(
     app: str,
     host: str,
@@ -414,6 +420,7 @@ def main(
     app_dir: str,
     h11_max_incomplete_event_size: int | None,
     factory: bool,
+    before_graceful_exit: str,
 ) -> None:
     run(
         app,
@@ -463,6 +470,7 @@ def main(
         factory=factory,
         app_dir=app_dir,
         h11_max_incomplete_event_size=h11_max_incomplete_event_size,
+        before_graceful_exit_hook=before_graceful_exit,
     )
 
 
@@ -515,6 +523,10 @@ def run(
     app_dir: str | None = None,
     factory: bool = False,
     h11_max_incomplete_event_size: int | None = None,
+    before_graceful_exit_hook: Callable[[], Any]
+    | Callable[[], Awaitable[Any]]
+    | str
+    | None = None,
 ) -> None:
     if app_dir is not None:
         sys.path.insert(0, app_dir)
@@ -566,6 +578,7 @@ def run(
         use_colors=use_colors,
         factory=factory,
         h11_max_incomplete_event_size=h11_max_incomplete_event_size,
+        before_graceful_exit_hook=before_graceful_exit_hook,
     )
     server = Server(config=config)
 
