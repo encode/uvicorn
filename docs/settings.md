@@ -62,6 +62,47 @@ Using Uvicorn with watchfiles will enable the following options (which are other
 * `--no-access-log` - Disable access log only, without changing log level.
 * `--use-colors / --no-use-colors` - Enable / disable colorized formatting of the log records, in case this is not set it will be auto-detected. This option is ignored if the `--log-config` CLI option is used.
 
+### Usage of `--log-config`
+
+Here's how you can use a JSON file to configure the logger so that the uvicorn writes logs in a **_structured_** way.
+
+* Install [`python-json-logger`](https://github.com/madzak/python-json-logger)
+* Create a `logger-config.json` file with the following content:
+    ```json
+    {
+      "version": 1,
+      "disable_existing_loggers": false,
+      "formatters": {
+        "json": {
+          "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+          "fmt": "%(asctime)s %(name)s %(levelname)s %(message)s"
+        }
+      },
+      "handlers": {
+        "stderr": {
+          "formatter": "json",
+          "class": "logging.StreamHandler",
+          "stream": "ext://sys.stderr"
+        },
+        "stdout": {
+          "formatter": "json",
+          "class": "logging.StreamHandler",
+          "stream": "ext://sys.stdout"
+        }
+      },
+      "loggers": {
+        "uvicorn": {"handlers": ["stderr"], "level": "INFO", "propagate": false},
+        "uvicorn.error": {"level": "INFO"},
+        "uvicorn.access": {"handlers": ["stdout"], "level": "INFO", "propagate": false}
+      }
+    }
+    ```
+* Let's assume that the `main.py` and `logger-config.json` files are in the same directory. Then you can instruct the uvicorn to use the log configuration file as follows:
+    ```shell
+    $ uvicorn main:app --log-config ./logger-config.json
+    ```
+
+The [official Python documentation](https://docs.python.org/3/howto/logging.html#configuring-logging) has more information and details on how to create these files.
 
 ## Implementation
 
