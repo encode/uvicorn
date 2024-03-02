@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import platform
 import signal
@@ -230,26 +231,28 @@ class TestBaseReload:
             pytest.param(WatchFilesReload, marks=skip_if_m1),
         ],
     )
+    @pytest.mark.parametrize("cwd_context", [as_cwd, contextlib.nullcontext])
     def test_should_not_reload_when_only_subdirectory_is_watched(
-        self, touch_soon
+        self, touch_soon, cwd_context
     ) -> None:
-        app_dir = self.reload_path / "app"
-        app_dir_file = self.reload_path / "app" / "src" / "main.py"
-        root_file = self.reload_path / "main.py"
+        with cwd_context(self.reload_path):
+            app_dir = self.reload_path / "app"
+            app_dir_file = self.reload_path / "app" / "src" / "main.py"
+            root_file = self.reload_path / "main.py"
 
-        config = Config(
-            app="tests.test_config:asgi_app",
-            reload=True,
-            reload_dirs=[str(app_dir)],
-        )
-        reloader = self._setup_reloader(config)
+            config = Config(
+                app="tests.test_config:asgi_app",
+                reload=True,
+                reload_dirs=[str(app_dir)],
+            )
+            reloader = self._setup_reloader(config)
 
-        assert self._reload_tester(touch_soon, reloader, app_dir_file)
-        assert not self._reload_tester(
-            touch_soon, reloader, root_file, app_dir / "~ignored"
-        )
+            assert self._reload_tester(touch_soon, reloader, app_dir_file)
+            assert not self._reload_tester(
+                touch_soon, reloader, root_file, app_dir / "~ignored"
+            )
 
-        reloader.shutdown()
+            reloader.shutdown()
 
     @pytest.mark.parametrize(
         "reloader_class",
@@ -364,16 +367,18 @@ class TestBaseReload:
 
 
 @pytest.mark.skipif(WatchFilesReload is None, reason="watchfiles not available")
-def test_should_watch_one_dir_cwd(mocker, reload_directory_structure):
+@pytest.mark.parametrize("cwd_context", [as_cwd, contextlib.nullcontext])
+@pytest.mark.parametrize("reload_dirs", [False, True])
+def test_default_watch_dir(
+    mocker, reload_directory_structure, cwd_context, reload_dirs
+):
     mock_watch = mocker.patch("uvicorn.supervisors.watchfilesreload.watch")
-    app_dir = reload_directory_structure / "app"
-    app_first_dir = reload_directory_structure / "app_first"
 
-    with as_cwd(reload_directory_structure):
+    with cwd_context(reload_directory_structure):
         config = Config(
             app="tests.test_config:asgi_app",
             reload=True,
-            reload_dirs=[str(app_dir), str(app_first_dir)],
+            reload_dirs=[Path.cwd()] if reload_dirs else [],
         )
         WatchFilesReload(config, target=run, sockets=[])
         mock_watch.assert_called_once()
@@ -381,22 +386,21 @@ def test_should_watch_one_dir_cwd(mocker, reload_directory_structure):
 
 
 @pytest.mark.skipif(WatchFilesReload is None, reason="watchfiles not available")
-def test_should_watch_separate_dirs_outside_cwd(mocker, reload_directory_structure):
+@pytest.mark.parametrize("cwd_context", [as_cwd, contextlib.nullcontext])
+def test_should_watch_separate_dirs(mocker, reload_directory_structure, cwd_context):
     mock_watch = mocker.patch("uvicorn.supervisors.watchfilesreload.watch")
     app_dir = reload_directory_structure / "app"
     app_first_dir = reload_directory_structure / "app_first"
-    config = Config(
-        app="tests.test_config:asgi_app",
-        reload=True,
-        reload_dirs=[str(app_dir), str(app_first_dir)],
-    )
-    WatchFilesReload(config, target=run, sockets=[])
-    mock_watch.assert_called_once()
-    assert set(mock_watch.call_args[0]) == {
-        app_dir,
-        app_first_dir,
-        Path.cwd(),
-    }
+
+    with cwd_context(reload_directory_structure):
+        config = Config(
+            app="tests.test_config:asgi_app",
+            reload=True,
+            reload_dirs=[str(app_dir), str(app_first_dir)],
+        )
+        WatchFilesReload(config, target=run, sockets=[])
+        mock_watch.assert_called_once()
+        assert set(mock_watch.call_args[0]) == {app_dir, app_first_dir}
 
 
 def test_display_path_relative(tmp_path):
