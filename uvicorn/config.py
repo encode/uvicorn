@@ -127,9 +127,7 @@ def is_dir(path: Path) -> bool:
         return False
 
 
-def resolve_reload_patterns(
-    patterns_list: list[str], directories_list: list[str]
-) -> tuple[list[str], list[Path]]:
+def resolve_reload_patterns(patterns_list: list[str], directories_list: list[str]) -> tuple[list[str], list[Path]]:
     directories: list[Path] = list(set(map(Path, directories_list.copy())))
     patterns: list[str] = patterns_list.copy()
 
@@ -150,9 +148,7 @@ def resolve_reload_patterns(
     directories = list(set(directories))
     directories = list(map(Path, directories))
     directories = list(map(lambda x: x.resolve(), directories))
-    directories = list(
-        {reload_path for reload_path in directories if is_dir(reload_path)}
-    )
+    directories = list({reload_path for reload_path in directories if is_dir(reload_path)})
 
     children = []
     for j in range(len(directories)):
@@ -280,12 +276,9 @@ class Config:
         self.reload_includes: list[str] = []
         self.reload_excludes: list[str] = []
 
-        if (
-            reload_dirs or reload_includes or reload_excludes
-        ) and not self.should_reload:
+        if (reload_dirs or reload_includes or reload_excludes) and not self.should_reload:
             logger.warning(
-                "Current configuration will not reload as not all conditions are met, "
-                "please refer to documentation."
+                "Current configuration will not reload as not all conditions are met, " "please refer to documentation."
             )
 
         if self.should_reload:
@@ -293,22 +286,15 @@ class Config:
             reload_includes = _normalize_dirs(reload_includes)
             reload_excludes = _normalize_dirs(reload_excludes)
 
-            self.reload_includes, self.reload_dirs = resolve_reload_patterns(
-                reload_includes, reload_dirs
-            )
+            self.reload_includes, self.reload_dirs = resolve_reload_patterns(reload_includes, reload_dirs)
 
-            self.reload_excludes, self.reload_dirs_excludes = resolve_reload_patterns(
-                reload_excludes, []
-            )
+            self.reload_excludes, self.reload_dirs_excludes = resolve_reload_patterns(reload_excludes, [])
 
             reload_dirs_tmp = self.reload_dirs.copy()
 
             for directory in self.reload_dirs_excludes:
                 for reload_directory in reload_dirs_tmp:
-                    if (
-                        directory == reload_directory
-                        or directory in reload_directory.parents
-                    ):
+                    if directory == reload_directory or directory in reload_directory.parents:
                         try:
                             self.reload_dirs.remove(reload_directory)
                         except ValueError:
@@ -343,9 +329,7 @@ class Config:
 
         self.forwarded_allow_ips: list[str] | str
         if forwarded_allow_ips is None:
-            self.forwarded_allow_ips = os.environ.get(
-                "FORWARDED_ALLOW_IPS", "127.0.0.1"
-            )
+            self.forwarded_allow_ips = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
         else:
             self.forwarded_allow_ips = forwarded_allow_ips
 
@@ -375,12 +359,8 @@ class Config:
         if self.log_config is not None:
             if isinstance(self.log_config, dict):
                 if self.use_colors in (True, False):
-                    self.log_config["formatters"]["default"][
-                        "use_colors"
-                    ] = self.use_colors
-                    self.log_config["formatters"]["access"][
-                        "use_colors"
-                    ] = self.use_colors
+                    self.log_config["formatters"]["default"]["use_colors"] = self.use_colors
+                    self.log_config["formatters"]["access"]["use_colors"] = self.use_colors
                 logging.config.dictConfig(self.log_config)
             elif self.log_config.endswith(".json"):
                 with open(self.log_config) as file:
@@ -397,9 +377,7 @@ class Config:
             else:
                 # See the note about fileConfig() here:
                 # https://docs.python.org/3/library/logging.config.html#configuration-file-format
-                logging.config.fileConfig(
-                    self.log_config, disable_existing_loggers=False
-                )
+                logging.config.fileConfig(self.log_config, disable_existing_loggers=False)
 
         if self.log_level is not None:
             if isinstance(self.log_level, str):
@@ -430,10 +408,7 @@ class Config:
         else:
             self.ssl = None
 
-        encoded_headers = [
-            (key.lower().encode("latin1"), value.encode("latin1"))
-            for key, value in self.headers
-        ]
+        encoded_headers = [(key.lower().encode("latin1"), value.encode("latin1")) for key, value in self.headers]
         self.encoded_headers = (
             [(b"server", b"uvicorn")] + encoded_headers
             if b"server" not in dict(encoded_headers) and self.server_header
@@ -469,8 +444,7 @@ class Config:
         else:
             if not self.factory:
                 logger.warning(
-                    "ASGI app factory detected. Using it, "
-                    "but please consider setting the --factory flag explicitly."
+                    "ASGI app factory detected. Using it, " "but please consider setting the --factory flag explicitly."
                 )
 
         if self.interface == "auto":
@@ -492,9 +466,7 @@ class Config:
         if logger.getEffectiveLevel() <= TRACE_LOG_LEVEL:
             self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
-            self.loaded_app = ProxyHeadersMiddleware(
-                self.loaded_app, trusted_hosts=self.forwarded_allow_ips
-            )
+            self.loaded_app = ProxyHeadersMiddleware(self.loaded_app, trusted_hosts=self.forwarded_allow_ips)
 
         self.loaded = True
 
@@ -518,21 +490,13 @@ class Config:
 
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
             sock_name_format = "%s"
-            color_message = (
-                "Uvicorn running on "
-                + click.style(sock_name_format, bold=True)
-                + " (Press CTRL+C to quit)"
-            )
+            color_message = "Uvicorn running on " + click.style(sock_name_format, bold=True) + " (Press CTRL+C to quit)"
             logger_args = [self.uds]
         elif self.fd:  # pragma: py-win32
             sock = socket.fromfd(self.fd, socket.AF_UNIX, socket.SOCK_STREAM)
             message = "Uvicorn running on socket %s (Press CTRL+C to quit)"
             fd_name_format = "%s"
-            color_message = (
-                "Uvicorn running on "
-                + click.style(fd_name_format, bold=True)
-                + " (Press CTRL+C to quit)"
-            )
+            color_message = "Uvicorn running on " + click.style(fd_name_format, bold=True) + " (Press CTRL+C to quit)"
             logger_args = [sock.getsockname()]
         else:
             family = socket.AF_INET
@@ -552,11 +516,7 @@ class Config:
                 sys.exit(1)
 
             message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
-            color_message = (
-                "Uvicorn running on "
-                + click.style(addr_format, bold=True)
-                + " (Press CTRL+C to quit)"
-            )
+            color_message = "Uvicorn running on " + click.style(addr_format, bold=True) + " (Press CTRL+C to quit)"
             protocol_name = "https" if self.is_ssl else "http"
             logger_args = [protocol_name, self.host, sock.getsockname()[1]]
         logger.info(message, *logger_args, extra={"color_message": color_message})

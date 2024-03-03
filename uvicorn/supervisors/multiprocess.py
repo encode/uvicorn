@@ -48,19 +48,15 @@ class Multiprocess:
         self.shutdown()
 
     def startup(self) -> None:
-        message = "Started parent process [{}]".format(str(self.pid))
-        color_message = "Started parent process [{}]".format(
-            click.style(str(self.pid), fg="cyan", bold=True)
-        )
+        message = f"Started parent process [{str(self.pid)}]"
+        color_message = "Started parent process [{}]".format(click.style(str(self.pid), fg="cyan", bold=True))
         logger.info(message, extra={"color_message": color_message})
 
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.signal_handler)
 
         for _idx in range(self.config.workers):
-            process = get_subprocess(
-                config=self.config, target=self.target, sockets=self.sockets
-            )
+            process = get_subprocess(config=self.config, target=self.target, sockets=self.sockets)
             process.start()
             self.processes.append(process)
 
@@ -69,8 +65,6 @@ class Multiprocess:
             process.terminate()
             process.join()
 
-        message = "Stopping parent process [{}]".format(str(self.pid))
-        color_message = "Stopping parent process [{}]".format(
-            click.style(str(self.pid), fg="cyan", bold=True)
-        )
+        message = f"Stopping parent process [{str(self.pid)}]"
+        color_message = "Stopping parent process [{}]".format(click.style(str(self.pid), fg="cyan", bold=True))
         logger.info(message, extra={"color_message": color_message})

@@ -26,9 +26,7 @@ async def test_message_logger(caplog):
         assert sum(["ASGI [1] Send" in message for message in messages]) == 2
         assert sum(["ASGI [1] Receive" in message for message in messages]) == 1
         assert sum(["ASGI [1] Completed" in message for message in messages]) == 1
-        assert (
-            sum(["ASGI [1] Raised exception" in message for message in messages]) == 0
-        )
+        assert sum(["ASGI [1] Raised exception" in message for message in messages]) == 0
 
 
 @pytest.mark.anyio
@@ -48,6 +46,4 @@ async def test_message_logger_exc(caplog):
         assert sum(["ASGI [1] Send" in message for message in messages]) == 0
         assert sum(["ASGI [1] Receive" in message for message in messages]) == 0
         assert sum(["ASGI [1] Completed" in message for message in messages]) == 0
-        assert (
-            sum(["ASGI [1] Raised exception" in message for message in messages]) == 1
-        )
+        assert sum(["ASGI [1] Raised exception" in message for message in messages]) == 1

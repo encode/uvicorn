@@ -59,7 +59,5 @@ async def test_websocket_auto():
     server_state = ServerState()
 
     assert AutoWebSocketsProtocol is not None
-    protocol = AutoWebSocketsProtocol(
-        config=config, server_state=server_state, app_state={}
-    )
+    protocol = AutoWebSocketsProtocol(config=config, server_state=server_state, app_state={})
     assert type(protocol).__name__ == expected_websockets

@@ -47,12 +47,11 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     if not value or ctx.resilient_parsing:
         return
     click.echo(
-        "Running uvicorn %s with %s %s on %s"
-        % (
-            uvicorn.__version__,
-            platform.python_implementation(),
-            platform.python_version(),
-            platform.system(),
+        "Running uvicorn {version} with {py_implementation} {py_version} on {system}".format(
+            version=uvicorn.__version__,
+            py_implementation=platform.python_implementation(),
+            py_version=platform.python_version(),
+            system=platform.system(),
         )
     )
     ctx.exit()
@@ -75,16 +74,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option("--uds", type=str, default=None, help="Bind to a UNIX domain socket.")
-@click.option(
-    "--fd", type=int, default=None, help="Bind to socket from this file descriptor."
-)
+@click.option("--fd", type=int, default=None, help="Bind to socket from this file descriptor.")
 @click.option("--reload", is_flag=True, default=False, help="Enable auto-reload.")
 @click.option(
     "--reload-dir",
     "reload_dirs",
     multiple=True,
-    help="Set reload directories explicitly, instead of using the current working"
-    " directory.",
+    help="Set reload directories explicitly, instead of using the current working" " directory.",
     type=click.Path(exists=True),
 )
 @click.option(
@@ -109,8 +105,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     type=float,
     default=0.25,
     show_default=True,
-    help="Delay between previous and next check if application needs to be."
-    " Defaults to 0.25s.",
+    help="Delay between previous and next check if application needs to be." " Defaults to 0.25s.",
 )
 @click.option(
     "--workers",
@@ -226,8 +221,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--proxy-headers/--no-proxy-headers",
     is_flag=True,
     default=True,
-    help="Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to "
-    "populate remote address info.",
+    help="Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to " "populate remote address info.",
 )
 @click.option(
     "--server-header/--no-server-header",
@@ -258,8 +252,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--limit-concurrency",
     type=int,
     default=None,
-    help="Maximum number of concurrent connections or tasks to allow, before issuing"
-    " HTTP 503 responses.",
+    help="Maximum number of concurrent connections or tasks to allow, before issuing" " HTTP 503 responses.",
 )
 @click.option(
     "--backlog",
@@ -286,9 +279,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     default=None,
     help="Maximum number of seconds to wait for graceful shutdown.",
 )
-@click.option(
-    "--ssl-keyfile", type=str, default=None, help="SSL key file", show_default=True
-)
+@click.option("--ssl-keyfile", type=str, default=None, help="SSL key file", show_default=True)
 @click.option(
     "--ssl-certfile",
     type=str,
@@ -571,10 +562,7 @@ def run(
 
     if (config.reload or config.workers > 1) and not isinstance(app, str):
         logger = logging.getLogger("uvicorn.error")
-        logger.warning(
-            "You must pass the application as an import string to enable 'reload' or "
-            "'workers'."
-        )
+        logger.warning("You must pass the application as an import string to enable 'reload' or " "'workers'.")
         sys.exit(1)
 
     if config.should_reload:

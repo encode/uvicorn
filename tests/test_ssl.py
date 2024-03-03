@@ -56,9 +56,7 @@ async def test_run_chain(
 
 
 @pytest.mark.anyio
-async def test_run_chain_only(
-    tls_ca_ssl_context, tls_certificate_key_and_chain_path, unused_tcp_port: int
-):
+async def test_run_chain_only(tls_ca_ssl_context, tls_certificate_key_and_chain_path, unused_tcp_port: int):
     config = Config(
         app=app,
         loop="asyncio",

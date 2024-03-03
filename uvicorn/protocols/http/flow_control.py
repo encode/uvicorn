@@ -45,9 +45,7 @@ class FlowControl:
             self._is_writable_event.set()
 
 
-async def service_unavailable(
-    scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
-) -> None:
+async def service_unavailable(scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable") -> None:
     response_start: "HTTPResponseStartEvent" = {
         "type": "http.response.start",
         "status": 503,
