@@ -126,6 +126,7 @@ async def test_proxy_headers_websocket_x_forwarded_proto(
     async def websocket_app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
         assert scope["type"] == "websocket"
         scheme = scope["scheme"]
+        assert scope["client"] is not None
         host, port = scope["client"]
         addr = "%s://%s:%d" % (scheme, host, port)
         await send({"type": "websocket.accept"})
