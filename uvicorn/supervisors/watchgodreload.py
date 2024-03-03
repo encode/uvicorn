@@ -22,20 +22,12 @@ logger = logging.getLogger("uvicorn.error")
 class CustomWatcher(DefaultWatcher):
     def __init__(self, root_path: Path, config: Config):
         default_includes = ["*.py"]
-        self.includes = [
-            default
-            for default in default_includes
-            if default not in config.reload_excludes
-        ]
+        self.includes = [default for default in default_includes if default not in config.reload_excludes]
         self.includes.extend(config.reload_includes)
         self.includes = list(set(self.includes))
 
         default_excludes = [".*", ".py[cod]", ".sw.*", "~*"]
-        self.excludes = [
-            default
-            for default in default_excludes
-            if default not in config.reload_includes
-        ]
+        self.excludes = [default for default in default_excludes if default not in config.reload_includes]
         self.excludes.extend(config.reload_excludes)
         self.excludes = list(set(self.excludes))
 
@@ -46,7 +38,7 @@ class CustomWatcher(DefaultWatcher):
         self.resolved_root = root_path
         super().__init__(str(root_path))
 
-    def should_watch_file(self, entry: "DirEntry") -> bool:
+    def should_watch_file(self, entry: DirEntry) -> bool:
         cached_result = self.watched_files.get(entry.path)
         if cached_result is not None:
             return cached_result
@@ -71,7 +63,7 @@ class CustomWatcher(DefaultWatcher):
         self.watched_files[entry.path] = False
         return False
 
-    def should_watch_dir(self, entry: "DirEntry") -> bool:
+    def should_watch_dir(self, entry: DirEntry) -> bool:
         cached_result = self.watched_dirs.get(entry.path)
         if cached_result is not None:
             return cached_result
@@ -94,8 +86,7 @@ class CustomWatcher(DefaultWatcher):
 
                 if is_watched:
                     logger.debug(
-                        "WatchGodReload detected a new excluded dir '%s' in '%s'; "
-                        "Adding to exclude list.",
+                        "WatchGodReload detected a new excluded dir '%s' in '%s'; " "Adding to exclude list.",
                         entry_path.relative_to(self.resolved_root),
                         str(self.resolved_root),
                     )
@@ -115,8 +106,7 @@ class CustomWatcher(DefaultWatcher):
         for include_pattern in self.includes:
             if entry_path.match(include_pattern):
                 logger.info(
-                    "WatchGodReload detected a new reload dir '%s' in '%s'; "
-                    "Adding to watch list.",
+                    "WatchGodReload detected a new reload dir '%s' in '%s'; " "Adding to watch list.",
                     str(entry_path.relative_to(self.resolved_root)),
                     str(self.resolved_root),
                 )
@@ -136,8 +126,7 @@ class WatchGodReload(BaseReload):
         sockets: list[socket],
     ) -> None:
         warnings.warn(
-            '"watchgod" is deprecated, you should switch '
-            "to watchfiles (`pip install watchfiles`).",
+            '"watchgod" is deprecated, you should switch ' "to watchfiles (`pip install watchfiles`).",
             DeprecationWarning,
         )
         super().__init__(config, target, sockets)

@@ -7,7 +7,7 @@ import re
 import urllib
 from asyncio.events import TimerHandle
 from collections import deque
-from typing import Any, Callable, Deque, Literal, cast
+from typing import Any, Callable, Literal, cast
 
 import httptools
 
@@ -50,9 +50,7 @@ def _get_status_line(status_code: int) -> bytes:
     return b"".join([b"HTTP/1.1 ", str(status_code).encode(), b" ", phrase, b"\r\n"])
 
 
-STATUS_LINE = {
-    status_code: _get_status_line(status_code) for status_code in range(100, 600)
-}
+STATUS_LINE = {status_code: _get_status_line(status_code) for status_code in range(100, 600)}
 
 
 class HttpToolsProtocol(asyncio.Protocol):
@@ -93,7 +91,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.server: tuple[str, int] | None = None
         self.client: tuple[str, int] | None = None
         self.scheme: Literal["http", "https"] | None = None
-        self.pipeline: Deque[tuple[RequestResponseCycle, ASGI3Application]] = deque()
+        self.pipeline: deque[tuple[RequestResponseCycle, ASGI3Application]] = deque()
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
@@ -268,8 +266,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 
         # Handle 503 responses when 'limit_concurrency' is exceeded.
         if self.limit_concurrency is not None and (
-            len(self.connections) >= self.limit_concurrency
-            or len(self.tasks) >= self.limit_concurrency
+            len(self.connections) >= self.limit_concurrency or len(self.tasks) >= self.limit_concurrency
         ):
             app = service_unavailable
             message = "Exceeded concurrency limit."
@@ -302,9 +299,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.pipeline.appendleft((self.cycle, app))
 
     def on_body(self, body: bytes) -> None:
-        if (
-            self.parser.should_upgrade() and self._should_upgrade()
-        ) or self.cycle.response_complete:
+        if (self.parser.should_upgrade() and self._should_upgrade()) or self.cycle.response_complete:
             return
         self.cycle.body += body
         if len(self.cycle.body) > HIGH_WATER_LIMIT:
@@ -312,9 +307,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.cycle.message_event.set()
 
     def on_message_complete(self) -> None:
-        if (
-            self.parser.should_upgrade() and self._should_upgrade()
-        ) or self.cycle.response_complete:
+        if (self.parser.should_upgrade() and self._should_upgrade()) or self.cycle.response_complete:
             return
         self.cycle.more_body = False
         self.cycle.message_event.set()
@@ -376,7 +369,7 @@ class HttpToolsProtocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
-        scope: "HTTPScope",
+        scope: HTTPScope,
         transport: asyncio.Transport,
         flow: FlowControl,
         logger: logging.Logger,
@@ -517,11 +510,7 @@ class RequestResponseCycle:
                     self.keep_alive = False
                 content.extend([name, b": ", value, b"\r\n"])
 
-            if (
-                self.chunked_encoding is None
-                and self.scope["method"] != "HEAD"
-                and status_code not in (204, 304)
-            ):
+            if self.chunked_encoding is None and self.scope["method"] != "HEAD" and status_code not in (204, 304):
                 # Neither content-length nor transfer-encoding specified
                 self.chunked_encoding = True
                 content.append(b"transfer-encoding: chunked\r\n")

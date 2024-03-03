@@ -29,9 +29,7 @@ async def test_sigint_finish_req(unused_tcp_port: int):
         await server_event.wait()
         await send({"type": "http.response.body", "body": b"end", "more_body": False})
 
-    config = Config(
-        app=wait_app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1
-    )
+    config = Config(app=wait_app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1)
     server: Server
     async with run_server(config) as server:
         async with httpx.AsyncClient() as client:
@@ -64,9 +62,7 @@ async def test_sigint_abort_req(unused_tcp_port: int, caplog):
         await server_event.wait()
         await send({"type": "http.response.body", "body": b"end", "more_body": False})
 
-    config = Config(
-        app=forever_app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1
-    )
+    config = Config(app=forever_app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1)
     server: Server
     async with run_server(config) as server:
         async with httpx.AsyncClient() as client:
@@ -78,10 +74,7 @@ async def test_sigint_abort_req(unused_tcp_port: int, caplog):
                 await req
 
         # req.result()
-    assert (
-        "Cancel 1 running task(s), timeout graceful shutdown exceeded"
-        in caplog.messages
-    )
+    assert "Cancel 1 running task(s), timeout graceful shutdown exceeded" in caplog.messages
 
 
 @pytest.mark.anyio
@@ -99,9 +92,7 @@ async def test_sigint_deny_request_after_triggered(unused_tcp_port: int, caplog)
         await send({"type": "http.response.start", "status": 200, "headers": []})
         await asyncio.sleep(1)
 
-    config = Config(
-        app=app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1
-    )
+    config = Config(app=app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1)
     server: Server
     async with run_server(config) as server:
         # exit and ensure we do not accept more requests

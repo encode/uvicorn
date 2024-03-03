@@ -58,9 +58,7 @@ SIMPLE_POST_REQUEST = b"\r\n".join(
     ]
 )
 
-CONNECTION_CLOSE_REQUEST = b"\r\n".join(
-    [b"GET / HTTP/1.1", b"Host: example.org", b"Connection: close", b"", b""]
-)
+CONNECTION_CLOSE_REQUEST = b"\r\n".join([b"GET / HTTP/1.1", b"Host: example.org", b"Connection: close", b"", b""])
 
 LARGE_POST_REQUEST = b"\r\n".join(
     [
@@ -88,9 +86,7 @@ FINISH_POST_REQUEST = b'{"hello": "world"}'
 
 HTTP10_GET_REQUEST = b"\r\n".join([b"GET / HTTP/1.0", b"Host: example.org", b"", b""])
 
-GET_REQUEST_WITH_RAW_PATH = b"\r\n".join(
-    [b"GET /one%2Ftwo HTTP/1.1", b"Host: example.org", b"", b""]
-)
+GET_REQUEST_WITH_RAW_PATH = b"\r\n".join([b"GET /one%2Ftwo HTTP/1.1", b"Host: example.org", b"", b""])
 
 UPGRADE_REQUEST = b"\r\n".join(
     [
@@ -257,11 +253,9 @@ async def test_get_request(http_protocol_cls: HTTPProtocol):
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("path", ["/", "/?foo", "/?foo=bar", "/?foo=bar&baz=1"])
-async def test_request_logging(
-    path: str, http_protocol_cls: HTTPProtocol, caplog: pytest.LogCaptureFixture
-):
+async def test_request_logging(path: str, http_protocol_cls: HTTPProtocol, caplog: pytest.LogCaptureFixture):
     get_request_with_query_string = b"\r\n".join(
-        ["GET {} HTTP/1.1".format(path).encode("ascii"), b"Host: example.org", b"", b""]
+        [f"GET {path} HTTP/1.1".encode("ascii"), b"Host: example.org", b"", b""]
     )
     caplog.set_level(logging.INFO, logger="uvicorn.access")
     logging.getLogger("uvicorn.access").propagate = True
@@ -271,7 +265,7 @@ async def test_request_logging(
     protocol = get_connected_protocol(app, http_protocol_cls, log_config=None)
     protocol.data_received(get_request_with_query_string)
     await protocol.loop.run_one()
-    assert '"GET {} HTTP/1.1" 200'.format(path) in caplog.records[0].message
+    assert f'"GET {path} HTTP/1.1" 200' in caplog.records[0].message
 
 
 @pytest.mark.anyio
@@ -371,9 +365,7 @@ async def test_close(http_protocol_cls: HTTPProtocol):
 
 @pytest.mark.anyio
 async def test_chunked_encoding(http_protocol_cls: HTTPProtocol):
-    app = Response(
-        b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
-    )
+    app = Response(b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"})
 
     protocol = get_connected_protocol(app, http_protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -385,9 +377,7 @@ async def test_chunked_encoding(http_protocol_cls: HTTPProtocol):
 
 @pytest.mark.anyio
 async def test_chunked_encoding_empty_body(http_protocol_cls: HTTPProtocol):
-    app = Response(
-        b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
-    )
+    app = Response(b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"})
 
     protocol = get_connected_protocol(app, http_protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -401,9 +391,7 @@ async def test_chunked_encoding_empty_body(http_protocol_cls: HTTPProtocol):
 async def test_chunked_encoding_head_request(
     http_protocol_cls: HTTPProtocol,
 ):
-    app = Response(
-        b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"}
-    )
+    app = Response(b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"})
 
     protocol = get_connected_protocol(app, http_protocol_cls)
     protocol.data_received(SIMPLE_HEAD_REQUEST)
@@ -669,9 +657,7 @@ async def test_root_path(http_protocol_cls: HTTPProtocol):
         assert scope["type"] == "http"
         root_path = scope.get("root_path", "")
         path = scope["path"]
-        response = Response(
-            f"root_path={root_path} path={path}", media_type="text/plain"
-        )
+        response = Response(f"root_path={root_path} path={path}", media_type="text/plain")
         await response(scope, receive, send)
 
     protocol = get_connected_protocol(app, http_protocol_cls, root_path="/app")
@@ -821,21 +807,14 @@ async def test_unsupported_ws_upgrade_request_warn_on_auto(
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"Hello, world" in protocol.transport.buffer
-    warnings = [
-        record.msg
-        for record in filter(
-            lambda record: record.levelname == "WARNING", caplog.records
-        )
-    ]
+    warnings = [record.msg for record in filter(lambda record: record.levelname == "WARNING", caplog.records)]
     assert "Unsupported upgrade request." in warnings
     msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
     assert msg in warnings
 
 
 @pytest.mark.anyio
-async def test_http2_upgrade_request(
-    http_protocol_cls: HTTPProtocol, ws_protocol_cls: WSProtocol
-):
+async def test_http2_upgrade_request(http_protocol_cls: HTTPProtocol, ws_protocol_cls: WSProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, http_protocol_cls, ws=ws_protocol_cls)
@@ -915,9 +894,7 @@ def test_fragmentation(unused_tcp_port: int):
     def send_fragmented_req(path: str):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(("127.0.0.1", unused_tcp_port))
-        d = (
-            f"GET {path} HTTP/1.1\r\n" "Host: localhost\r\n" "Connection: close\r\n\r\n"
-        ).encode()
+        d = (f"GET {path} HTTP/1.1\r\n" "Host: localhost\r\n" "Connection: close\r\n\r\n").encode()
         split = len(path) // 2
         sock.sendall(d[:split])
         time.sleep(0.01)
@@ -979,9 +956,7 @@ async def test_huge_headers_httptools_will_pass():
 async def test_huge_headers_h11protocol_failure_with_setting():
     app = Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(
-        app, H11Protocol, h11_max_incomplete_event_size=20 * 1024
-    )
+    protocol = get_connected_protocol(app, H11Protocol, h11_max_incomplete_event_size=20 * 1024)
     # Huge headers make h11 fail in it's default config
     # h11 sends back a 400 in this case
     protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
@@ -1009,9 +984,7 @@ async def test_huge_headers_httptools():
 async def test_huge_headers_h11_max_incomplete():
     app = Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(
-        app, H11Protocol, h11_max_incomplete_event_size=64 * 1024
-    )
+    protocol = get_connected_protocol(app, H11Protocol, h11_max_incomplete_event_size=64 * 1024)
     protocol.data_received(GET_REQUEST_HUGE_HEADERS[0])
     protocol.data_received(GET_REQUEST_HUGE_HEADERS[1])
     await protocol.loop.run_one()

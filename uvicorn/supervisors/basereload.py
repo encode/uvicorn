@@ -81,9 +81,7 @@ class BaseReload:
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.signal_handler)
 
-        self.process = get_subprocess(
-            config=self.config, target=self.target, sockets=self.sockets
-        )
+        self.process = get_subprocess(config=self.config, target=self.target, sockets=self.sockets)
         self.process.start()
 
     def restart(self) -> None:
@@ -95,9 +93,7 @@ class BaseReload:
             self.process.terminate()
         self.process.join()
 
-        self.process = get_subprocess(
-            config=self.config, target=self.target, sockets=self.sockets
-        )
+        self.process = get_subprocess(config=self.config, target=self.target, sockets=self.sockets)
         self.process.start()
 
     def shutdown(self) -> None:
@@ -110,10 +106,8 @@ class BaseReload:
         for sock in self.sockets:
             sock.close()
 
-        message = "Stopping reloader process [{}]".format(str(self.pid))
-        color_message = "Stopping reloader process [{}]".format(
-            click.style(str(self.pid), fg="cyan", bold=True)
-        )
+        message = f"Stopping reloader process [{str(self.pid)}]"
+        color_message = "Stopping reloader process [{}]".format(click.style(str(self.pid), fg="cyan", bold=True))
         logger.info(message, extra={"color_message": color_message})
 
     def should_restart(self) -> list[Path] | None:
