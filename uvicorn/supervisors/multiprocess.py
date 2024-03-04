@@ -6,7 +6,7 @@ import signal
 import threading
 from multiprocessing import Pipe
 from socket import socket
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable
 
 import click
 
@@ -14,9 +14,7 @@ from uvicorn._subprocess import get_subprocess
 from uvicorn.config import Config
 
 UNIX_SIGNALS = {
-    getattr(signal, f"SIG{x}"): x
-    for x in "HUP QUIT TTIN TTOU USR1 USR2 WINCH".split()
-    if hasattr(signal, f"SIG{x}")
+    getattr(signal, f"SIG{x}"): x for x in "HUP QUIT TTIN TTOU USR1 USR2 WINCH".split() if hasattr(signal, f"SIG{x}")
 }
 
 logger = logging.getLogger("uvicorn.error")
@@ -26,8 +24,8 @@ class Process:
     def __init__(
         self,
         config: Config,
-        target: Callable[[Optional[List[socket]]], None],
-        sockets: List[socket],
+        target: Callable[[list[socket] | None], None],
+        sockets: list[socket],
     ) -> None:
         self.real_target = target
 
@@ -49,7 +47,7 @@ class Process:
         while True:
             self.pong()
 
-    def target(self, sockets: Optional[List[socket]] = None) -> Any:
+    def target(self, sockets: list[socket] | None = None) -> Any:
         if os.name == "nt":
             # Windows doesn't support SIGTERM, so we use SIGBREAK instead.
             # And then we raise SIGTERM when SIGBREAK is received.
@@ -70,7 +68,7 @@ class Process:
 
     def start(self) -> None:
         self.process.start()
-        logger.info("Started child process [{}]".format(self.process.pid))
+        logger.info(f"Started child process [{self.process.pid}]")
 
     def terminate(self) -> None:
         if self.process.exitcode is not None:
@@ -82,7 +80,7 @@ class Process:
             os.kill(self.process.pid, signal.CTRL_BREAK_EVENT)  # type: ignore[attr-defined]
         else:
             os.kill(self.process.pid, signal.SIGTERM)
-        logger.info("Terminated child process [{}]".format(self.process.pid))
+        logger.info(f"Terminated child process [{self.process.pid}]")
 
         self.parent_conn.close()
         self.child_conn.close()
@@ -93,11 +91,11 @@ class Process:
         self.process.kill()
 
     def join(self) -> None:
-        logger.info("Waiting for child process [{}]".format(self.process.pid))
+        logger.info(f"Waiting for child process [{self.process.pid}]")
         self.process.join()
 
     @property
-    def pid(self) -> Union[int, None]:
+    def pid(self) -> int | None:
         return self.process.pid
 
 
@@ -113,11 +111,11 @@ class Multiprocess:
         self.sockets = sockets
 
         self.processes_num = config.workers
-        self.processes: List[Process] = []
+        self.processes: list[Process] = []
 
         self.should_exit = threading.Event()
 
-        self.signal_queue: List[int] = []
+        self.signal_queue: list[int] = []
         for sig in UNIX_SIGNALS:
             signal.signal(sig, lambda sig, frame: self.signal_queue.append(sig))
 
@@ -153,10 +151,8 @@ class Multiprocess:
             self.processes.append(process)
 
     def run(self) -> None:
-        message = "Started parent process [{}]".format(os.getpid())
-        color_message = "Started parent process [{}]".format(
-            click.style(str(os.getpid()), fg="cyan", bold=True)
-        )
+        message = f"Started parent process [{os.getpid()}]"
+        color_message = "Started parent process [{}]".format(click.style(str(os.getpid()), fg="cyan", bold=True))
         logger.info(message, extra={"color_message": color_message})
 
         self.init_processes()
@@ -168,10 +164,8 @@ class Multiprocess:
         self.terminate_all()
         self.join_all()
 
-        message = "Stopping parent process [{}]".format(os.getpid())
-        color_message = "Stopping parent process [{}]".format(
-            click.style(str(os.getpid()), fg="cyan", bold=True)
-        )
+        message = f"Stopping parent process [{os.getpid()}]"
+        color_message = "Stopping parent process [{}]".format(click.style(str(os.getpid()), fg="cyan", bold=True))
         logger.info(message, extra={"color_message": color_message})
 
     def keep_subprocess_alive(self) -> None:
@@ -181,7 +175,7 @@ class Multiprocess:
 
             process.kill()  # process is hung, kill it
             process.join()
-            logger.info("Child process [{}] died".format(process.pid))
+            logger.info(f"Child process [{process.pid}] died")
             del self.processes[idx]
             process = Process(self.config, self.target, self.sockets)
             process.start()

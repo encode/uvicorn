@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import signal
 import socket
 import threading
 import time
-from typing import List, Optional
 
 from uvicorn import Config
 from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
@@ -34,7 +32,5 @@ def test_multiprocess_run() -> None:
     """
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
-    threading.Thread(
-        target=stop_run, args=(supervisor.handle_int,), daemon=True
-    ).start()
+    threading.Thread(target=stop_run, args=(supervisor.handle_int,), daemon=True).start()
     supervisor.run()
