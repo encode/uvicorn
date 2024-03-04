@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import importlib.util
 import os
@@ -9,6 +11,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
 from time import sleep
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -38,14 +41,14 @@ LOGGING_CONFIG["loggers"]["uvicorn"]["propagate"] = True
 
 
 @pytest.fixture
-def tls_certificate_authority() -> "trustme.CA":
+def tls_certificate_authority() -> trustme.CA:
     if not HAVE_TRUSTME:
         pytest.skip("trustme not installed")  # pragma: no cover
     return trustme.CA()
 
 
 @pytest.fixture
-def tls_certificate(tls_certificate_authority: "trustme.CA") -> "trustme.LeafCert":
+def tls_certificate(tls_certificate_authority: trustme.CA) -> trustme.LeafCert:
     return tls_certificate_authority.issue_cert(
         "localhost",
         "127.0.0.1",
@@ -54,13 +57,13 @@ def tls_certificate(tls_certificate_authority: "trustme.CA") -> "trustme.LeafCer
 
 
 @pytest.fixture
-def tls_ca_certificate_pem_path(tls_certificate_authority: "trustme.CA"):
+def tls_ca_certificate_pem_path(tls_certificate_authority: trustme.CA):
     with tls_certificate_authority.cert_pem.tempfile() as ca_cert_pem:
         yield ca_cert_pem
 
 
 @pytest.fixture
-def tls_ca_certificate_private_key_path(tls_certificate_authority: "trustme.CA"):
+def tls_ca_certificate_private_key_path(tls_certificate_authority: trustme.CA):
     with tls_certificate_authority.private_key_pem.tempfile() as private_key:
         yield private_key
 
@@ -82,25 +85,25 @@ def tls_certificate_private_key_encrypted_path(tls_certificate):
 
 
 @pytest.fixture
-def tls_certificate_private_key_path(tls_certificate: "trustme.CA"):
+def tls_certificate_private_key_path(tls_certificate: trustme.CA):
     with tls_certificate.private_key_pem.tempfile() as private_key:
         yield private_key
 
 
 @pytest.fixture
-def tls_certificate_key_and_chain_path(tls_certificate: "trustme.LeafCert"):
+def tls_certificate_key_and_chain_path(tls_certificate: trustme.LeafCert):
     with tls_certificate.private_key_and_cert_chain_pem.tempfile() as cert_pem:
         yield cert_pem
 
 
 @pytest.fixture
-def tls_certificate_server_cert_path(tls_certificate: "trustme.LeafCert"):
+def tls_certificate_server_cert_path(tls_certificate: trustme.LeafCert):
     with tls_certificate.cert_chain_pems[0].tempfile() as cert_pem:
         yield cert_pem
 
 
 @pytest.fixture
-def tls_ca_ssl_context(tls_certificate_authority: "trustme.CA") -> ssl.SSLContext:
+def tls_ca_ssl_context(tls_certificate_authority: trustme.CA) -> ssl.SSLContext:
     ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
     tls_certificate_authority.configure_trust(ssl_ctx)
     return ssl_ctx
@@ -172,7 +175,7 @@ def anyio_backend() -> str:
 
 
 @pytest.fixture(scope="function")
-def logging_config() -> dict:
+def logging_config() -> dict[str, Any]:
     return deepcopy(LOGGING_CONFIG)
 
 
@@ -250,11 +253,13 @@ def unused_tcp_port() -> int:
     params=[
         pytest.param(
             "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
-            marks=pytest.mark.skipif(
-                not importlib.util.find_spec("wsproto"), reason="wsproto not installed."
-            ),
+            marks=pytest.mark.skipif(not importlib.util.find_spec("wsproto"), reason="wsproto not installed."),
+            id="wsproto",
         ),
-        "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
+        pytest.param(
+            "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
+            id="websockets",
+        ),
     ]
 )
 def ws_protocol_cls(request: pytest.FixtureRequest):
@@ -269,8 +274,9 @@ def ws_protocol_cls(request: pytest.FixtureRequest):
                 not importlib.util.find_spec("httptools"),
                 reason="httptools not installed.",
             ),
+            id="httptools",
         ),
-        "uvicorn.protocols.http.h11_impl:H11Protocol",
+        pytest.param("uvicorn.protocols.http.h11_impl:H11Protocol", id="h11"),
     ]
 )
 def http_protocol_cls(request: pytest.FixtureRequest):

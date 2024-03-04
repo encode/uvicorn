@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, List, Type, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import httpx
 import pytest
@@ -45,13 +47,9 @@ async def app(
         ("192.168.0.1", "Remote: http://127.0.0.1:123"),
     ],
 )
-async def test_proxy_headers_trusted_hosts(
-    trusted_hosts: Union[List[str], str], response_text: str
-) -> None:
+async def test_proxy_headers_trusted_hosts(trusted_hosts: list[str] | str, response_text: str) -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts=trusted_hosts)
-    async with httpx.AsyncClient(
-        app=app_with_middleware, base_url="http://testserver"
-    ) as client:
+    async with httpx.AsyncClient(app=app_with_middleware, base_url="http://testserver") as client:
         headers = {"X-Forwarded-Proto": "https", "X-Forwarded-For": "1.2.3.4"}
         response = await client.get("/", headers=headers)
 
@@ -79,13 +77,9 @@ async def test_proxy_headers_trusted_hosts(
         (["192.168.0.2", "127.0.0.1"], "Remote: https://10.0.2.1:0"),
     ],
 )
-async def test_proxy_headers_multiple_proxies(
-    trusted_hosts: Union[List[str], str], response_text: str
-) -> None:
+async def test_proxy_headers_multiple_proxies(trusted_hosts: list[str] | str, response_text: str) -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts=trusted_hosts)
-    async with httpx.AsyncClient(
-        app=app_with_middleware, base_url="http://testserver"
-    ) as client:
+    async with httpx.AsyncClient(app=app_with_middleware, base_url="http://testserver") as client:
         headers = {
             "X-Forwarded-Proto": "https",
             "X-Forwarded-For": "1.2.3.4, 10.0.2.1, 192.168.0.2",
@@ -99,9 +93,7 @@ async def test_proxy_headers_multiple_proxies(
 @pytest.mark.anyio
 async def test_proxy_headers_invalid_x_forwarded_for() -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts="*")
-    async with httpx.AsyncClient(
-        app=app_with_middleware, base_url="http://testserver"
-    ) as client:
+    async with httpx.AsyncClient(app=app_with_middleware, base_url="http://testserver") as client:
         headers = httpx.Headers(
             {
                 "X-Forwarded-Proto": "https",
@@ -115,13 +107,26 @@ async def test_proxy_headers_invalid_x_forwarded_for() -> None:
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "x_forwarded_proto,addr",
+    [
+        ("http", "ws://1.2.3.4:0"),
+        ("https", "wss://1.2.3.4:0"),
+        ("ws", "ws://1.2.3.4:0"),
+        ("wss", "wss://1.2.3.4:0"),
+    ],
+)
 async def test_proxy_headers_websocket_x_forwarded_proto(
-    ws_protocol_cls: "Type[WSProtocol | WebSocketProtocol]",
-    http_protocol_cls: "Type[H11Protocol | HttpToolsProtocol]",
+    x_forwarded_proto: str,
+    addr: str,
+    ws_protocol_cls: type[WSProtocol | WebSocketProtocol],
+    http_protocol_cls: type[H11Protocol | HttpToolsProtocol],
     unused_tcp_port: int,
 ) -> None:
-    async def websocket_app(scope, receive, send):
+    async def websocket_app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
+        assert scope["type"] == "websocket"
         scheme = scope["scheme"]
+        assert scope["client"] is not None
         host, port = scope["client"]
         addr = "%s://%s:%d" % (scheme, host, port)
         await send({"type": "websocket.accept"})
@@ -138,7 +143,7 @@ async def test_proxy_headers_websocket_x_forwarded_proto(
 
     async with run_server(config):
         url = f"ws://127.0.0.1:{unused_tcp_port}"
-        headers = {"X-Forwarded-Proto": "https", "X-Forwarded-For": "1.2.3.4"}
+        headers = {"X-Forwarded-Proto": x_forwarded_proto, "X-Forwarded-For": "1.2.3.4"}
         async with websockets.client.connect(url, extra_headers=headers) as websocket:
             data = await websocket.recv()
-            assert data == "wss://1.2.3.4:0"
+            assert data == addr

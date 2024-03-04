@@ -1,10 +1,45 @@
 # Change Log
 
+## 0.27.1 - 2024-02-10
+
+- Fix spurious LocalProtocolError errors when processing pipelined requests (#2243) 10/02/24
+
+## 0.27.0.post1 - 2024-01-29
+
+### Fixed
+
+- Fix nav overrides for newer version of Mkdocs Material (#2233) 26/01/24
+
+## 0.27.0 - 2024-01-22
+
+### Added
+
+- Raise `ClientDisconnect(IOError)` on `send()` when client disconnected (#2218) 19/01/24
+- Bump ASGI WebSocket spec version to 2.4 (#2221) 20/01/24
+
+## 0.26.0 - 2024-01-16
+
+### Changed
+
+- Update `--root-path` to include the root path prefix in the full ASGI `path` as per the ASGI spec (#2213) 16/01/24
+- Use `__future__.annotations` on some internal modules (#2199) 16/01/24
+
+## 0.25.0 - 2023-12-17
+
+### Added
+
+- Support the WebSocket Denial Response ASGI extension (#1916) 17/12/23
+
+### Fixed
+
+- Allow explicit hidden file paths on `--reload-include` (#2176) 08/12/23
+- Properly annotate `uvicorn.run()` (#2158) 22/11/23
+
 ## 0.24.0.post1 - 2023-11-06
 
 ### Fixed
 
-* Revert mkdocs-material from 9.1.21 to 9.2.6 (#2148) 05/11/23
+- Revert mkdocs-material from 9.1.21 to 9.2.6 (#2148) 05/11/23
 
 ## 0.24.0 - 2023-11-04
 

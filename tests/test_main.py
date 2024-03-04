@@ -47,9 +47,7 @@ def _has_ipv6(host):
     ],
 )
 async def test_run(host, url: str, unused_tcp_port: int):
-    config = Config(
-        app=app, host=host, loop="asyncio", limit_max_requests=1, port=unused_tcp_port
-    )
+    config = Config(app=app, host=host, loop="asyncio", limit_max_requests=1, port=unused_tcp_port)
     async with run_server(config):
         async with httpx.AsyncClient() as client:
             response = await client.get(f"{url}:{unused_tcp_port}")
@@ -58,9 +56,7 @@ async def test_run(host, url: str, unused_tcp_port: int):
 
 @pytest.mark.anyio
 async def test_run_multiprocess(unused_tcp_port: int):
-    config = Config(
-        app=app, loop="asyncio", workers=2, limit_max_requests=1, port=unused_tcp_port
-    )
+    config = Config(app=app, loop="asyncio", workers=2, limit_max_requests=1, port=unused_tcp_port)
     async with run_server(config):
         async with httpx.AsyncClient() as client:
             response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
@@ -69,9 +65,7 @@ async def test_run_multiprocess(unused_tcp_port: int):
 
 @pytest.mark.anyio
 async def test_run_reload(unused_tcp_port: int):
-    config = Config(
-        app=app, loop="asyncio", reload=True, limit_max_requests=1, port=unused_tcp_port
-    )
+    config = Config(app=app, loop="asyncio", reload=True, limit_max_requests=1, port=unused_tcp_port)
     async with run_server(config):
         async with httpx.AsyncClient() as client:
             response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
@@ -85,8 +79,7 @@ def test_run_invalid_app_config_combination(caplog: pytest.LogCaptureFixture) ->
     assert caplog.records[-1].name == "uvicorn.error"
     assert caplog.records[-1].levelno == WARNING
     assert caplog.records[-1].message == (
-        "You must pass the application as an import string to enable "
-        "'reload' or 'workers'."
+        "You must pass the application as an import string to enable " "'reload' or 'workers'."
     )
 
 
@@ -109,9 +102,7 @@ def test_run_match_config_params() -> None:
         if key not in ("self", "timeout_notify", "callback_notify")
     }
     run_params = {
-        key: repr(value)
-        for key, value in inspect.signature(run).parameters.items()
-        if key not in ("app_dir",)
+        key: repr(value) for key, value in inspect.signature(run).parameters.items() if key not in ("app_dir",)
     }
     assert config_params == run_params
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import http
 import logging
@@ -5,18 +7,7 @@ import re
 import urllib
 from asyncio.events import TimerHandle
 from collections import deque
-from typing import (
-    Any,
-    Callable,
-    Deque,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Literal, cast
 
 import httptools
 
@@ -24,7 +15,6 @@ from uvicorn._types import (
     ASGI3Application,
     ASGIReceiveEvent,
     ASGISendEvent,
-    HTTPDisconnectEvent,
     HTTPRequestEvent,
     HTTPResponseBodyEvent,
     HTTPResponseStartEvent,
@@ -39,6 +29,7 @@ from uvicorn.protocols.http.flow_control import (
     service_unavailable,
 )
 from uvicorn.protocols.utils import (
+    ClientDisconnected,
     get_client_addr,
     get_local_addr,
     get_path_with_query_string,
@@ -59,9 +50,7 @@ def _get_status_line(status_code: int) -> bytes:
     return b"".join([b"HTTP/1.1 ", str(status_code).encode(), b" ", phrase, b"\r\n"])
 
 
-STATUS_LINE = {
-    status_code: _get_status_line(status_code) for status_code in range(100, 600)
-}
+STATUS_LINE = {status_code: _get_status_line(status_code) for status_code in range(100, 600)}
 
 
 class HttpToolsProtocol(asyncio.Protocol):
@@ -69,8 +58,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
-        app_state: Dict[str, Any],
-        _loop: Optional[asyncio.AbstractEventLoop] = None,
+        app_state: dict[str, Any],
+        _loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         if not config.loaded:
             config.load()
@@ -88,7 +77,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.app_state = app_state
 
         # Timeouts
-        self.timeout_keep_alive_task: Optional[TimerHandle] = None
+        self.timeout_keep_alive_task: TimerHandle | None = None
         self.timeout_keep_alive = config.timeout_keep_alive
 
         # Global state
@@ -99,14 +88,14 @@ class HttpToolsProtocol(asyncio.Protocol):
         # Per-connection state
         self.transport: asyncio.Transport = None  # type: ignore[assignment]
         self.flow: FlowControl = None  # type: ignore[assignment]
-        self.server: Optional[Tuple[str, int]] = None
-        self.client: Optional[Tuple[str, int]] = None
-        self.scheme: Optional[Literal["http", "https"]] = None
-        self.pipeline: Deque[Tuple[RequestResponseCycle, ASGI3Application]] = deque()
+        self.server: tuple[str, int] | None = None
+        self.client: tuple[str, int] | None = None
+        self.scheme: Literal["http", "https"] | None = None
+        self.pipeline: deque[tuple[RequestResponseCycle, ASGI3Application]] = deque()
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
-        self.headers: List[Tuple[bytes, bytes]] = None  # type: ignore[assignment]
+        self.headers: list[tuple[bytes, bytes]] = None  # type: ignore[assignment]
         self.expect_100_continue = False
         self.cycle: RequestResponseCycle = None  # type: ignore[assignment]
 
@@ -126,7 +115,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sHTTP connection made", prefix)
 
-    def connection_lost(self, exc: Optional[Exception]) -> None:
+    def connection_lost(self, exc: Exception | None) -> None:
         self.connections.discard(self)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
@@ -153,7 +142,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.timeout_keep_alive_task.cancel()
             self.timeout_keep_alive_task = None
 
-    def _get_upgrade(self) -> Optional[bytes]:
+    def _get_upgrade(self) -> bytes | None:
         connection = []
         upgrade = None
         for name, value in self.headers:
@@ -165,7 +154,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             return upgrade
         return None
 
-    def _should_upgrade_to_ws(self, upgrade: Optional[bytes]) -> bool:
+    def _should_upgrade_to_ws(self, upgrade: bytes | None) -> bool:
         if upgrade == b"websocket" and self.ws_protocol_class is not None:
             return True
         if self.config.ws == "auto":
@@ -236,7 +225,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.headers = []
         self.scope = {  # type: ignore[typeddict-item]
             "type": "http",
-            "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
+            "asgi": {"version": self.config.asgi_version, "spec_version": "2.4"},
             "http_version": "1.1",
             "server": self.server,
             "client": self.client,
@@ -269,14 +258,15 @@ class HttpToolsProtocol(asyncio.Protocol):
         path = raw_path.decode("ascii")
         if "%" in path:
             path = urllib.parse.unquote(path)
-        self.scope["path"] = path
-        self.scope["raw_path"] = raw_path
+        full_path = self.root_path + path
+        full_raw_path = self.root_path.encode("ascii") + raw_path
+        self.scope["path"] = full_path
+        self.scope["raw_path"] = full_raw_path
         self.scope["query_string"] = parsed_url.query or b""
 
         # Handle 503 responses when 'limit_concurrency' is exceeded.
         if self.limit_concurrency is not None and (
-            len(self.connections) >= self.limit_concurrency
-            or len(self.tasks) >= self.limit_concurrency
+            len(self.connections) >= self.limit_concurrency or len(self.tasks) >= self.limit_concurrency
         ):
             app = service_unavailable
             message = "Exceeded concurrency limit."
@@ -309,9 +299,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.pipeline.appendleft((self.cycle, app))
 
     def on_body(self, body: bytes) -> None:
-        if (
-            self.parser.should_upgrade() and self._should_upgrade()
-        ) or self.cycle.response_complete:
+        if (self.parser.should_upgrade() and self._should_upgrade()) or self.cycle.response_complete:
             return
         self.cycle.body += body
         if len(self.cycle.body) > HIGH_WATER_LIMIT:
@@ -319,9 +307,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.cycle.message_event.set()
 
     def on_message_complete(self) -> None:
-        if (
-            self.parser.should_upgrade() and self._should_upgrade()
-        ) or self.cycle.response_complete:
+        if (self.parser.should_upgrade() and self._should_upgrade()) or self.cycle.response_complete:
             return
         self.cycle.more_body = False
         self.cycle.message_event.set()
@@ -333,22 +319,22 @@ class HttpToolsProtocol(asyncio.Protocol):
         if self.transport.is_closing():
             return
 
-        # Set a short Keep-Alive timeout.
         self._unset_keepalive_if_required()
-
-        self.timeout_keep_alive_task = self.loop.call_later(
-            self.timeout_keep_alive, self.timeout_keep_alive_handler
-        )
 
         # Unpause data reads if needed.
         self.flow.resume_reading()
 
-        # Unblock any pipelined events.
+        # Unblock any pipelined events. If there are none, arm the
+        # Keep-Alive timeout instead.
         if self.pipeline:
             cycle, app = self.pipeline.pop()
             task = self.loop.create_task(cycle.run_asgi(app))
             task.add_done_callback(self.tasks.discard)
             self.tasks.add(task)
+        else:
+            self.timeout_keep_alive_task = self.loop.call_later(
+                self.timeout_keep_alive, self.timeout_keep_alive_handler
+            )
 
     def shutdown(self) -> None:
         """
@@ -383,13 +369,13 @@ class HttpToolsProtocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
-        scope: "HTTPScope",
+        scope: HTTPScope,
         transport: asyncio.Transport,
         flow: FlowControl,
         logger: logging.Logger,
         access_logger: logging.Logger,
         access_log: bool,
-        default_headers: List[Tuple[bytes, bytes]],
+        default_headers: list[tuple[bytes, bytes]],
         message_event: asyncio.Event,
         expect_100_continue: bool,
         keep_alive: bool,
@@ -417,15 +403,17 @@ class RequestResponseCycle:
         # Response state
         self.response_started = False
         self.response_complete = False
-        self.chunked_encoding: Optional[bool] = None
+        self.chunked_encoding: bool | None = None
         self.expected_content_length = 0
 
     # ASGI exception wrapper
-    async def run_asgi(self, app: "ASGI3Application") -> None:
+    async def run_asgi(self, app: ASGI3Application) -> None:
         try:
             result = await app(  # type: ignore[func-returns-value]
                 self.scope, self.receive, self.send
             )
+        except ClientDisconnected:
+            pass
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
@@ -450,7 +438,7 @@ class RequestResponseCycle:
             self.on_response = lambda: None
 
     async def send_500_response(self) -> None:
-        response_start_event: "HTTPResponseStartEvent" = {
+        response_start_event: HTTPResponseStartEvent = {
             "type": "http.response.start",
             "status": 500,
             "headers": [
@@ -459,7 +447,7 @@ class RequestResponseCycle:
             ],
         }
         await self.send(response_start_event)
-        response_body_event: "HTTPResponseBodyEvent" = {
+        response_body_event: HTTPResponseBodyEvent = {
             "type": "http.response.body",
             "body": b"Internal Server Error",
             "more_body": False,
@@ -467,14 +455,14 @@ class RequestResponseCycle:
         await self.send(response_body_event)
 
     # ASGI interface
-    async def send(self, message: "ASGISendEvent") -> None:
+    async def send(self, message: ASGISendEvent) -> None:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
             await self.flow.drain()
 
         if self.disconnected:
-            return
+            raise ClientDisconnected
 
         if not self.response_started:
             # Sending response status line and headers
@@ -522,11 +510,7 @@ class RequestResponseCycle:
                     self.keep_alive = False
                 content.extend([name, b": ", value, b"\r\n"])
 
-            if (
-                self.chunked_encoding is None
-                and self.scope["method"] != "HEAD"
-                and status_code not in (204, 304)
-            ):
+            if self.chunked_encoding is None and self.scope["method"] != "HEAD" and status_code not in (204, 304):
                 # Neither content-length nor transfer-encoding specified
                 self.chunked_encoding = True
                 content.append(b"transfer-encoding: chunked\r\n")
@@ -577,7 +561,7 @@ class RequestResponseCycle:
             msg = "Unexpected ASGI message '%s' sent, after response already completed."
             raise RuntimeError(msg % message_type)
 
-    async def receive(self) -> "ASGIReceiveEvent":
+    async def receive(self) -> ASGIReceiveEvent:
         if self.waiting_for_100_continue and not self.transport.is_closing():
             self.transport.write(b"HTTP/1.1 100 Continue\r\n\r\n")
             self.waiting_for_100_continue = False
@@ -587,15 +571,13 @@ class RequestResponseCycle:
             await self.message_event.wait()
             self.message_event.clear()
 
-        message: "Union[HTTPDisconnectEvent, HTTPRequestEvent]"
         if self.disconnected or self.response_complete:
-            message = {"type": "http.disconnect"}
-        else:
-            message = {
-                "type": "http.request",
-                "body": self.body,
-                "more_body": self.more_body,
-            }
-            self.body = b""
+            return {"type": "http.disconnect"}
 
+        message: HTTPRequestEvent = {
+            "type": "http.request",
+            "body": self.body,
+            "more_body": self.more_body,
+        }
+        self.body = b""
         return message

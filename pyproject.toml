@@ -61,7 +61,8 @@ path = "uvicorn/__init__.py"
 include = ["/uvicorn"]
 
 [tool.ruff]
-select = ["E", "F", "I"]
+line-length = 120
+select = ["E", "F", "I", "FA", "UP"]
 ignore = ["B904", "B028"]
 
 [tool.ruff.lint.isort]
@@ -124,5 +125,7 @@ py-gte-38 = "sys_version_info >= (3, 8)"
 py-lt-38 =  "sys_version_info < (3, 8)"
 py-gte-39 = "sys_version_info >= (3, 9)"
 py-lt-39 = "sys_version_info < (3, 9)"
+py-gte-310 = "sys_version_info >= (3, 10)"
+py-lt-310 = "sys_version_info < (3, 10)"
 py-gte-311 = "sys_version_info >= (3, 11)"
 py-lt-311 = "sys_version_info < (3, 11)"

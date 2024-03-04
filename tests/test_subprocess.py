@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import socket
-from typing import List
 from unittest.mock import patch
 
 from uvicorn._subprocess import SpawnProcess, get_subprocess, subprocess_started
@@ -7,13 +8,11 @@ from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.config import Config
 
 
-def server_run(sockets: List[socket.socket]):  # pragma: no cover
+def server_run(sockets: list[socket.socket]):  # pragma: no cover
     ...
 
 
-async def app(
-    scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
-) -> None:  # pragma: no cover
+async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:  # pragma: no cover
     ...
 
 

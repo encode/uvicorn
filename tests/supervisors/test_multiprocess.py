@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import signal
 import socket
 import threading
 import time
@@ -8,13 +11,11 @@ from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.supervisors import Multiprocess
 
 
-async def app(
-    scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
-) -> None:
+async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
     pass  # pragma: no cover
 
 
-def run(sockets: Optional[List[socket.socket]]) -> None:
+def run(sockets: list[socket.socket] | None) -> None:
     pass  # pragma: no cover
 
 

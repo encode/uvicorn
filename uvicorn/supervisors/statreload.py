@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 from pathlib import Path
 from socket import socket
-from typing import Callable, Dict, Iterator, List, Optional
+from typing import Callable, Iterator
 
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
@@ -13,20 +15,17 @@ class StatReload(BaseReload):
     def __init__(
         self,
         config: Config,
-        target: Callable[[Optional[List[socket]]], None],
-        sockets: List[socket],
+        target: Callable[[list[socket] | None], None],
+        sockets: list[socket],
     ) -> None:
         super().__init__(config, target, sockets)
         self.reloader_name = "StatReload"
-        self.mtimes: Dict[Path, float] = {}
+        self.mtimes: dict[Path, float] = {}
 
         if config.reload_excludes or config.reload_includes:
-            logger.warning(
-                "--reload-include and --reload-exclude have no effect unless "
-                "watchfiles is installed."
-            )
+            logger.warning("--reload-include and --reload-exclude have no effect unless " "watchfiles is installed.")
 
-    def should_restart(self) -> Optional[List[Path]]:
+    def should_restart(self) -> list[Path] | None:
         self.pause()
 
         for file in self.iter_py_files():
