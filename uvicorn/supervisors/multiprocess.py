@@ -35,14 +35,11 @@ class Process:
         self.process = get_subprocess(config, self.target, sockets)
 
     def ping(self, timeout: float = 5) -> bool:
-        try:
-            self.parent_conn.send(b"ping")
-            if self.parent_conn.poll(timeout):
-                self.parent_conn.recv()
-                return True
-            return False
-        except OSError:  # Closed pipe
-            return False
+        self.parent_conn.send(b"ping")
+        if self.parent_conn.poll(timeout):
+            self.parent_conn.recv()
+            return True
+        return False
 
     def pong(self) -> None:
         self.child_conn.recv()
