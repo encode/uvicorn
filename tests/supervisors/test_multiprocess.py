@@ -14,7 +14,8 @@ async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
 
 
 def run(sockets: list[socket.socket] | None) -> None:
-    pass  # pragma: no cover
+    while True:
+        time.sleep(1)
 
 
 def stop_run(stop) -> None:
@@ -34,3 +35,21 @@ def test_multiprocess_run() -> None:
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=stop_run, args=(supervisor.handle_int,), daemon=True).start()
     supervisor.run()
+
+
+def test_multiprocess_health_check() -> None:
+    """
+    Ensure that the health check works as expected.
+    """
+    config = Config(app=app, workers=2)
+    supervisor = Multiprocess(config, target=run, sockets=[])
+    threading.Thread(target=supervisor.run, daemon=True).start()
+    time.sleep(1)
+    process = supervisor.processes[0]
+    process.kill()
+    assert not process.is_alive()
+    time.sleep(1)
+    for p in supervisor.processes:
+        assert p.is_alive()
+
+    supervisor.handle_int()
