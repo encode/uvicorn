@@ -21,12 +21,8 @@ async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
 def run(sockets: list[socket.socket] | None) -> None:
     while True:
         time.sleep(1)
-        import os
-
-        print("Running , pid: ", os.getpid())
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="In Windows, Ctrl+C/Ctrl+Break will sent to the parent process.")
 def test_multiprocess_run() -> None:
     """
     A basic sanity check.
@@ -34,12 +30,10 @@ def test_multiprocess_run() -> None:
     Simply run the supervisor against a no-op server, and signal for it to
     quit immediately.
     """
-    sys.stdin = StringIO()
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     supervisor.signal_queue.append(signal.SIGINT)
     supervisor.run()
-    supervisor.join_all()
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="In Windows, Ctrl+C/Ctrl+Break will sent to the parent process.")
