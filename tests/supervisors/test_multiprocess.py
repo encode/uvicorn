@@ -6,6 +6,7 @@ import socket
 import sys
 import threading
 import time
+from io import StringIO
 
 import pytest
 
@@ -33,7 +34,7 @@ def _test_multiprocess_run() -> None:
     Simply run the supervisor against a no-op server, and signal for it to
     quit immediately.
     """
-    sys.stdin = None
+    sys.stdin = StringIO()
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     supervisor.signal_queue.append(signal.SIGINT)
@@ -52,7 +53,7 @@ def _test_multiprocess_health_check() -> None:
     """
     Ensure that the health check works as expected.
     """
-    sys.stdin = None
+    sys.stdin = StringIO()
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
@@ -78,7 +79,7 @@ def _test_multiprocess_sigterm() -> None:
     """
     Ensure that the SIGTERM signal is handled as expected.
     """
-    sys.stdin = None
+    sys.stdin = StringIO()
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
@@ -98,7 +99,7 @@ def _test_multiprocess_sigbreak() -> None:
     """
     Ensure that the SIGBREAK signal is handled as expected.
     """
-    sys.stdin = None
+    sys.stdin = StringIO()
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
