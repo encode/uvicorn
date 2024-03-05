@@ -37,14 +37,14 @@ class ProxyHeadersMiddleware:
             return x_forwarded_for_hosts[0]
 
         for host in reversed(x_forwarded_for_hosts):
-            if self.check_trusted_host(host):
+            if not self.check_trusted_host(host):
                 return host
 
         return None
 
     def check_trusted_host(self, host: str) -> bool:
-        for trusted_host in self.trusted_hosts:
-            if host in trusted_host:
+        for trusted_net in self.trusted_hosts:
+            if ipaddress.ip_address(host) in trusted_net:
                 return True
         return False
 
