@@ -185,6 +185,7 @@ class Multiprocess:
                 logger.info(f"Received signal [{sig_name}], but nothing to do")
 
     def handle_int(self) -> None:
+        logger.info("Received SIGINT, exiting")
         if not self.should_exit.is_set():
             self.should_exit.set()
         else:
