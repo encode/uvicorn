@@ -17,6 +17,7 @@ twine==4.0.2
 ruff==0.1.15
 pytest==8.0.0
 pytest-mock==3.12.0
+pytest-xdist==3.5.0
 mypy==1.8.0
 types-click==7.1.8
 types-pyyaml==6.0.12.12
