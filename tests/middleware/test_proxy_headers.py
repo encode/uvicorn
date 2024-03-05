@@ -390,7 +390,6 @@ async def test_proxy_headers_trusted_hosts(
 ) -> None:
     async with make_httpx_client(trusted_hosts) as client:
         response = await client.get("/", headers=make_x_headers("1.2.3.4"))
-
     assert response.status_code == 200
     assert response.text == expected
 
@@ -418,7 +417,6 @@ async def test_proxy_headers_multiple_proxies(
         response = await client.get(
             "/", headers=make_x_headers("1.2.3.4, 10.0.2.1, 192.168.0.2")
         )
-
     assert response.status_code == 200
     assert response.text == expected
 
@@ -439,13 +437,24 @@ async def test_proxy_headers_invalid_x_forwarded_for() -> None:
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "x_forwarded_proto,addr",
+    [
+        ("http", "ws://1.2.3.4:0"),
+        ("https", "wss://1.2.3.4:0"),
+        ("ws", "ws://1.2.3.4:0"),
+        ("wss", "wss://1.2.3.4:0"),
+    ],
+)
 async def test_proxy_headers_websocket_x_forwarded_proto(
     ws_protocol_cls: type[WSProtocol | WebSocketProtocol],
     http_protocol_cls: type[H11Protocol | HttpToolsProtocol],
     unused_tcp_port: int,
 ) -> None:
-    async def websocket_app(scope, receive, send):
+    async def websocket_app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
+        assert scope["type"] == "websocket"
         scheme = scope["scheme"]
+        assert scope["client"] is not None
         host, port = scope["client"]
         await send({"type": "websocket.accept"})
         await send({"type": "websocket.send", "text": f"{scheme}://{host}:{port}"})

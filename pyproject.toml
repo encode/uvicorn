@@ -61,7 +61,8 @@ path = "uvicorn/__init__.py"
 include = ["/uvicorn"]
 
 [tool.ruff]
-select = ["E", "F", "I"]
+line-length = 120
+select = ["E", "F", "I", "FA", "UP"]
 ignore = ["B904", "B028"]
 
 [tool.ruff.lint.isort]

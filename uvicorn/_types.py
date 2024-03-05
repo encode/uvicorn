@@ -36,17 +36,15 @@ from typing import (
     Awaitable,
     Callable,
     Iterable,
+    Literal,
     MutableMapping,
     Optional,
+    Protocol,
     Tuple,
     Type,
+    TypedDict,
     Union,
 )
-
-if sys.version_info >= (3, 8):  # pragma: py-lt-38
-    from typing import Literal, Protocol, TypedDict
-else:  # pragma: py-gte-38
-    from typing_extensions import Literal, Protocol, TypedDict
 
 if sys.version_info >= (3, 11):  # pragma: py-lt-311
     from typing import NotRequired
@@ -239,9 +237,7 @@ class LifespanShutdownFailedEvent(TypedDict):
     message: str
 
 
-WebSocketEvent = Union[
-    WebSocketReceiveEvent, WebSocketDisconnectEvent, WebSocketConnectEvent
-]
+WebSocketEvent = Union[WebSocketReceiveEvent, WebSocketDisconnectEvent, WebSocketConnectEvent]
 
 
 ASGIReceiveEvent = Union[
@@ -281,9 +277,7 @@ class ASGI2Protocol(Protocol):
     def __init__(self, scope: Scope) -> None:
         ...  # pragma: no cover
 
-    async def __call__(
-        self, receive: ASGIReceiveCallable, send: ASGISendCallable
-    ) -> None:
+    async def __call__(self, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
         ...  # pragma: no cover
 
 

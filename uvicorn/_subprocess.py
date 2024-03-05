@@ -9,7 +9,7 @@ import os
 import sys
 from multiprocessing.context import SpawnProcess
 from socket import socket
-from typing import Callable, Optional
+from typing import Callable
 
 from uvicorn.config import Config
 
@@ -34,10 +34,10 @@ def get_subprocess(
     """
     # We pass across the stdin fileno, and reopen it in the child process.
     # This is required for some debugging environments.
-    stdin_fileno: Optional[int]
     try:
         stdin_fileno = sys.stdin.fileno()
-    except OSError:
+    # The `sys.stdin` can be `None`, see https://docs.python.org/3/library/sys.html#sys.__stdin__.
+    except (AttributeError, OSError):
         stdin_fileno = None
 
     kwargs = {

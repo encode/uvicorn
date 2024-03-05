@@ -27,6 +27,7 @@ from uvicorn.protocols.http.flow_control import (
     service_unavailable,
 )
 from uvicorn.protocols.utils import (
+    ClientDisconnected,
     get_client_addr,
     get_local_addr,
     get_path_with_query_string,
@@ -43,9 +44,7 @@ def _get_status_phrase(status_code: int) -> bytes:
         return b""
 
 
-STATUS_PHRASES = {
-    status_code: _get_status_phrase(status_code) for status_code in range(100, 600)
-}
+STATUS_PHRASES = {status_code: _get_status_phrase(status_code) for status_code in range(100, 600)}
 
 
 class H11Protocol(asyncio.Protocol):
@@ -205,7 +204,7 @@ class H11Protocol(asyncio.Protocol):
                     "type": "http",
                     "asgi": {
                         "version": self.config.asgi_version,
-                        "spec_version": "2.3",
+                        "spec_version": "2.4",
                     },
                     "http_version": event.http_version.decode("ascii"),
                     "server": self.server,
@@ -227,8 +226,7 @@ class H11Protocol(asyncio.Protocol):
 
                 # Handle 503 responses when 'limit_concurrency' is exceeded.
                 if self.limit_concurrency is not None and (
-                    len(self.connections) >= self.limit_concurrency
-                    or len(self.tasks) >= self.limit_concurrency
+                    len(self.connections) >= self.limit_concurrency or len(self.tasks) >= self.limit_concurrency
                 ):
                     app = service_unavailable
                     message = "Exceeded concurrency limit."
@@ -322,9 +320,7 @@ class H11Protocol(asyncio.Protocol):
         # Set a short Keep-Alive timeout.
         self._unset_keepalive_if_required()
 
-        self.timeout_keep_alive_task = self.loop.call_later(
-            self.timeout_keep_alive, self.timeout_keep_alive_handler
-        )
+        self.timeout_keep_alive_task = self.loop.call_later(self.timeout_keep_alive, self.timeout_keep_alive_handler)
 
         # Unpause data reads if needed.
         self.flow.resume_reading()
@@ -371,7 +367,7 @@ class H11Protocol(asyncio.Protocol):
 class RequestResponseCycle:
     def __init__(
         self,
-        scope: "HTTPScope",
+        scope: HTTPScope,
         conn: h11.Connection,
         transport: asyncio.Transport,
         flow: FlowControl,
@@ -407,11 +403,13 @@ class RequestResponseCycle:
         self.response_complete = False
 
     # ASGI exception wrapper
-    async def run_asgi(self, app: "ASGI3Application") -> None:
+    async def run_asgi(self, app: ASGI3Application) -> None:
         try:
             result = await app(  # type: ignore[func-returns-value]
                 self.scope, self.receive, self.send
             )
+        except ClientDisconnected:
+            pass
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
@@ -436,7 +434,7 @@ class RequestResponseCycle:
             self.on_response = lambda: None
 
     async def send_500_response(self) -> None:
-        response_start_event: "HTTPResponseStartEvent" = {
+        response_start_event: HTTPResponseStartEvent = {
             "type": "http.response.start",
             "status": 500,
             "headers": [
@@ -445,7 +443,7 @@ class RequestResponseCycle:
             ],
         }
         await self.send(response_start_event)
-        response_body_event: "HTTPResponseBodyEvent" = {
+        response_body_event: HTTPResponseBodyEvent = {
             "type": "http.response.body",
             "body": b"Internal Server Error",
             "more_body": False,
@@ -453,14 +451,14 @@ class RequestResponseCycle:
         await self.send(response_body_event)
 
     # ASGI interface
-    async def send(self, message: "ASGISendEvent") -> None:
+    async def send(self, message: ASGISendEvent) -> None:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
             await self.flow.drain()
 
         if self.disconnected:
-            return
+            raise ClientDisconnected
 
         if not self.response_started:
             # Sending response status line and headers
@@ -527,12 +525,10 @@ class RequestResponseCycle:
                 self.transport.close()
             self.on_response()
 
-    async def receive(self) -> "ASGIReceiveEvent":
+    async def receive(self) -> ASGIReceiveEvent:
         if self.waiting_for_100_continue and not self.transport.is_closing():
             headers: list[tuple[str, str]] = []
-            event = h11.InformationalResponse(
-                status_code=100, headers=headers, reason="Continue"
-            )
+            event = h11.InformationalResponse(status_code=100, headers=headers, reason="Continue")
             output = self.conn.send(event=event)
             self.transport.write(output)
             self.waiting_for_100_continue = False
@@ -545,7 +541,7 @@ class RequestResponseCycle:
         if self.disconnected or self.response_complete:
             return {"type": "http.disconnect"}
 
-        message: "HTTPRequestEvent" = {
+        message: HTTPRequestEvent = {
             "type": "http.request",
             "body": self.body,
             "more_body": self.more_body,

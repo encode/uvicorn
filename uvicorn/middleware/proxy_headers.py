@@ -1,14 +1,9 @@
-import ipaddress
-from typing import List, Optional, Set, Tuple, Union, cast
+from __future__ import annotations
 
-from uvicorn._types import (
-    ASGI3Application,
-    ASGIReceiveCallable,
-    ASGISendCallable,
-    HTTPScope,
-    Scope,
-    WebSocketScope,
-)
+import ipaddress
+from typing import Optional, Union, cast
+
+from uvicorn._types import ASGI3Application, ASGIReceiveCallable, ASGISendCallable, HTTPScope, Scope, WebSocketScope
 
 
 def _parse_raw_hosts(value: str) -> List[str]:
@@ -20,13 +15,13 @@ class _TrustedHosts:
 
     def __init__(
         self,
-        trusted_hosts: Union[List[str], str],
+        trusted_hosts: Union[list[str], str],
     ) -> None:
         self.always_trust: bool = trusted_hosts == "*"
 
-        self.trusted_literals: Set[str] = set()
-        self.trusted_hosts: Set[ipaddress._BaseAddress] = set()
-        self.trusted_networks: Set[ipaddress._BaseNetwork] = set()
+        self.trusted_literals: set[str] = set()
+        self.trusted_hosts: set[ipaddress._BaseAddress] = set()
+        self.trusted_networks: set[ipaddress._BaseNetwork] = set()
 
         # Notes:
         # - We seperate hosts from literals as there are many ways to write
@@ -117,18 +112,16 @@ class ProxyHeadersMiddleware:
 
     def __init__(
         self,
-        app: "ASGI3Application",
-        trusted_hosts: Union[List[str], str] = "127.0.0.1",
+        app: ASGI3Application,
+        trusted_hosts: list[str] | str = "127.0.0.1",
     ) -> None:
         self.app = app
         self.trusted_hosts = _TrustedHosts(trusted_hosts)
 
-    async def __call__(
-        self, scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
-    ) -> None:
+    async def __call__(self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
         if scope["type"] in ("http", "websocket"):
             scope = cast(Union[HTTPScope, WebSocketScope], scope)
-            client_addr: Optional[Tuple[str, int]] = scope.get("client")
+            client_addr: Optional[tuple[str, int]] = scope.get("client")
             client_host = client_addr[0] if client_addr else None
 
             if client_host in self.trusted_hosts:
@@ -137,13 +130,9 @@ class ProxyHeadersMiddleware:
                 if b"x-forwarded-proto" in headers:
                     # Determine if the incoming request was http or https based on
                     # the X-Forwarded-Proto header.
-                    x_forwarded_proto = (
-                        headers[b"x-forwarded-proto"].decode("latin1").strip()
-                    )
+                    x_forwarded_proto = headers[b"x-forwarded-proto"].decode("latin1").strip()
                     if scope["type"] == "websocket":
-                        scope["scheme"] = (
-                            "wss" if x_forwarded_proto == "https" else "ws"
-                        )
+                        scope["scheme"] = x_forwarded_proto.replace("http", "ws")
                     else:
                         scope["scheme"] = x_forwarded_proto
 

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import io
 import sys
-from typing import AsyncGenerator, Callable, List
+from typing import AsyncGenerator, Callable
 
 import a2wsgi
 import httpx
@@ -10,7 +12,7 @@ from uvicorn._types import Environ, HTTPRequestEvent, HTTPScope, StartResponse
 from uvicorn.middleware import wsgi
 
 
-def hello_world(environ: Environ, start_response: StartResponse) -> List[bytes]:
+def hello_world(environ: Environ, start_response: StartResponse) -> list[bytes]:
     status = "200 OK"
     output = b"Hello World!\n"
     headers = [
@@ -21,7 +23,7 @@ def hello_world(environ: Environ, start_response: StartResponse) -> List[bytes]:
     return [output]
 
 
-def echo_body(environ: Environ, start_response: StartResponse) -> List[bytes]:
+def echo_body(environ: Environ, start_response: StartResponse) -> list[bytes]:
     status = "200 OK"
     output = environ["wsgi.input"].read()
     headers = [
@@ -32,11 +34,11 @@ def echo_body(environ: Environ, start_response: StartResponse) -> List[bytes]:
     return [output]
 
 
-def raise_exception(environ: Environ, start_response: StartResponse) -> List[bytes]:
+def raise_exception(environ: Environ, start_response: StartResponse) -> list[bytes]:
     raise RuntimeError("Something went wrong")
 
 
-def return_exc_info(environ: Environ, start_response: StartResponse) -> List[bytes]:
+def return_exc_info(environ: Environ, start_response: StartResponse) -> list[bytes]:
     try:
         raise RuntimeError("Something went wrong")
     except RuntimeError:
@@ -110,16 +112,14 @@ async def test_wsgi_exc_info(wsgi_middleware: Callable) -> None:
         app=app,
         raise_app_exceptions=False,
     )
-    async with httpx.AsyncClient(
-        transport=transport, base_url="http://testserver"
-    ) as client:
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         response = await client.get("/")
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
 
 
 def test_build_environ_encoding() -> None:
-    scope: "HTTPScope" = {
+    scope: HTTPScope = {
         "asgi": {"version": "3.0", "spec_version": "2.0"},
         "scheme": "http",
         "raw_path": b"/\xe6\x96\x87%2Fall",
@@ -134,12 +134,12 @@ def test_build_environ_encoding() -> None:
         "headers": [(b"key", b"value1"), (b"key", b"value2")],
         "extensions": {},
     }
-    message: "HTTPRequestEvent" = {
+    message: HTTPRequestEvent = {
         "type": "http.request",
         "body": b"",
         "more_body": False,
     }
     environ = wsgi.build_environ(scope, message, io.BytesIO(b""))
-    assert environ["SCRIPT_NAME"] == "/文".encode("utf8").decode("latin-1")
-    assert environ["PATH_INFO"] == "/all".encode("utf8").decode("latin-1")
+    assert environ["SCRIPT_NAME"] == "/文".encode().decode("latin-1")
+    assert environ["PATH_INFO"] == b"/all".decode("latin-1")
     assert environ["HTTP_KEY"] == "value1,value2"
