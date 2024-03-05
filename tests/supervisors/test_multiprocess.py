@@ -5,6 +5,8 @@ import socket
 import threading
 import time
 
+import pytest
+
 from uvicorn import Config
 from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.supervisors import Multiprocess
@@ -54,6 +56,8 @@ def test_multiprocess_health_check() -> None:
     supervisor.join_all()
 
 
+# Test is skipped because windows does not support SIGHUP
+@pytest.mark.skipif(not hasattr(signal, "SIGHUP"), reason="SIGHUP is not supported on Windows")
 def test_multiprocess_sighup() -> None:
     """
     Ensure that the SIGHUP signal is handled as expected.
