@@ -40,6 +40,9 @@ class ProxyHeadersMiddleware:
             if not self.check_trusted_host(host):
                 return host
 
+        return ""
+        
+
     def check_trusted_host(self, host: str) -> bool:
         for trusted_net in self.trusted_hosts:
             if ipaddress.ip_address(host) in trusted_net:
@@ -72,6 +75,6 @@ class ProxyHeadersMiddleware:
                     x_forwarded_for_hosts = [item.strip() for item in x_forwarded_for.split(",")]
                     host = self.get_trusted_client_host(x_forwarded_for_hosts)
                     port = 0
-                    scope["client"] = (host, port)  # type: ignore[arg-type]
+                    scope["client"] = (host, port)
 
         return await self.app(scope, receive, send)
