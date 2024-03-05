@@ -5,7 +5,6 @@ import socket
 import sys
 import threading
 import time
-from io import StringIO
 
 import pytest
 
