@@ -10,6 +10,7 @@ https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 """
 from __future__ import annotations
 
+import ipaddress
 from typing import Union, cast
 
 from uvicorn._types import ASGI3Application, ASGIReceiveCallable, ASGISendCallable, HTTPScope, Scope, WebSocketScope
@@ -23,20 +24,29 @@ class ProxyHeadersMiddleware:
     ) -> None:
         self.app = app
         if isinstance(trusted_hosts, str):
-            self.trusted_hosts = {item.strip() for item in trusted_hosts.split(",")}
+            trusted_hosts_set = {item.strip() for item in trusted_hosts.split(",")}
         else:
-            self.trusted_hosts = set(trusted_hosts)
-        self.always_trust = "*" in self.trusted_hosts
+            trusted_hosts_set = set(trusted_hosts)
+        self.always_trust = "*" in trusted_hosts_set
+        trusted_hosts_set.discard("*")
+
+        self.trusted_hosts = {ipaddress.ip_network(host) for host in trusted_hosts_set}
 
     def get_trusted_client_host(self, x_forwarded_for_hosts: list[str]) -> str | None:
         if self.always_trust:
             return x_forwarded_for_hosts[0]
 
         for host in reversed(x_forwarded_for_hosts):
-            if host not in self.trusted_hosts:
+            if self.check_trusted_host(host):
                 return host
 
         return None
+
+    def check_trusted_host(self, host: str) -> bool:
+        for trusted_host in self.trusted_hosts:
+            if host in trusted_host:
+                return True
+        return False
 
     async def __call__(self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
         if scope["type"] in ("http", "websocket"):
@@ -44,7 +54,7 @@ class ProxyHeadersMiddleware:
             client_addr: tuple[str, int] | None = scope.get("client")
             client_host = client_addr[0] if client_addr else None
 
-            if self.always_trust or client_host in self.trusted_hosts:
+            if self.always_trust or self.check_trusted_host(client_host):
                 headers = dict(scope["headers"])
 
                 if b"x-forwarded-proto" in headers:
