@@ -32,8 +32,8 @@ def test_multiprocess_run() -> None:
     """
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
+    threading.Thread(target=supervisor.run, daemon=True).start()
     supervisor.signal_queue.append(signal.SIGINT)
-    supervisor.run()
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="In Windows, Ctrl+C/Ctrl+Break will sent to the parent process.")
@@ -41,7 +41,6 @@ def test_multiprocess_health_check() -> None:
     """
     Ensure that the health check works as expected.
     """
-    sys.stdin = StringIO()
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
@@ -61,7 +60,6 @@ def test_multiprocess_sigterm() -> None:
     """
     Ensure that the SIGTERM signal is handled as expected.
     """
-    sys.stdin = StringIO()
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
@@ -76,7 +74,6 @@ def test_multiprocess_sigbreak() -> None:
     """
     Ensure that the SIGBREAK signal is handled as expected.
     """
-    sys.stdin = StringIO()
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
