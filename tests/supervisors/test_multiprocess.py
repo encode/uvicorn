@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 
 import signal
 import socket
@@ -42,7 +43,9 @@ def test_multiprocess_run() -> None:
     Run the test in a subprocess to avoid any side effects.
     """
     subprocess.check_call(
-        [sys.executable, "-m", "pytest", "tests/supervisors/test_multiprocess.py::_test_multiprocess_run"], shell=True
+        [sys.executable, "-m", "pytest", "tests/supervisors/test_multiprocess.py::_test_multiprocess_run"],
+        shell=True,
+        cwd=os.getcwd(),
     )
 
 
