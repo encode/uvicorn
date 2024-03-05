@@ -1,6 +1,6 @@
 from __future__ import annotations
-import os
 
+import os
 import signal
 import socket
 import subprocess
