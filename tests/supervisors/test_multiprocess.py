@@ -5,6 +5,7 @@ import socket
 import sys
 import threading
 import time
+import subprocess
 
 import pytest
 
@@ -22,8 +23,7 @@ def run(sockets: list[socket.socket] | None) -> None:
         time.sleep(1)
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="In Windows, Ctrl+C/Ctrl+Break will sent to the parent process.")
-def test_multiprocess_run() -> None:
+def _test_multiprocess_run() -> None:
     """
     A basic sanity check.
 
@@ -34,6 +34,16 @@ def test_multiprocess_run() -> None:
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
     supervisor.signal_queue.append(signal.SIGINT)
+    supervisor.join_all()
+
+
+def test_multiprocess_run() -> None:
+    """
+    Run the test in a subprocess to avoid any side effects.
+    """
+    subprocess.check_call(
+        [sys.executable, "-m", "pytest", "tests/supervisors/test_multiprocess.py::_test_multiprocess_run"], shell=True
+    )
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="In Windows, Ctrl+C/Ctrl+Break will sent to the parent process.")
