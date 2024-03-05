@@ -41,7 +41,6 @@ class ProxyHeadersMiddleware:
                 return host
 
         return ""
-        
 
     def check_trusted_host(self, host: str) -> bool:
         for trusted_net in self.trusted_hosts:
