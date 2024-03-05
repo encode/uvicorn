@@ -32,15 +32,13 @@ class ProxyHeadersMiddleware:
 
         self.trusted_hosts = {ipaddress.ip_network(host) for host in trusted_hosts_set}
 
-    def get_trusted_client_host(self, x_forwarded_for_hosts: list[str]) -> str | None:
+    def get_trusted_client_host(self, x_forwarded_for_hosts: list[str]) -> str:
         if self.always_trust:
             return x_forwarded_for_hosts[0]
 
         for host in reversed(x_forwarded_for_hosts):
             if not self.check_trusted_host(host):
                 return host
-
-        return None
 
     def check_trusted_host(self, host: str) -> bool:
         for trusted_net in self.trusted_hosts:
