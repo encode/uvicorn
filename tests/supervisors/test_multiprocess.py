@@ -22,6 +22,7 @@ def run(sockets: list[socket.socket] | None) -> None:
         time.sleep(1)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="In Windows, Ctrl+C/Ctrl+Break will sent to the parent process.")
 def test_multiprocess_run() -> None:
     """
     A basic sanity check.
