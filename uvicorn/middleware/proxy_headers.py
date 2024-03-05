@@ -111,7 +111,6 @@ class ProxyHeadersMiddleware:
     the connecting client, rather that the connecting proxy.
 
     References:
-
     - <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies>
     - <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For>
     """
@@ -123,7 +122,6 @@ class ProxyHeadersMiddleware:
     ) -> None:
         self.app = app
         self.trusted_hosts = _TrustedHosts(trusted_hosts)
-        return
 
     async def __call__(
         self, scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable"
@@ -159,13 +157,9 @@ class ProxyHeadersMiddleware:
                         # Only set the client if we actually got something usable.
                         # See: https://github.com/encode/uvicorn/issues/1068
 
-                        # Unless we can relaibly use x-forwarded-port (see below) then
-                        # we will not have any port information so set it to 0.
+                        # We've lost the connecting client's port information by now,
+                        # so only include the host.
                         port = 0
                         scope["client"] = (host, port)
-
-                    # if b"x-forwarded-port" in headers:
-                    #     ...
-                    # https://github.com/encode/uvicorn/issues/1974
 
         return await self.app(scope, receive, send)
