@@ -27,7 +27,8 @@ def run(sockets: list[socket.socket] | None) -> None:
         print("Running , pid: ", os.getpid())
 
 
-def _test_multiprocess_run() -> None:
+@pytest.mark.skipif(sys.platform == "win32", reason="In Windows, Ctrl+C/Ctrl+Break will sent to the parent process.")
+def test_multiprocess_run() -> None:
     """
     A basic sanity check.
 
@@ -42,14 +43,8 @@ def _test_multiprocess_run() -> None:
     supervisor.join_all()
 
 
-def test_multiprocess_run() -> None:
-    process = multiprocessing.Process(target=_test_multiprocess_run)
-    process.start()
-    process.join()
-    assert process.exitcode == 0
-
-
-def _test_multiprocess_health_check() -> None:
+@pytest.mark.skipif(sys.platform == "win32", reason="In Windows, Ctrl+C/Ctrl+Break will sent to the parent process.")
+def test_multiprocess_health_check() -> None:
     """
     Ensure that the health check works as expected.
     """
@@ -68,14 +63,8 @@ def _test_multiprocess_health_check() -> None:
     supervisor.join_all()
 
 
-def test_multiprocess_health_check() -> None:
-    process = multiprocessing.Process(target=_test_multiprocess_health_check)
-    process.start()
-    process.join()
-    assert process.exitcode == 0
-
-
-def _test_multiprocess_sigterm() -> None:
+@pytest.mark.skipif(sys.platform == "win32", reason="In Windows, Ctrl+C/Ctrl+Break will sent to the parent process.")
+def test_multiprocess_sigterm() -> None:
     """
     Ensure that the SIGTERM signal is handled as expected.
     """
@@ -88,14 +77,9 @@ def _test_multiprocess_sigterm() -> None:
     supervisor.join_all()
 
 
-def test_multiprocess_sigterm() -> None:
-    process = multiprocessing.Process(target=_test_multiprocess_sigterm)
-    process.start()
-    process.join()
-    assert process.exitcode == 0
-
-
-def _test_multiprocess_sigbreak() -> None:
+@pytest.mark.skipif(sys.platform == "win32", reason="In Windows, Ctrl+C/Ctrl+Break will sent to the parent process.")
+@pytest.mark.skipif(not hasattr(signal, "SIGBREAK"), reason="platform unsupports SIGBREAK")
+def test_multiprocess_sigbreak() -> None:
     """
     Ensure that the SIGBREAK signal is handled as expected.
     """
@@ -106,14 +90,6 @@ def _test_multiprocess_sigbreak() -> None:
     time.sleep(1)
     supervisor.signal_queue.append(getattr(signal, "SIGBREAK"))
     supervisor.join_all()
-
-
-@pytest.mark.skipif(not hasattr(signal, "SIGBREAK"), reason="platform unsupports SIGBREAK")
-def test_multiprocess_sigbreak() -> None:
-    process = multiprocessing.Process(target=_test_multiprocess_sigbreak)
-    process.start()
-    process.join()
-    assert process.exitcode == 0
 
 
 @pytest.mark.skipif(not hasattr(signal, "SIGHUP"), reason="platform unsupports SIGHUP")
