@@ -19,12 +19,8 @@ async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
 def run(sockets: list[socket.socket] | None) -> None:
     while True:
         time.sleep(1)
-        import os
-
-        print("Running , pid: ", os.getpid())
 
 
-@pytest.mark.xdist_group(name="group1")
 def test_multiprocess_run() -> None:
     """
     A basic sanity check.
@@ -39,7 +35,6 @@ def test_multiprocess_run() -> None:
     supervisor.join_all()
 
 
-@pytest.mark.xdist_group(name="group2")
 def test_multiprocess_health_check() -> None:
     """
     Ensure that the health check works as expected.
@@ -58,7 +53,6 @@ def test_multiprocess_health_check() -> None:
     supervisor.join_all()
 
 
-@pytest.mark.xdist_group(name="group3")
 def test_multiprocess_sigterm() -> None:
     """
     Ensure that the SIGTERM signal is handled as expected.
@@ -71,7 +65,6 @@ def test_multiprocess_sigterm() -> None:
     supervisor.join_all()
 
 
-@pytest.mark.xdist_group(name="group4")
 @pytest.mark.skipif(not hasattr(signal, "SIGBREAK"), reason="platform unsupports SIGBREAK")
 def test_multiprocess_sigbreak() -> None:
     """
