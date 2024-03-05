@@ -81,7 +81,7 @@ def test_multiprocess_sigbreak() -> None:
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
     time.sleep(1)
-    supervisor.signal_queue.append(signal.SIGBREAK)
+    supervisor.signal_queue.append(getattr(signal, "SIGBREAK"))
     supervisor.join_all()
 
 
