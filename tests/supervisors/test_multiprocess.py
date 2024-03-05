@@ -1,6 +1,6 @@
 from __future__ import annotations
-import signal
 
+import signal
 import socket
 import threading
 import time
