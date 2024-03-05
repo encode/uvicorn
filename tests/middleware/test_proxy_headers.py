@@ -43,8 +43,13 @@ async def app(
         # trusted proxy list
         (["127.0.0.1", "10.0.0.1"], "Remote: https://1.2.3.4:0"),
         ("127.0.0.1, 10.0.0.1", "Remote: https://1.2.3.4:0"),
+        # trusted proxy list with CIDR
+        (["127.0.0.1", "10.0.0.1", "10.0.1.0/24"], "Remote: https://1.2.3.4:0"),
+        ("127.0.0.1, 10.0.0.1, 10.0.1.0/24", "Remote: https://1.2.3.4:0"),
         # request from untrusted proxy
         ("192.168.0.1", "Remote: http://127.0.0.1:123"),
+        # request from untrusted proxy with CIDR
+        ("192.168.0.0/24", "Remote: http://127.0.0.1:123"),
     ],
 )
 async def test_proxy_headers_trusted_hosts(trusted_hosts: list[str] | str, response_text: str) -> None:
@@ -75,6 +80,11 @@ async def test_proxy_headers_trusted_hosts(trusted_hosts: list[str] | str, respo
         ),
         # should set first untrusted as remote address
         (["192.168.0.2", "127.0.0.1"], "Remote: https://10.0.2.1:0"),
+        # works with CIDRs
+        (
+            ["127.0.0.1", "10.0.2.0/24", "192.168.0.2"],
+            "Remote: https://1.2.3.4:0",
+        ),
     ],
 )
 async def test_proxy_headers_multiple_proxies(trusted_hosts: list[str] | str, response_text: str) -> None:
