@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import multiprocessing
 import signal
 import socket
+import sys
 import threading
 import time
 
@@ -19,15 +21,19 @@ async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
 def run(sockets: list[socket.socket] | None) -> None:
     while True:
         time.sleep(1)
+        import os
+
+        print("Running , pid: ", os.getpid())
 
 
-def test_multiprocess_run() -> None:
+def _test_multiprocess_run() -> None:
     """
     A basic sanity check.
 
     Simply run the supervisor against a no-op server, and signal for it to
     quit immediately.
     """
+    sys.stdin = None
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     supervisor.signal_queue.append(signal.SIGINT)
@@ -35,10 +41,18 @@ def test_multiprocess_run() -> None:
     supervisor.join_all()
 
 
-def test_multiprocess_health_check() -> None:
+def test_multiprocess_run() -> None:
+    process = multiprocessing.Process(target=_test_multiprocess_run)
+    process.start()
+    process.join()
+    assert process.exitcode == 0
+
+
+def _test_multiprocess_health_check() -> None:
     """
     Ensure that the health check works as expected.
     """
+    sys.stdin = None
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
@@ -53,10 +67,18 @@ def test_multiprocess_health_check() -> None:
     supervisor.join_all()
 
 
-def test_multiprocess_sigterm() -> None:
+def test_multiprocess_health_check() -> None:
+    process = multiprocessing.Process(target=_test_multiprocess_health_check)
+    process.start()
+    process.join()
+    assert process.exitcode == 0
+
+
+def _test_multiprocess_sigterm() -> None:
     """
     Ensure that the SIGTERM signal is handled as expected.
     """
+    sys.stdin = None
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
@@ -65,17 +87,32 @@ def test_multiprocess_sigterm() -> None:
     supervisor.join_all()
 
 
-@pytest.mark.skipif(not hasattr(signal, "SIGBREAK"), reason="platform unsupports SIGBREAK")
-def test_multiprocess_sigbreak() -> None:
+def test_multiprocess_sigterm() -> None:
+    process = multiprocessing.Process(target=_test_multiprocess_sigterm)
+    process.start()
+    process.join()
+    assert process.exitcode == 0
+
+
+def _test_multiprocess_sigbreak() -> None:
     """
     Ensure that the SIGBREAK signal is handled as expected.
     """
+    sys.stdin = None
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
     time.sleep(1)
     supervisor.signal_queue.append(getattr(signal, "SIGBREAK"))
     supervisor.join_all()
+
+
+@pytest.mark.skipif(not hasattr(signal, "SIGBREAK"), reason="platform unsupports SIGBREAK")
+def test_multiprocess_sigbreak() -> None:
+    process = multiprocessing.Process(target=_test_multiprocess_sigbreak)
+    process.start()
+    process.join()
+    assert process.exitcode == 0
 
 
 @pytest.mark.skipif(not hasattr(signal, "SIGHUP"), reason="platform unsupports SIGHUP")
