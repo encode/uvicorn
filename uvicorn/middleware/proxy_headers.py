@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import ipaddress
-from typing import Optional, Union, cast
+from typing import Union, cast
 
 from uvicorn._types import ASGI3Application, ASGIReceiveCallable, ASGISendCallable, HTTPScope, Scope, WebSocketScope
 
 
-def _parse_raw_hosts(value: str) -> List[str]:
+def _parse_raw_hosts(value: str) -> list[str]:
     return [item.strip() for item in value.split(",")]
 
 
@@ -15,7 +15,7 @@ class _TrustedHosts:
 
     def __init__(
         self,
-        trusted_hosts: Union[list[str], str],
+        trusted_hosts: list[str] | str,
     ) -> None:
         self.always_trust: bool = trusted_hosts == "*"
 
@@ -56,7 +56,7 @@ class _TrustedHosts:
                         self.trusted_literals.add(host)
         return
 
-    def __contains__(self, item: Optional[str]) -> bool:
+    def __contains__(self, item: str | None) -> bool:
         if self.always_trust:
             return True
 
@@ -72,15 +72,12 @@ class _TrustedHosts:
         except ValueError:
             return item in self.trusted_literals
 
-    def get_trusted_client_host(self, x_forwarded_for: str) -> Optional[str]:
+    def get_trusted_client_host(self, x_forwarded_for: str) -> str:
         """Extract the client host from x_forwarded_for header
 
         In general this is the first "untrusted" host in the forwarded for list.
         """
         x_forwarded_for_hosts = _parse_raw_hosts(x_forwarded_for)
-
-        if not x_forwarded_for_hosts:
-            return None
 
         if self.always_trust:
             return x_forwarded_for_hosts[0]
@@ -121,28 +118,27 @@ class ProxyHeadersMiddleware:
     async def __call__(self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
         if scope["type"] in ("http", "websocket"):
             scope = cast(Union[HTTPScope, WebSocketScope], scope)
-            client_addr: Optional[tuple[str, int]] = scope.get("client")
+            client_addr: tuple[str, int] | None = scope.get("client")
             client_host = client_addr[0] if client_addr else None
 
             if client_host in self.trusted_hosts:
                 headers = dict(scope["headers"])
 
                 if b"x-forwarded-proto" in headers:
-                    # Determine if the incoming request was http or https based on
-                    # the X-Forwarded-Proto header.
                     x_forwarded_proto = headers[b"x-forwarded-proto"].decode("latin1").strip()
-                    if scope["type"] == "websocket":
-                        scope["scheme"] = x_forwarded_proto.replace("http", "ws")
-                    else:
-                        scope["scheme"] = x_forwarded_proto
+
+                    if x_forwarded_proto in {"http", "https", "ws", "wss"}:
+                        if scope["type"] == "websocket":
+                            scope["scheme"] = x_forwarded_proto.replace("http", "ws")
+                        else:
+                            scope["scheme"] = x_forwarded_proto
 
                 if b"x-forwarded-for" in headers:
                     x_forwarded_for = headers[b"x-forwarded-for"].decode("latin1")
                     host = self.trusted_hosts.get_trusted_client_host(x_forwarded_for)
 
                     if host:
-                        # If the x-forwarded-for header is empty then host is None or
-                        # an empty string.
+                        # If the x-forwarded-for header is empty then host is an empty string.
                         # Only set the client if we actually got something usable.
                         # See: https://github.com/encode/uvicorn/issues/1068
 

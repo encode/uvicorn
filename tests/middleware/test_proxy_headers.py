@@ -354,9 +354,7 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_LITERALS, "", False),
     ],
 )
-def test_forwarded_hosts(
-    init_hosts: str | list[str], test_host: str, expected: bool
-) -> None:
+def test_forwarded_hosts(init_hosts: str | list[str], test_host: str, expected: bool) -> None:
     trusted_hosts = _TrustedHosts(init_hosts)
     assert (test_host in trusted_hosts) is expected
 
@@ -385,11 +383,34 @@ def test_forwarded_hosts(
         (["127.0.0.1", "1.2.3.4"], "https://1.2.3.4:0"),
     ],
 )
-async def test_proxy_headers_trusted_hosts(
-    trusted_hosts: str | list[str], expected: str
-) -> None:
+async def test_proxy_headers_trusted_hosts(trusted_hosts: str | list[str], expected: str) -> None:
     async with make_httpx_client(trusted_hosts) as client:
         response = await client.get("/", headers=make_x_headers("1.2.3.4"))
+    assert response.status_code == 200
+    assert response.text == expected
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("header_args", "expected"),
+    [
+        (("", ""), "http://127.0.0.1:123"),
+        (("", None), "http://127.0.0.1:123"),
+        (("", "asdf"), "http://127.0.0.1:123"),
+        ((" , ",), "https://127.0.0.1:123"),
+        ((", , ",), "https://127.0.0.1:123"),
+        ((" , 10.0.0.1",), "https://127.0.0.1:123"),
+        (("9.9.9.9 , , , 10.0.0.1",), "https://127.0.0.1:123"),
+        ((", , 9.9.9.9",), "https://9.9.9.9:0"),
+        ((", , 9.9.9.9, , ",), "https://127.0.0.1:123"),
+    ],
+)
+async def test_proxy_headers_trusted_hosts_malformed(
+    header_args: tuple[str | None, str | None] | tuple[str | None],
+    expected: str,
+) -> None:
+    async with make_httpx_client("127.0.0.1, 10.0.0.0/8") as client:
+        response = await client.get("/", headers=make_x_headers(*header_args))
     assert response.status_code == 200
     assert response.text == expected
 
@@ -410,13 +431,9 @@ async def test_proxy_headers_trusted_hosts(
         (["127.0.0.1", "10.0.0.0/8", "192.168.0.2"], "https://1.2.3.4:0"),
     ],
 )
-async def test_proxy_headers_multiple_proxies(
-    trusted_hosts: str | list[str], expected: str
-) -> None:
+async def test_proxy_headers_multiple_proxies(trusted_hosts: str | list[str], expected: str) -> None:
     async with make_httpx_client(trusted_hosts) as client:
-        response = await client.get(
-            "/", headers=make_x_headers("1.2.3.4, 10.0.2.1, 192.168.0.2")
-        )
+        response = await client.get("/", headers=make_x_headers("1.2.3.4, 10.0.2.1, 192.168.0.2"))
     assert response.status_code == 200
     assert response.text == expected
 
@@ -438,7 +455,7 @@ async def test_proxy_headers_invalid_x_forwarded_for() -> None:
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    "x_forwarded_proto,addr",
+    "forwarded_proto,expected",
     [
         ("http", "ws://1.2.3.4:0"),
         ("https", "wss://1.2.3.4:0"),
@@ -447,6 +464,8 @@ async def test_proxy_headers_invalid_x_forwarded_for() -> None:
     ],
 )
 async def test_proxy_headers_websocket_x_forwarded_proto(
+    forwarded_proto: str,
+    expected: str,
     ws_protocol_cls: type[WSProtocol | WebSocketProtocol],
     http_protocol_cls: type[H11Protocol | HttpToolsProtocol],
     unused_tcp_port: int,
@@ -471,10 +490,10 @@ async def test_proxy_headers_websocket_x_forwarded_proto(
     async with run_server(config):
         url = f"ws://127.0.0.1:{unused_tcp_port}"
         async with websockets.client.connect(
-            url, extra_headers=make_x_headers("1.2.3.4")
+            url, extra_headers=make_x_headers("1.2.3.4", forwarded_proto)
         ) as websocket:
             data = await websocket.recv()
-            assert data == "wss://1.2.3.4:0"
+            assert data == expected
 
 
 @pytest.mark.anyio
