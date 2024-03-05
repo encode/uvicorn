@@ -13,8 +13,10 @@ import click
 from uvicorn._subprocess import get_subprocess
 from uvicorn.config import Config
 
-UNIX_SIGNALS = {
-    getattr(signal, f"SIG{x}"): x for x in "HUP QUIT TTIN TTOU USR1 USR2 WINCH".split() if hasattr(signal, f"SIG{x}")
+SIGNALS = {
+    getattr(signal, f"SIG{x}"): x
+    for x in "INT TERM BREAK HUP QUIT TTIN TTOU USR1 USR2 WINCH".split()
+    if hasattr(signal, f"SIG{x}")
 }
 
 logger = logging.getLogger("uvicorn.error")
@@ -33,11 +35,14 @@ class Process:
         self.process = get_subprocess(config, self.target, sockets)
 
     def ping(self, timeout: float = 5) -> bool:
-        self.parent_conn.send(b"ping")
-        if self.parent_conn.poll(timeout):
-            self.parent_conn.recv()
-            return True
-        return False
+        try:
+            self.parent_conn.send(b"ping")
+            if self.parent_conn.poll(timeout):
+                self.parent_conn.recv()
+                return True
+            return False
+        except OSError:  # Closed pipe
+            return False
 
     def pong(self) -> None:
         self.child_conn.recv()
@@ -116,16 +121,8 @@ class Multiprocess:
         self.should_exit = threading.Event()
 
         self.signal_queue: list[int] = []
-        for sig in UNIX_SIGNALS:
+        for sig in SIGNALS:
             signal.signal(sig, lambda sig, frame: self.signal_queue.append(sig))
-
-        # Sent by Ctrl+C.
-        signal.signal(signal.SIGINT, lambda sig, frame: self.handle_int())
-        # Sent by `kill <pid>`. Not sent on Windows.
-        signal.signal(signal.SIGTERM, lambda sig, frame: self.handle_term())
-        if os.name == "nt":
-            # Sent by `Ctrl+Break` on Windows.
-            signal.signal(signal.SIGBREAK, lambda sig, frame: self.handle_break())  # type: ignore[attr-defined]
 
     def init_processes(self) -> None:
         for _ in range(self.processes_num):
@@ -145,10 +142,9 @@ class Multiprocess:
         for idx, process in enumerate(tuple(self.processes)):
             process.terminate()
             process.join()
-            del self.processes[idx]
-            process = Process(self.config, self.target, self.sockets)
-            process.start()
-            self.processes.append(process)
+            new_process = Process(self.config, self.target, self.sockets)
+            new_process.start()
+            self.processes[idx] = new_process
 
     def run(self) -> None:
         message = f"Started parent process [{os.getpid()}]"
@@ -184,7 +180,7 @@ class Multiprocess:
     def handle_signals(self) -> None:
         for sig in tuple(self.signal_queue):
             self.signal_queue.remove(sig)
-            sig_name = UNIX_SIGNALS[sig]
+            sig_name = SIGNALS[sig]
             sig_handler = getattr(self, f"handle_{sig_name.lower()}", None)
             if sig_handler is not None:
                 sig_handler()

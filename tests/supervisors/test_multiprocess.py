@@ -1,4 +1,5 @@
 from __future__ import annotations
+import signal
 
 import socket
 import threading
@@ -16,12 +17,9 @@ async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
 def run(sockets: list[socket.socket] | None) -> None:
     while True:
         time.sleep(1)
+        import os
 
-
-def stop_run(stop) -> None:
-    while True:
-        time.sleep(1)
-        stop()
+        print("Running , pid: ", os.getpid())
 
 
 def test_multiprocess_run() -> None:
@@ -33,8 +31,9 @@ def test_multiprocess_run() -> None:
     """
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
-    threading.Thread(target=stop_run, args=(supervisor.handle_int,), daemon=True).start()
+    supervisor.signal_queue.append(signal.SIGINT)
     supervisor.run()
+    supervisor.join_all()
 
 
 def test_multiprocess_health_check() -> None:
@@ -51,5 +50,21 @@ def test_multiprocess_health_check() -> None:
     time.sleep(1)
     for p in supervisor.processes:
         assert p.is_alive()
+    supervisor.signal_queue.append(signal.SIGINT)
+    supervisor.join_all()
 
-    supervisor.handle_int()
+
+def test_multiprocess_sighup() -> None:
+    """
+    Ensure that the SIGHUP signal is handled as expected.
+    """
+    config = Config(app=app, workers=2)
+    supervisor = Multiprocess(config, target=run, sockets=[])
+    threading.Thread(target=supervisor.run, daemon=True).start()
+    time.sleep(1)
+    pids = [p.pid for p in supervisor.processes]
+    supervisor.signal_queue.append(signal.SIGHUP)
+    time.sleep(1)
+    assert pids != [p.pid for p in supervisor.processes]
+    supervisor.signal_queue.append(signal.SIGINT)
+    supervisor.join_all()
