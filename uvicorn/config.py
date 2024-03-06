@@ -175,7 +175,7 @@ class Config:
     def __init__(
         self,
         app: ASGIApplication | Callable[..., Any] | str,
-        host: str = "127.0.0.1",
+        host: list[str] | str | None = None,
         port: int = 8000,
         uds: str | None = None,
         fd: int | None = None,

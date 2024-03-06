@@ -61,10 +61,8 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 @click.argument("app", envvar="UVICORN_APP")
 @click.option(
     "--host",
-    type=str,
-    default="127.0.0.1",
+    multiple=True,
     help="Bind socket to this host.",
-    show_default=True,
 )
 @click.option(
     "--port",
@@ -460,7 +458,7 @@ def main(
 def run(
     app: ASGIApplication | Callable[..., Any] | str,
     *,
-    host: str = "127.0.0.1",
+    host: list[str] | str | None = None,
     port: int = 8000,
     uds: str | None = None,
     fd: int | None = None,

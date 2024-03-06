@@ -194,7 +194,7 @@ class Server:
 
         else:
             addr_format = "%s://%s:%d"
-            host = "0.0.0.0" if config.host is None else config.host
+            host = config.host
             if ":" in host:
                 # It's an IPv6 address.
                 addr_format = "%s://[%s]:%d"

@@ -19,7 +19,7 @@ class ProxyHeadersMiddleware:
     def __init__(
         self,
         app: ASGI3Application,
-        trusted_hosts: list[str] | str = "127.0.0.1",
+        trusted_hosts: list[str] | str | None = None,
     ) -> None:
         self.app = app
         if isinstance(trusted_hosts, str):
