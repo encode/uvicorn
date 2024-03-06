@@ -186,24 +186,15 @@ class Multiprocess:
 
     def handle_int(self) -> None:
         logger.info("Received SIGINT, exiting")
-        if not self.should_exit.is_set():
-            self.should_exit.set()
-        else:
-            self.terminate_all()
+        self.should_exit.set()
 
     def handle_term(self) -> None:
         logger.info("Received SIGTERM, exiting")
-        if not self.should_exit.is_set():
-            self.should_exit.set()
-        else:
-            self.terminate_all()
+        self.should_exit.set()
 
     def handle_break(self) -> None:
         logger.info("Received SIGBREAK, exiting")
-        if not self.should_exit.is_set():
-            self.should_exit.set()
-        else:
-            self.terminate_all()
+        self.should_exit.set()
 
     def handle_hup(self) -> None:
         logger.info("Received SIGHUP, restarting processes")
