@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import httpx
 import httpx._transports.asgi
@@ -47,11 +47,8 @@ def make_httpx_client(
         client: transport client to use
     """
 
-    app = cast(
-        httpx._transports.asgi._ASGIApp,
-        ProxyHeadersMiddleware(default_app, trusted_hosts),
-    )
-    transport = httpx.ASGITransport(app=app, client=client)
+    app = ProxyHeadersMiddleware(default_app, trusted_hosts)
+    transport = httpx.ASGITransport(app=app, client=client)  # type: ignore
     return httpx.AsyncClient(transport=transport, base_url="http://testserver")
 
 
