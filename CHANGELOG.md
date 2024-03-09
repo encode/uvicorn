@@ -1,5 +1,16 @@
 # Change Log
 
+## 0.28.0 - 2024-03-09
+
+### Added
+
+- Raise `ClientDisconnected` on `send()` when client disconnected (#2220) 12/02/24
+
+### Fixed
+
+- Except `AttributeError` on `sys.stdin.fileno()` for Windows IIS10 (#1947) 29/02/24
+- Use `X-Forwarded-Proto` for WebSockets scheme when the proxy provides it (#2258) 01/03/24
+
 ## 0.27.1 - 2024-02-10
 
 - Fix spurious LocalProtocolError errors when processing pipelined requests (#2243) 10/02/24
