@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import os
 import signal
 import sys
 from typing import Callable, ContextManager, Generator
@@ -50,7 +49,7 @@ async def test_server_interrupt(
     async def interrupt_running(srv: Server):
         while not srv.started:
             await asyncio.sleep(0.01)
-        os.kill(os.getpid(), exception_signal)
+        signal.raise_signal(exception_signal)
 
     server = Server(Config(app=dummy_app, loop="asyncio"))
     asyncio.create_task(interrupt_running(server))
