@@ -1,8 +1,10 @@
-from typing import Generator
+from __future__ import annotations
+
 import asyncio
 import os
 import signal
 import sys
+from typing import Generator
 
 import pytest
 
@@ -15,7 +17,7 @@ class CaughtSignal(Exception):
 
 
 @pytest.fixture(params=[signal.SIGINT, signal.SIGTERM])
-def exception_signal(request: "type[pytest.FixtureRequest]") -> Generator[signal.Signals, None, None]:  # pragma: py-win32
+def exception_signal(request: type[pytest.FixtureRequest]) -> Generator[signal.Signals, None, None]:  # pragma: py-win32
     """Fixture that replaces SIGINT/SIGTERM handling with a normal exception"""
 
     def raise_handler(*_: object) -> None:
@@ -27,12 +29,15 @@ def exception_signal(request: "type[pytest.FixtureRequest]") -> Generator[signal
 
 
 @pytest.fixture(params=[signal.SIGINT, signal.SIGTERM])
-def async_exception_signal(request: "type[pytest.FixtureRequest]") -> Generator[signal.Signals, None, None]:  # pragma: py-win32
+def async_exception_signal(  # pragma: py-win32
+    request: type[pytest.FixtureRequest]
+) -> Generator[signal.Signals, None, None]:
     """Fixture that replaces SIGINT/SIGTERM handling with a normal exception"""
 
     def raise_handler(*_: object) -> None:
         raise CaughtSignal
 
+    asyncio.get_running_loop().add_signal_handler
     original_handler = signal.signal(request.param, raise_handler)
     yield request.param
     signal.signal(request.param, original_handler)
