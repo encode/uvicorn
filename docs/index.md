@@ -260,6 +260,10 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
+!!! note
+    Both `server.run` and `server.serve` install custom signal handlers while the server runs.
+    The original signal handlers are restored and, if appropriate, invoked once the server finishes.
+
 ### Running with Gunicorn
 
 [Gunicorn][gunicorn] is a mature, fully featured server and process manager.
