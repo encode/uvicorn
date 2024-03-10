@@ -30,7 +30,7 @@ def exception_signal(request: type[pytest.FixtureRequest]) -> Generator[signal.S
 
 @pytest.fixture(params=[signal.SIGINT, signal.SIGTERM])
 def async_exception_signal(  # pragma: py-win32
-    request: type[pytest.FixtureRequest]
+    request: type[pytest.FixtureRequest],
 ) -> Generator[signal.Signals, None, None]:
     """Fixture that replaces SIGINT/SIGTERM handling with a normal exception"""
 

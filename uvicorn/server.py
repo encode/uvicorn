@@ -12,7 +12,7 @@ import threading
 import time
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, Sequence, Union
+from typing import TYPE_CHECKING, Generator, Sequence, Union
 
 import click
 
@@ -308,16 +308,14 @@ class Server:
             await server.wait_closed()
 
     @contextlib.contextmanager
-    def capture_signals(self):
+    def capture_signals(self) -> Generator[None, None, None]:
         # Signals can only be listened to from the main thread.
         if threading.current_thread() is not threading.main_thread():
             yield
             return
         # always use signal.signal, even if loop.add_signal_handler is available
         # this allows to restore previous signal handlers later on
-        original_handlers = {
-            sig: signal.signal(sig, self.handle_exit) for sig in HANDLED_SIGNALS
-        }
+        original_handlers = {sig: signal.signal(sig, self.handle_exit) for sig in HANDLED_SIGNALS}
         try:
             yield
         finally:
