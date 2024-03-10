@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import os
 import signal
 import sys
-from typing import Generator
+from typing import Callable, ContextManager, Generator
 
 import pytest
 
@@ -12,35 +13,25 @@ from uvicorn.config import Config
 from uvicorn.server import Server
 
 
-class CaughtSignal(Exception):
-    pass
+# asyncio does NOT allow raising in signal handlers, so to detect
+# raised signals raised a mutable `witness` receives the signal
+@contextlib.contextmanager
+def capture_signal_sync(sig: signal.Signals) -> Generator[list[int], None, None]:  # pragma: py-win32
+    """Replace `sig` handling with a normal exception via `signal"""
+    witness: list[int] = []
+    original_handler = signal.signal(sig, lambda signum, frame: witness.append(signum))
+    yield witness
+    signal.signal(sig, original_handler)
 
 
-@pytest.fixture(params=[signal.SIGINT, signal.SIGTERM])
-def exception_signal(request: type[pytest.FixtureRequest]) -> Generator[signal.Signals, None, None]:  # pragma: py-win32
-    """Fixture that replaces SIGINT/SIGTERM handling with a normal exception"""
-
-    def raise_handler(*_: object) -> None:
-        raise CaughtSignal
-
-    original_handler = signal.signal(request.param, raise_handler)
-    yield request.param
-    signal.signal(request.param, original_handler)
-
-
-@pytest.fixture(params=[signal.SIGINT, signal.SIGTERM])
-def async_exception_signal(  # pragma: py-win32
-    request: type[pytest.FixtureRequest],
-) -> Generator[signal.Signals, None, None]:
-    """Fixture that replaces SIGINT/SIGTERM handling with a normal exception"""
-
-    def raise_handler(*_: object) -> None:
-        raise CaughtSignal
-
-    asyncio.get_running_loop().add_signal_handler
-    original_handler = signal.signal(request.param, raise_handler)
-    yield request.param
-    signal.signal(request.param, original_handler)
+@contextlib.contextmanager
+def capture_signal_async(sig: signal.Signals) -> Generator[list[int], None, None]:  # pragma: py-win32
+    """Replace `sig` handling with a normal exception via `asyncio"""
+    witness: list[int] = []
+    original_handler = signal.getsignal(sig)
+    asyncio.get_running_loop().add_signal_handler(sig, witness.append, sig)
+    yield witness
+    signal.signal(sig, original_handler)
 
 
 async def dummy_app(scope, receive, send):  # pragma: py-win32
@@ -49,7 +40,11 @@ async def dummy_app(scope, receive, send):  # pragma: py-win32
 
 @pytest.mark.anyio
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like signal handling")
-async def test_server_interrupt(exception_signal: signal.Signals):  # pragma: py-win32
+@pytest.mark.parametrize("exception_signal", [signal.SIGTERM, signal.SIGINT])
+@pytest.mark.parametrize("capture_signal", [capture_signal_sync, capture_signal_async])
+async def test_server_interrupt(
+    exception_signal: signal.Signals, capture_signal: Callable[[signal.Signals], ContextManager[None]]
+):  # pragma: py-win32
     """Test interrupting a Server that is run explicitly inside asyncio"""
 
     async def interrupt_running(srv: Server):
@@ -59,7 +54,8 @@ async def test_server_interrupt(exception_signal: signal.Signals):  # pragma: py
 
     server = Server(Config(app=dummy_app, loop="asyncio"))
     asyncio.create_task(interrupt_running(server))
-    with pytest.raises(CaughtSignal):
+    with capture_signal(exception_signal) as witness:
         await server.serve()
+    assert witness
     # set by the server's graceful exit handler
     assert server.should_exit
