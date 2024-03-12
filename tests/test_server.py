@@ -46,7 +46,6 @@ else:
 
 
 @pytest.mark.anyio
-@pytest.mark.skipif(sys.platform == "win32", reason="require unix-like signal handling")
 @pytest.mark.parametrize("exception_signal", signals)
 @pytest.mark.parametrize("capture_signal", signal_captures)
 async def test_server_interrupt(
