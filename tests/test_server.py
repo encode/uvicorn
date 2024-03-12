@@ -15,7 +15,7 @@ from uvicorn.server import Server
 # asyncio does NOT allow raising in signal handlers, so to detect
 # raised signals raised a mutable `witness` receives the signal
 @contextlib.contextmanager
-def capture_signal_sync(sig: signal.Signals) -> Generator[list[int], None, None]:  # pragma: py-win32
+def capture_signal_sync(sig: signal.Signals) -> Generator[list[int], None, None]:
     """Replace `sig` handling with a normal exception via `signal"""
     witness: list[int] = []
     original_handler = signal.signal(sig, lambda signum, frame: witness.append(signum))
@@ -37,10 +37,18 @@ async def dummy_app(scope, receive, send):  # pragma: py-win32
     pass
 
 
+if sys.platform == "win32":
+    signals = [signal.SIGBREAK]
+    signal_captures = [capture_signal_sync]
+else:
+    signals = [signal.SIGTERM, signal.SIGINT]
+    signal_captures = [capture_signal_sync, capture_signal_async]
+
+
 @pytest.mark.anyio
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like signal handling")
-@pytest.mark.parametrize("exception_signal", [signal.SIGTERM, signal.SIGINT])
-@pytest.mark.parametrize("capture_signal", [capture_signal_sync, capture_signal_async])
+@pytest.mark.parametrize("exception_signal", signals)
+@pytest.mark.parametrize("capture_signal", signal_captures)
 async def test_server_interrupt(
     exception_signal: signal.Signals, capture_signal: Callable[[signal.Signals], ContextManager[None]]
 ):  # pragma: py-win32
