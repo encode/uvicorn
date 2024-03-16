@@ -15,6 +15,7 @@ from uvicorn._types import (
     ASGI3Application,
     ASGIReceiveEvent,
     ASGISendEvent,
+    HTTPDisconnectEvent,
     HTTPRequestEvent,
     HTTPResponseBodyEvent,
     HTTPResponseStartEvent,
@@ -29,7 +30,6 @@ from uvicorn.protocols.http.flow_control import (
     service_unavailable,
 )
 from uvicorn.protocols.utils import (
-    ClientDisconnected,
     get_client_addr,
     get_local_addr,
     get_path_with_query_string,
@@ -412,8 +412,6 @@ class RequestResponseCycle:
             result = await app(  # type: ignore[func-returns-value]
                 self.scope, self.receive, self.send
             )
-        except ClientDisconnected:
-            pass
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
@@ -462,7 +460,7 @@ class RequestResponseCycle:
             await self.flow.drain()
 
         if self.disconnected:
-            raise ClientDisconnected
+            return
 
         if not self.response_started:
             # Sending response status line and headers
@@ -571,13 +569,15 @@ class RequestResponseCycle:
             await self.message_event.wait()
             self.message_event.clear()
 
+        message: HTTPDisconnectEvent | HTTPRequestEvent
         if self.disconnected or self.response_complete:
-            return {"type": "http.disconnect"}
+            message = {"type": "http.disconnect"}
+        else:
+            message = {
+                "type": "http.request",
+                "body": self.body,
+                "more_body": self.more_body,
+            }
+            self.body = b""
 
-        message: HTTPRequestEvent = {
-            "type": "http.request",
-            "body": self.body,
-            "more_body": self.more_body,
-        }
-        self.body = b""
         return message
