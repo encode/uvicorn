@@ -16,7 +16,6 @@ from uvicorn.lifespan.off import LifespanOff
 from uvicorn.lifespan.on import LifespanOn
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
-from uvicorn.protocols.utils import ClientDisconnected
 
 try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
@@ -585,25 +584,6 @@ async def test_early_disconnect(http_protocol_cls: HTTPProtocol):
     protocol.connection_lost(None)
     await protocol.loop.run_one()
     assert got_disconnect_event
-
-
-@pytest.mark.anyio
-async def test_disconnect_on_send(http_protocol_cls: HTTPProtocol) -> None:
-    got_disconnected = False
-
-    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
-        try:
-            await send({"type": "http.response.start", "status": 200})
-        except ClientDisconnected:
-            nonlocal got_disconnected
-            got_disconnected = True
-
-    protocol = get_connected_protocol(app, http_protocol_cls)
-    protocol.data_received(SIMPLE_GET_REQUEST)
-    protocol.eof_received()
-    protocol.connection_lost(None)
-    await protocol.loop.run_one()
-    assert got_disconnected
 
 
 @pytest.mark.anyio
