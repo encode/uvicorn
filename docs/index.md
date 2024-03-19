@@ -260,7 +260,6 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-
 ### Running with Gunicorn
 
 [Gunicorn][gunicorn] is a mature, fully featured server and process manager.
