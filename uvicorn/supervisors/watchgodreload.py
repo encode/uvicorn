@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import warnings
 from pathlib import Path
 from socket import socket
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Callable
 
 from watchgod import DefaultWatcher
 
@@ -20,31 +22,23 @@ logger = logging.getLogger("uvicorn.error")
 class CustomWatcher(DefaultWatcher):
     def __init__(self, root_path: Path, config: Config):
         default_includes = ["*.py"]
-        self.includes = [
-            default
-            for default in default_includes
-            if default not in config.reload_excludes
-        ]
+        self.includes = [default for default in default_includes if default not in config.reload_excludes]
         self.includes.extend(config.reload_includes)
         self.includes = list(set(self.includes))
 
         default_excludes = [".*", ".py[cod]", ".sw.*", "~*"]
-        self.excludes = [
-            default
-            for default in default_excludes
-            if default not in config.reload_includes
-        ]
+        self.excludes = [default for default in default_excludes if default not in config.reload_includes]
         self.excludes.extend(config.reload_excludes)
         self.excludes = list(set(self.excludes))
 
-        self.watched_dirs: Dict[str, bool] = {}
-        self.watched_files: Dict[str, bool] = {}
+        self.watched_dirs: dict[str, bool] = {}
+        self.watched_files: dict[str, bool] = {}
         self.dirs_includes = set(config.reload_dirs)
         self.dirs_excludes = set(config.reload_dirs_excludes)
         self.resolved_root = root_path
         super().__init__(str(root_path))
 
-    def should_watch_file(self, entry: "DirEntry") -> bool:
+    def should_watch_file(self, entry: DirEntry) -> bool:
         cached_result = self.watched_files.get(entry.path)
         if cached_result is not None:
             return cached_result
@@ -52,10 +46,13 @@ class CustomWatcher(DefaultWatcher):
         entry_path = Path(entry)
 
         # cwd is not verified through should_watch_dir, so we need to verify here
-        if entry_path.parent == Path.cwd() and not Path.cwd() in self.dirs_includes:
+        if entry_path.parent == Path.cwd() and Path.cwd() not in self.dirs_includes:
             self.watched_files[entry.path] = False
             return False
         for include_pattern in self.includes:
+            if str(entry_path).endswith(include_pattern):
+                self.watched_files[entry.path] = True
+                return True
             if entry_path.match(include_pattern):
                 for exclude_pattern in self.excludes:
                     if entry_path.match(exclude_pattern):
@@ -66,7 +63,7 @@ class CustomWatcher(DefaultWatcher):
         self.watched_files[entry.path] = False
         return False
 
-    def should_watch_dir(self, entry: "DirEntry") -> bool:
+    def should_watch_dir(self, entry: DirEntry) -> bool:
         cached_result = self.watched_dirs.get(entry.path)
         if cached_result is not None:
             return cached_result
@@ -89,8 +86,7 @@ class CustomWatcher(DefaultWatcher):
 
                 if is_watched:
                     logger.debug(
-                        "WatchGodReload detected a new excluded dir '%s' in '%s'; "
-                        "Adding to exclude list.",
+                        "WatchGodReload detected a new excluded dir '%s' in '%s'; " "Adding to exclude list.",
                         entry_path.relative_to(self.resolved_root),
                         str(self.resolved_root),
                     )
@@ -110,8 +106,7 @@ class CustomWatcher(DefaultWatcher):
         for include_pattern in self.includes:
             if entry_path.match(include_pattern):
                 logger.info(
-                    "WatchGodReload detected a new reload dir '%s' in '%s'; "
-                    "Adding to watch list.",
+                    "WatchGodReload detected a new reload dir '%s' in '%s'; " "Adding to watch list.",
                     str(entry_path.relative_to(self.resolved_root)),
                     str(self.resolved_root),
                 )
@@ -127,12 +122,11 @@ class WatchGodReload(BaseReload):
     def __init__(
         self,
         config: Config,
-        target: Callable[[Optional[List[socket]]], None],
-        sockets: List[socket],
+        target: Callable[[list[socket] | None], None],
+        sockets: list[socket],
     ) -> None:
         warnings.warn(
-            '"watchgod" is depreciated, you should switch '
-            "to watchfiles (`pip install watchfiles`).",
+            '"watchgod" is deprecated, you should switch ' "to watchfiles (`pip install watchfiles`).",
             DeprecationWarning,
         )
         super().__init__(config, target, sockets)
@@ -147,7 +141,7 @@ class WatchGodReload(BaseReload):
         for w in reload_dirs:
             self.watchers.append(CustomWatcher(w.resolve(), self.config))
 
-    def should_restart(self) -> Optional[List[Path]]:
+    def should_restart(self) -> list[Path] | None:
         self.pause()
 
         for watcher in self.watchers:

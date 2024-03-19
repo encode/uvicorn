@@ -32,9 +32,7 @@ async def test_override_server_header(unused_tcp_port: int):
     async with run_server(config):
         async with httpx.AsyncClient() as client:
             response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
-            assert (
-                response.headers["server"] == "over-ridden" and response.headers["date"]
-            )
+            assert response.headers["server"] == "over-ridden" and response.headers["date"]
 
 
 @pytest.mark.anyio
@@ -64,10 +62,7 @@ async def test_override_server_header_multiple_times(unused_tcp_port: int):
     async with run_server(config):
         async with httpx.AsyncClient() as client:
             response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
-            assert (
-                response.headers["server"] == "over-ridden, another-value"
-                and response.headers["date"]
-            )
+            assert response.headers["server"] == "over-ridden, another-value" and response.headers["date"]
 
 
 @pytest.mark.anyio

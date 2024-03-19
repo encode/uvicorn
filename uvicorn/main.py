@@ -1,14 +1,17 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
 import platform
 import ssl
 import sys
-import typing
+from typing import Any, Callable
 
 import click
 
 import uvicorn
+from uvicorn._types import ASGIApplication
 from uvicorn.config import (
     HTTP_PROTOCOLS,
     INTERFACES,
@@ -28,9 +31,6 @@ from uvicorn.config import (
 from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
-if typing.TYPE_CHECKING:
-    from asgiref.typing import ASGIApplication
-
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
 HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
 WS_CHOICES = click.Choice(list(WS_PROTOCOLS.keys()))
@@ -47,19 +47,18 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     if not value or ctx.resilient_parsing:
         return
     click.echo(
-        "Running uvicorn %s with %s %s on %s"
-        % (
-            uvicorn.__version__,
-            platform.python_implementation(),
-            platform.python_version(),
-            platform.system(),
+        "Running uvicorn {version} with {py_implementation} {py_version} on {system}".format(
+            version=uvicorn.__version__,
+            py_implementation=platform.python_implementation(),
+            py_version=platform.python_version(),
+            system=platform.system(),
         )
     )
     ctx.exit()
 
 
 @click.command(context_settings={"auto_envvar_prefix": "UVICORN"})
-@click.argument("app")
+@click.argument("app", envvar="UVICORN_APP")
 @click.option(
     "--host",
     type=str,
@@ -71,20 +70,17 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--port",
     type=int,
     default=8000,
-    help="Bind socket to this port.",
+    help="Bind socket to this port. If 0, an available port will be picked.",
     show_default=True,
 )
 @click.option("--uds", type=str, default=None, help="Bind to a UNIX domain socket.")
-@click.option(
-    "--fd", type=int, default=None, help="Bind to socket from this file descriptor."
-)
+@click.option("--fd", type=int, default=None, help="Bind to socket from this file descriptor.")
 @click.option("--reload", is_flag=True, default=False, help="Enable auto-reload.")
 @click.option(
     "--reload-dir",
     "reload_dirs",
     multiple=True,
-    help="Set reload directories explicitly, instead of using the current working"
-    " directory.",
+    help="Set reload directories explicitly, instead of using the current working" " directory.",
     type=click.Path(exists=True),
 )
 @click.option(
@@ -109,8 +105,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     type=float,
     default=0.25,
     show_default=True,
-    help="Delay between previous and next check if application needs to be."
-    " Defaults to 0.25s.",
+    help="Delay between previous and next check if application needs to be." " Defaults to 0.25s.",
 )
 @click.option(
     "--workers",
@@ -148,17 +143,24 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
+    "--ws-max-queue",
+    type=int,
+    default=32,
+    help="The maximum length of the WebSocket message queue.",
+    show_default=True,
+)
+@click.option(
     "--ws-ping-interval",
     type=float,
     default=20.0,
-    help="WebSocket ping interval",
+    help="WebSocket ping interval in seconds.",
     show_default=True,
 )
 @click.option(
     "--ws-ping-timeout",
     type=float,
     default=20.0,
-    help="WebSocket ping timeout",
+    help="WebSocket ping timeout in seconds.",
     show_default=True,
 )
 @click.option(
@@ -219,8 +221,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--proxy-headers/--no-proxy-headers",
     is_flag=True,
     default=True,
-    help="Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to "
-    "populate remote address info.",
+    help="Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to " "populate remote address info.",
 )
 @click.option(
     "--server-header/--no-server-header",
@@ -251,8 +252,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--limit-concurrency",
     type=int,
     default=None,
-    help="Maximum number of concurrent connections or tasks to allow, before issuing"
-    " HTTP 503 responses.",
+    help="Maximum number of concurrent connections or tasks to allow, before issuing" " HTTP 503 responses.",
 )
 @click.option(
     "--backlog",
@@ -274,8 +274,12 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
-    "--ssl-keyfile", type=str, default=None, help="SSL key file", show_default=True
+    "--timeout-graceful-shutdown",
+    type=int,
+    default=None,
+    help="Maximum number of seconds to wait for graceful shutdown.",
 )
+@click.option("--ssl-keyfile", type=str, default=None, help="SSL key file", show_default=True)
 @click.option(
     "--ssl-certfile",
     type=str,
@@ -363,15 +367,16 @@ def main(
     http: HTTPProtocolType,
     ws: WSProtocolType,
     ws_max_size: int,
+    ws_max_queue: int,
     ws_ping_interval: float,
     ws_ping_timeout: float,
     ws_per_message_deflate: bool,
     lifespan: LifespanType,
     interface: InterfaceType,
     reload: bool,
-    reload_dirs: typing.List[str],
-    reload_includes: typing.List[str],
-    reload_excludes: typing.List[str],
+    reload_dirs: list[str],
+    reload_includes: list[str],
+    reload_excludes: list[str],
     reload_delay: float,
     workers: int,
     env_file: str,
@@ -387,6 +392,7 @@ def main(
     backlog: int,
     limit_max_requests: int,
     timeout_keep_alive: int,
+    timeout_graceful_shutdown: int | None,
     ssl_keyfile: str,
     ssl_certfile: str,
     ssl_keyfile_password: str,
@@ -394,10 +400,10 @@ def main(
     ssl_cert_reqs: int,
     ssl_ca_certs: str,
     ssl_ciphers: str,
-    headers: typing.List[str],
+    headers: list[str],
     use_colors: bool,
     app_dir: str,
-    h11_max_incomplete_event_size: typing.Optional[int],
+    h11_max_incomplete_event_size: int | None,
     factory: bool,
 ) -> None:
     run(
@@ -410,6 +416,7 @@ def main(
         http=http,
         ws=ws,
         ws_max_size=ws_max_size,
+        ws_max_queue=ws_max_queue,
         ws_ping_interval=ws_ping_interval,
         ws_ping_timeout=ws_ping_timeout,
         ws_per_message_deflate=ws_per_message_deflate,
@@ -434,6 +441,7 @@ def main(
         backlog=backlog,
         limit_max_requests=limit_max_requests,
         timeout_keep_alive=timeout_keep_alive,
+        timeout_graceful_shutdown=timeout_graceful_shutdown,
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
         ssl_keyfile_password=ssl_keyfile_password,
@@ -450,54 +458,54 @@ def main(
 
 
 def run(
-    app: typing.Union["ASGIApplication", typing.Callable, str],
+    app: ASGIApplication | Callable[..., Any] | str,
     *,
     host: str = "127.0.0.1",
     port: int = 8000,
-    uds: typing.Optional[str] = None,
-    fd: typing.Optional[int] = None,
+    uds: str | None = None,
+    fd: int | None = None,
     loop: LoopSetupType = "auto",
-    http: typing.Union[typing.Type[asyncio.Protocol], HTTPProtocolType] = "auto",
-    ws: typing.Union[typing.Type[asyncio.Protocol], WSProtocolType] = "auto",
+    http: type[asyncio.Protocol] | HTTPProtocolType = "auto",
+    ws: type[asyncio.Protocol] | WSProtocolType = "auto",
     ws_max_size: int = 16777216,
-    ws_ping_interval: typing.Optional[float] = 20.0,
-    ws_ping_timeout: typing.Optional[float] = 20.0,
+    ws_max_queue: int = 32,
+    ws_ping_interval: float | None = 20.0,
+    ws_ping_timeout: float | None = 20.0,
     ws_per_message_deflate: bool = True,
     lifespan: LifespanType = "auto",
     interface: InterfaceType = "auto",
     reload: bool = False,
-    reload_dirs: typing.Optional[typing.Union[typing.List[str], str]] = None,
-    reload_includes: typing.Optional[typing.Union[typing.List[str], str]] = None,
-    reload_excludes: typing.Optional[typing.Union[typing.List[str], str]] = None,
+    reload_dirs: list[str] | str | None = None,
+    reload_includes: list[str] | str | None = None,
+    reload_excludes: list[str] | str | None = None,
     reload_delay: float = 0.25,
-    workers: typing.Optional[int] = None,
-    env_file: typing.Optional[typing.Union[str, os.PathLike]] = None,
-    log_config: typing.Optional[
-        typing.Union[typing.Dict[str, typing.Any], str]
-    ] = LOGGING_CONFIG,
-    log_level: typing.Optional[typing.Union[str, int]] = None,
+    workers: int | None = None,
+    env_file: str | os.PathLike[str] | None = None,
+    log_config: dict[str, Any] | str | None = LOGGING_CONFIG,
+    log_level: str | int | None = None,
     access_log: bool = True,
     proxy_headers: bool = True,
     server_header: bool = True,
     date_header: bool = True,
-    forwarded_allow_ips: typing.Optional[typing.Union[typing.List[str], str]] = None,
+    forwarded_allow_ips: list[str] | str | None = None,
     root_path: str = "",
-    limit_concurrency: typing.Optional[int] = None,
+    limit_concurrency: int | None = None,
     backlog: int = 2048,
-    limit_max_requests: typing.Optional[int] = None,
+    limit_max_requests: int | None = None,
     timeout_keep_alive: int = 5,
-    ssl_keyfile: typing.Optional[str] = None,
-    ssl_certfile: typing.Optional[typing.Union[str, os.PathLike]] = None,
-    ssl_keyfile_password: typing.Optional[str] = None,
+    timeout_graceful_shutdown: int | None = None,
+    ssl_keyfile: str | None = None,
+    ssl_certfile: str | os.PathLike[str] | None = None,
+    ssl_keyfile_password: str | None = None,
     ssl_version: int = SSL_PROTOCOL_VERSION,
     ssl_cert_reqs: int = ssl.CERT_NONE,
-    ssl_ca_certs: typing.Optional[str] = None,
+    ssl_ca_certs: str | None = None,
     ssl_ciphers: str = "TLSv1",
-    headers: typing.Optional[typing.List[typing.Tuple[str, str]]] = None,
-    use_colors: typing.Optional[bool] = None,
-    app_dir: typing.Optional[str] = None,
+    headers: list[tuple[str, str]] | None = None,
+    use_colors: bool | None = None,
+    app_dir: str | None = None,
     factory: bool = False,
-    h11_max_incomplete_event_size: typing.Optional[int] = None,
+    h11_max_incomplete_event_size: int | None = None,
 ) -> None:
     if app_dir is not None:
         sys.path.insert(0, app_dir)
@@ -512,6 +520,7 @@ def run(
         http=http,
         ws=ws,
         ws_max_size=ws_max_size,
+        ws_max_queue=ws_max_queue,
         ws_ping_interval=ws_ping_interval,
         ws_ping_timeout=ws_ping_timeout,
         ws_per_message_deflate=ws_per_message_deflate,
@@ -536,6 +545,7 @@ def run(
         backlog=backlog,
         limit_max_requests=limit_max_requests,
         timeout_keep_alive=timeout_keep_alive,
+        timeout_graceful_shutdown=timeout_graceful_shutdown,
         ssl_keyfile=ssl_keyfile,
         ssl_certfile=ssl_certfile,
         ssl_keyfile_password=ssl_keyfile_password,
@@ -552,10 +562,7 @@ def run(
 
     if (config.reload or config.workers > 1) and not isinstance(app, str):
         logger = logging.getLogger("uvicorn.error")
-        logger.warning(
-            "You must pass the application as an import string to enable 'reload' or "
-            "'workers'."
-        )
+        logger.warning("You must pass the application as an import string to enable 'reload' or " "'workers'.")
         sys.exit(1)
 
     if config.should_reload:

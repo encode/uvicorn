@@ -1,28 +1,28 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 from asyncio import Queue
-from typing import TYPE_CHECKING, Any, Dict, Union
+from typing import Any, Union
 
 from uvicorn import Config
+from uvicorn._types import (
+    LifespanScope,
+    LifespanShutdownCompleteEvent,
+    LifespanShutdownEvent,
+    LifespanShutdownFailedEvent,
+    LifespanStartupCompleteEvent,
+    LifespanStartupEvent,
+    LifespanStartupFailedEvent,
+)
 
-if TYPE_CHECKING:
-    from asgiref.typing import (
-        LifespanScope,
-        LifespanShutdownCompleteEvent,
-        LifespanShutdownEvent,
-        LifespanShutdownFailedEvent,
-        LifespanStartupCompleteEvent,
-        LifespanStartupEvent,
-        LifespanStartupFailedEvent,
-    )
-
-    LifespanReceiveMessage = Union[LifespanStartupEvent, LifespanShutdownEvent]
-    LifespanSendMessage = Union[
-        LifespanStartupFailedEvent,
-        LifespanShutdownFailedEvent,
-        LifespanStartupCompleteEvent,
-        LifespanShutdownCompleteEvent,
-    ]
+LifespanReceiveMessage = Union[LifespanStartupEvent, LifespanShutdownEvent]
+LifespanSendMessage = Union[
+    LifespanStartupFailedEvent,
+    LifespanShutdownFailedEvent,
+    LifespanStartupCompleteEvent,
+    LifespanShutdownCompleteEvent,
+]
 
 
 STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
@@ -37,12 +37,12 @@ class LifespanOn:
         self.logger = logging.getLogger("uvicorn.error")
         self.startup_event = asyncio.Event()
         self.shutdown_event = asyncio.Event()
-        self.receive_queue: "Queue[LifespanReceiveMessage]" = asyncio.Queue()
+        self.receive_queue: Queue[LifespanReceiveMessage] = asyncio.Queue()
         self.error_occured = False
         self.startup_failed = False
         self.shutdown_failed = False
         self.should_exit = False
-        self.state: Dict[str, Any] = {}
+        self.state: dict[str, Any] = {}
 
     async def startup(self) -> None:
         self.logger.info("Waiting for application startup.")
@@ -69,9 +69,7 @@ class LifespanOn:
         await self.receive_queue.put(shutdown_event)
         await self.shutdown_event.wait()
 
-        if self.shutdown_failed or (
-            self.error_occured and self.config.lifespan == "on"
-        ):
+        if self.shutdown_failed or (self.error_occured and self.config.lifespan == "on"):
             self.logger.error("Application shutdown failed. Exiting.")
             self.should_exit = True
         else:
@@ -80,7 +78,7 @@ class LifespanOn:
     async def main(self) -> None:
         try:
             app = self.config.loaded_app
-            scope: LifespanScope = {  # type: ignore[typeddict-item]
+            scope: LifespanScope = {
                 "type": "lifespan",
                 "asgi": {"version": self.config.asgi_version, "spec_version": "2.0"},
                 "state": self.state,
@@ -101,7 +99,7 @@ class LifespanOn:
             self.startup_event.set()
             self.shutdown_event.set()
 
-    async def send(self, message: "LifespanSendMessage") -> None:
+    async def send(self, message: LifespanSendMessage) -> None:
         assert message["type"] in (
             "lifespan.startup.complete",
             "lifespan.startup.failed",
@@ -135,5 +133,5 @@ class LifespanOn:
             if message.get("message"):
                 self.logger.error(message["message"])
 
-    async def receive(self) -> "LifespanReceiveMessage":
+    async def receive(self) -> LifespanReceiveMessage:
         return await self.receive_queue.get()

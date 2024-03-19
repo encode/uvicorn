@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import contextlib
 import logging
 import socket
 import sys
+import typing
 
 import httpx
 import pytest
@@ -10,14 +13,19 @@ import websockets.client
 
 from tests.utils import run_server
 from uvicorn import Config
-from uvicorn.protocols.http.h11_impl import H11Protocol
 
-try:
-    from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
+if typing.TYPE_CHECKING:
+    import sys
 
-    HTTP_PROTOCOLS = [H11Protocol, HttpToolsProtocol]
-except ImportError:  # pragma: nocover
-    HTTP_PROTOCOLS = [H11Protocol]
+    from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
+    from uvicorn.protocols.websockets.wsproto_impl import WSProtocol as _WSProtocol
+
+    if sys.version_info >= (3, 10):  # pragma: no cover
+        from typing import TypeAlias
+    else:  # pragma: no cover
+        from typing_extensions import TypeAlias
+
+    WSProtocol: TypeAlias = "type[WebSocketProtocol | _WSProtocol]"
 
 
 @contextlib.contextmanager
@@ -52,9 +60,7 @@ async def test_trace_logging(caplog, logging_config, unused_tcp_port: int):
             async with httpx.AsyncClient() as client:
                 response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
         assert response.status_code == 204
-        messages = [
-            record.message for record in caplog.records if record.name == "uvicorn.asgi"
-        ]
+        messages = [record.message for record in caplog.records if record.name == "uvicorn.asgi"]
         assert "ASGI [1] Started scope=" in messages.pop(0)
         assert "ASGI [1] Raised exception" in messages.pop(0)
         assert "ASGI [2] Started scope=" in messages.pop(0)
@@ -64,14 +70,11 @@ async def test_trace_logging(caplog, logging_config, unused_tcp_port: int):
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("http_protocol", HTTP_PROTOCOLS)
-async def test_trace_logging_on_http_protocol(
-    http_protocol, caplog, logging_config, unused_tcp_port: int
-):
+async def test_trace_logging_on_http_protocol(http_protocol_cls, caplog, logging_config, unused_tcp_port: int):
     config = Config(
         app=app,
         log_level="trace",
-        http=http_protocol,
+        http=http_protocol_cls,
         log_config=logging_config,
         port=unused_tcp_port,
     )
@@ -80,19 +83,17 @@ async def test_trace_logging_on_http_protocol(
             async with httpx.AsyncClient() as client:
                 response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
         assert response.status_code == 204
-        messages = [
-            record.message
-            for record in caplog.records
-            if record.name == "uvicorn.error"
-        ]
+        messages = [record.message for record in caplog.records if record.name == "uvicorn.error"]
         assert any(" - HTTP connection made" in message for message in messages)
         assert any(" - HTTP connection lost" in message for message in messages)
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize("ws_protocol", [("websockets"), ("wsproto")])
 async def test_trace_logging_on_ws_protocol(
-    ws_protocol, caplog, logging_config, unused_tcp_port: int
+    ws_protocol_cls: WSProtocol,
+    caplog,
+    logging_config,
+    unused_tcp_port: int,
 ):
     async def websocket_app(scope, receive, send):
         assert scope["type"] == "websocket"
@@ -111,18 +112,14 @@ async def test_trace_logging_on_ws_protocol(
         app=websocket_app,
         log_level="trace",
         log_config=logging_config,
-        ws=ws_protocol,
+        ws=ws_protocol_cls,
         port=unused_tcp_port,
     )
     with caplog_for_logger(caplog, "uvicorn.error"):
         async with run_server(config):
             is_open = await open_connection(f"ws://127.0.0.1:{unused_tcp_port}")
         assert is_open
-        messages = [
-            record.message
-            for record in caplog.records
-            if record.name == "uvicorn.error"
-        ]
+        messages = [record.message for record in caplog.records if record.name == "uvicorn.error"]
         assert any(" - Upgrading to WebSocket" in message for message in messages)
         assert any(" - WebSocket connection made" in message for message in messages)
         assert any(" - WebSocket connection lost" in message for message in messages)
@@ -131,39 +128,27 @@ async def test_trace_logging_on_ws_protocol(
 @pytest.mark.anyio
 @pytest.mark.parametrize("use_colors", [(True), (False), (None)])
 async def test_access_logging(use_colors, caplog, logging_config, unused_tcp_port: int):
-    config = Config(
-        app=app, use_colors=use_colors, log_config=logging_config, port=unused_tcp_port
-    )
+    config = Config(app=app, use_colors=use_colors, log_config=logging_config, port=unused_tcp_port)
     with caplog_for_logger(caplog, "uvicorn.access"):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
                 response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
 
         assert response.status_code == 204
-        messages = [
-            record.message
-            for record in caplog.records
-            if record.name == "uvicorn.access"
-        ]
+        messages = [record.message for record in caplog.records if record.name == "uvicorn.access"]
         assert '"GET / HTTP/1.1" 204' in messages.pop()
 
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("use_colors", [(True), (False)])
-async def test_default_logging(
-    use_colors, caplog, logging_config, unused_tcp_port: int
-):
-    config = Config(
-        app=app, use_colors=use_colors, log_config=logging_config, port=unused_tcp_port
-    )
+async def test_default_logging(use_colors, caplog, logging_config, unused_tcp_port: int):
+    config = Config(app=app, use_colors=use_colors, log_config=logging_config, port=unused_tcp_port)
     with caplog_for_logger(caplog, "uvicorn.access"):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
                 response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
         assert response.status_code == 204
-        messages = [
-            record.message for record in caplog.records if "uvicorn" in record.name
-        ]
+        messages = [record.message for record in caplog.records if "uvicorn" in record.name]
         assert "Started server process" in messages.pop(0)
         assert "Waiting for application startup" in messages.pop(0)
         assert "ASGI 'lifespan' protocol appears unsupported" in messages.pop(0)
@@ -175,19 +160,14 @@ async def test_default_logging(
 
 @pytest.mark.anyio
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
-async def test_running_log_using_uds(
-    caplog, short_socket_name, unused_tcp_port: int
-):  # pragma: py-win32
+async def test_running_log_using_uds(caplog, short_socket_name, unused_tcp_port: int):  # pragma: py-win32
     config = Config(app=app, uds=short_socket_name, port=unused_tcp_port)
     with caplog_for_logger(caplog, "uvicorn.access"):
         async with run_server(config):
             ...
 
     messages = [record.message for record in caplog.records if "uvicorn" in record.name]
-    assert (
-        f"Uvicorn running on unix socket {short_socket_name} (Press CTRL+C to quit)"
-        in messages
-    )
+    assert f"Uvicorn running on unix socket {short_socket_name} (Press CTRL+C to quit)" in messages
 
 
 @pytest.mark.anyio
@@ -218,11 +198,7 @@ async def test_unknown_status_code(caplog, unused_tcp_port: int):
                 response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
 
         assert response.status_code == 599
-        messages = [
-            record.message
-            for record in caplog.records
-            if record.name == "uvicorn.access"
-        ]
+        messages = [record.message for record in caplog.records if record.name == "uvicorn.access"]
         assert '"GET / HTTP/1.1" 599' in messages.pop()
 
 
