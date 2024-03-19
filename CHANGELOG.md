@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.28.1 - 2024-03-19
+
+### Fixed
+
+- Revert raise `ClientDisconnected` on HTTP (#2276) 19/03/24
+
 ## 0.28.0 - 2024-03-09
 
 ### Added
