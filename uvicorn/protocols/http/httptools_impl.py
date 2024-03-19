@@ -15,7 +15,6 @@ from uvicorn._types import (
     ASGI3Application,
     ASGIReceiveEvent,
     ASGISendEvent,
-    HTTPDisconnectEvent,
     HTTPRequestEvent,
     HTTPResponseBodyEvent,
     HTTPResponseStartEvent,
@@ -569,15 +568,8 @@ class RequestResponseCycle:
             await self.message_event.wait()
             self.message_event.clear()
 
-        message: HTTPDisconnectEvent | HTTPRequestEvent
         if self.disconnected or self.response_complete:
-            message = {"type": "http.disconnect"}
-        else:
-            message = {
-                "type": "http.request",
-                "body": self.body,
-                "more_body": self.more_body,
-            }
-            self.body = b""
-
+            return {"type": "http.disconnect"}
+        message: HTTPRequestEvent = {"type": "http.request", "body": self.body, "more_body": self.more_body}
+        self.body = b""
         return message
