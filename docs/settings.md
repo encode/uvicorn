@@ -22,7 +22,7 @@ For example, in case you want to run the app on port `5000`, just set the enviro
 
 ## Socket Binding
 
-* `--host <str>` - Bind socket to this host. Use `--host 0.0.0.0` to make the application available on your local network. IPv6 addresses are supported, for example: `--host '::'`. **Default:** *'127.0.0.1'*.
+* `--host <str>` - Bind socket to this host. May be used multiple times. If unused, then by default all interfaces are assumed and a list of multiple sockets will be used. Use `--host 127.0.0.1` to make the application available only on your local machine. IPv6 addresses are supported, for example: `--host '::'`. **Default:** *'auto'*.
 * `--port <int>` - Bind to a socket with this port. **Default:** *8000*.
 * `--uds <path>` - Bind to a UNIX domain socket, for example `--uds /tmp/uvicorn.sock`. Useful if you want to run Uvicorn behind a reverse proxy.
 * `--fd <int>` - Bind to socket from this file descriptor. Useful if you want to run Uvicorn within a process manager.
