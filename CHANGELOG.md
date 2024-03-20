@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.29.0 - 2024-03-19
+
+### Added
+
+- Cooperative signal handling (#1600) 19/03/24
+
 ## 0.28.1 - 2024-03-19
 
 ### Fixed
