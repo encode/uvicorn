@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import signal
+import sys
 import threading
 from multiprocessing.context import SpawnProcess
 from socket import socket
@@ -44,7 +45,9 @@ class Multiprocess:
 
     def run(self) -> None:
         self.startup()
-        self.should_exit.wait()
+        while True:
+            if self.should_exit.wait(self.config.reload_delay):
+                break
         self.shutdown()
 
     def startup(self) -> None:
@@ -62,7 +65,10 @@ class Multiprocess:
 
     def shutdown(self) -> None:
         for process in self.processes:
-            process.terminate()
+            if sys.platform == "win32":
+                self.should_exit.set()  # pragma: py-not-win32
+            else:
+                process.terminate()  # pragma: py-win32
             process.join()
 
         message = f"Stopping parent process [{str(self.pid)}]"
