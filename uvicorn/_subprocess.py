@@ -2,6 +2,7 @@
 Some light wrappers around Python's multiprocessing, to deal with cleanly
 starting child processes.
 """
+
 from __future__ import annotations
 
 import multiprocessing
