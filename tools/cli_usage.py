@@ -16,9 +16,7 @@ def _get_usage_lines() -> typing.List[str]:
 
 
 def _find_next_codefence_lineno(lines: typing.List[str], after: int) -> int:
-    return next(
-        lineno for lineno, line in enumerate(lines[after:], after) if line == "```"
-    )
+    return next(lineno for lineno, line in enumerate(lines[after:], after) if line == "```")
 
 
 def _get_insert_location(lines: typing.List[str]) -> typing.Tuple[int, int]:
