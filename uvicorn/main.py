@@ -6,7 +6,7 @@ import os
 import platform
 import ssl
 import sys
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import click
 
@@ -323,6 +323,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
+    "--ssl-context",
+    type=str,
+    default=None,
+    help="Custom ssl_context that returns ssl.SSLContext to set on config",
+    show_default=True,
+)
+@click.option(
     "--header",
     "headers",
     multiple=True,
@@ -400,6 +407,7 @@ def main(
     ssl_cert_reqs: int,
     ssl_ca_certs: str,
     ssl_ciphers: str,
+    ssl_context: Optional[str],
     headers: list[str],
     use_colors: bool,
     app_dir: str,
@@ -449,6 +457,7 @@ def main(
         ssl_cert_reqs=ssl_cert_reqs,
         ssl_ca_certs=ssl_ca_certs,
         ssl_ciphers=ssl_ciphers,
+        ssl_context=ssl_context,
         headers=[header.split(":", 1) for header in headers],  # type: ignore[misc]
         use_colors=use_colors,
         factory=factory,
@@ -501,6 +510,7 @@ def run(
     ssl_cert_reqs: int = ssl.CERT_NONE,
     ssl_ca_certs: str | None = None,
     ssl_ciphers: str = "TLSv1",
+    ssl_context: Optional[str] = None,
     headers: list[tuple[str, str]] | None = None,
     use_colors: bool | None = None,
     app_dir: str | None = None,
@@ -553,6 +563,7 @@ def run(
         ssl_cert_reqs=ssl_cert_reqs,
         ssl_ca_certs=ssl_ca_certs,
         ssl_ciphers=ssl_ciphers,
+        ssl_context=ssl_context,
         headers=headers,
         use_colors=use_colors,
         factory=factory,
