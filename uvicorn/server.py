@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import os
 import platform
@@ -11,7 +12,7 @@ import threading
 import time
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, Sequence, Union
+from typing import TYPE_CHECKING, Generator, Sequence, Union
 
 import click
 
@@ -57,11 +58,17 @@ class Server:
         self.force_exit = False
         self.last_notified = 0.0
 
+        self._captured_signals: list[int] = []
+
     def run(self, sockets: list[socket.socket] | None = None) -> None:
         self.config.setup_event_loop()
         return asyncio.run(self.serve(sockets=sockets))
 
     async def serve(self, sockets: list[socket.socket] | None = None) -> None:
+        with self.capture_signals():
+            await self._serve(sockets)
+
+    async def _serve(self, sockets: list[socket.socket] | None = None) -> None:
         process_id = os.getpid()
 
         config = self.config
@@ -69,8 +76,6 @@ class Server:
             config.load()
 
         self.lifespan = config.lifespan_class(config)
-
-        self.install_signal_handlers()
 
         message = "Started server process [%d]"
         color_message = "Started server process [" + click.style("%d", fg="cyan") + "]"
@@ -302,22 +307,28 @@ class Server:
         for server in self.servers:
             await server.wait_closed()
 
-    def install_signal_handlers(self) -> None:
+    @contextlib.contextmanager
+    def capture_signals(self) -> Generator[None, None, None]:
+        # Signals can only be listened to from the main thread.
         if threading.current_thread() is not threading.main_thread():
-            # Signals can only be listened to from the main thread.
+            yield
             return
-
-        loop = asyncio.get_event_loop()
-
+        # always use signal.signal, even if loop.add_signal_handler is available
+        # this allows to restore previous signal handlers later on
+        original_handlers = {sig: signal.signal(sig, self.handle_exit) for sig in HANDLED_SIGNALS}
         try:
-            for sig in HANDLED_SIGNALS:
-                loop.add_signal_handler(sig, self.handle_exit, sig, None)
-        except NotImplementedError:  # pragma: no cover
-            # Windows
-            for sig in HANDLED_SIGNALS:
-                signal.signal(sig, self.handle_exit)
+            yield
+        finally:
+            for sig, handler in original_handlers.items():
+                signal.signal(sig, handler)
+        # If we did gracefully shut down due to a signal, try to
+        # trigger the expected behaviour now; multiple signals would be
+        # done LIFO, see https://stackoverflow.com/questions/48434964
+        for captured_signal in reversed(self._captured_signals):
+            signal.raise_signal(captured_signal)
 
     def handle_exit(self, sig: int, frame: FrameType | None) -> None:
+        self._captured_signals.append(sig)
         if self.should_exit and sig == signal.SIGINT:
             self.force_exit = True
         else:
