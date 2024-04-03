@@ -33,7 +33,7 @@ def new_console_in_windows(test_function: Callable[[], Any]):
                 "-c",
                 f"from {module} import {name}; {name}.__wrapped__()",
             ],
-            creationflags=subprocess.CREATE_NO_WINDOW,
+            creationflags=subprocess.CREATE_NO_WINDOW,  # type: ignore
         )
 
     return new_function
