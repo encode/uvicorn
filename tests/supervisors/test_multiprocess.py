@@ -15,7 +15,7 @@ from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.supervisors import Multiprocess
 
 
-def new_console_in_windows(test_function: Callable[[], Any]):
+def new_console_in_windows(test_function: Callable[[], Any]) -> Callable[[], Any]:
     if os.name != "nt":
         return test_function
 
@@ -27,7 +27,7 @@ def new_console_in_windows(test_function: Callable[[], Any]):
         module = test_function.__module__
         name = test_function.__name__
 
-        return subprocess.check_call(
+        subprocess.check_call(
             [
                 sys.executable,
                 "-c",
