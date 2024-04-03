@@ -1,16 +1,40 @@
 from __future__ import annotations
 
+import functools
+import os
 import signal
 import socket
 import sys
 import threading
 import time
+from typing import Any, Callable
 
 import pytest
 
 from uvicorn import Config
 from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.supervisors import Multiprocess
+
+
+def new_console_in_windows(test_function: Callable[[], Any]):
+    if os.name != "nt":
+        return test_function
+
+    @functools.wraps(test_function)
+    def new_function():
+        import subprocess
+        import sys
+
+        return subprocess.check_call(
+            [
+                sys.executable,
+                "-c",
+                f"from {test_function.__module__} import {test_function.__name__}; {test_function.__name__}.__wrapped__()",
+            ],
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+
+    return new_function
 
 
 async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
@@ -22,7 +46,7 @@ def run(sockets: list[socket.socket] | None) -> None:
         time.sleep(1)
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="In Windows, Ctrl+C/Ctrl+Break will sent to the parent process.")
+@new_console_in_windows
 def test_multiprocess_run() -> None:
     """
     A basic sanity check.
@@ -37,7 +61,7 @@ def test_multiprocess_run() -> None:
     supervisor.join_all()
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="In Windows, Ctrl+C/Ctrl+Break will sent to the parent process.")
+@new_console_in_windows
 def test_multiprocess_health_check() -> None:
     """
     Ensure that the health check works as expected.
@@ -56,7 +80,7 @@ def test_multiprocess_health_check() -> None:
     supervisor.join_all()
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="In Windows, Ctrl+C/Ctrl+Break will sent to the parent process.")
+@new_console_in_windows
 def test_multiprocess_sigterm() -> None:
     """
     Ensure that the SIGTERM signal is handled as expected.
@@ -69,8 +93,8 @@ def test_multiprocess_sigterm() -> None:
     supervisor.join_all()
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="In Windows, Ctrl+C/Ctrl+Break will sent to the parent process.")
 @pytest.mark.skipif(not hasattr(signal, "SIGBREAK"), reason="platform unsupports SIGBREAK")
+@new_console_in_windows
 def test_multiprocess_sigbreak() -> None:
     """
     Ensure that the SIGBREAK signal is handled as expected.
