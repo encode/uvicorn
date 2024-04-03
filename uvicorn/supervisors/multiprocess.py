@@ -50,7 +50,7 @@ class Process:
             self.pong()
 
     def target(self, sockets: list[socket] | None = None) -> Any:
-        if os.name == "nt":
+        if os.name == "nt":  # pragma: py-not-win32
             # Windows doesn't support SIGTERM, so we use SIGBREAK instead.
             # And then we raise SIGTERM when SIGBREAK is received.
             # https://learn.microsoft.com/zh-cn/cpp/c-runtime-library/reference/signal?view=msvc-170
@@ -76,7 +76,7 @@ class Process:
         if self.process.exitcode is not None:
             return
         assert self.process.pid is not None
-        if os.name == "nt":
+        if os.name == "nt":  # pragma: py-not-win32
             # Windows doesn't support SIGTERM.
             # So send SIGBREAK, and then in process raise SIGTERM.
             os.kill(self.process.pid, signal.CTRL_BREAK_EVENT)  # type: ignore[attr-defined]
@@ -192,22 +192,22 @@ class Multiprocess:
         logger.info("Received SIGTERM, exiting")
         self.should_exit.set()
 
-    def handle_break(self) -> None:
+    def handle_break(self) -> None:  # pragma: py-not-win32
         logger.info("Received SIGBREAK, exiting")
         self.should_exit.set()
 
-    def handle_hup(self) -> None:
+    def handle_hup(self) -> None:  # pragma: py-win32
         logger.info("Received SIGHUP, restarting processes")
         self.restart_all()
 
-    def handle_ttin(self) -> None:
+    def handle_ttin(self) -> None:  # pragma: py-win32
         logger.info("Received SIGTTIN, increasing processes")
         self.processes_num += 1
         process = Process(self.config, self.target, self.sockets)
         process.start()
         self.processes.append(process)
 
-    def handle_ttou(self) -> None:
+    def handle_ttou(self) -> None:  # pragma: py-win32
         logger.info("Received SIGTTOU, decreasing processes")
         if self.processes_num <= 1:
             logger.info("Cannot decrease processes any more")
