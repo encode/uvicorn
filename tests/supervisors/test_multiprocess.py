@@ -61,7 +61,7 @@ def test_process_ping_pong_timeout() -> None:
 
 
 @new_console_in_windows
-def test_multiprocess_run() -> None:
+def test_multiprocess_run() -> None:  # pragma: py-win32
     """
     A basic sanity check.
 
@@ -76,7 +76,7 @@ def test_multiprocess_run() -> None:
 
 
 @new_console_in_windows
-def test_multiprocess_health_check() -> None:
+def test_multiprocess_health_check() -> None:  # pragma: py-win32
     """
     Ensure that the health check works as expected.
     """
@@ -95,7 +95,7 @@ def test_multiprocess_health_check() -> None:
 
 
 @new_console_in_windows
-def test_multiprocess_sigterm() -> None:
+def test_multiprocess_sigterm() -> None:  # pragma: py-win32
     """
     Ensure that the SIGTERM signal is handled as expected.
     """
@@ -109,7 +109,7 @@ def test_multiprocess_sigterm() -> None:
 
 @pytest.mark.skipif(not hasattr(signal, "SIGBREAK"), reason="platform unsupports SIGBREAK")
 @new_console_in_windows
-def test_multiprocess_sigbreak() -> None:
+def test_multiprocess_sigbreak() -> None:  # pragma: py-win32
     """
     Ensure that the SIGBREAK signal is handled as expected.
     """
@@ -122,7 +122,7 @@ def test_multiprocess_sigbreak() -> None:
 
 
 @pytest.mark.skipif(not hasattr(signal, "SIGHUP"), reason="platform unsupports SIGHUP")
-def test_multiprocess_sighup() -> None:
+def test_multiprocess_sighup() -> None:  # pragma: py-win32
     """
     Ensure that the SIGHUP signal is handled as expected.
     """
@@ -139,7 +139,7 @@ def test_multiprocess_sighup() -> None:
 
 
 @pytest.mark.skipif(not hasattr(signal, "SIGTTIN"), reason="platform unsupports SIGTTIN")
-def test_multiprocess_sigttin() -> None:
+def test_multiprocess_sigttin() -> None:  # pragma: py-win32
     """
     Ensure that the SIGTTIN signal is handled as expected.
     """
@@ -154,7 +154,7 @@ def test_multiprocess_sigttin() -> None:
 
 
 @pytest.mark.skipif(not hasattr(signal, "SIGTTOU"), reason="platform unsupports SIGTTOU")
-def test_multiprocess_sigttou() -> None:
+def test_multiprocess_sigttou() -> None:  # pragma: py-win32
     """
     Ensure that the SIGTTOU signal is handled as expected.
     """
