@@ -101,7 +101,7 @@ omit = [
 
 [tool.coverage.report]
 precision = 2
-fail_under = 96.82
+fail_under = 98.13
 show_missing = true
 skip_covered = true
 exclude_lines = [
@@ -113,7 +113,7 @@ exclude_lines = [
 ]
 
 [tool.coverage.coverage_conditional_plugin.omit]
-"sys_platform == 'win32'" = ["uvicorn/loops/uvloop.py"]
+"sys_platform == 'win32'" = ["uvicorn/loops/uvloop.py", "uvicorn/supervisors/multiprocess.py"]
 "sys_platform != 'win32'" = ["uvicorn/loops/asyncio.py"]
 
 [tool.coverage.coverage_conditional_plugin.rules]

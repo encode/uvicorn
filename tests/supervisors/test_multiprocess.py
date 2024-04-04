@@ -13,6 +13,7 @@ import pytest
 from uvicorn import Config
 from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.supervisors import Multiprocess
+from uvicorn.supervisors.multiprocess import Process
 
 
 def new_console_in_windows(test_function: Callable[[], Any]) -> Callable[[], Any]:
@@ -33,7 +34,7 @@ def new_console_in_windows(test_function: Callable[[], Any]) -> Callable[[], Any
                 "-c",
                 f"from {module} import {name}; {name}.__wrapped__()",
             ],
-            creationflags=subprocess.CREATE_NO_WINDOW,  # type: ignore
+            creationflags=subprocess.CREATE_NO_WINDOW,  # type: ignore[attr-defined]
         )
 
     return new_function
@@ -46,6 +47,17 @@ async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
 def run(sockets: list[socket.socket] | None) -> None:
     while True:
         time.sleep(1)
+
+
+def test_process_ping_pong() -> None:
+    process = Process(Config(app=app), target=lambda x: None, sockets=[])
+    threading.Thread(target=process.always_pong, daemon=True).start()
+    assert process.ping()
+
+
+def test_process_ping_pong_timeout() -> None:
+    process = Process(Config(app=app), target=lambda x: None, sockets=[])
+    assert not process.ping(0.1)
 
 
 @new_console_in_windows

@@ -49,7 +49,7 @@ class Process:
         while True:
             self.pong()
 
-    def target(self, sockets: list[socket] | None = None) -> Any:
+    def target(self, sockets: list[socket] | None = None) -> Any:  # pragma: no cover
         if os.name == "nt":  # pragma: py-not-win32
             # Windows doesn't support SIGTERM, so we use SIGBREAK instead.
             # And then we raise SIGTERM when SIGBREAK is received.
@@ -73,19 +73,18 @@ class Process:
         logger.info(f"Started child process [{self.process.pid}]")
 
     def terminate(self) -> None:
-        if self.process.exitcode is not None:
-            return
-        assert self.process.pid is not None
-        if os.name == "nt":  # pragma: py-not-win32
-            # Windows doesn't support SIGTERM.
-            # So send SIGBREAK, and then in process raise SIGTERM.
-            os.kill(self.process.pid, signal.CTRL_BREAK_EVENT)  # type: ignore[attr-defined]
-        else:
-            os.kill(self.process.pid, signal.SIGTERM)
-        logger.info(f"Terminated child process [{self.process.pid}]")
+        if self.process.exitcode is None:  # Process is still running
+            assert self.process.pid is not None
+            if os.name == "nt":  # pragma: py-not-win32
+                # Windows doesn't support SIGTERM.
+                # So send SIGBREAK, and then in process raise SIGTERM.
+                os.kill(self.process.pid, signal.CTRL_BREAK_EVENT)  # type: ignore[attr-defined]
+            else:
+                os.kill(self.process.pid, signal.SIGTERM)
+            logger.info(f"Terminated child process [{self.process.pid}]")
 
-        self.parent_conn.close()
-        self.child_conn.close()
+            self.parent_conn.close()
+            self.child_conn.close()
 
     def kill(self) -> None:
         # In Windows, the method will call `TerminateProcess` to kill the process.
@@ -181,7 +180,7 @@ class Multiprocess:
             sig_handler = getattr(self, f"handle_{sig_name.lower()}", None)
             if sig_handler is not None:
                 sig_handler()
-            else:
+            else:  # pragma: no cover
                 logger.info(f"Received signal [{sig_name}], but nothing to do")
 
     def handle_int(self) -> None:
