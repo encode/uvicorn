@@ -306,7 +306,6 @@ def test_ssl_context_load_cert() -> None:
     )
     config.load()
     assert config.ssl_context is not None
-    ctx = ssl_context()
 
 
 def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
