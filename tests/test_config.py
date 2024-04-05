@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import socket
+import ssl
 import sys
 import typing
 from pathlib import Path
@@ -277,6 +278,35 @@ def test_ssl_config(
     config.load()
 
     assert config.is_ssl is True
+
+
+def ssl_context():
+    context = ssl.SSLContext(int(ssl.PROTOCOL_TLS_SERVER))
+    allowed_ciphers = "DEFAULT:!aNULL:!eNULL:!MD5:!3DES:!DES:!RC4:!IDEA:!SEED:!aDSS:!SRP:!PSK"
+    context.set_ciphers(allowed_ciphers)
+    list_options = [ssl.OP_NO_RENEGOTIATION]
+    for each_option in list_options:
+        context.options |= each_option
+    return context
+
+
+def test_ssl_context() -> None:
+    config = Config(app=asgi_app, ssl_context=ssl_context)
+    config.load()
+    if config.ssl_context is not None:
+        assert ssl.PROTOCOL_TLS_SERVER is config.ssl_version
+        assert "TLSv1" in config.ssl_ciphers
+    if config.ssl is not None:
+        assert ssl.OP_NO_RENEGOTIATION in config.ssl.options
+
+
+def test_ssl_context_load_cert() -> None:
+    config = Config(
+        app=asgi_app, ssl_context=ssl_context, ssl_certfile="tests/server.crt", ssl_keyfile="tests/server.key"
+    )
+    config.load()
+    assert config.ssl_context is not None
+    ctx = ssl_context()
 
 
 def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
