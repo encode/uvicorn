@@ -1,7 +1,10 @@
+import asyncio
 import inspect
 import socket
 from logging import WARNING
+from typing import Literal
 
+import anyio
 import httpx
 import pytest
 
@@ -114,3 +117,54 @@ async def test_exit_on_create_server_with_invalid_host() -> None:
         server = Server(config=config)
         await server.serve()
     assert exc_info.value.code == 1
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("lifespan", ["auto", "on"])
+@pytest.mark.parametrize("reraise", [True, False])
+async def test_app_shutdown_failure_message_before_server_shutdown(
+    lifespan: Literal["auto", "on"],
+    reraise: bool,
+    caplog: pytest.LogCaptureFixture,
+    unused_tcp_port: int,
+) -> None:
+    # Test that the server shuts down if a lifespan.shutdown.failed message is sent
+    # before the `Server.shutdown()` method is called.
+    # This simulates the behavior of an application with a lifespan context manager
+    # that raises an exception while the lifespan task is awaiting `receive()` after
+    # having sent a lifespan.startup.complete message.
+
+    event = asyncio.Event()
+
+    async def lifespan_task() -> None:
+        await event.wait()
+        raise RuntimeError("Shutdown failed")
+
+    async def app_(scope, receive, send):
+        message = await receive()
+        if message["type"] == "lifespan.startup":
+            try:
+                async with anyio.create_task_group() as tg:
+                    tg.start_soon(lifespan_task)
+                    await send({"type": "lifespan.startup.complete"})
+                    await receive()
+            except Exception:
+                await send({"type": "lifespan.shutdown.failed", "message": "Shutdown failed"})
+
+                if reraise:
+                    raise
+
+        await app(scope, receive, send)
+
+    config = Config(app=app_, loop="asyncio", lifespan=lifespan, port=unused_tcp_port)
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
+            assert response.status_code == 204
+
+        event.set()
+        await asyncio.sleep(0.1)
+
+        async with httpx.AsyncClient() as client:
+            with pytest.raises(httpx.ConnectError):
+                await client.get(f"http://127.0.0.1:{unused_tcp_port}")

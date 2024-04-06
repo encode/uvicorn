@@ -71,7 +71,6 @@ class LifespanOn:
 
         if self.shutdown_failed or (self.error_occured and self.config.lifespan == "on"):
             self.logger.error("Application shutdown failed. Exiting.")
-            self.should_exit = True
         else:
             self.logger.info("Application shutdown complete.")
 
@@ -130,6 +129,7 @@ class LifespanOn:
             assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR
             self.shutdown_event.set()
             self.shutdown_failed = True
+            self.should_exit = True
             if message.get("message"):
                 self.logger.error(message["message"])
 

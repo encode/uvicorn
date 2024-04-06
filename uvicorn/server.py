@@ -252,7 +252,7 @@ class Server:
             return True
         if self.config.limit_max_requests is not None:
             return self.server_state.total_requests >= self.config.limit_max_requests
-        return False
+        return self.lifespan.should_exit
 
     async def shutdown(self, sockets: list[socket.socket] | None = None) -> None:
         logger.info("Shutting down")
