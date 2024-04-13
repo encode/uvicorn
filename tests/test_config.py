@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import configparser
+import io
 import json
 import logging
 import os
@@ -367,12 +371,10 @@ def test_log_config_yaml(
     mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
 
 
-@pytest.mark.parametrize(
-    "config_file", ["log_config.ini", configparser.ConfigParser(), io.StringIO()]
-)
+@pytest.mark.parametrize("config_file", ["log_config.ini", configparser.ConfigParser(), io.StringIO()])
 def test_log_config_file(
     mocked_logging_config_module: MagicMock,
-    config_file: typing.Union[str, configparser.RawConfigParser, typing.IO],
+    config_file: str | configparser.RawConfigParser | typing.IO[Any],
 ) -> None:
     """
     Test that one can load a configparser config from disk.
@@ -380,9 +382,7 @@ def test_log_config_file(
     config = Config(app=asgi_app, log_config=config_file)
     config.load()
 
-    mocked_logging_config_module.fileConfig.assert_called_once_with(
-        "log_config", disable_existing_loggers=False
-    )
+    mocked_logging_config_module.fileConfig.assert_called_once_with(config_file, disable_existing_loggers=False)
 
 
 @pytest.fixture(params=[0, 1])

@@ -11,20 +11,7 @@ import ssl
 import sys
 from configparser import RawConfigParser
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Literal
-from typing import (
-    IO,
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import IO, Any, Awaitable, Callable, Literal
 
 import click
 
@@ -380,9 +367,7 @@ class Config:
                 with open(self.log_config) as file:
                     loaded_config = json.load(file)
                     logging.config.dictConfig(loaded_config)
-            elif isinstance(self.log_config, str) and self.log_config.endswith(
-                (".yaml", ".yml")
-            ):
+            elif isinstance(self.log_config, str) and self.log_config.endswith((".yaml", ".yml")):
                 # Install the PyYAML package or the uvicorn[standard] optional
                 # dependencies to enable this functionality.
                 import yaml

@@ -7,7 +7,7 @@ import os
 import platform
 import ssl
 import sys
-from typing import Any, Callable, IO
+from typing import IO, Any, Callable
 
 import click
 
