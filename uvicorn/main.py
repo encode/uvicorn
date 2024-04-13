@@ -47,7 +47,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     if not value or ctx.resilient_parsing:
         return
     click.echo(
-        "Running uvicorn {version} with {py_implementation} {py_version} on {system}".format(
+        "Running uvicorn {version} with {py_implementation} {py_version} on {system}".format(  # noqa: UP032
             version=uvicorn.__version__,
             py_implementation=platform.python_implementation(),
             py_version=platform.python_version(),

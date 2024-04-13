@@ -41,7 +41,7 @@ def test_cli_print_version() -> None:
 
     assert result.exit_code == 0
     assert (
-        "Running uvicorn {version} with {py_implementation} {py_version} on {system}".format(
+        "Running uvicorn {version} with {py_implementation} {py_version} on {system}".format(  # noqa: UP032
             version=uvicorn.__version__,
             py_implementation=platform.python_implementation(),
             py_version=platform.python_version(),

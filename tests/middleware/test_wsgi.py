@@ -52,7 +52,7 @@ def return_exc_info(environ: Environ, start_response: StartResponse) -> list[byt
         return [output]
 
 
-@pytest.fixture(params=[wsgi._WSGIMiddleware, a2wsgi.WSGIMiddleware])  # type: ignore
+@pytest.fixture(params=[wsgi._WSGIMiddleware, a2wsgi.WSGIMiddleware])
 def wsgi_middleware(request: pytest.FixtureRequest) -> Callable:
     return request.param
 
