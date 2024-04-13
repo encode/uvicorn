@@ -182,6 +182,15 @@ Uvicorn provides a lightweight way to run multiple worker processes, for example
 
 ### Gunicorn
 
+!!! warning
+    The `uvicorn.workers` module is deprecated and will be removed in a future release.
+
+    You should use the [`uvicorn-worker`](https://github.com/Kludex/uvicorn-worker) package instead.
+
+    ```bash
+    python -m pip install uvicorn-worker
+    ```
+
 Gunicorn is probably the simplest way to run and manage Uvicorn in a production setting. Uvicorn includes a gunicorn worker class that means you can get set up with very little configuration.
 
 The following will start Gunicorn with four worker processes:
