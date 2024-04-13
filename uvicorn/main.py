@@ -6,7 +6,8 @@ import os
 import platform
 import ssl
 import sys
-from typing import Any, Callable
+from configparser import RawConfigParser
+from typing import IO, Any, Callable
 
 import click
 
@@ -481,7 +482,7 @@ def run(
     reload_delay: float = 0.25,
     workers: int | None = None,
     env_file: str | os.PathLike[str] | None = None,
-    log_config: dict[str, Any] | str | None = LOGGING_CONFIG,
+    log_config: dict[str, Any] | str | RawConfigParser | IO[Any] | None = LOGGING_CONFIG,
     log_level: str | int | None = None,
     access_log: bool = True,
     proxy_headers: bool = True,
