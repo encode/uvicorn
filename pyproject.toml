@@ -62,6 +62,8 @@ include = ["/uvicorn"]
 
 [tool.ruff]
 line-length = 120
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "FA", "UP"]
 ignore = ["B904", "B028"]
 

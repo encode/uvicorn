@@ -489,8 +489,7 @@ async def test_exception_during_response(http_protocol_cls: HTTPProtocol):
 
 @pytest.mark.anyio
 async def test_no_response_returned(http_protocol_cls: HTTPProtocol):
-    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
-        ...
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable): ...
 
     protocol = get_connected_protocol(app, http_protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
