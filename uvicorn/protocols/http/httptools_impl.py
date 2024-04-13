@@ -16,7 +16,6 @@ from uvicorn._types import (
     ASGIReceiveEvent,
     ASGISendEvent,
     HTTPRequestEvent,
-    HTTPResponseBodyEvent,
     HTTPResponseStartEvent,
     HTTPScope,
 )
@@ -435,21 +434,18 @@ class RequestResponseCycle:
             self.on_response = lambda: None
 
     async def send_500_response(self) -> None:
-        response_start_event: HTTPResponseStartEvent = {
-            "type": "http.response.start",
-            "status": 500,
-            "headers": [
-                (b"content-type", b"text/plain; charset=utf-8"),
-                (b"connection", b"close"),
-            ],
-        }
-        await self.send(response_start_event)
-        response_body_event: HTTPResponseBodyEvent = {
-            "type": "http.response.body",
-            "body": b"Internal Server Error",
-            "more_body": False,
-        }
-        await self.send(response_body_event)
+        await self.send(
+            {
+                "type": "http.response.start",
+                "status": 500,
+                "headers": [
+                    (b"content-type", b"text/plain; charset=utf-8"),
+                    (b"content-length", b"21"),
+                    (b"connection", b"close"),
+                ],
+            }
+        )
+        await self.send({"type": "http.response.body", "body": b"Internal Server Error", "more_body": False})
 
     # ASGI interface
     async def send(self, message: ASGISendEvent) -> None:
