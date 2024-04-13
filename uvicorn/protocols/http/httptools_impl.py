@@ -37,8 +37,8 @@ from uvicorn.protocols.utils import (
 )
 from uvicorn.server import ServerState
 
-HEADER_RE = re.compile(b'[\x00-\x1F\x7F()<>@,;:[]={} \t\\"]')
-HEADER_VALUE_RE = re.compile(b"[\x00-\x1F\x7F]")
+HEADER_RE = re.compile(b'[\x00-\x1f\x7f()<>@,;:[]={} \t\\"]')
+HEADER_VALUE_RE = re.compile(b"[\x00-\x1f\x7f]")
 
 
 def _get_status_line(status_code: int) -> bytes:
