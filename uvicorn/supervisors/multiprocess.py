@@ -70,7 +70,6 @@ class Process:
 
     def start(self) -> None:
         self.process.start()
-        logger.info(f"Started child process [{self.process.pid}]")
 
     def terminate(self) -> None:
         if self.process.exitcode is None:  # Process is still running
