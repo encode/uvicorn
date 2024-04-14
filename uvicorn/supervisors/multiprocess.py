@@ -181,7 +181,7 @@ class Multiprocess:
             if sig_handler is not None:
                 sig_handler()
             else:  # pragma: no cover
-                logger.info(f"Received signal [{sig_name}], but nothing to do")
+                logger.debug(f"Received signal {sig_name}, but no handler is defined for it.")
 
     def handle_int(self) -> None:
         logger.info("Received SIGINT, exiting")
