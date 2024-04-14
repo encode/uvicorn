@@ -196,7 +196,7 @@ class Multiprocess:
         self.should_exit.set()
 
     def handle_hup(self) -> None:  # pragma: py-win32
-        logger.info("Received SIGHUP, restarting processes")
+        logger.info("Received SIGHUP, restarting processes.")
         self.restart_all()
 
     def handle_ttin(self) -> None:  # pragma: py-win32
