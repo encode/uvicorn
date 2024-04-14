@@ -184,7 +184,7 @@ class Multiprocess:
                 logger.debug(f"Received signal {sig_name}, but no handler is defined for it.")
 
     def handle_int(self) -> None:
-        logger.info("Received SIGINT, exiting")
+        logger.info("Received SIGINT, exiting.")
         self.should_exit.set()
 
     def handle_term(self) -> None:
