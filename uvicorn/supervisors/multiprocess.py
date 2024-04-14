@@ -188,7 +188,7 @@ class Multiprocess:
         self.should_exit.set()
 
     def handle_term(self) -> None:
-        logger.info("Received SIGTERM, exiting")
+        logger.info("Received SIGTERM, exiting.")
         self.should_exit.set()
 
     def handle_break(self) -> None:  # pragma: py-not-win32
