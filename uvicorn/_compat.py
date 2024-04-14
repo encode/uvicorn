@@ -36,9 +36,7 @@ else:
         except RuntimeError:
             pass
         else:
-            raise RuntimeError(
-                "asyncio.run() cannot be called from a running event loop"
-            )
+            raise RuntimeError("asyncio.run() cannot be called from a running event loop")
 
         if not asyncio.iscoroutine(main):
             raise ValueError(f"a coroutine was expected, got {main!r}")
