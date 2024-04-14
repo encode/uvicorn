@@ -200,7 +200,7 @@ class Multiprocess:
         self.restart_all()
 
     def handle_ttin(self) -> None:  # pragma: py-win32
-        logger.info("Received SIGTTIN, increasing processes")
+        logger.info("Received SIGTTIN, increasing the number of processes.")
         self.processes_num += 1
         process = Process(self.config, self.target, self.sockets)
         process.start()
