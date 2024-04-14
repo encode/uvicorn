@@ -192,7 +192,7 @@ class Multiprocess:
         self.should_exit.set()
 
     def handle_break(self) -> None:  # pragma: py-not-win32
-        logger.info("Received SIGBREAK, exiting")
+        logger.info("Received SIGBREAK, exiting.")
         self.should_exit.set()
 
     def handle_hup(self) -> None:  # pragma: py-win32
