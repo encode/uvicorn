@@ -161,6 +161,9 @@ class Multiprocess:
 
     def keep_subprocess_alive(self) -> None:
         for idx, process in enumerate(tuple(self.processes)):
+            if self.should_exit.is_set():
+                return
+
             if process.is_alive():
                 continue
 
