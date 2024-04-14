@@ -207,7 +207,7 @@ class Multiprocess:
         self.processes.append(process)
 
     def handle_ttou(self) -> None:  # pragma: py-win32
-        logger.info("Received SIGTTOU, decreasing processes")
+        logger.info("Received SIGTTOU, decreasing number of processes.")
         if self.processes_num <= 1:
             logger.info("Cannot decrease processes any more")
             return
