@@ -6,8 +6,7 @@ import urllib.parse
 from uvicorn._types import WWWScope
 
 
-class ClientDisconnected(IOError):
-    ...
+class ClientDisconnected(IOError): ...
 
 
 def get_remote_addr(transport: asyncio.Transport) -> tuple[str, int] | None:

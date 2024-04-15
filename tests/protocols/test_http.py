@@ -489,8 +489,7 @@ async def test_exception_during_response(http_protocol_cls: HTTPProtocol):
 
 @pytest.mark.anyio
 async def test_no_response_returned(http_protocol_cls: HTTPProtocol):
-    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
-        ...
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable): ...
 
     protocol = get_connected_protocol(app, http_protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -672,7 +671,19 @@ async def test_max_concurrency(http_protocol_cls: HTTPProtocol):
     protocol = get_connected_protocol(app, http_protocol_cls, limit_concurrency=1)
     protocol.data_received(SIMPLE_GET_REQUEST)
     await protocol.loop.run_one()
-    assert b"HTTP/1.1 503 Service Unavailable" in protocol.transport.buffer
+    assert (
+        b"\r\n".join(
+            [
+                b"HTTP/1.1 503 Service Unavailable",
+                b"content-type: text/plain; charset=utf-8",
+                b"content-length: 19",
+                b"connection: close",
+                b"",
+                b"Service Unavailable",
+            ]
+        )
+        == protocol.transport.buffer
+    )
 
 
 @pytest.mark.anyio

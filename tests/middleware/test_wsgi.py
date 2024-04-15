@@ -52,15 +52,15 @@ def return_exc_info(environ: Environ, start_response: StartResponse) -> list[byt
         return [output]
 
 
-@pytest.fixture(params=[wsgi._WSGIMiddleware, a2wsgi.WSGIMiddleware])  # type: ignore
+@pytest.fixture(params=[wsgi._WSGIMiddleware, a2wsgi.WSGIMiddleware])
 def wsgi_middleware(request: pytest.FixtureRequest) -> Callable:
     return request.param
 
 
 @pytest.mark.anyio
 async def test_wsgi_get(wsgi_middleware: Callable) -> None:
-    app = wsgi_middleware(hello_world)
-    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+    transport = httpx.ASGITransport(wsgi_middleware(hello_world))
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         response = await client.get("/")
     assert response.status_code == 200
     assert response.text == "Hello World!\n"
@@ -68,8 +68,8 @@ async def test_wsgi_get(wsgi_middleware: Callable) -> None:
 
 @pytest.mark.anyio
 async def test_wsgi_post(wsgi_middleware: Callable) -> None:
-    app = wsgi_middleware(echo_body)
-    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+    transport = httpx.ASGITransport(wsgi_middleware(echo_body))
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         response = await client.post("/", json={"example": 123})
     assert response.status_code == 200
     assert response.text == '{"example": 123}'
@@ -81,8 +81,8 @@ async def test_wsgi_put_more_body(wsgi_middleware: Callable) -> None:
         for _ in range(1024):
             yield b"123456789abcdef\n" * 64
 
-    app = wsgi_middleware(echo_body)
-    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+    transport = httpx.ASGITransport(wsgi_middleware(echo_body))
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         response = await client.put("/", content=generate_body())
     assert response.status_code == 200
     assert response.text == "123456789abcdef\n" * 64 * 1024
@@ -92,21 +92,14 @@ async def test_wsgi_put_more_body(wsgi_middleware: Callable) -> None:
 async def test_wsgi_exception(wsgi_middleware: Callable) -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
-    app = wsgi_middleware(raise_exception)
-    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+    transport = httpx.ASGITransport(wsgi_middleware(raise_exception))
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         with pytest.raises(RuntimeError):
             await client.get("/")
 
 
 @pytest.mark.anyio
 async def test_wsgi_exc_info(wsgi_middleware: Callable) -> None:
-    # Note that we're testing the WSGI app directly here.
-    # The HTTP protocol implementations would catch this error and return 500.
-    app = wsgi_middleware(return_exc_info)
-    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
-        with pytest.raises(RuntimeError):
-            response = await client.get("/")
-
     app = wsgi_middleware(return_exc_info)
     transport = httpx.ASGITransport(
         app=app,

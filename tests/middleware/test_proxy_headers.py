@@ -49,7 +49,8 @@ async def app(
 )
 async def test_proxy_headers_trusted_hosts(trusted_hosts: list[str] | str, response_text: str) -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts=trusted_hosts)
-    async with httpx.AsyncClient(app=app_with_middleware, base_url="http://testserver") as client:
+    transport = httpx.ASGITransport(app=app_with_middleware)  # type: ignore
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         headers = {"X-Forwarded-Proto": "https", "X-Forwarded-For": "1.2.3.4"}
         response = await client.get("/", headers=headers)
 
@@ -79,7 +80,8 @@ async def test_proxy_headers_trusted_hosts(trusted_hosts: list[str] | str, respo
 )
 async def test_proxy_headers_multiple_proxies(trusted_hosts: list[str] | str, response_text: str) -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts=trusted_hosts)
-    async with httpx.AsyncClient(app=app_with_middleware, base_url="http://testserver") as client:
+    transport = httpx.ASGITransport(app=app_with_middleware)  # type: ignore
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         headers = {
             "X-Forwarded-Proto": "https",
             "X-Forwarded-For": "1.2.3.4, 10.0.2.1, 192.168.0.2",
@@ -93,7 +95,8 @@ async def test_proxy_headers_multiple_proxies(trusted_hosts: list[str] | str, re
 @pytest.mark.anyio
 async def test_proxy_headers_invalid_x_forwarded_for() -> None:
     app_with_middleware = ProxyHeadersMiddleware(app, trusted_hosts="*")
-    async with httpx.AsyncClient(app=app_with_middleware, base_url="http://testserver") as client:
+    transport = httpx.ASGITransport(app=app_with_middleware)  # type: ignore
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         headers = httpx.Headers(
             {
                 "X-Forwarded-Proto": "https",
