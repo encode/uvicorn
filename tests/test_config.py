@@ -26,7 +26,7 @@ from uvicorn._types import (
     Scope,
     StartResponse,
 )
-from uvicorn.config import Config
+from uvicorn.config import Config, is_dir
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -266,6 +266,19 @@ def test_socket_bind() -> None:
     sock = config.bind_socket()
     assert isinstance(sock, socket.socket)
     sock.close()
+
+
+def test_is_dir() -> None:
+    class P:
+        @staticmethod
+        def is_absolute():
+            return True
+
+        @staticmethod
+        def is_dir():
+            raise OSError
+
+    assert not is_dir(path=P)  # type: ignore
 
 
 def test_ssl_config(
