@@ -20,6 +20,10 @@ if TYPE_CHECKING:
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol
 
 
+X_FORWARDED_FOR = "X-Forwarded-For"
+X_FORWARDED_PROTO = "X-Forwarded-Proto"
+
+
 async def default_app(
     scope: Scope,
     receive: ASGIReceiveCallable,
@@ -50,25 +54,6 @@ def make_httpx_client(
     app = ProxyHeadersMiddleware(default_app, trusted_hosts)
     transport = httpx.ASGITransport(app=app, client=client)  # type: ignore
     return httpx.AsyncClient(transport=transport, base_url="http://testserver")
-
-
-def make_x_headers(for_: str | None, proto: str | None = "https") -> dict[str, str]:
-    """Make X-Forwarded-* header dict
-
-    Set any argument as `None` to exclude header.
-
-    Args:
-        for_: forwarded for value
-        proto: forwarded proto value
-    """
-    headers: dict[str, str] = {}
-    if for_ is not None:
-        headers["X-Forwarded-For"] = for_
-
-    if proto is not None:
-        headers["X-Forwarded-Proto"] = proto
-
-    return headers
 
 
 # Note: we vary the format here to also test some of the functionality
@@ -382,32 +367,40 @@ def test_forwarded_hosts(init_hosts: str | list[str], test_host: str, expected: 
 )
 async def test_proxy_headers_trusted_hosts(trusted_hosts: str | list[str], expected: str) -> None:
     async with make_httpx_client(trusted_hosts) as client:
-        response = await client.get("/", headers=make_x_headers("1.2.3.4"))
+        headers = {
+            X_FORWARDED_FOR: "1.2.3.4",
+            X_FORWARDED_PROTO: "https",
+        }
+        response = await client.get("/", headers=headers)
     assert response.status_code == 200
     assert response.text == expected
 
 
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    ("header_args", "expected"),
+    ("forwarded_for", "forwarded_proto", "expected"),
     [
-        (("", ""), "http://127.0.0.1:123"),
-        (("", None), "http://127.0.0.1:123"),
-        (("", "asdf"), "http://127.0.0.1:123"),
-        ((" , ",), "https://127.0.0.1:123"),
-        ((", , ",), "https://127.0.0.1:123"),
-        ((" , 10.0.0.1",), "https://127.0.0.1:123"),
-        (("9.9.9.9 , , , 10.0.0.1",), "https://127.0.0.1:123"),
-        ((", , 9.9.9.9",), "https://9.9.9.9:0"),
-        ((", , 9.9.9.9, , ",), "https://127.0.0.1:123"),
+        ("", "", "http://127.0.0.1:123"),
+        ("", None, "http://127.0.0.1:123"),
+        ("", "asdf", "http://127.0.0.1:123"),
+        (" , ", "https", "https://127.0.0.1:123"),
+        (", , ", "https", "https://127.0.0.1:123"),
+        (" , 10.0.0.1", "https", "https://127.0.0.1:123"),
+        ("9.9.9.9 , , , 10.0.0.1", "https", "https://127.0.0.1:123"),
+        (", , 9.9.9.9", "https", "https://9.9.9.9:0"),
+        (", , 9.9.9.9, , ", "https", "https://127.0.0.1:123"),
     ],
 )
 async def test_proxy_headers_trusted_hosts_malformed(
-    header_args: tuple[str | None, str | None] | tuple[str | None],
+    forwarded_for: str,
+    forwarded_proto: str | None,
     expected: str,
 ) -> None:
     async with make_httpx_client("127.0.0.1, 10.0.0.0/8") as client:
-        response = await client.get("/", headers=make_x_headers(*header_args))
+        headers = {X_FORWARDED_FOR: forwarded_for}
+        if forwarded_proto is not None:
+            headers[X_FORWARDED_PROTO] = forwarded_proto
+        response = await client.get("/", headers=headers)
     assert response.status_code == 200
     assert response.text == expected
 
@@ -430,7 +423,11 @@ async def test_proxy_headers_trusted_hosts_malformed(
 )
 async def test_proxy_headers_multiple_proxies(trusted_hosts: str | list[str], expected: str) -> None:
     async with make_httpx_client(trusted_hosts) as client:
-        response = await client.get("/", headers=make_x_headers("1.2.3.4, 10.0.2.1, 192.168.0.2"))
+        headers = {
+            X_FORWARDED_FOR: "1.2.3.4, 10.0.2.1, 192.168.0.2",
+            X_FORWARDED_PROTO: "https",
+        }
+        response = await client.get("/", headers=headers)
     assert response.status_code == 200
     assert response.text == expected
 
@@ -440,8 +437,8 @@ async def test_proxy_headers_invalid_x_forwarded_for() -> None:
     async with make_httpx_client("*") as client:
         headers = httpx.Headers(
             {
-                "X-Forwarded-Proto": "https",
-                "X-Forwarded-For": "1.2.3.4, \xf0\xfd\xfd\xfd, unix:, ::1",
+                X_FORWARDED_FOR: "1.2.3.4, \xf0\xfd\xfd\xfd, unix:, ::1",
+                X_FORWARDED_PROTO: "https",
             },
             encoding="latin-1",
         )
@@ -486,9 +483,11 @@ async def test_proxy_headers_websocket_x_forwarded_proto(
 
     async with run_server(config):
         url = f"ws://127.0.0.1:{unused_tcp_port}"
-        async with websockets.client.connect(
-            url, extra_headers=make_x_headers("1.2.3.4", forwarded_proto)
-        ) as websocket:
+        headers = {
+            X_FORWARDED_FOR: "1.2.3.4",
+            X_FORWARDED_PROTO: forwarded_proto,
+        }
+        async with websockets.client.connect(url, extra_headers=headers) as websocket:
             data = await websocket.recv()
             assert data == expected
 
@@ -498,6 +497,10 @@ async def test_proxy_headers_empty_x_forwarded_for() -> None:
     # fallback to the default behavior if x-forwarded-for is an empty list
     # https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
     async with make_httpx_client("*") as client:
-        response = await client.get("/", headers=make_x_headers(""))
+        headers = {
+            X_FORWARDED_FOR: "",
+            X_FORWARDED_PROTO: "https",
+        }
+        response = await client.get("/", headers=headers)
     assert response.status_code == 200
     assert response.text == "https://127.0.0.1:123"
