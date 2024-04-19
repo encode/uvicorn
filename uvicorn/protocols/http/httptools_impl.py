@@ -16,7 +16,6 @@ from uvicorn._types import (
     ASGIReceiveEvent,
     ASGISendEvent,
     HTTPRequestEvent,
-    HTTPResponseBodyEvent,
     HTTPResponseStartEvent,
     HTTPScope,
 )
@@ -29,7 +28,6 @@ from uvicorn.protocols.http.flow_control import (
     service_unavailable,
 )
 from uvicorn.protocols.utils import (
-    ClientDisconnected,
     get_client_addr,
     get_local_addr,
     get_path_with_query_string,
@@ -412,8 +410,6 @@ class RequestResponseCycle:
             result = await app(  # type: ignore[func-returns-value]
                 self.scope, self.receive, self.send
             )
-        except ClientDisconnected:
-            pass
         except BaseException as exc:
             msg = "Exception in ASGI application\n"
             self.logger.error(msg, exc_info=exc)
@@ -438,21 +434,18 @@ class RequestResponseCycle:
             self.on_response = lambda: None
 
     async def send_500_response(self) -> None:
-        response_start_event: HTTPResponseStartEvent = {
-            "type": "http.response.start",
-            "status": 500,
-            "headers": [
-                (b"content-type", b"text/plain; charset=utf-8"),
-                (b"connection", b"close"),
-            ],
-        }
-        await self.send(response_start_event)
-        response_body_event: HTTPResponseBodyEvent = {
-            "type": "http.response.body",
-            "body": b"Internal Server Error",
-            "more_body": False,
-        }
-        await self.send(response_body_event)
+        await self.send(
+            {
+                "type": "http.response.start",
+                "status": 500,
+                "headers": [
+                    (b"content-type", b"text/plain; charset=utf-8"),
+                    (b"content-length", b"21"),
+                    (b"connection", b"close"),
+                ],
+            }
+        )
+        await self.send({"type": "http.response.body", "body": b"Internal Server Error", "more_body": False})
 
     # ASGI interface
     async def send(self, message: ASGISendEvent) -> None:
@@ -462,7 +455,7 @@ class RequestResponseCycle:
             await self.flow.drain()
 
         if self.disconnected:
-            raise ClientDisconnected
+            return
 
         if not self.response_started:
             # Sending response status line and headers
@@ -573,11 +566,6 @@ class RequestResponseCycle:
 
         if self.disconnected or self.response_complete:
             return {"type": "http.disconnect"}
-
-        message: HTTPRequestEvent = {
-            "type": "http.request",
-            "body": self.body,
-            "more_body": self.more_body,
-        }
+        message: HTTPRequestEvent = {"type": "http.request", "body": self.body, "more_body": self.more_body}
         self.body = b""
         return message

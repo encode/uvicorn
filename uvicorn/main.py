@@ -6,7 +6,8 @@ import os
 import platform
 import ssl
 import sys
-from typing import Any, Callable
+from configparser import RawConfigParser
+from typing import IO, Any, Callable
 
 import click
 
@@ -47,7 +48,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     if not value or ctx.resilient_parsing:
         return
     click.echo(
-        "Running uvicorn {version} with {py_implementation} {py_version} on {system}".format(
+        "Running uvicorn {version} with {py_implementation} {py_version} on {system}".format(  # noqa: UP032
             version=uvicorn.__version__,
             py_implementation=platform.python_implementation(),
             py_version=platform.python_version(),
@@ -483,7 +484,7 @@ def run(
     reload_delay: float = 0.25,
     workers: int | None = None,
     env_file: str | os.PathLike[str] | None = None,
-    log_config: dict[str, Any] | str | None = LOGGING_CONFIG,
+    log_config: dict[str, Any] | str | RawConfigParser | IO[Any] | None = LOGGING_CONFIG,
     log_level: str | int | None = None,
     access_log: bool = True,
     proxy_headers: bool = True,

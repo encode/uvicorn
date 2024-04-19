@@ -264,6 +264,15 @@ if __name__ == "__main__":
 
 ### Running with Gunicorn
 
+!!! warning
+    The `uvicorn.workers` module is deprecated and will be removed in a future release.
+
+    You should use the [`uvicorn-worker`](https://github.com/Kludex/uvicorn-worker) package instead.
+
+    ```bash
+    python -m pip install uvicorn-worker
+    ```
+
 [Gunicorn][gunicorn] is a mature, fully featured server and process manager.
 
 Uvicorn includes a Gunicorn worker class allowing you to run ASGI applications,
