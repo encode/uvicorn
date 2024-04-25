@@ -321,11 +321,6 @@ class Server:
         finally:
             for sig, handler in original_handlers.items():
                 signal.signal(sig, handler)
-        # If we did gracefully shut down due to a signal, try to
-        # trigger the expected behaviour now; multiple signals would be
-        # done LIFO, see https://stackoverflow.com/questions/48434964
-        for captured_signal in reversed(self._captured_signals):
-            signal.raise_signal(captured_signal)
 
     def handle_exit(self, sig: int, frame: FrameType | None) -> None:
         self._captured_signals.append(sig)
