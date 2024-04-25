@@ -58,8 +58,6 @@ class Server:
         self.force_exit = False
         self.last_notified = 0.0
 
-        self._captured_signals: list[int] = []
-
     def run(self, sockets: list[socket.socket] | None = None) -> None:
         self.config.setup_event_loop()
         return asyncio.run(self.serve(sockets=sockets))
@@ -323,7 +321,6 @@ class Server:
                 signal.signal(sig, handler)
 
     def handle_exit(self, sig: int, frame: FrameType | None) -> None:
-        self._captured_signals.append(sig)
         if self.should_exit and sig == signal.SIGINT:
             self.force_exit = True
         else:
