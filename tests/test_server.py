@@ -4,7 +4,7 @@ import asyncio
 import contextlib
 import signal
 import sys
-from typing import Callable, ContextManager, Generator
+from typing import Generator
 
 import pytest
 
@@ -37,20 +37,14 @@ async def dummy_app(scope, receive, send):  # pragma: py-win32
     pass
 
 
+signals = [signal.SIGTERM, signal.SIGINT]
 if sys.platform == "win32":
-    signals = [signal.SIGBREAK]
-    signal_captures = [capture_signal_sync]
-else:
-    signals = [signal.SIGTERM, signal.SIGINT]
-    signal_captures = [capture_signal_sync, capture_signal_async]
+    signals += [signal.SIGBREAK]
 
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("exception_signal", signals)
-@pytest.mark.parametrize("capture_signal", signal_captures)
-async def test_server_interrupt(
-    exception_signal: signal.Signals, capture_signal: Callable[[signal.Signals], ContextManager[None]]
-):  # pragma: py-win32
+async def test_server_interrupt(exception_signal: signal.Signals):  # pragma: py-win32
     """Test interrupting a Server that is run explicitly inside asyncio"""
 
     async def interrupt_running(srv: Server):
@@ -59,9 +53,34 @@ async def test_server_interrupt(
         signal.raise_signal(exception_signal)
 
     server = Server(Config(app=dummy_app, loop="asyncio"))
+    original_handler = signal.getsignal(exception_signal)
+
     asyncio.create_task(interrupt_running(server))
-    with capture_signal(exception_signal) as witness:
-        await server.serve()
-    assert witness
+    await server.serve()
+
+    assert signal.getsignal(exception_signal) == original_handler
     # set by the server's graceful exit handler
     assert server.should_exit
+
+
+@pytest.mark.anyio
+async def test_server_interrupt_force_exit_on_double_sigint():  # pragma: py-win32
+    """Test interrupting a Server  on double SIGINT that is run explicitly inside asyncio"""
+
+    sigint = signal.SIGINT
+
+    async def interrupt_running(srv: Server):
+        while not srv.started:
+            await asyncio.sleep(0.01)
+        signal.raise_signal(sigint)
+        signal.raise_signal(sigint)
+
+    server = Server(Config(app=dummy_app, loop="asyncio"))
+    original_handler = signal.getsignal(sigint)
+
+    asyncio.create_task(interrupt_running(server))
+    await server.serve()
+    assert server.should_exit
+    assert server.force_exit
+
+    assert signal.getsignal(sigint) == original_handler
