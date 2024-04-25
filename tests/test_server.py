@@ -1,36 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import signal
 import sys
-from typing import Generator
 
 import pytest
 
 from uvicorn.config import Config
 from uvicorn.server import Server
-
-
-# asyncio does NOT allow raising in signal handlers, so to detect
-# raised signals raised a mutable `witness` receives the signal
-@contextlib.contextmanager
-def capture_signal_sync(sig: signal.Signals) -> Generator[list[int], None, None]:
-    """Replace `sig` handling with a normal exception via `signal"""
-    witness: list[int] = []
-    original_handler = signal.signal(sig, lambda signum, frame: witness.append(signum))
-    yield witness
-    signal.signal(sig, original_handler)
-
-
-@contextlib.contextmanager
-def capture_signal_async(sig: signal.Signals) -> Generator[list[int], None, None]:  # pragma: py-win32
-    """Replace `sig` handling with a normal exception via `asyncio"""
-    witness: list[int] = []
-    original_handler = signal.getsignal(sig)
-    asyncio.get_running_loop().add_signal_handler(sig, witness.append, sig)
-    yield witness
-    signal.signal(sig, original_handler)
 
 
 async def dummy_app(scope, receive, send):  # pragma: py-win32
