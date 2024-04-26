@@ -78,7 +78,7 @@ def subprocess_started(
     try:
         # Now we can call into `Server.run(sockets=sockets)`
         target(sockets=sockets)
-    except KeyboardInterrupt:
+    except KeyboardInterrupt:  # pragma: py-not-win32
         # supress the exception to avoid a traceback from subprocess.Popen
         # the parent already expects us to end, so no vital information is lost
         pass
