@@ -75,5 +75,10 @@ def subprocess_started(
     # Logging needs to be setup again for each child.
     config.configure_logging()
 
-    # Now we can call into `Server.run(sockets=sockets)`
-    target(sockets=sockets)
+    try:
+        # Now we can call into `Server.run(sockets=sockets)`
+        target(sockets=sockets)
+    except KeyboardInterrupt:
+        # supress the exception to avoid a traceback from subprocess.Popen
+        # the parent already expects us to end, so no vital information is lost
+        pass
