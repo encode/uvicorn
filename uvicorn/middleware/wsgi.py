@@ -32,12 +32,13 @@ def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: io.BytesIO)
     path_info = scope["path"].encode("utf8").decode("latin1")
     if path_info.startswith(script_name):
         path_info = path_info[len(script_name) :]
+    version = scope["http_version"]
     environ = {
         "REQUEST_METHOD": scope["method"],
         "SCRIPT_NAME": script_name,
         "PATH_INFO": path_info,
         "QUERY_STRING": scope["query_string"].decode("ascii"),
-        "SERVER_PROTOCOL": "HTTP/%s" % scope["http_version"],
+        "SERVER_PROTOCOL": f"HTTP/{version}",
         "wsgi.version": (1, 0),
         "wsgi.url_scheme": scope.get("scheme", "http"),
         "wsgi.input": body,
@@ -67,7 +68,8 @@ def build_environ(scope: HTTPScope, message: ASGIReceiveEvent, body: io.BytesIO)
         elif name_str == "content-type":
             corrected_name = "CONTENT_TYPE"
         else:
-            corrected_name = "HTTP_%s" % name_str.upper().replace("-", "_")
+            name_upper = name_str.upper().replace("-", "_")
+            corrected_name = f"HTTP_{name_upper}"
         # HTTPbis say only ASCII chars are allowed in headers, but we latin1
         # just in case
         value_str: str = value.decode("latin1")

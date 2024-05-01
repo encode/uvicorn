@@ -433,19 +433,19 @@ class Config:
         try:
             self.loaded_app = import_from_string(self.app)
         except ImportFromStringError as exc:
-            logger.error("Error loading ASGI app. %s" % exc)
+            logger.exception("Error loading ASGI app: %s", exc)
             sys.exit(1)
 
         try:
             self.loaded_app = self.loaded_app()
         except TypeError as exc:
             if self.factory:
-                logger.error("Error loading ASGI app factory: %s", exc)
+                logger.exception("Error loading ASGI app factory: %s", exc)
                 sys.exit(1)
         else:
             if not self.factory:
                 logger.warning(
-                    "ASGI app factory detected. Using it, " "but please consider setting the --factory flag explicitly."
+                    "ASGI app factory detected. Using it, but please consider setting the --factory flag explicitly."
                 )
 
         if self.interface == "auto":

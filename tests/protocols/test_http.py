@@ -619,7 +619,8 @@ async def test_read_after_response(http_protocol_cls: HTTPProtocol):
 async def test_http10_request(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         assert scope["type"] == "http"
-        content = "Version: %s" % scope["http_version"]
+        version = scope["http_version"]
+        content = f"Version: {version}"
         response = Response(content, media_type="text/plain")
         await response(scope, receive, send)
 

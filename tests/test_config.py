@@ -224,7 +224,7 @@ def test_app_unimportable_other(caplog: pytest.LogCaptureFixture) -> None:
         record.message for record in caplog.records if record.name == "uvicorn.error" and record.levelname == "ERROR"
     ]
     assert (
-        'Error loading ASGI app. Attribute "app" not found in module "tests.test_config".'  # noqa: E501
+        'Error loading ASGI app: Attribute "app" not found in module "tests.test_config".'  # noqa: E501
         == error_messages.pop(0)
     )
 

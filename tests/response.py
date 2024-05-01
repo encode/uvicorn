@@ -33,5 +33,5 @@ class Response:
         if self.media_type is not None and "content-type" not in self.headers:
             content_type = self.media_type
             if content_type.startswith("text/") and self.charset is not None:
-                content_type += "; charset=%s" % self.charset
+                content_type += f"; charset={self.charset}"
             self.headers["content-type"] = content_type
