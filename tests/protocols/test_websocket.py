@@ -616,7 +616,10 @@ async def test_app_close(
 
 
 async def test_client_close(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int):
+    disconnect_message: WebSocketDisconnectEvent | None = None
+
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
+        nonlocal disconnect_message
         while True:
             message = await receive()
             if message["type"] == "websocket.connect":
@@ -624,12 +627,14 @@ async def test_client_close(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTP
             elif message["type"] == "websocket.receive":
                 pass
             elif message["type"] == "websocket.disconnect":
+                disconnect_message = message
                 break
 
     async def websocket_session(url: str):
         async with websockets.client.connect(url) as websocket:
             await websocket.ping()
             await websocket.send("abc")
+            await websocket.close(code=1001, reason="custom reason")
 
     config = Config(
         app=app,
@@ -640,6 +645,11 @@ async def test_client_close(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTP
     )
     async with run_server(config):
         await websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
+
+    assert disconnect_message is not None
+    assert disconnect_message["type"] == "websocket.disconnect"
+    assert disconnect_message["code"] == 1001
+    assert disconnect_message["reason"] == "custom reason"
 
 
 async def test_client_connection_lost(
@@ -1262,7 +1272,7 @@ async def test_server_can_read_messages_in_buffer_after_close(
         await send_text(f"ws://127.0.0.1:{unused_tcp_port}")
 
     assert frames == [b"abc", b"abc", b"abc"]
-    assert disconnect_message == {"type": "websocket.disconnect", "code": 1000}
+    assert disconnect_message == {"type": "websocket.disconnect", "code": 1000, "reason": ""}
 
 
 async def test_default_server_headers(

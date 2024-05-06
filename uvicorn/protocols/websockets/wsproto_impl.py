@@ -212,7 +212,7 @@ class WSProtocol(asyncio.Protocol):
     def handle_close(self, event: events.CloseConnection) -> None:
         if self.conn.state == ConnectionState.REMOTE_CLOSING:
             self.transport.write(self.conn.send(event.response()))
-        self.queue.put_nowait({"type": "websocket.disconnect", "code": event.code})
+        self.queue.put_nowait({"type": "websocket.disconnect", "code": event.code, "reason": event.reason})
         self.transport.close()
 
     def handle_ping(self, event: events.Ping) -> None:
@@ -336,7 +336,7 @@ class WSProtocol(asyncio.Protocol):
                     self.close_sent = True
                     code = message.get("code", 1000)
                     reason = message.get("reason", "") or ""
-                    self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
+                    self.queue.put_nowait({"type": "websocket.disconnect", "code": code, "reason": reason})
                     output = self.conn.send(wsproto.events.CloseConnection(code=code, reason=reason))
                     if not self.transport.is_closing():
                         self.transport.write(output)
