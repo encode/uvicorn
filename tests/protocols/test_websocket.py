@@ -517,6 +517,7 @@ async def test_do_not_send_500_on_closed_transport(
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         # The client can only disconnect after we've reached the application.
         is_inside_app.set()
+        await asyncio.sleep(0.1)
         # Wait for client to disconnect.
         await is_disconnected.wait()
 
@@ -525,11 +526,13 @@ async def test_do_not_send_500_on_closed_transport(
 
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
     async with run_server(config):
-        async with asyncio.TaskGroup() as tg:
-            task = tg.create_task(connect(f"ws://127.0.0.1:{unused_tcp_port}"))
-            await is_inside_app.wait()
-            task.cancel()
+        task = asyncio.create_task(connect(f"ws://127.0.0.1:{unused_tcp_port}"))
+        await is_inside_app.wait()
+        task.cancel()
         is_disconnected.set()
+        # Sleep here so the server has a chance to react before shutting down.
+        await asyncio.sleep(0.1)
+        assert task.cancelled()
 
 
 @pytest.mark.anyio
