@@ -215,7 +215,8 @@ class WebSocketProtocol(WebSocketServerProtocol):
             b"\r\n",
             msg,
         ]
-        self.transport.write(b"".join(content))
+        if not self.transport.is_closing():
+            self.transport.write(b"".join(content))
         # Allow handler task to terminate cleanly, as websockets doesn't cancel it by
         # itself (see https://github.com/encode/uvicorn/issues/920)
         self.handshake_started_event.set()
