@@ -9,8 +9,9 @@ from tests.utils import run_server
 from uvicorn import Server
 from uvicorn.config import Config
 
+pytestmark = pytest.mark.anyio
 
-@pytest.mark.anyio
+
 async def test_sigint_finish_req(unused_tcp_port: int):
     """
     1. Request is sent
@@ -42,7 +43,6 @@ async def test_sigint_finish_req(unused_tcp_port: int):
             assert req.result().status_code == 200
 
 
-@pytest.mark.anyio
 async def test_sigint_abort_req(unused_tcp_port: int, caplog):
     """
     1. Request is sent
@@ -77,7 +77,6 @@ async def test_sigint_abort_req(unused_tcp_port: int, caplog):
     assert "Cancel 1 running task(s), timeout graceful shutdown exceeded" in caplog.messages
 
 
-@pytest.mark.anyio
 async def test_sigint_deny_request_after_triggered(unused_tcp_port: int, caplog):
     """
     1. Server is started

@@ -275,18 +275,16 @@ ASGISendCallable = Callable[[ASGISendEvent], Awaitable[None]]
 
 
 class ASGI2Protocol(Protocol):
-    def __init__(self, scope: Scope) -> None: ...  # pragma: no cover
+    def __init__(self, scope: Scope) -> None: ...
 
-    async def __call__(self, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None: ...  # pragma: no cover
+    async def __call__(self, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None: ...
 
 
 ASGI2Application = Type[ASGI2Protocol]
-ASGI3Application = Callable[
-    [
-        Scope,
-        ASGIReceiveCallable,
-        ASGISendCallable,
-    ],
-    Awaitable[None],
-]
+
+
+class ASGI3Application(Protocol):
+    async def __call__(self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None: ...
+
+
 ASGIApplication = Union[ASGI2Application, ASGI3Application]

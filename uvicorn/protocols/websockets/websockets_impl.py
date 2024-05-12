@@ -7,8 +7,10 @@ from typing import Any, Literal, Optional, Sequence, cast
 from urllib.parse import unquote
 
 import websockets
+import websockets.legacy.handshake
 from websockets.datastructures import Headers
 from websockets.exceptions import ConnectionClosed
+from websockets.extensions import ServerExtensionFactory
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from websockets.legacy.server import HTTPResponse
 from websockets.server import WebSocketServerProtocol
@@ -53,6 +55,7 @@ class Server:
 
 class WebSocketProtocol(WebSocketServerProtocol):
     extra_headers: list[tuple[str, str]]
+    logger: logging.Logger | logging.LoggerAdapter[Any]
 
     def __init__(
         self,
@@ -81,7 +84,6 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.scheme: Literal["wss", "ws"] = None  # type: ignore[assignment]
 
         # Connection events
-        self.scope: WebSocketScope
         self.handshake_started_event = asyncio.Event()
         self.handshake_completed_event = asyncio.Event()
         self.closed_event = asyncio.Event()
@@ -92,7 +94,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
         self.ws_server: Server = Server()  # type: ignore[assignment]
 
-        extensions = []
+        extensions: list[ServerExtensionFactory] = []
         if self.config.ws_per_message_deflate:
             extensions.append(ServerPerMessageDeflateFactory())
 
@@ -111,9 +113,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             (name.decode("latin-1"), value.decode("latin-1")) for name, value in server_state.default_headers
         ]
 
-    def connection_made(  # type: ignore[override]
-        self, transport: asyncio.Transport
-    ) -> None:
+    def connection_made(self, transport: asyncio.Transport) -> None:  # type: ignore[override]
         self.connections.add(self)
         self.transport = transport
         self.server = get_local_addr(transport)
@@ -147,10 +147,10 @@ class WebSocketProtocol(WebSocketServerProtocol):
             self.send_500_response()
         self.transport.close()
 
-    def on_task_complete(self, task: asyncio.Task) -> None:
+    def on_task_complete(self, task: asyncio.Task[Any]) -> None:
         self.tasks.discard(task)
 
-    async def process_request(self, path: str, headers: Headers) -> HTTPResponse | None:
+    async def process_request(self, path: str, request_headers: Headers) -> HTTPResponse | None:
         """
         This hook is called to determine if the websocket should return
         an HTTP response and close.
@@ -161,21 +161,21 @@ class WebSocketProtocol(WebSocketServerProtocol):
         """
         path_portion, _, query_string = path.partition("?")
 
-        websockets.legacy.handshake.check_request(headers)
+        websockets.legacy.handshake.check_request(request_headers)
 
-        subprotocols = []
-        for header in headers.get_all("Sec-WebSocket-Protocol"):
+        subprotocols: list[str] = []
+        for header in request_headers.get_all("Sec-WebSocket-Protocol"):
             subprotocols.extend([token.strip() for token in header.split(",")])
 
         asgi_headers = [
             (name.encode("ascii"), value.encode("ascii", errors="surrogateescape"))
-            for name, value in headers.raw_items()
+            for name, value in request_headers.raw_items()
         ]
         path = unquote(path_portion)
         full_path = self.root_path + path
         full_raw_path = self.root_path.encode("ascii") + path_portion.encode("ascii")
 
-        self.scope = {
+        self.scope: WebSocketScope = {
             "type": "websocket",
             "asgi": {"version": self.config.asgi_version, "spec_version": "2.4"},
             "http_version": "1.1",
@@ -256,12 +256,10 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 msg = "ASGI callable returned without sending handshake."
                 self.logger.error(msg)
                 self.send_500_response()
-                self.transport.close()
             elif result is not None:
-                msg = "ASGI callable should return None, but returned '%s'."
-                self.logger.error(msg, result)
-                await self.handshake_completed_event.wait()
-                self.transport.close()
+                self.logger.error("ASGI callable should return None, but returned '%s'.", result)
+            await self.handshake_completed_event.wait()
+            self.transport.close()
 
     async def asgi_send(self, message: ASGISendEvent) -> None:
         message_type = message["type"]

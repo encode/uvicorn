@@ -3,10 +3,11 @@ from __future__ import annotations
 import asyncio
 import logging
 from asyncio import Queue
-from typing import Any, Union
+from typing import Any, Union, cast
 
 from uvicorn import Config
 from uvicorn._types import (
+    ASGISendEvent,
     LifespanScope,
     LifespanShutdownCompleteEvent,
     LifespanShutdownEvent,
@@ -16,8 +17,8 @@ from uvicorn._types import (
     LifespanStartupFailedEvent,
 )
 
-LifespanReceiveMessage = Union[LifespanStartupEvent, LifespanShutdownEvent]
-LifespanSendMessage = Union[
+LifespanReceiveEvent = Union[LifespanStartupEvent, LifespanShutdownEvent]
+LifespanSendEvent = Union[
     LifespanStartupFailedEvent,
     LifespanShutdownFailedEvent,
     LifespanStartupCompleteEvent,
@@ -37,8 +38,8 @@ class LifespanOn:
         self.logger = logging.getLogger("uvicorn.error")
         self.startup_event = asyncio.Event()
         self.shutdown_event = asyncio.Event()
-        self.receive_queue: Queue[LifespanReceiveMessage] = asyncio.Queue()
-        self.error_occured = False
+        self.receive_queue: Queue[LifespanReceiveEvent] = asyncio.Queue()
+        self.error_occurred = False
         self.startup_failed = False
         self.shutdown_failed = False
         self.should_exit = False
@@ -55,21 +56,21 @@ class LifespanOn:
         await self.receive_queue.put(startup_event)
         await self.startup_event.wait()
 
-        if self.startup_failed or (self.error_occured and self.config.lifespan == "on"):
+        if self.startup_failed or (self.error_occurred and self.config.lifespan == "on"):
             self.logger.error("Application startup failed. Exiting.")
             self.should_exit = True
         else:
             self.logger.info("Application startup complete.")
 
     async def shutdown(self) -> None:
-        if self.error_occured:
+        if self.error_occurred:
             return
         self.logger.info("Waiting for application shutdown.")
         shutdown_event: LifespanShutdownEvent = {"type": "lifespan.shutdown"}
         await self.receive_queue.put(shutdown_event)
         await self.shutdown_event.wait()
 
-        if self.shutdown_failed or (self.error_occured and self.config.lifespan == "on"):
+        if self.shutdown_failed or (self.error_occurred and self.config.lifespan == "on"):
             self.logger.error("Application shutdown failed. Exiting.")
             self.should_exit = True
         else:
@@ -86,7 +87,7 @@ class LifespanOn:
             await app(scope, self.receive, self.send)
         except BaseException as exc:
             self.asgi = None
-            self.error_occured = True
+            self.error_occurred = True
             if self.startup_failed or self.shutdown_failed:
                 return
             if self.config.lifespan == "auto":
@@ -99,13 +100,14 @@ class LifespanOn:
             self.startup_event.set()
             self.shutdown_event.set()
 
-    async def send(self, message: LifespanSendMessage) -> None:
+    async def send(self, message: ASGISendEvent) -> None:
         assert message["type"] in (
             "lifespan.startup.complete",
             "lifespan.startup.failed",
             "lifespan.shutdown.complete",
             "lifespan.shutdown.failed",
         )
+        message = cast(LifespanSendEvent, message)
 
         if message["type"] == "lifespan.startup.complete":
             assert not self.startup_event.is_set(), STATE_TRANSITION_ERROR
@@ -133,5 +135,5 @@ class LifespanOn:
             if message.get("message"):
                 self.logger.error(message["message"])
 
-    async def receive(self) -> LifespanReceiveMessage:
+    async def receive(self) -> LifespanReceiveEvent:
         return await self.receive_queue.get()

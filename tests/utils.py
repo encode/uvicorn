@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import asyncio
 import os
+import socket
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 
@@ -7,7 +10,7 @@ from uvicorn import Config, Server
 
 
 @asynccontextmanager
-async def run_server(config: Config, sockets=None):
+async def run_server(config: Config, sockets: list[socket.socket] | None = None):
     server = Server(config=config)
     task = asyncio.create_task(server.serve(sockets=sockets))
     await asyncio.sleep(0.1)
