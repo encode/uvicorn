@@ -555,9 +555,9 @@ async def test_duplicate_handshake(ws_protocol_cls: WSProtocol, http_protocol_cl
 
 @pytest.mark.anyio
 async def test_asgi_return_value(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int):
-    """
-    The ASGI callable should return 'None'. If it doesn't, make sure that
-    the connection is closed with an error condition.
+    """The ASGI callable should return 'None'.
+
+    If it doesn't, make sure that the connection is closed with an error condition.
     """
 
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
@@ -575,6 +575,29 @@ async def test_asgi_return_value(ws_protocol_cls: WSProtocol, http_protocol_cls:
         lifespan="off",
         port=unused_tcp_port,
     )
+    async with run_server(config):
+        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
+            await connect(f"ws://127.0.0.1:{unused_tcp_port}")
+        assert exc_info.value.code == 1006
+
+
+@pytest.mark.anyio
+async def test_close_transport_on_asgi_return(
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
+):
+    """The ASGI callable should call the `websocket.close` event.
+
+    If it doesn't, the server should still send a close frame to the client.
+    """
+
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
+        await send({"type": "websocket.accept"})
+
+    async def connect(url: str):
+        async with websockets.client.connect(url) as websocket:
+            _ = await websocket.recv()
+
+    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
     async with run_server(config):
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
             await connect(f"ws://127.0.0.1:{unused_tcp_port}")

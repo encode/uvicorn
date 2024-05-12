@@ -232,21 +232,17 @@ class WSProtocol(asyncio.Protocol):
         try:
             result = await self.app(self.scope, self.receive, self.send)
         except ClientDisconnected:
-            self.transport.close()
+            pass
         except BaseException:
             self.logger.exception("Exception in ASGI application\n")
             self.send_500_response()
-            self.transport.close()
         else:
             if not self.handshake_complete:
-                msg = "ASGI callable returned without completing handshake."
-                self.logger.error(msg)
+                self.logger.error("ASGI callable returned without completing handshake.")
                 self.send_500_response()
-                self.transport.close()
             elif result is not None:
-                msg = "ASGI callable should return None, but returned '%s'."
-                self.logger.error(msg, result)
-                self.transport.close()
+                self.logger.error("ASGI callable should return None, but returned '%s'.", result)
+        self.transport.close()
 
     async def send(self, message: ASGISendEvent) -> None:
         await self.writable.wait()
