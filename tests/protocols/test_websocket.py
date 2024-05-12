@@ -69,7 +69,7 @@ class WebSocketResponse:
                 break
 
 
-async def wsresponse(url):
+async def wsresponse(url: str):
     """
     A simple websocket connection request and response helper
     """
@@ -505,6 +505,31 @@ async def test_missing_handshake(ws_protocol_cls: WSProtocol, http_protocol_cls:
         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
             await connect(f"ws://127.0.0.1:{unused_tcp_port}")
         assert exc_info.value.status_code == 500
+
+
+@pytest.mark.anyio
+async def test_do_not_send_500_on_closed_transport(
+    ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
+):
+    is_disconnected = asyncio.Event()
+    is_inside_app = asyncio.Event()
+
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
+        # The client can only disconnect after we've reached the application.
+        is_inside_app.set()
+        # Wait for client to disconnect.
+        await is_disconnected.wait()
+
+    async def connect(url: str):
+        await websockets.client.connect(url)
+
+    config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
+    async with run_server(config):
+        async with asyncio.TaskGroup() as tg:
+            task = tg.create_task(connect(f"ws://127.0.0.1:{unused_tcp_port}"))
+            await is_inside_app.wait()
+            task.cancel()
+        is_disconnected.set()
 
 
 @pytest.mark.anyio
@@ -1069,11 +1094,6 @@ async def test_server_reject_connection_with_invalid_status(
         }
         await send(message)
 
-    async def websocket_session(url):
-        response = await wsresponse(url)
-        assert response.status_code == 500
-        assert response.content == b"Internal Server Error"
-
     config = Config(
         app=app,
         ws=ws_protocol_cls,
@@ -1082,7 +1102,9 @@ async def test_server_reject_connection_with_invalid_status(
         port=unused_tcp_port,
     )
     async with run_server(config):
-        await websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
+        response = await wsresponse(f"ws://127.0.0.1:{unused_tcp_port}")
+        assert response.status_code == 500
+        assert response.content == b"Internal Server Error"
 
 
 @pytest.mark.anyio

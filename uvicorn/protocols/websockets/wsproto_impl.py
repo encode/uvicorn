@@ -226,7 +226,8 @@ class WSProtocol(asyncio.Protocol):
         ]
         output = self.conn.send(wsproto.events.RejectConnection(status_code=500, headers=headers, has_body=True))
         output += self.conn.send(wsproto.events.RejectData(data=b"Internal Server Error"))
-        self.transport.write(output)
+        if not self.transport.is_closing():
+            self.transport.write(output)
 
     async def run_asgi(self) -> None:
         try:
