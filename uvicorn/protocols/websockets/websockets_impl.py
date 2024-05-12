@@ -240,28 +240,22 @@ class WebSocketProtocol(WebSocketServerProtocol):
             result = await self.app(self.scope, self.asgi_receive, self.asgi_send)
         except ClientDisconnected:
             self.closed_event.set()
-            self.transport.close()
-        except BaseException as exc:
+        except BaseException:
             self.closed_event.set()
-            msg = "Exception in ASGI application\n"
-            self.logger.error(msg, exc_info=exc)
+            self.logger.exception("Exception in ASGI application\n")
             if not self.handshake_started_event.is_set():
                 self.send_500_response()
             else:
                 await self.handshake_completed_event.wait()
-            self.transport.close()
         else:
             self.closed_event.set()
             if not self.handshake_started_event.is_set():
-                msg = "ASGI callable returned without sending handshake."
-                self.logger.error(msg)
+                self.logger.error("ASGI callable returned without sending handshake.")
                 self.send_500_response()
-                self.transport.close()
             elif result is not None:
-                msg = "ASGI callable should return None, but returned '%s'."
-                self.logger.error(msg, result)
-                await self.handshake_completed_event.wait()
-                self.transport.close()
+                self.logger.error("ASGI callable should return None, but returned '%s'.", result)
+            await self.handshake_completed_event.wait()
+        self.transport.close()
 
     async def asgi_send(self, message: ASGISendEvent) -> None:
         message_type = message["type"]
