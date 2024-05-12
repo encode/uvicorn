@@ -646,10 +646,7 @@ async def test_client_close(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTP
     async with run_server(config):
         await websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
 
-    assert disconnect_message is not None
-    assert disconnect_message["type"] == "websocket.disconnect"
-    assert disconnect_message["code"] == 1001
-    assert disconnect_message["reason"] == "custom reason"
+    assert disconnect_message == {"type": "websocket.disconnect", "code": 1001, "reason": "custom reason"}
 
 
 async def test_client_connection_lost(
