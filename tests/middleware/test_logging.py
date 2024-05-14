@@ -203,8 +203,8 @@ async def test_unknown_status_code(caplog: pytest.LogCaptureFixture, unused_tcp_
 
 async def test_server_start_with_port_zero(caplog: pytest.LogCaptureFixture):
     config = Config(app=app, port=0)
-    async with run_server(config) as server:
-        server = server.servers[0]
+    async with run_server(config) as _server:
+        server = _server.servers[0]
         sock = server.sockets[0]
         host, port = sock.getsockname()
     messages = [record.message for record in caplog.records if "uvicorn" in record.name]
