@@ -310,7 +310,7 @@
 - Only second SIGINT is able to forcefully shutdown the server (#1269)
 - Allow app-dir parameter on the run() function (#1271)
 
-## 0.15.0 - 2021-08-13
+## 0.15.0 (2021-08-13)
 
 ### Added
 
@@ -395,7 +395,7 @@
 - Prevent exceptions when the ASGI application rejects a connection during the WebSocket handshake, when running on both `--ws wsproto` or `--ws websockets`. (#704 and #881)
 - Ensure connection `scope` doesn't leak in logs when using JSON log formatters. (#859 and #884)
 
-## 0.13.0 - 2020-12-08
+## 0.13.0 (2020-12-08)
 
 ### Added
 
