@@ -7,13 +7,6 @@ from mkdocs.structure.files import Files
 from mkdocs.structure.pages import Page
 
 
-def on_page_markdown(markdown: str, page: Page, config: Config, files: Files) -> str:
-    """
-    Called on each file after it is read and before it is converted to HTML.
-    """
-    return markdown
-
-
 def on_page_content(html: str, page: Page, config: Config, files: Files) -> str:
     """
     Called on each page after the markdown is converted to HTML.
