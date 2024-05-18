@@ -42,3 +42,6 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+
+hooks:
+  - docs/plugins/main.py
