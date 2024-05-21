@@ -492,6 +492,17 @@ async def test_partial_response_returned(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
+async def test_response_header_splitting(http_protocol_cls: HTTPProtocol):
+    app = Response(b"", headers={"key": "value\r\nCookie: smuggled=value"})
+
+    protocol = get_connected_protocol(app, http_protocol_cls)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 500 Internal Server Error" not in protocol.transport.buffer
+    assert b"\r\nCookie: smuggled=value\r\n" not in protocol.transport.buffer
+    assert protocol.transport.is_closing()
+
+
 async def test_duplicate_start_message(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
