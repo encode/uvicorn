@@ -26,7 +26,7 @@ from uvicorn.protocols.utils import get_client_addr, get_local_addr, get_path_wi
 from uvicorn.server import ServerState
 
 HEADER_RE = re.compile(b'[\x00-\x1f\x7f()<>@,;:[]={} \t\\"]')
-HEADER_VALUE_RE = re.compile(b"[\x00-\x1f\x7f]")
+HEADER_VALUE_RE = re.compile(b"[\x00-\x08\x0a-\x1f\x7f]")
 
 
 def _get_status_line(status_code: int) -> bytes:

@@ -251,6 +251,25 @@ async def test_get_request(http_protocol_cls: HTTPProtocol):
     assert b"Hello, world" in protocol.transport.buffer
 
 
+@pytest.mark.parametrize(
+    "char",
+    [
+        pytest.param("c", id="allow_ascii_letter"),
+        pytest.param("\t", id="allow_tab"),
+        pytest.param(" ", id="allow_space"),
+        pytest.param("µ", id="allow_non_ascii_char"),
+    ],
+)
+async def test_header_value_allowed_characters(http_protocol_cls: HTTPProtocol, char: str):
+    app = Response("Hello, world", media_type="text/plain", headers={"key": f"<{char}>"})
+    protocol = get_connected_protocol(app, http_protocol_cls)
+    protocol.data_received(SIMPLE_GET_REQUEST)
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert (b"\r\nkey: <" + char.encode() + b">\r\n") in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
+
+
 @pytest.mark.parametrize("path", ["/", "/?foo", "/?foo=bar", "/?foo=bar&baz=1"])
 async def test_request_logging(path: str, http_protocol_cls: HTTPProtocol, caplog: pytest.LogCaptureFixture):
     get_request_with_query_string = b"\r\n".join(
