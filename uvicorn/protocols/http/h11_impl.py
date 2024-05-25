@@ -3,8 +3,6 @@ from __future__ import annotations
 import asyncio
 import http
 import logging
-import sys
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union, cast
 from typing import Any, Callable, Literal, cast
 from urllib.parse import unquote
 
@@ -92,7 +90,7 @@ class H11Protocol(asyncio.Protocol):
         self.server: tuple[str, int] | None = None
         self.client: tuple[str, int] | None = None
         self.scheme: Literal["http", "https"] | None = None
-        self.tls: Dict | None = None
+        self.tls: dict[object, object] = {}
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
@@ -229,7 +227,7 @@ class H11Protocol(asyncio.Protocol):
                 }
 
                 if self.config.is_ssl:
-                    self.scope["extensions"]["tls"] = self.tls  # type: ignore[index, assignment] # noqa: E501
+                    self.scope["extensions"]["tls"] = self.tls
 
                 upgrade = self._get_upgrade()
                 if upgrade == b"websocket" and self._should_upgrade_to_ws():
