@@ -55,9 +55,7 @@ async def test_run_httptools_client_cert(
         ssl_cert_reqs=ssl.CERT_REQUIRED,
     )
     async with run_server(config):
-        async with httpx.AsyncClient(
-            verify=tls_ca_ssl_context, cert=tls_client_certificate_pem_path
-        ) as client:
+        async with httpx.AsyncClient(verify=tls_ca_ssl_context, cert=tls_client_certificate_pem_path) as client:
             response = await client.get("https://127.0.0.1:8000")
     assert response.status_code == 204
 
@@ -81,9 +79,7 @@ async def test_run_h11_client_cert(
         ssl_cert_reqs=ssl.CERT_REQUIRED,
     )
     async with run_server(config):
-        async with httpx.AsyncClient(
-            verify=tls_ca_ssl_context, cert=tls_client_certificate_pem_path
-        ) as client:
+        async with httpx.AsyncClient(verify=tls_ca_ssl_context, cert=tls_client_certificate_pem_path) as client:
             response = await client.get("https://127.0.0.1:8000")
     assert response.status_code == 204
 

@@ -7,7 +7,12 @@ import re
 import urllib
 from asyncio.events import TimerHandle
 from collections import deque
-from typing import Any, Callable, Literal, cast
+from typing import (
+    Any,
+    Callable,
+    Literal,
+    cast,
+)
 
 import httptools
 
@@ -98,7 +103,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.client: tuple[str, int] | None = None
         self.scheme: Literal["http", "https"] | None = None
         self.pipeline: deque[tuple[RequestResponseCycle, ASGI3Application]] = deque()
-        self.tls = None
+        self.tls: dict[object, object] = {}
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
@@ -251,7 +256,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         }
 
         if self.config.is_ssl:
-            self.scope["extensions"]["tls"] = self.tls  # type: ignore[index, assignment] # noqa: E501
+            self.scope["extensions"]["tls"] = self.tls
 
     # Parser callbacks
     def on_url(self, url: bytes) -> None:
