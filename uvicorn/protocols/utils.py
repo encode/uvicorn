@@ -3,11 +3,10 @@ from __future__ import annotations
 import asyncio
 import ssl
 import urllib.parse
-from typing import Any, Dict, Optional, Tuple
 
 from uvicorn._types import WWWScope
 
-RDNS_MAPPING: Dict[str, str] = {
+RDNS_MAPPING: dict[str, str] = {
     "commonName": "CN",
     "localityName": "L",
     "stateOrProvinceName": "ST",
@@ -19,7 +18,7 @@ RDNS_MAPPING: Dict[str, str] = {
     "userId": "UID",
 }
 
-TLS_VERSION_MAP: Dict[str, int] = {
+TLS_VERSION_MAP: dict[str, int] = {
     "TLSv1": 0x0301,
     "TLSv1.1": 0x0302,
     "TLSv1.2": 0x0303,
@@ -77,8 +76,7 @@ def get_path_with_query_string(scope: WWWScope) -> str:
     return path_with_query_string
 
 
-def get_tls_info(transport: asyncio.Transport) -> Optional[Dict]:
-
+def get_tls_info(transport: asyncio.Transport) -> dict[object, object]:
     ###
     # server_cert: Unable to set from transport information
     # client_cert_chain: Just the peercert, currently no access to the full cert chain
@@ -88,7 +86,7 @@ def get_tls_info(transport: asyncio.Transport) -> Optional[Dict]:
     # cipher_suite: Too hard to convert without direct access to openssl
     ###
 
-    ssl_info: Dict[str, Any] = {
+    ssl_info: dict[object, object] = {
         "server_cert": None,
         "client_cert_chain": [],
         "client_cert_name": None,
@@ -105,25 +103,15 @@ def get_tls_info(transport: asyncio.Transport) -> Optional[Dict]:
         for rdn in peercert["subject"]:
             rdn_strings.append(
                 "+".join(
-                    [
-                        "%s = %s" % (RDNS_MAPPING[entry[0]], entry[1])
-                        for entry in reversed(rdn)
-                        if entry[0] in RDNS_MAPPING
-                    ]
+                    [f"{RDNS_MAPPING[entry[0]]} = {entry[1]}" for entry in reversed(rdn) if entry[0] in RDNS_MAPPING]
                 )
             )
 
-        ssl_info["client_cert_chain"] = [
-            ssl.DER_cert_to_PEM_cert(ssl_object.getpeercert(binary_form=True))
-        ]
+        ssl_info["client_cert_chain"] = [ssl.DER_cert_to_PEM_cert(ssl_object.getpeercert(binary_form=True))]
         ssl_info["client_cert_name"] = ", ".join(rdn_strings) if rdn_strings else ""
         ssl_info["tls_version"] = (
-            TLS_VERSION_MAP[ssl_object.version()]
-            if ssl_object.version() in TLS_VERSION_MAP
-            else None
+            TLS_VERSION_MAP[ssl_object.version()] if ssl_object.version() in TLS_VERSION_MAP else None
         )
         ssl_info["cipher_suite"] = list(ssl_object.cipher())
 
-        return ssl_info
-
-    return None
+    return ssl_info
