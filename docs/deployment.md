@@ -186,7 +186,7 @@ Uvicorn includes a `--workers` option that allows you to run multiple worker pro
 $ uvicorn main:app --workers 4
 ```
 
-Unlike gunicorn, uvicorn does not use pre-fork, but uses [`spawn`](https://docs.python.org/zh-cn/3/library/multiprocessing.html#contexts-and-start-methods), which allows uvicorn's multiprocess manager to still work well on Windows.
+Unlike gunicorn, uvicorn does not use pre-fork, but uses [`spawn`](https://docs.python.org/3/library/multiprocessing.html#contexts-and-start-methods), which allows uvicorn's multiprocess manager to still work well on Windows.
 
 The default process manager monitors the status of child processes and automatically restarts child processes that die unexpectedly. Not only that, it will also monitor the status of the child process through the pipeline. When the child process is accidentally stuck, the corresponding child process will be killed through an unstoppable system signal or interface.
 
