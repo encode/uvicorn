@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.30.0 (2024-05-25)
+
+Need to add everything here.
+
 ## 0.29.0 (2024-03-19)
 
 ### Added
