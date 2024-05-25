@@ -160,15 +160,19 @@ class Multiprocess:
         logger.info(message, extra={"color_message": color_message})
 
     def keep_subprocess_alive(self) -> None:
-        for idx, process in enumerate(tuple(self.processes)):
-            if self.should_exit.is_set():
-                return
+        if self.should_exit.is_set():
+            return  # parent process is exiting, no need to keep subprocess alive
 
+        for idx, process in enumerate(tuple(self.processes)):
             if process.is_alive():
                 continue
 
             process.kill()  # process is hung, kill it
             process.join()
+
+            if self.should_exit.is_set():
+                return
+
             logger.info(f"Child process [{process.pid}] died")
             del self.processes[idx]
             process = Process(self.config, self.target, self.sockets)
