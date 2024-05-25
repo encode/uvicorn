@@ -16,7 +16,7 @@ from uvicorn.supervisors import Multiprocess
 from uvicorn.supervisors.multiprocess import Process
 
 
-def new_console_in_windows(test_function: Callable[[], Any]) -> Callable[[], Any]:
+def new_console_in_windows(test_function: Callable[[], Any]) -> Callable[[], Any]:  # pragma: no cover
     if os.name != "nt":
         return test_function
 
