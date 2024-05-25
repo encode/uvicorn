@@ -1,12 +1,6 @@
 import asyncio
 
-from uvicorn._types import (
-    ASGIReceiveCallable,
-    ASGISendCallable,
-    HTTPResponseBodyEvent,
-    HTTPResponseStartEvent,
-    Scope,
-)
+from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 
 CLOSE_HEADER = (b"connection", b"close")
 
@@ -45,20 +39,16 @@ class FlowControl:
             self._is_writable_event.set()
 
 
-async def service_unavailable(scope: "Scope", receive: "ASGIReceiveCallable", send: "ASGISendCallable") -> None:
-    response_start: "HTTPResponseStartEvent" = {
-        "type": "http.response.start",
-        "status": 503,
-        "headers": [
-            (b"content-type", b"text/plain; charset=utf-8"),
-            (b"connection", b"close"),
-        ],
-    }
-    await send(response_start)
-
-    response_body: "HTTPResponseBodyEvent" = {
-        "type": "http.response.body",
-        "body": b"Service Unavailable",
-        "more_body": False,
-    }
-    await send(response_body)
+async def service_unavailable(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 503,
+            "headers": [
+                (b"content-type", b"text/plain; charset=utf-8"),
+                (b"content-length", b"19"),
+                (b"connection", b"close"),
+            ],
+        }
+    )
+    await send({"type": "http.response.body", "body": b"Service Unavailable", "more_body": False})

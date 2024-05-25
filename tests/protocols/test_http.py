@@ -39,6 +39,8 @@ if TYPE_CHECKING:
     HTTPProtocol: TypeAlias = "type[HttpToolsProtocol | H11Protocol]"
     WSProtocol: TypeAlias = "type[WebSocketProtocol | _WSProtocol]"
 
+pytestmark = pytest.mark.anyio
+
 
 WEBSOCKET_PROTOCOLS = WS_PROTOCOLS.keys()
 
@@ -239,7 +241,6 @@ def get_connected_protocol(
     return protocol
 
 
-@pytest.mark.anyio
 async def test_get_request(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -250,7 +251,6 @@ async def test_get_request(http_protocol_cls: HTTPProtocol):
     assert b"Hello, world" in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 @pytest.mark.parametrize("path", ["/", "/?foo", "/?foo=bar", "/?foo=bar&baz=1"])
 async def test_request_logging(path: str, http_protocol_cls: HTTPProtocol, caplog: pytest.LogCaptureFixture):
     get_request_with_query_string = b"\r\n".join(
@@ -267,7 +267,6 @@ async def test_request_logging(path: str, http_protocol_cls: HTTPProtocol, caplo
     assert f'"GET {path} HTTP/1.1" 200' in caplog.records[0].message
 
 
-@pytest.mark.anyio
 async def test_head_request(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -278,7 +277,6 @@ async def test_head_request(http_protocol_cls: HTTPProtocol):
     assert b"Hello, world" not in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 async def test_post_request(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         body = b""
@@ -298,7 +296,6 @@ async def test_post_request(http_protocol_cls: HTTPProtocol):
     assert b'Body: {"hello": "world"}' in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 async def test_keepalive(http_protocol_cls: HTTPProtocol):
     app = Response(b"", status_code=204)
 
@@ -310,7 +307,6 @@ async def test_keepalive(http_protocol_cls: HTTPProtocol):
     assert not protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_keepalive_timeout(http_protocol_cls: HTTPProtocol):
     app = Response(b"", status_code=204)
 
@@ -325,7 +321,6 @@ async def test_keepalive_timeout(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_keepalive_timeout_with_pipelined_requests(
     http_protocol_cls: HTTPProtocol,
 ):
@@ -351,7 +346,6 @@ async def test_keepalive_timeout_with_pipelined_requests(
     assert protocol.timeout_keep_alive_task is not None
 
 
-@pytest.mark.anyio
 async def test_close(http_protocol_cls: HTTPProtocol):
     app = Response(b"", status_code=204, headers={"connection": "close"})
 
@@ -362,7 +356,6 @@ async def test_close(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_chunked_encoding(http_protocol_cls: HTTPProtocol):
     app = Response(b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"})
 
@@ -374,7 +367,6 @@ async def test_chunked_encoding(http_protocol_cls: HTTPProtocol):
     assert not protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_chunked_encoding_empty_body(http_protocol_cls: HTTPProtocol):
     app = Response(b"Hello, world!", status_code=200, headers={"transfer-encoding": "chunked"})
 
@@ -386,7 +378,6 @@ async def test_chunked_encoding_empty_body(http_protocol_cls: HTTPProtocol):
     assert not protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_chunked_encoding_head_request(
     http_protocol_cls: HTTPProtocol,
 ):
@@ -399,7 +390,6 @@ async def test_chunked_encoding_head_request(
     assert not protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_pipelined_requests(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -421,7 +411,6 @@ async def test_pipelined_requests(http_protocol_cls: HTTPProtocol):
     protocol.transport.clear_buffer()
 
 
-@pytest.mark.anyio
 async def test_undersized_request(http_protocol_cls: HTTPProtocol):
     app = Response(b"xxx", headers={"content-length": "10"})
 
@@ -431,7 +420,6 @@ async def test_undersized_request(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_oversized_request(http_protocol_cls: HTTPProtocol):
     app = Response(b"xxx" * 20, headers={"content-length": "10"})
 
@@ -441,7 +429,6 @@ async def test_oversized_request(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_large_post_request(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -452,7 +439,6 @@ async def test_large_post_request(http_protocol_cls: HTTPProtocol):
     assert not protocol.transport.read_paused
 
 
-@pytest.mark.anyio
 async def test_invalid_http(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -461,7 +447,6 @@ async def test_invalid_http(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_app_exception(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         raise Exception()
@@ -473,7 +458,6 @@ async def test_app_exception(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_exception_during_response(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
@@ -487,10 +471,8 @@ async def test_exception_during_response(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_no_response_returned(http_protocol_cls: HTTPProtocol):
-    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
-        ...
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable): ...
 
     protocol = get_connected_protocol(app, http_protocol_cls)
     protocol.data_received(SIMPLE_GET_REQUEST)
@@ -499,7 +481,6 @@ async def test_no_response_returned(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_partial_response_returned(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
@@ -511,7 +492,6 @@ async def test_partial_response_returned(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_duplicate_start_message(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
@@ -524,7 +504,6 @@ async def test_duplicate_start_message(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_missing_start_message(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.body", "body": b""})
@@ -536,7 +515,6 @@ async def test_missing_start_message(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_message_after_body_complete(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
@@ -550,7 +528,6 @@ async def test_message_after_body_complete(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_value_returned(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         await send({"type": "http.response.start", "status": 200})
@@ -564,7 +541,6 @@ async def test_value_returned(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_early_disconnect(http_protocol_cls: HTTPProtocol):
     got_disconnect_event = False
 
@@ -586,7 +562,6 @@ async def test_early_disconnect(http_protocol_cls: HTTPProtocol):
     assert got_disconnect_event
 
 
-@pytest.mark.anyio
 async def test_early_response(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -598,7 +573,6 @@ async def test_early_response(http_protocol_cls: HTTPProtocol):
     assert not protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_read_after_response(http_protocol_cls: HTTPProtocol):
     message_after_response = None
 
@@ -616,7 +590,6 @@ async def test_read_after_response(http_protocol_cls: HTTPProtocol):
     assert message_after_response == {"type": "http.disconnect"}
 
 
-@pytest.mark.anyio
 async def test_http10_request(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         assert scope["type"] == "http"
@@ -631,7 +604,6 @@ async def test_http10_request(http_protocol_cls: HTTPProtocol):
     assert b"Version: 1.0" in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 async def test_root_path(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         assert scope["type"] == "http"
@@ -647,7 +619,6 @@ async def test_root_path(http_protocol_cls: HTTPProtocol):
     assert b"root_path=/app path=/app/" in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 async def test_raw_path(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         assert scope["type"] == "http"
@@ -665,17 +636,27 @@ async def test_raw_path(http_protocol_cls: HTTPProtocol):
     assert b"Done" in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 async def test_max_concurrency(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, http_protocol_cls, limit_concurrency=1)
     protocol.data_received(SIMPLE_GET_REQUEST)
     await protocol.loop.run_one()
-    assert b"HTTP/1.1 503 Service Unavailable" in protocol.transport.buffer
+    assert (
+        b"\r\n".join(
+            [
+                b"HTTP/1.1 503 Service Unavailable",
+                b"content-type: text/plain; charset=utf-8",
+                b"content-length: 19",
+                b"connection: close",
+                b"",
+                b"Service Unavailable",
+            ]
+        )
+        == protocol.transport.buffer
+    )
 
 
-@pytest.mark.anyio
 async def test_shutdown_during_request(http_protocol_cls: HTTPProtocol):
     app = Response(b"", status_code=204)
 
@@ -687,7 +668,6 @@ async def test_shutdown_during_request(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_shutdown_during_idle(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -697,7 +677,6 @@ async def test_shutdown_during_idle(http_protocol_cls: HTTPProtocol):
     assert protocol.transport.is_closing()
 
 
-@pytest.mark.anyio
 async def test_100_continue_sent_when_body_consumed(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         body = b""
@@ -729,7 +708,6 @@ async def test_100_continue_sent_when_body_consumed(http_protocol_cls: HTTPProto
     assert b'Body: {"hello": "world"}' in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 async def test_100_continue_not_sent_when_body_not_consumed(
     http_protocol_cls: HTTPProtocol,
 ):
@@ -753,7 +731,6 @@ async def test_100_continue_not_sent_when_body_not_consumed(
     assert b"HTTP/1.1 204 No Content" in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 async def test_supported_upgrade_request(http_protocol_cls: HTTPProtocol):
     pytest.importorskip("wsproto")
 
@@ -764,7 +741,6 @@ async def test_supported_upgrade_request(http_protocol_cls: HTTPProtocol):
     assert b"HTTP/1.1 426 " in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 async def test_unsupported_ws_upgrade_request(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -775,7 +751,6 @@ async def test_unsupported_ws_upgrade_request(http_protocol_cls: HTTPProtocol):
     assert b"Hello, world" in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 async def test_unsupported_ws_upgrade_request_warn_on_auto(
     caplog: pytest.LogCaptureFixture, http_protocol_cls: HTTPProtocol
 ):
@@ -793,7 +768,6 @@ async def test_unsupported_ws_upgrade_request_warn_on_auto(
     assert msg in warnings
 
 
-@pytest.mark.anyio
 async def test_http2_upgrade_request(http_protocol_cls: HTTPProtocol, ws_protocol_cls: WSProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -815,7 +789,6 @@ def asgi2app(scope: Scope):
     return asgi
 
 
-@pytest.mark.anyio
 @pytest.mark.parametrize(
     "asgi2or3_app, expected_scopes",
     [
@@ -834,7 +807,6 @@ async def test_scopes(
     assert expected_scopes == protocol.scope.get("asgi")
 
 
-@pytest.mark.anyio
 @pytest.mark.parametrize(
     "request_line",
     [
@@ -904,7 +876,6 @@ def test_fragmentation(unused_tcp_port: int):
     t.join()
 
 
-@pytest.mark.anyio
 async def test_huge_headers_h11protocol_failure():
     app = Response("Hello, world", media_type="text/plain")
 
@@ -917,7 +888,6 @@ async def test_huge_headers_h11protocol_failure():
     assert b"Invalid HTTP request received." in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 @skip_if_no_httptools
 async def test_huge_headers_httptools_will_pass():
     app = Response("Hello, world", media_type="text/plain")
@@ -932,7 +902,6 @@ async def test_huge_headers_httptools_will_pass():
     assert b"Hello, world" in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 async def test_huge_headers_h11protocol_failure_with_setting():
     app = Response("Hello, world", media_type="text/plain")
 
@@ -945,7 +914,6 @@ async def test_huge_headers_h11protocol_failure_with_setting():
     assert b"Invalid HTTP request received." in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 @skip_if_no_httptools
 async def test_huge_headers_httptools():
     app = Response("Hello, world", media_type="text/plain")
@@ -960,7 +928,6 @@ async def test_huge_headers_httptools():
     assert b"Hello, world" in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 async def test_huge_headers_h11_max_incomplete():
     app = Response("Hello, world", media_type="text/plain")
 
@@ -972,7 +939,6 @@ async def test_huge_headers_h11_max_incomplete():
     assert b"Hello, world" in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 async def test_return_close_header(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
@@ -987,7 +953,6 @@ async def test_return_close_header(http_protocol_cls: HTTPProtocol):
     assert b"connection: close" in protocol.transport.buffer.lower()
 
 
-@pytest.mark.anyio
 async def test_iterator_headers(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         headers = iter([(b"x-test-header", b"test value")])
@@ -1000,7 +965,6 @@ async def test_iterator_headers(http_protocol_cls: HTTPProtocol):
     assert b"x-test-header: test value" in protocol.transport.buffer
 
 
-@pytest.mark.anyio
 async def test_lifespan_state(http_protocol_cls: HTTPProtocol):
     expected_states = [{"a": 123, "b": [1]}, {"a": 123, "b": [1, 2]}]
 

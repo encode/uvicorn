@@ -4,6 +4,7 @@ import asyncio
 import logging
 import signal
 import sys
+import warnings
 from typing import Any
 
 from gunicorn.arbiter import Arbiter
@@ -11,6 +12,12 @@ from gunicorn.workers.base import Worker
 
 from uvicorn.config import Config
 from uvicorn.main import Server
+
+warnings.warn(
+    "The `uvicorn.workers` module is deprecated. Please use `uvicorn-worker` package instead.\n"
+    "For more details, see https://github.com/Kludex/uvicorn-worker.",
+    DeprecationWarning,
+)
 
 
 class UvicornWorker(Worker):
