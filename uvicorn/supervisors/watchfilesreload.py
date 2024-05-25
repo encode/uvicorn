@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from pathlib import Path
 from socket import socket
-from typing import Callable, List, Optional
+from typing import Callable
 
 from watchfiles import watch
 
@@ -11,20 +13,12 @@ from uvicorn.supervisors.basereload import BaseReload
 class FileFilter:
     def __init__(self, config: Config):
         default_includes = ["*.py"]
-        self.includes = [
-            default
-            for default in default_includes
-            if default not in config.reload_excludes
-        ]
+        self.includes = [default for default in default_includes if default not in config.reload_excludes]
         self.includes.extend(config.reload_includes)
         self.includes = list(set(self.includes))
 
         default_excludes = [".*", ".py[cod]", ".sw.*", "~*"]
-        self.excludes = [
-            default
-            for default in default_excludes
-            if default not in config.reload_includes
-        ]
+        self.excludes = [default for default in default_excludes if default not in config.reload_includes]
         self.exclude_dirs = []
         for e in config.reload_excludes:
             p = Path(e)
@@ -43,6 +37,9 @@ class FileFilter:
     def __call__(self, path: Path) -> bool:
         for include_pattern in self.includes:
             if path.match(include_pattern):
+                if str(path).endswith(include_pattern):
+                    return True
+
                 for exclude_dir in self.exclude_dirs:
                     if exclude_dir in path.parents:
                         return False
@@ -59,8 +56,8 @@ class WatchFilesReload(BaseReload):
     def __init__(
         self,
         config: Config,
-        target: Callable[[Optional[List[socket]]], None],
-        sockets: List[socket],
+        target: Callable[[list[socket] | None], None],
+        sockets: list[socket],
     ) -> None:
         super().__init__(config, target, sockets)
         self.reloader_name = "WatchFiles"
@@ -81,7 +78,9 @@ class WatchFilesReload(BaseReload):
             yield_on_timeout=True,
         )
 
-    def should_restart(self) -> Optional[List[Path]]:
+    def should_restart(self) -> list[Path] | None:
+        self.pause()
+
         changes = next(self.watcher)
         if changes:
             unique_paths = {Path(c[1]) for c in changes}

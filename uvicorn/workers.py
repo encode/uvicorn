@@ -1,14 +1,23 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import signal
 import sys
-from typing import Any, Dict
+import warnings
+from typing import Any
 
 from gunicorn.arbiter import Arbiter
 from gunicorn.workers.base import Worker
 
 from uvicorn.config import Config
 from uvicorn.main import Server
+
+warnings.warn(
+    "The `uvicorn.workers` module is deprecated. Please use `uvicorn-worker` package instead.\n"
+    "For more details, see https://github.com/Kludex/uvicorn-worker.",
+    DeprecationWarning,
+)
 
 
 class UvicornWorker(Worker):
@@ -17,10 +26,10 @@ class UvicornWorker(Worker):
     rather than a WSGI callable.
     """
 
-    CONFIG_KWARGS: Dict[str, Any] = {"loop": "auto", "http": "auto"}
+    CONFIG_KWARGS: dict[str, Any] = {"loop": "auto", "http": "auto"}
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super(UvicornWorker, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         logger = logging.getLogger("uvicorn.error")
         logger.handlers = self.log.error_log.handlers
@@ -63,7 +72,7 @@ class UvicornWorker(Worker):
 
     def init_process(self) -> None:
         self.config.setup_event_loop()
-        super(UvicornWorker, self).init_process()
+        super().init_process()
 
     def init_signals(self) -> None:
         # Reset signals so Gunicorn doesn't swallow subprocess return codes

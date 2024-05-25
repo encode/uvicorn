@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 import signal
@@ -5,7 +7,7 @@ import threading
 from multiprocessing.context import SpawnProcess
 from socket import socket
 from types import FrameType
-from typing import Callable, List, Optional
+from typing import Callable
 
 import click
 
@@ -24,17 +26,17 @@ class Multiprocess:
     def __init__(
         self,
         config: Config,
-        target: Callable[[Optional[List[socket]]], None],
-        sockets: List[socket],
+        target: Callable[[list[socket] | None], None],
+        sockets: list[socket],
     ) -> None:
         self.config = config
         self.target = target
         self.sockets = sockets
-        self.processes: List[SpawnProcess] = []
+        self.processes: list[SpawnProcess] = []
         self.should_exit = threading.Event()
         self.pid = os.getpid()
 
-    def signal_handler(self, sig: int, frame: Optional[FrameType]) -> None:
+    def signal_handler(self, sig: int, frame: FrameType | None) -> None:
         """
         A signal handler that is registered with the parent process.
         """
@@ -46,19 +48,15 @@ class Multiprocess:
         self.shutdown()
 
     def startup(self) -> None:
-        message = "Started parent process [{}]".format(str(self.pid))
-        color_message = "Started parent process [{}]".format(
-            click.style(str(self.pid), fg="cyan", bold=True)
-        )
+        message = f"Started parent process [{str(self.pid)}]"
+        color_message = "Started parent process [{}]".format(click.style(str(self.pid), fg="cyan", bold=True))
         logger.info(message, extra={"color_message": color_message})
 
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.signal_handler)
 
-        for idx in range(self.config.workers):
-            process = get_subprocess(
-                config=self.config, target=self.target, sockets=self.sockets
-            )
+        for _idx in range(self.config.workers):
+            process = get_subprocess(config=self.config, target=self.target, sockets=self.sockets)
             process.start()
             self.processes.append(process)
 
@@ -67,8 +65,6 @@ class Multiprocess:
             process.terminate()
             process.join()
 
-        message = "Stopping parent process [{}]".format(str(self.pid))
-        color_message = "Stopping parent process [{}]".format(
-            click.style(str(self.pid), fg="cyan", bold=True)
-        )
+        message = f"Stopping parent process [{str(self.pid)}]"
+        color_message = "Stopping parent process [{}]".format(click.style(str(self.pid), fg="cyan", bold=True))
         logger.info(message, extra={"color_message": color_message})

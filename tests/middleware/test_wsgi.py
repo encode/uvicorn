@@ -1,19 +1,18 @@
+from __future__ import annotations
+
 import io
 import sys
-from typing import TYPE_CHECKING, AsyncGenerator, Callable, List
+from typing import AsyncGenerator, Callable
 
 import a2wsgi
 import httpx
 import pytest
 
-from uvicorn._types import Environ, StartResponse
+from uvicorn._types import Environ, HTTPRequestEvent, HTTPScope, StartResponse
 from uvicorn.middleware import wsgi
 
-if TYPE_CHECKING:
-    from asgiref.typing import HTTPRequestEvent, HTTPScope
 
-
-def hello_world(environ: Environ, start_response: StartResponse) -> List[bytes]:
+def hello_world(environ: Environ, start_response: StartResponse) -> list[bytes]:
     status = "200 OK"
     output = b"Hello World!\n"
     headers = [
@@ -24,7 +23,7 @@ def hello_world(environ: Environ, start_response: StartResponse) -> List[bytes]:
     return [output]
 
 
-def echo_body(environ: Environ, start_response: StartResponse) -> List[bytes]:
+def echo_body(environ: Environ, start_response: StartResponse) -> list[bytes]:
     status = "200 OK"
     output = environ["wsgi.input"].read()
     headers = [
@@ -35,11 +34,11 @@ def echo_body(environ: Environ, start_response: StartResponse) -> List[bytes]:
     return [output]
 
 
-def raise_exception(environ: Environ, start_response: StartResponse) -> List[bytes]:
+def raise_exception(environ: Environ, start_response: StartResponse) -> list[bytes]:
     raise RuntimeError("Something went wrong")
 
 
-def return_exc_info(environ: Environ, start_response: StartResponse) -> List[bytes]:
+def return_exc_info(environ: Environ, start_response: StartResponse) -> list[bytes]:
     try:
         raise RuntimeError("Something went wrong")
     except RuntimeError:
@@ -60,8 +59,8 @@ def wsgi_middleware(request: pytest.FixtureRequest) -> Callable:
 
 @pytest.mark.anyio
 async def test_wsgi_get(wsgi_middleware: Callable) -> None:
-    app = wsgi_middleware(hello_world)
-    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+    transport = httpx.ASGITransport(wsgi_middleware(hello_world))
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         response = await client.get("/")
     assert response.status_code == 200
     assert response.text == "Hello World!\n"
@@ -69,8 +68,8 @@ async def test_wsgi_get(wsgi_middleware: Callable) -> None:
 
 @pytest.mark.anyio
 async def test_wsgi_post(wsgi_middleware: Callable) -> None:
-    app = wsgi_middleware(echo_body)
-    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+    transport = httpx.ASGITransport(wsgi_middleware(echo_body))
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         response = await client.post("/", json={"example": 123})
     assert response.status_code == 200
     assert response.text == '{"example": 123}'
@@ -82,8 +81,8 @@ async def test_wsgi_put_more_body(wsgi_middleware: Callable) -> None:
         for _ in range(1024):
             yield b"123456789abcdef\n" * 64
 
-    app = wsgi_middleware(echo_body)
-    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+    transport = httpx.ASGITransport(wsgi_middleware(echo_body))
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         response = await client.put("/", content=generate_body())
     assert response.status_code == 200
     assert response.text == "123456789abcdef\n" * 64 * 1024
@@ -93,43 +92,34 @@ async def test_wsgi_put_more_body(wsgi_middleware: Callable) -> None:
 async def test_wsgi_exception(wsgi_middleware: Callable) -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
-    app = wsgi_middleware(raise_exception)
-    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+    transport = httpx.ASGITransport(wsgi_middleware(raise_exception))
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         with pytest.raises(RuntimeError):
             await client.get("/")
 
 
 @pytest.mark.anyio
 async def test_wsgi_exc_info(wsgi_middleware: Callable) -> None:
-    # Note that we're testing the WSGI app directly here.
-    # The HTTP protocol implementations would catch this error and return 500.
-    app = wsgi_middleware(return_exc_info)
-    async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
-        with pytest.raises(RuntimeError):
-            response = await client.get("/")
-
     app = wsgi_middleware(return_exc_info)
     transport = httpx.ASGITransport(
         app=app,
         raise_app_exceptions=False,
     )
-    async with httpx.AsyncClient(
-        transport=transport, base_url="http://testserver"
-    ) as client:
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         response = await client.get("/")
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
 
 
 def test_build_environ_encoding() -> None:
-    scope: "HTTPScope" = {
+    scope: HTTPScope = {
         "asgi": {"version": "3.0", "spec_version": "2.0"},
         "scheme": "http",
-        "raw_path": b"/\xe6\x96\x87",
+        "raw_path": b"/\xe6\x96\x87%2Fall",
         "type": "http",
         "http_version": "1.1",
         "method": "GET",
-        "path": "/文",
+        "path": "/文/all",
         "root_path": "/文",
         "client": None,
         "server": None,
@@ -137,11 +127,12 @@ def test_build_environ_encoding() -> None:
         "headers": [(b"key", b"value1"), (b"key", b"value2")],
         "extensions": {},
     }
-    message: "HTTPRequestEvent" = {
+    message: HTTPRequestEvent = {
         "type": "http.request",
         "body": b"",
         "more_body": False,
     }
     environ = wsgi.build_environ(scope, message, io.BytesIO(b""))
-    assert environ["PATH_INFO"] == "/文".encode("utf8").decode("latin-1")
+    assert environ["SCRIPT_NAME"] == "/文".encode().decode("latin-1")
+    assert environ["PATH_INFO"] == b"/all".decode("latin-1")
     assert environ["HTTP_KEY"] == "value1,value2"
