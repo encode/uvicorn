@@ -36,6 +36,17 @@ async def test_run(
     assert response.status_code == 204
 
 
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "tls_client_certificate, expected_common_name",
+    [
+        ("test common name", "test common name"),
+        (' \\,+"<>;=\000\n\r ', 'CN=\\ \\\\\\,\\+\\"\\<\\>\\;\\=\\\x00\\0a\\0d\\ '),
+    ],
+    indirect=["tls_client_certificate"],
+)
+
+
 @pytest.mark.asyncio
 async def test_run_httptools_client_cert(
     tls_ca_ssl_context,
@@ -43,7 +54,14 @@ async def test_run_httptools_client_cert(
     tls_certificate_private_key_path,
     tls_ca_certificate_pem_path,
     tls_client_certificate_pem_path,
+    expected_common_name,
 ):
+    async def app(scope, receive, send):
+        assert scope["type"] == "http"
+        assert expected_common_name in scope["extensions"]["tls"]["client_cert_name"]
+        await send({"type": "http.response.start", "status": 204, "headers": []})
+        await send({"type": "http.response.body", "body": b"", "more_body": False})
+
     config = Config(
         app=app,
         loop="asyncio",

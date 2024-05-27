@@ -143,6 +143,6 @@ def get_tls_info(transport: asyncio.Transport) -> dict[object, object]:
         ssl_info["tls_version"] = (
             TLS_VERSION_MAP[ssl_object.version()] if ssl_object.version() in TLS_VERSION_MAP else None
         )
-        ssl_info["cipher_suite"] = TLS_CIPHER_SUITES[ssl_object.cipher()[0]]
+        ssl_info["cipher_suite"] = getattr(TLS_CIPHER_SUITES, ssl_object.cipher()[0], None)
 
     return ssl_info
