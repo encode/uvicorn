@@ -5,16 +5,17 @@ import ssl
 import urllib.parse
 
 from uvicorn._types import WWWScope
+from uvicorn.protocols.http.tls_const import TLS_CIPHER_SUITES
 
 RDNS_MAPPING: dict[str, str] = {
+    "domainComponent": "DC",
     "commonName": "CN",
+    "organizationalUnitName": "OU",
+    "organizationName": "O",
+    "streetAddress": "STREET",
     "localityName": "L",
     "stateOrProvinceName": "ST",
-    "organizationName": "O",
-    "organizationalUnitName": "OU",
     "countryName": "C",
-    "streetAddress": "STREET",
-    "domainComponent": "DC",
     "userId": "UID",
 }
 
@@ -76,6 +77,32 @@ def get_path_with_query_string(scope: WWWScope) -> str:
     return path_with_query_string
 
 
+def escape_dn_chars(s: str) -> str:
+    """
+    Escape all DN special characters found in s
+    with a back-slash (see RFC 4514, section 2.4)
+
+    Based upon the implementation here - https://github.com/python-ldap/python-ldap/blob/e885b621562a3c987934be3fba3873d21026bf5c/Lib/ldap/dn.py#L17
+    """
+    if s:
+        s = s.replace("\\", "\\\\")
+        s = s.replace(",", "\\,")
+        s = s.replace("+", "\\+")
+        s = s.replace('"', '\\"')
+        s = s.replace("<", "\\<")
+        s = s.replace(">", "\\>")
+        s = s.replace(";", "\\;")
+        s = s.replace("=", "\\=")
+        s = s.replace("\000", "\\\000")
+        s = s.replace("\n", "\\0a")
+        s = s.replace("\r", "\\0d")
+        if s[-1] == " ":
+            s = "".join((s[:-1], "\\ "))
+        if s[0] == "#" or s[0] == " ":
+            s = "".join(("\\", s))
+    return s
+
+
 def get_tls_info(transport: asyncio.Transport) -> dict[object, object]:
     ###
     # server_cert: Unable to set from transport information
@@ -83,7 +110,7 @@ def get_tls_info(transport: asyncio.Transport) -> dict[object, object]:
     # client_cert_name:
     # client_cert_error: No access to this
     # tls_version:
-    # cipher_suite: Too hard to convert without direct access to openssl
+    # cipher_suite:
     ###
 
     ssl_info: dict[object, object] = {
@@ -103,15 +130,19 @@ def get_tls_info(transport: asyncio.Transport) -> dict[object, object]:
         for rdn in peercert["subject"]:
             rdn_strings.append(
                 "+".join(
-                    [f"{RDNS_MAPPING[entry[0]]} = {entry[1]}" for entry in reversed(rdn) if entry[0] in RDNS_MAPPING]
+                    [
+                        f"{RDNS_MAPPING[entry[0]]}={escape_dn_chars(entry[1])}"
+                        for entry in reversed(rdn)
+                        if entry[0] in RDNS_MAPPING
+                    ]
                 )
             )
 
         ssl_info["client_cert_chain"] = [ssl.DER_cert_to_PEM_cert(ssl_object.getpeercert(binary_form=True))]
-        ssl_info["client_cert_name"] = ", ".join(rdn_strings) if rdn_strings else ""
+        ssl_info["client_cert_name"] = ",".join(rdn_strings) if rdn_strings else ""
         ssl_info["tls_version"] = (
             TLS_VERSION_MAP[ssl_object.version()] if ssl_object.version() in TLS_VERSION_MAP else None
         )
-        ssl_info["cipher_suite"] = list(ssl_object.cipher())
+        ssl_info["cipher_suite"] = TLS_CIPHER_SUITES[ssl_object.cipher()[0]]
 
     return ssl_info
