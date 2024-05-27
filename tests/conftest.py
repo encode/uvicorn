@@ -58,7 +58,9 @@ def tls_certificate(tls_certificate_authority: trustme.CA) -> trustme.LeafCert:
 
 @pytest.fixture
 def tls_client_certificate(request, tls_certificate_authority: trustme.CA) -> trustme.LeafCert:
-    return tls_certificate_authority.issue_cert("client@example.com", common_name=getattr(request, "param", "uvicorn client"))
+    return tls_certificate_authority.issue_cert(
+        "client@example.com", common_name=getattr(request, "param", "uvicorn client")
+    )
 
 
 @pytest.fixture
