@@ -2,7 +2,19 @@
 
 ## 0.30.0 (2024-05-25)
 
-Need to add everything here.
+### Added
+
+- New multiprocess manager (#2183)
+- Allow `ConfigParser` or a `io.IO[Any]` on `log_config` (#1976)
+
+### Fixed
+
+- Suppress side-effects of signal propagation (#2317)
+- Send `content-length` header on 5xx (#2304)
+
+### Deprecated
+
+- Deprecate the `uvicorn.workers` module (#2302)
 
 ## 0.29.0 (2024-03-19)
 
