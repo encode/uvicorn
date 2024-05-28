@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.30.1 (2024-05-28)
+
+### Fixed
+
+- Allow horizontal tabs `\t` in response header values (#2345)
+
 ## 0.30.0 (2024-05-28)
 
 ### Added
