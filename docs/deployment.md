@@ -178,7 +178,23 @@ Running Uvicorn using a process manager ensures that you can run multiple proces
 
 A process manager will handle the socket setup, start-up multiple server processes, monitor process aliveness, and listen for signals to provide for processes restarts, shutdowns, or dialing up and down the number of running processes.
 
-Uvicorn provides a lightweight way to run multiple worker processes, for example `--workers 4`, but does not provide any process monitoring.
+### Built-in
+
+Uvicorn includes a `--workers` option that allows you to run multiple worker processes.
+
+```bash
+$ uvicorn main:app --workers 4
+```
+
+Unlike gunicorn, uvicorn does not use pre-fork, but uses [`spawn`](https://docs.python.org/3/library/multiprocessing.html#contexts-and-start-methods), which allows uvicorn's multiprocess manager to still work well on Windows.
+
+The default process manager monitors the status of child processes and automatically restarts child processes that die unexpectedly. Not only that, it will also monitor the status of the child process through the pipeline. When the child process is accidentally stuck, the corresponding child process will be killed through an unstoppable system signal or interface.
+
+You can also manage child processes by sending specific signals to the main process. (Not supported on Windows.)
+
+- `SIGHUP`: Work processeses are graceful restarted one after another. If you update the code, the new worker process will use the new code.
+- `SIGTTIN`: Increase the number of worker processes by one.
+- `SIGTTOU`: Decrease the number of worker processes by one.
 
 ### Gunicorn
 
