@@ -243,9 +243,8 @@ class Server:
 
             # Callback to `callback_notify` once every `timeout_notify` seconds.
             if self.config.callback_notify is not None:
-                if current_time - self.last_notified > self.config.timeout_notify:
-                    self.last_notified = current_time
-                    await self.config.callback_notify()
+                self.last_notified = current_time
+                await self.config.callback_notify()
 
         # Determine if we should exit.
         if self.should_exit:
