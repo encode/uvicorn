@@ -5,6 +5,7 @@ import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
+import signal
 from socket import socket
 
 from uvicorn import Config, Server
@@ -20,6 +21,17 @@ async def run_server(config: Config, sockets: list[socket] | None = None) -> Asy
     finally:
         await server.shutdown()
         task.cancel()
+
+
+@contextmanager
+def assert_signal(sig: int):
+    seen: set[int] = set()
+    prev_handler = signal.signal(sig, lambda num, frame: seen.add(num))
+    try:
+        yield
+    finally:
+        signal.signal(sig, prev_handler)
+        assert sig in seen
 
 
 @contextmanager
