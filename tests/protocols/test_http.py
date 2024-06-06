@@ -133,6 +133,18 @@ GET_REQUEST_HUGE_HEADERS = [
     b"".join([b"x" * 32 * 1024 + b"\r\n", b"\r\n", b"\r\n"]),
 ]
 
+UPGRADE_REQUEST_ERROR_FIELD = b"\r\n".join(
+    [
+        b"GET / HTTP/1.1",
+        b"Host: example.org",
+        b"Connection: upgrade",
+        b"Upgrade: not-websocket",
+        b"Sec-WebSocket-Version: 11",
+        b"",
+        b"",
+    ]
+)
+
 
 class MockTransport:
     def __init__(self, sockname=None, peername=None, sslcontext=False):
@@ -1021,3 +1033,23 @@ async def test_lifespan_state(http_protocol_cls: HTTPProtocol):
         assert b"Hi!" in protocol.transport.buffer
 
     assert not expected_states  # consumed
+
+
+async def test_headers_upgrade_is_not_websocket_with_httptools(caplog: pytest.LogCaptureFixture):
+    caplog.set_level(logging.WARNING, logger="uvicorn.error")
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, HttpToolsProtocol)
+    protocol.data_received(UPGRADE_REQUEST_ERROR_FIELD)
+    await protocol.loop.run_one()
+    assert "Unsupported upgrade request." not in caplog.text
+
+
+async def test_headers_upgrade_is_not_websocket_with_h11(caplog: pytest.LogCaptureFixture):
+    caplog.set_level(logging.WARNING, logger="uvicorn.error")
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, H11Protocol)
+    protocol.data_received(UPGRADE_REQUEST_ERROR_FIELD)
+    await protocol.loop.run_one()
+    assert "Unsupported upgrade request." not in caplog.text
