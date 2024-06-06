@@ -141,21 +141,21 @@ class HttpToolsProtocol(asyncio.Protocol):
             return upgrade
         return None
 
-    def _should_upgrade_to_ws(self, upgrade: bytes | None) -> bool:
-        if upgrade != b"websocket":
+    def _should_upgrade_to_ws(self) -> bool:
+        if self.ws_protocol_class is None:
+            if self.config.ws == "auto":
+                msg = "Unsupported upgrade request."
+                self.logger.warning(msg)
+                msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
+                self.logger.warning(msg)
             return False
-        if upgrade == b"websocket" and self.ws_protocol_class is not None:
-            return True
-        if self.config.ws == "auto":
-            msg = "Unsupported upgrade request."
-            self.logger.warning(msg)
-            msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
-            self.logger.warning(msg)
-        return False
+        return True
 
     def _should_upgrade(self) -> bool:
         upgrade = self._get_upgrade()
-        return self._should_upgrade_to_ws(upgrade)
+        if upgrade == b"websocket" and self._should_upgrade_to_ws():
+            return True
+        return False
 
     def data_received(self, data: bytes) -> None:
         self._unset_keepalive_if_required()
@@ -168,8 +168,7 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.send_400_response(msg)
             return
         except httptools.HttpParserUpgrade:
-            upgrade = self._get_upgrade()
-            if self._should_upgrade_to_ws(upgrade):
+            if self._should_upgrade():
                 self.handle_websocket_upgrade()
 
     def handle_websocket_upgrade(self) -> None:
