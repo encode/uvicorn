@@ -142,6 +142,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         return None
 
     def _should_upgrade_to_ws(self, upgrade: bytes | None) -> bool:
+        if upgrade != b"websocket":
+            return False
         if upgrade == b"websocket" and self.ws_protocol_class is not None:
             return True
         if self.config.ws == "auto":
