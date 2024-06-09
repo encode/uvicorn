@@ -2,8 +2,10 @@ site_name: Uvicorn
 site_description: The lightning-fast ASGI server.
 
 theme:
-  name: "material"
+  name: material
   custom_dir: docs/overrides
+  logo: uvicorn.png
+  favicon: uvicorn.png
   palette:
     - scheme: "default"
       media: "(prefers-color-scheme: light)"
@@ -24,12 +26,12 @@ repo_url: https://github.com/encode/uvicorn
 edit_uri: ""
 
 nav:
-  - Introduction: "index.md"
-  - Settings: "settings.md"
-  - Deployment: "deployment.md"
-  - Server Behavior: "server-behavior.md"
-  - Release Notes: "release-notes.md"
-  - Contributing: "contributing.md"
+  - Introduction: index.md
+  - Settings: settings.md
+  - Deployment: deployment.md
+  - Server Behavior: server-behavior.md
+  - Release Notes: release-notes.md
+  - Contributing: contributing.md
 
 markdown_extensions:
   - admonition
@@ -40,3 +42,6 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+
+hooks:
+  - docs/plugins/main.py
