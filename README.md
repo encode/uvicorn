@@ -133,7 +133,7 @@ $ hypercorn app:App
 
 ### Granian
 
-[Granian][granian] is a Rust HTTP server for Python applications which supports ASGI/3, RSGI and WSGI, HTTP/1 and HTTP/2, HTTPS and WebSockets.
+[Granian][granian] is an ASGI compatible Rust HTTP server which supports HTTP/2, TLS and WebSockets.
 
 ---
 
