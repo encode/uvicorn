@@ -131,6 +131,10 @@ $ hypercorn app:App
 
 [Mangum][mangum] is an adapter for using ASGI applications with AWS Lambda & API Gateway.
 
+### Granian
+
+[Granian][granian] is an ASGI compatible Rust HTTP server which supports HTTP/2, TLS and WebSockets.
+
 ---
 
 <p align="center"><i>Uvicorn is <a href="https://github.com/encode/uvicorn/blob/master/LICENSE.md">BSD licensed</a> code.<br/>Designed & crafted with care.</i><br/>&mdash; 🦄  &mdash;</p>
@@ -138,5 +142,6 @@ $ hypercorn app:App
 [asgi]: https://asgi.readthedocs.io/en/latest/
 [daphne]: https://github.com/django/daphne
 [hypercorn]: https://github.com/pgjones/hypercorn
-[mangum]: https://mangum.io
 [trio]: https://trio.readthedocs.io
+[mangum]: https://github.com/jordaneremieff/mangum
+[granian]: https://github.com/emmett-framework/granian
