@@ -134,7 +134,7 @@ class Multiprocess:
             process.join()
 
     def restart_all(self) -> None:
-        for idx, process in enumerate(tuple(self.processes)):
+        for idx, process in enumerate(self.processes):
             process.terminate()
             process.join()
             new_process = Process(self.config, self.target, self.sockets)
@@ -163,7 +163,7 @@ class Multiprocess:
         if self.should_exit.is_set():
             return  # parent process is exiting, no need to keep subprocess alive
 
-        for idx, process in enumerate(tuple(self.processes)):
+        for idx, process in enumerate(self.processes):
             if process.is_alive():
                 continue
 
