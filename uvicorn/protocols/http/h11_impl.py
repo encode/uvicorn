@@ -262,7 +262,7 @@ class H11Protocol(asyncio.Protocol):
                 if self.conn.their_state == h11.MUST_CLOSE and self.conn.trailing_data:
                     # Client connection is required to be closed, but there is some data in request buffer,
                     # which needs to be overridden with empty buffer to skip processing the rest of the request
-                    self.conn._receive_buffer = b''
+                    self.conn._receive_buffer._data = bytearray()
                     continue
                 self.cycle.more_body = False
                 self.cycle.message_event.set()
