@@ -174,10 +174,9 @@ class Multiprocess:
                 return
 
             logger.info(f"Child process [{process.pid}] died")
-            del self.processes[idx]
             process = Process(self.config, self.target, self.sockets)
             process.start()
-            self.processes.append(process)
+            self.processes[idx] = process
 
     def handle_signals(self) -> None:
         for sig in tuple(self.signal_queue):
