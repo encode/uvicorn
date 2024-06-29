@@ -1,3 +1,5 @@
+import ssl
+
 import httpx
 import pytest
 
@@ -31,6 +33,69 @@ async def test_run(
     async with run_server(config):
         async with httpx.AsyncClient(verify=tls_ca_ssl_context) as client:
             response = await client.get(f"https://127.0.0.1:{unused_tcp_port}")
+    assert response.status_code == 204
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "tls_client_certificate, expected_common_name",
+    [
+        ("test common name", "test common name"),
+        (' \\,+"<>;=\000\n\r ', 'CN=\\ \\\\\\,\\+\\"\\<\\>\\;\\=\\\x00\\0a\\0d\\ '),
+    ],
+    indirect=["tls_client_certificate"],
+)
+async def test_run_httptools_client_cert(
+    tls_ca_ssl_context,
+    tls_certificate_server_cert_path,
+    tls_certificate_private_key_path,
+    tls_ca_certificate_pem_path,
+    tls_client_certificate_pem_path,
+    expected_common_name,
+):
+    async def app(scope, receive, send):
+        assert scope["type"] == "http"
+        assert expected_common_name in scope["extensions"]["tls"]["client_cert_name"]
+        await send({"type": "http.response.start", "status": 204, "headers": []})
+        await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+    config = Config(
+        app=app,
+        loop="asyncio",
+        http="httptools",
+        limit_max_requests=1,
+        ssl_keyfile=tls_certificate_private_key_path,
+        ssl_certfile=tls_certificate_server_cert_path,
+        ssl_ca_certs=tls_ca_certificate_pem_path,
+        ssl_cert_reqs=ssl.CERT_REQUIRED,
+    )
+    async with run_server(config):
+        async with httpx.AsyncClient(verify=tls_ca_ssl_context, cert=tls_client_certificate_pem_path) as client:
+            response = await client.get("https://127.0.0.1:8000")
+    assert response.status_code == 204
+
+
+@pytest.mark.anyio
+async def test_run_h11_client_cert(
+    tls_ca_ssl_context,
+    tls_ca_certificate_pem_path,
+    tls_certificate_server_cert_path,
+    tls_certificate_private_key_path,
+    tls_client_certificate_pem_path,
+):
+    config = Config(
+        app=app,
+        loop="asyncio",
+        http="h11",
+        limit_max_requests=1,
+        ssl_keyfile=tls_certificate_private_key_path,
+        ssl_certfile=tls_certificate_server_cert_path,
+        ssl_ca_certs=tls_ca_certificate_pem_path,
+        ssl_cert_reqs=ssl.CERT_REQUIRED,
+    )
+    async with run_server(config):
+        async with httpx.AsyncClient(verify=tls_ca_ssl_context, cert=tls_client_certificate_pem_path) as client:
+            response = await client.get("https://127.0.0.1:8000")
     assert response.status_code == 204
 
 
