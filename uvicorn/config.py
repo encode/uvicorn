@@ -223,7 +223,7 @@ class Config:
         headers: list[tuple[str, str]] | None = None,
         factory: bool = False,
         h11_max_incomplete_event_size: int | None = None,
-        shutdown_delay: int = 0
+        shutdown_delay: float = 0
     ):
         self.app = app
         self.host = host
