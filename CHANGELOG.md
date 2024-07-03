@@ -8,7 +8,7 @@
 
 ### Fixed
 
-- Iterate subprocesses in-place (#2373)
+- Iterate subprocesses in-place on the process manager (#2373)
 
 ## 0.30.1 (2024-06-02)
 
