@@ -1,5 +1,15 @@
 # Change Log
 
+## 0.30.2 (2024-07-03)
+
+### Added
+
+- Add reason support on WebSocketDisconnectEvent (#2324)
+
+### Fixed
+
+- Iterate subprocesses in-place (#2373)
+
 ## 0.30.1 (2024-06-02)
 
 ### Fixed
