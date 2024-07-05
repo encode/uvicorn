@@ -102,7 +102,8 @@ def test_run_match_config_params() -> None:
         if key not in ("self", "timeout_notify", "callback_notify")
     }
     run_params = {
-        key: repr(value) for key, value in inspect.signature(run).parameters.items() if key not in ("app_dir",)
+        key: repr(value) for key, value in inspect.signature(run).parameters.items()
+        if key not in ("app_dir", "suppress_ki")
     }
     assert config_params == run_params
 
