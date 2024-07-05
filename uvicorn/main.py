@@ -507,6 +507,7 @@ def run(
     app_dir: str | None = None,
     factory: bool = False,
     h11_max_incomplete_event_size: int | None = None,
+    suppress_ki: bool = False,
 ) -> None:
     if app_dir is not None:
         sys.path.insert(0, app_dir)
@@ -577,7 +578,9 @@ def run(
             server.run()
     except KeyboardInterrupt:
         # KI is received deep inside asyncio and comes with a noisy traceback
-        # raise a new KI here to shorten the traceback
+        # suppress it or raise a new KI here to shorten the traceback
+        if suppress_ki:
+            return
         raise KeyboardInterrupt("quit uvicorn") from None
     finally:
         if config.uds and os.path.exists(config.uds):
