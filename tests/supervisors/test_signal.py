@@ -5,7 +5,7 @@ from asyncio import Event
 import httpx
 import pytest
 
-from tests.utils import run_server, assert_signal
+from tests.utils import assert_signal, run_server
 from uvicorn import Server
 from uvicorn.config import Config
 

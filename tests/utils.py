@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import os
+import signal
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
-import signal
 from socket import socket
 
 from uvicorn import Config, Server
