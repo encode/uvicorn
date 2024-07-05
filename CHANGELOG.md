@@ -4,7 +4,7 @@
 
 ### Added
 
-- Add reason support on WebSocketDisconnectEvent (#2324)
+- Add reason support to WebSocketDisconnectEvent (#2324)
 
 ### Fixed
 
