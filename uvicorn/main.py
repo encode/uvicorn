@@ -575,6 +575,10 @@ def run(
             Multiprocess(config, target=server.run, sockets=[sock]).run()
         else:
             server.run()
+    except KeyboardInterrupt:
+        # KI is received deep inside asyncio and comes with a noisy traceback
+        # raise a new KI here to shorten the traceback
+        raise KeyboardInterrupt("quit uvicorn") from None
     finally:
         if config.uds and os.path.exists(config.uds):
             os.remove(config.uds)  # pragma: py-win32
