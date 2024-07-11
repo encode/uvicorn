@@ -211,11 +211,11 @@ Gunicorn is probably the simplest way to run and manage Uvicorn in a production 
 
 The following will start Gunicorn with four worker processes:
 
-`gunicorn -w 4 -k uvicorn.workers.UvicornWorker`
+`gunicorn -w 4 -k uvicorn_worker.UvicornWorker`
 
 The `UvicornWorker` implementation uses the `uvloop` and `httptools` implementations. To run under PyPy you'll want to use pure-python implementation instead. You can do this by using the `UvicornH11Worker` class.
 
-`gunicorn -w 4 -k uvicorn.workers.UvicornH11Worker`
+`gunicorn -w 4 -k uvicorn_worker.UvicornH11Worker`
 
 Gunicorn provides a different set of configuration options to Uvicorn, so  some options such as `--limit-concurrency` are not yet supported when running with Gunicorn.
 
