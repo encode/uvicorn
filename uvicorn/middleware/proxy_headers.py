@@ -11,9 +11,34 @@ https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies
 
 from __future__ import annotations
 
+import ipaddress
 from typing import Union, cast
 
-from uvicorn._types import ASGI3Application, ASGIReceiveCallable, ASGISendCallable, HTTPScope, Scope, WebSocketScope
+from uvicorn._types import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    HTTPScope,
+    Scope,
+    WebSocketScope,
+)
+
+
+def _address_to_network(
+    host: str,
+) -> ipaddress.IPv4Network | ipaddress.IPv6Network:
+    address = ipaddress.ip_address(host)
+    return ipaddress.ip_network(int(address))
+
+
+def _networks_contain_address(
+    networks: list[ipaddress.IPv4Network | ipaddress.IPv6Network],
+    address: ipaddress.IPv4Address | ipaddress.IPv6Address,
+) -> bool:
+    for network in networks:
+        if address in network:
+            return True
+    return False
 
 
 class ProxyHeadersMiddleware:
@@ -21,6 +46,7 @@ class ProxyHeadersMiddleware:
         self,
         app: ASGI3Application,
         trusted_hosts: list[str] | str = "127.0.0.1",
+        trusted_networks: (list[ipaddress.IPv4Network | ipaddress.IPv6Network] | None) = None,
     ) -> None:
         self.app = app
         if isinstance(trusted_hosts, str):
@@ -29,12 +55,17 @@ class ProxyHeadersMiddleware:
             self.trusted_hosts = set(trusted_hosts)
         self.always_trust = "*" in self.trusted_hosts
 
+        self.trusted_networks = trusted_networks or []
+
+        if not self.always_trust:
+            self.trusted_networks += [_address_to_network(host) for host in self.trusted_hosts]
+
     def get_trusted_client_host(self, x_forwarded_for_hosts: list[str]) -> str | None:
         if self.always_trust:
             return x_forwarded_for_hosts[0]
 
         for host in reversed(x_forwarded_for_hosts):
-            if host not in self.trusted_hosts:
+            if not _networks_contain_address(self.trusted_networks, ipaddress.ip_address(host)):
                 return host
 
         return None
