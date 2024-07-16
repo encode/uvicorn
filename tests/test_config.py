@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import configparser
+import contextlib
 import io
 import json
 import logging
@@ -8,6 +10,8 @@ import os
 import socket
 import sys
 import typing
+from asyncio.events import BaseDefaultEventLoopPolicy
+from contextlib import closing
 from pathlib import Path
 from typing import Any, Literal
 from unittest.mock import MagicMock
@@ -545,3 +549,77 @@ def test_warn_when_using_reload_and_workers(caplog: pytest.LogCaptureFixture) ->
     Config(app=asgi_app, reload=True, workers=2)
     assert len(caplog.records) == 1
     assert '"workers" flag is ignored when reloading is enabled.' in caplog.records[0].message
+
+
+def custom_loop(use_subprocess: bool):
+    asyncio.set_event_loop_policy(CustomEventLoopPolicy())
+
+
+@contextlib.contextmanager
+def with_event_loop_cleanup() -> typing.Generator[None, None, None]:
+    """
+    Cleanup the event loop policy after the test.
+    """
+    yield
+    asyncio.set_event_loop_policy(None)
+
+
+class CustomLoop(asyncio.SelectorEventLoop):
+    pass
+
+
+class CustomEventLoopPolicy(BaseDefaultEventLoopPolicy):
+    def set_child_watcher(self, watcher):
+        raise NotImplementedError
+
+    def get_child_watcher(self):
+        raise NotImplementedError
+
+    def _loop_factory(self) -> CustomLoop:
+        return CustomLoop()
+
+
+def test_custom_loop__importable_custom_loop_setup_function() -> None:
+    with with_event_loop_cleanup():
+        config = Config(app=asgi_app, loop="custom", loop_setup="tests.test_config:custom_loop")
+        config.load()
+        config.setup_event_loop()
+        event_loop = asyncio.new_event_loop()
+        with closing(event_loop):
+            assert event_loop is not None
+            assert isinstance(event_loop, CustomLoop)
+
+
+@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
+def test_custom_loop__not_importable_custom_loop_setup_function(caplog: pytest.LogCaptureFixture) -> None:
+    with with_event_loop_cleanup():
+        config = Config(app=asgi_app, loop="custom", loop_setup="tests.test_config:non_existing_setup_function")
+        config.load()
+        with pytest.raises(SystemExit):
+            config.setup_event_loop()
+        error_messages = [
+            record.message
+            for record in caplog.records
+            if record.name == "uvicorn.error" and record.levelname == "ERROR"
+        ]
+        assert (
+            'Error loading custom loop setup function. Attribute "non_existing_setup_function" not found in module "tests.test_config".'  # noqa: E501
+            == error_messages.pop(0)
+        )
+
+
+def test_custom_loop__no_loop_setup_passed(caplog: pytest.LogCaptureFixture) -> None:
+    with with_event_loop_cleanup():
+        config = Config(app=asgi_app, loop="custom")
+        config.load()
+        with pytest.raises(SystemExit):
+            config.setup_event_loop()
+        error_messages = [
+            record.message
+            for record in caplog.records
+            if record.name == "uvicorn.error" and record.levelname == "ERROR"
+        ]
+        assert (
+            "Custom loop setup is selected but no loop setup callable was provided."  # noqa: E501
+            == error_messages.pop(0)
+        )
