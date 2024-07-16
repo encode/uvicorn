@@ -123,6 +123,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     show_default=True,
 )
 @click.option(
+    "--loop-setup",
+    type=str,
+    default=None,
+    help="Import path to event loop setup function., i.e. a (use_subprocess: bool) -> None callable.",
+    show_default=True,
+)
+@click.option(
     "--http",
     type=HTTP_CHOICES,
     default="auto",
@@ -365,6 +372,7 @@ def main(
     uds: str,
     fd: int,
     loop: LoopSetupType,
+    loop_setup: str | None,
     http: HTTPProtocolType,
     ws: WSProtocolType,
     ws_max_size: int,
@@ -414,6 +422,7 @@ def main(
         uds=uds,
         fd=fd,
         loop=loop,
+        loop_setup=loop_setup,
         http=http,
         ws=ws,
         ws_max_size=ws_max_size,
@@ -466,6 +475,7 @@ def run(
     uds: str | None = None,
     fd: int | None = None,
     loop: LoopSetupType = "auto",
+    loop_setup: str | None = None,
     http: type[asyncio.Protocol] | HTTPProtocolType = "auto",
     ws: type[asyncio.Protocol] | WSProtocolType = "auto",
     ws_max_size: int = 16777216,
@@ -518,6 +528,7 @@ def run(
         uds=uds,
         fd=fd,
         loop=loop,
+        loop_setup=loop_setup,
         http=http,
         ws=ws,
         ws_max_size=ws_max_size,

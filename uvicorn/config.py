@@ -26,7 +26,7 @@ from uvicorn.middleware.wsgi import WSGIMiddleware
 HTTPProtocolType = Literal["auto", "h11", "httptools"]
 WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
 LifespanType = Literal["auto", "on", "off"]
-LoopSetupType = Literal["none", "auto", "asyncio", "uvloop"]
+LoopSetupType = Literal["custom", "none", "auto", "asyncio", "uvloop"]
 InterfaceType = Literal["auto", "asgi3", "asgi2", "wsgi"]
 
 LOG_LEVELS: dict[str, int] = {
@@ -55,6 +55,7 @@ LIFESPAN: dict[LifespanType, str] = {
 }
 LOOP_SETUPS: dict[LoopSetupType, str | None] = {
     "none": None,
+    "custom": None,
     "auto": "uvicorn.loops.auto:auto_loop_setup",
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
@@ -181,6 +182,7 @@ class Config:
         uds: str | None = None,
         fd: int | None = None,
         loop: LoopSetupType = "auto",
+        loop_setup: str | None = None,
         http: type[asyncio.Protocol] | HTTPProtocolType = "auto",
         ws: type[asyncio.Protocol] | WSProtocolType = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
@@ -230,6 +232,7 @@ class Config:
         self.uds = uds
         self.fd = fd
         self.loop = loop
+        self.loop_setup = loop_setup
         self.http = http
         self.ws = ws
         self.ws_max_size = ws_max_size
@@ -472,7 +475,20 @@ class Config:
         self.loaded = True
 
     def setup_event_loop(self) -> None:
-        loop_setup: Callable | None = import_from_string(LOOP_SETUPS[self.loop])
+        loop_setup: Callable | None = None
+
+        if self.loop == "custom":
+            if self.loop_setup is None:
+                logger.error("Custom loop setup is selected but no loop setup callable was provided.")
+                sys.exit(1)
+            try:
+                loop_setup = import_from_string(self.loop_setup)
+            except ImportFromStringError as exc:
+                logger.error("Error loading custom loop setup function. %s" % exc)
+                sys.exit(1)
+        else:
+            loop_setup = import_from_string(LOOP_SETUPS[self.loop])
+
         if loop_setup is not None:
             loop_setup(use_subprocess=self.use_subprocess)
 
