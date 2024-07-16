@@ -127,7 +127,11 @@ Options:
   --workers INTEGER               Number of worker processes. Defaults to the
                                   $WEB_CONCURRENCY environment variable if
                                   available, or 1. Not valid with --reload.
-  --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
+  --loop [custom|auto|asyncio|uvloop]
+                                  Event loop implementation.  [default: auto]
+  --loop-setup TEXT               Import path to event loop setup function.,
+                                  i.e. a (use_subprocess: bool) -> None
+                                  callable.
   --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
                                   auto]
   --ws [auto|none|websockets|wsproto]
