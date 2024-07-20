@@ -70,7 +70,7 @@ def subprocess_started(
     """
     # Re-open stdin.
     if stdin_fileno is not None:
-        sys.stdin = os.fdopen(stdin_fileno)
+        sys.stdin = os.fdopen(stdin_fileno)  # pragma: full coverage
 
     # Logging needs to be setup again for each child.
     config.configure_logging()
