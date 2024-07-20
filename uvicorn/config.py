@@ -153,11 +153,11 @@ def resolve_reload_patterns(patterns_list: list[str], directories_list: list[str
 
     children = []
     for j in range(len(directories)):
-        for k in range(j + 1, len(directories)):
+        for k in range(j + 1, len(directories)):  # pragma: full coverage
             if directories[j] in directories[k].parents:
-                children.append(directories[k])  # pragma: py-darwin
+                children.append(directories[k])
             elif directories[k] in directories[j].parents:
-                children.append(directories[j])  # pragma: full coverage
+                children.append(directories[j])
 
     directories = list(set(directories).difference(set(children)))
 
