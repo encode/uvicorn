@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.30.3 (2024-07-20)
+
+### Fixed
+
+- Suppress `KeyboardInterrupt` from CLI and programmatic usage (#2384)
+- `ClientDisconnect` inherits from `OSError` instead of `IOError` (#2393)
+
 ## 0.30.2 (2024-07-20)
 
 ### Added
