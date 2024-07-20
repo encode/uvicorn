@@ -382,7 +382,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             self.closed_event.set()
             if self.ws_server.closing:
                 return {"type": "websocket.disconnect", "code": 1012}
-            return {"type": "websocket.disconnect", "code": exc.code}
+            return {"type": "websocket.disconnect", "code": exc.code, "reason": exc.reason}
 
         if isinstance(data, str):
             return {"type": "websocket.receive", "text": data}
