@@ -60,15 +60,20 @@ SIMPLE_POST_REQUEST = b"\r\n".join(
 )
 
 CONNECTION_CLOSE_REQUESTS = [
-    b"\r\n".join(
-        [b"GET / HTTP/1.1", b"Host: example.org", b"Connection: close", b"", b""]
-    ),
+    b"\r\n".join([b"GET / HTTP/1.1", b"Host: example.org", b"Connection: close", b"", b""]),
     b"\r\n".join(
         [
-            b"GET / HTTP/1.1", b"Host: example.org", b"Connection: close", b"", b"",
-            b"GET / HTTP/1.1", b"Host: example.org", b"", b""
+            b"GET / HTTP/1.1",
+            b"Host: example.org",
+            b"Connection: close",
+            b"",
+            b"",
+            b"GET / HTTP/1.1",
+            b"Host: example.org",
+            b"",
+            b"",
         ]
-    )
+    ),
 ]
 
 LARGE_POST_REQUEST = b"\r\n".join(
