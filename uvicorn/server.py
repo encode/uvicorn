@@ -112,7 +112,7 @@ class Server:
         loop = asyncio.get_running_loop()
 
         listeners: Sequence[socket.SocketType]
-        if sockets is not None:
+        if sockets is not None:  # pragma: full coverage
             # Explicitly passed a list of open sockets.
             # We use this when the server is run from a Gunicorn worker.
 
@@ -147,7 +147,7 @@ class Server:
             # Create a socket using UNIX domain socket.
             uds_perms = 0o666
             if os.path.exists(config.uds):
-                uds_perms = os.stat(config.uds).st_mode
+                uds_perms = os.stat(config.uds).st_mode  # pragma: full coverage
             server = await loop.create_unix_server(
                 create_protocol, path=config.uds, ssl=config.ssl, backlog=config.backlog
             )
@@ -180,7 +180,7 @@ class Server:
         else:
             # We're most likely running multiple workers, so a message has already been
             # logged by `config.bind_socket()`.
-            pass
+            pass  # pragma: full coverage
 
         self.started = True
 
@@ -243,7 +243,7 @@ class Server:
 
             # Callback to `callback_notify` once every `timeout_notify` seconds.
             if self.config.callback_notify is not None:
-                if current_time - self.last_notified > self.config.timeout_notify:
+                if current_time - self.last_notified > self.config.timeout_notify:  # pragma: full coverage
                     self.last_notified = current_time
                     await self.config.callback_notify()
 
@@ -261,7 +261,7 @@ class Server:
         for server in self.servers:
             server.close()
         for sock in sockets or []:
-            sock.close()
+            sock.close()  # pragma: full coverage
 
         # Request shutdown on all existing connections.
         for connection in list(self.server_state.connections):
@@ -330,6 +330,6 @@ class Server:
     def handle_exit(self, sig: int, frame: FrameType | None) -> None:
         self._captured_signals.append(sig)
         if self.should_exit and sig == signal.SIGINT:
-            self.force_exit = True
+            self.force_exit = True  # pragma: full coverage
         else:
             self.should_exit = True
