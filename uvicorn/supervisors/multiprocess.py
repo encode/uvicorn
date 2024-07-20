@@ -171,7 +171,7 @@ class Multiprocess:
             process.join()
 
             if self.should_exit.is_set():
-                return
+                return  # pragma: full coverage
 
             logger.info(f"Child process [{process.pid}] died")
             process = Process(self.config, self.target, self.sockets)
