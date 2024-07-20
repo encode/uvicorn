@@ -1,10 +1,10 @@
 # Change Log
 
-## 0.30.2 (2024-07-18)
+## 0.30.2 (2024-07-20)
 
 ### Added
 
-- Add reason support to WebSocketDisconnectEvent (#2324)
+- Add `reason` support to [`websocket.disconnect`](https://asgi.readthedocs.io/en/latest/specs/www.html#disconnect-receive-event-ws) event (#2324)
 
 ### Fixed
 
