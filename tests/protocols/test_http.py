@@ -1036,7 +1036,7 @@ async def test_lifespan_state(http_protocol_cls: HTTPProtocol):
 
 
 async def test_header_upgrade_is_not_websocket_depend_installed(
-        caplog: pytest.LogCaptureFixture, http_protocol_cls: HTTPProtocol
+    caplog: pytest.LogCaptureFixture, http_protocol_cls: HTTPProtocol
 ):
     caplog.set_level(logging.WARNING, logger="uvicorn.error")
     app = Response("Hello, world", media_type="text/plain")

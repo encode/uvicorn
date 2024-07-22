@@ -157,7 +157,7 @@ class H11Protocol(asyncio.Protocol):
             msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
             self.logger.warning(msg)
 
-    def _should_upgrade(self,) -> bool:
+    def _should_upgrade(self) -> bool:
         upgrade = self._get_upgrade()
         if upgrade == b"websocket" and self._should_upgrade_to_ws():
             return True
