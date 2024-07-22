@@ -1035,21 +1035,33 @@ async def test_lifespan_state(http_protocol_cls: HTTPProtocol):
     assert not expected_states  # consumed
 
 
-async def test_headers_upgrade_is_not_websocket_with_httptools(caplog: pytest.LogCaptureFixture):
+async def test_header_upgrade_is_not_websocket_depend_installed(
+        caplog: pytest.LogCaptureFixture, http_protocol_cls: HTTPProtocol
+):
     caplog.set_level(logging.WARNING, logger="uvicorn.error")
     app = Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(app, HttpToolsProtocol)
+    protocol = get_connected_protocol(app, http_protocol_cls)
     protocol.data_received(UPGRADE_REQUEST_ERROR_FIELD)
     await protocol.loop.run_one()
-    assert "Unsupported upgrade request." not in caplog.text
+    assert "Unsupported upgrade request." in caplog.text
+    msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
+    assert msg not in caplog.text
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
 
 
-async def test_headers_upgrade_is_not_websocket_with_h11(caplog: pytest.LogCaptureFixture):
+async def test_header_upgrade_is_websocket_depend_not_installed(
+    caplog: pytest.LogCaptureFixture, http_protocol_cls: HTTPProtocol
+):
     caplog.set_level(logging.WARNING, logger="uvicorn.error")
     app = Response("Hello, world", media_type="text/plain")
 
-    protocol = get_connected_protocol(app, H11Protocol)
+    protocol = get_connected_protocol(app, http_protocol_cls, ws="none")
     protocol.data_received(UPGRADE_REQUEST_ERROR_FIELD)
     await protocol.loop.run_one()
-    assert "Unsupported upgrade request." not in caplog.text
+    assert "Unsupported upgrade request." in caplog.text
+    msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
+    assert msg in caplog.text
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
