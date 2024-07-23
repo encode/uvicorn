@@ -44,7 +44,7 @@ class WSProtocol(asyncio.Protocol):
         _loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         if not config.loaded:
-            config.load()
+            config.load()  # pragma: full coverage
 
         self.config = config
         self.app = cast(ASGI3Application, config.loaded_app)
@@ -140,13 +140,13 @@ class WSProtocol(asyncio.Protocol):
         """
         Called by the transport when the write buffer exceeds the high water mark.
         """
-        self.writable.clear()
+        self.writable.clear()  # pragma: full coverage
 
     def resume_writing(self) -> None:
         """
         Called by the transport when the write buffer drops below the low water mark.
         """
-        self.writable.set()
+        self.writable.set()  # pragma: full coverage
 
     def shutdown(self) -> None:
         if self.handshake_complete:
@@ -233,7 +233,7 @@ class WSProtocol(asyncio.Protocol):
         try:
             result = await self.app(self.scope, self.receive, self.send)  # type: ignore[func-returns-value]
         except ClientDisconnected:
-            self.transport.close()
+            self.transport.close()  # pragma: full coverage
         except BaseException:
             self.logger.exception("Exception in ASGI application\n")
             self.send_500_response()

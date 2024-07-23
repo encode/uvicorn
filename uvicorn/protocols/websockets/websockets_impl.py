@@ -242,7 +242,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         """
         try:
             result = await self.app(self.scope, self.asgi_receive, self.asgi_send)  # type: ignore[func-returns-value]
-        except ClientDisconnected:
+        except ClientDisconnected:  # pragma: full coverage
             self.closed_event.set()
             self.transport.close()
         except BaseException:
