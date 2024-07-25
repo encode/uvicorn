@@ -59,22 +59,21 @@ SIMPLE_POST_REQUEST = b"\r\n".join(
     ]
 )
 
-CONNECTION_CLOSE_REQUESTS = [
-    b"\r\n".join([b"GET / HTTP/1.1", b"Host: example.org", b"Connection: close", b"", b""]),
-    b"\r\n".join(
-        [
-            b"GET / HTTP/1.1",
-            b"Host: example.org",
-            b"Connection: close",
-            b"",
-            b"",
-            b"GET / HTTP/1.1",
-            b"Host: example.org",
-            b"",
-            b"",
-        ]
-    ),
-]
+CONNECTION_CLOSE_REQUEST = b"\r\n".join([b"GET / HTTP/1.1", b"Host: example.org", b"Connection: close", b"", b""])
+
+REQUEST_AFTER_CONNECTION_CLOSE = b"\r\n".join(
+    [
+        b"GET / HTTP/1.1",
+        b"Host: example.org",
+        b"Connection: close",
+        b"",
+        b"",
+        b"GET / HTTP/1.1",
+        b"Host: example.org",
+        b"",
+        b"",
+    ]
+)
 
 LARGE_POST_REQUEST = b"\r\n".join(
     [
@@ -984,12 +983,25 @@ async def test_huge_headers_h11_max_incomplete():
     assert b"Hello, world" in protocol.transport.buffer
 
 
-@pytest.mark.parametrize("request_data", CONNECTION_CLOSE_REQUESTS)
-async def test_return_close_header(http_protocol_cls: HTTPProtocol, request_data: bytes):
+async def test_return_close_header(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
 
     protocol = get_connected_protocol(app, http_protocol_cls)
-    protocol.data_received(request_data)
+    protocol.data_received(CONNECTION_CLOSE_REQUEST)
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"content-type: text/plain" in protocol.transport.buffer
+    assert b"content-length: 12" in protocol.transport.buffer
+    # NOTE: We need to use `.lower()` because H11 implementation doesn't allow Uvicorn
+    # to lowercase them. See: https://github.com/python-hyper/h11/issues/156
+    assert b"connection: close" in protocol.transport.buffer.lower()
+
+
+async def test_close_connection_with_multiple_requests(http_protocol_cls: HTTPProtocol):
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, http_protocol_cls)
+    protocol.data_received(REQUEST_AFTER_CONNECTION_CLOSE)
     await protocol.loop.run_one()
     assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
     assert b"content-type: text/plain" in protocol.transport.buffer
