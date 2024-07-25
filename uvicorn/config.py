@@ -212,6 +212,7 @@ class Config:
         timeout_keep_alive: int = 5,
         timeout_notify: int = 30,
         timeout_graceful_shutdown: int | None = None,
+        timeout_worker_is_alive: float = 5,
         callback_notify: Callable[..., Awaitable[None]] | None = None,
         ssl_keyfile: str | None = None,
         ssl_certfile: str | os.PathLike[str] | None = None,
@@ -256,6 +257,7 @@ class Config:
         self.timeout_keep_alive = timeout_keep_alive
         self.timeout_notify = timeout_notify
         self.timeout_graceful_shutdown = timeout_graceful_shutdown
+        self.timeout_worker_is_alive = timeout_worker_is_alive
         self.callback_notify = callback_notify
         self.ssl_keyfile = ssl_keyfile
         self.ssl_certfile = ssl_certfile
