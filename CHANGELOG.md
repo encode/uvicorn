@@ -1,6 +1,8 @@
 # Change Log
 
-## 0.30.4
+## 0.30.4 (2024-07-31)
+
+### Fixed
 
 - Close connection when `h11` sets client state to `MUST_CLOSE` (#2375)
 
