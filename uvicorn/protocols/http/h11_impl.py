@@ -267,6 +267,8 @@ class H11Protocol(asyncio.Protocol):
                     self.transport.resume_reading()
                     self.conn.start_next_cycle()
                     continue
+                if self.conn.their_state == h11.MUST_CLOSE:
+                    break
                 self.cycle.more_body = False
                 self.cycle.message_event.set()
 
