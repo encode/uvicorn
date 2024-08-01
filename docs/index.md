@@ -594,3 +594,19 @@ It has built-in Document-oriented Database, Caching System, Authentication and P
 [hypercorn]: https://gitlab.com/pgjones/hypercorn
 [uvloop_docs]: https://uvloop.readthedocs.io/
 [httptools_vs_h11]: https://github.com/python-hyper/h11/issues/9
+
+## Team
+
+Uvicorn lives in the [Encode GitHub organization](https://github.com/encode).
+
+### Creator
+
+Uvicorn was created by:
+
+<div class="user"><a href="https://github.com/tomchristie" target="_blank"><div class="title">Tom Christie</div><div class="title"><small>@tomchristie</small></div><div class="avatar-wrapper"><img src="https://github.com/tomchristie.png"/></div></a></div>
+
+### Maintainer
+
+Uvicorn is currently maintained by:
+
+<div class="user"><a href="https://github.com/Kludex" target="_blank"><div class="title">Marcelo Trylesinski</div><div class="title"><small>@Kludex</small></div><div class="avatar-wrapper"><img src="https://github.com/Kludex.png"/></div></a></div>
