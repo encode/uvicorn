@@ -998,7 +998,18 @@ async def test_return_close_header(http_protocol_cls: HTTPProtocol):
 
 
 async def test_close_connection_with_multiple_requests(http_protocol_cls: HTTPProtocol):
-    app = Response("Hello, world", media_type="text/plain")
+    response_content = b"Hello, world"
+
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
+        body = b""
+        more_body = True
+        while more_body:
+            message = await receive()
+            assert message["type"] == "http.request"
+            body += message.get("body", b"")
+            more_body = message.get("more_body", False)
+        response = Response(response_content, media_type="text/plain")
+        await response(scope, receive, send)
 
     protocol = get_connected_protocol(app, http_protocol_cls)
     protocol.data_received(REQUEST_AFTER_CONNECTION_CLOSE)
@@ -1009,6 +1020,7 @@ async def test_close_connection_with_multiple_requests(http_protocol_cls: HTTPPr
     # NOTE: We need to use `.lower()` because H11 implementation doesn't allow Uvicorn
     # to lowercase them. See: https://github.com/python-hyper/h11/issues/156
     assert b"connection: close" in protocol.transport.buffer.lower()
+    assert response_content in protocol.transport.buffer
 
 
 async def test_iterator_headers(http_protocol_cls: HTTPProtocol):
