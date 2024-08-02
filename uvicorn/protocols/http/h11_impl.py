@@ -267,10 +267,10 @@ class H11Protocol(asyncio.Protocol):
                     self.transport.resume_reading()
                     self.conn.start_next_cycle()
                     continue
-                if self.conn.their_state == h11.MUST_CLOSE:
-                    break
                 self.cycle.more_body = False
                 self.cycle.message_event.set()
+                if self.conn.their_state == h11.MUST_CLOSE:
+                    break
 
     def handle_websocket_upgrade(self, event: h11.Request) -> None:
         if self.logger.level <= TRACE_LOG_LEVEL:  # pragma: full coverage
