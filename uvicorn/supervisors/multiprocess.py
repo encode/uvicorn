@@ -164,7 +164,7 @@ class Multiprocess:
             return  # parent process is exiting, no need to keep subprocess alive
 
         for idx, process in enumerate(self.processes):
-            if process.is_alive():
+            if process.is_alive(timeout=self.config.timeout_worker_is_alive):
                 continue
 
             process.kill()  # process is hung, kill it
