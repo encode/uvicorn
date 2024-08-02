@@ -61,6 +61,22 @@ SIMPLE_POST_REQUEST = b"\r\n".join(
 
 CONNECTION_CLOSE_REQUEST = b"\r\n".join([b"GET / HTTP/1.1", b"Host: example.org", b"Connection: close", b"", b""])
 
+CONNECTION_CLOSE_POST_REQUEST_WITH_BODY = b"\r\n".join(
+    [
+        b"POST / HTTP/1.1",
+        b"Host: example.org",
+        b"Connection: close",
+        b"Content-Type: application/json",
+        b"Content-Length: 18",
+        b"",
+        b"{'hello': 'world'}",
+    ]
+)
+
+CONNECTION_CLOSE_POST_REQUEST_WITHOUT_BODY = b"\r\n".join(
+    [b"POST / HTTP/1.1", b"Host: example.org", b"Connection: close", b"", b""]
+)
+
 REQUEST_AFTER_CONNECTION_CLOSE = b"\r\n".join(
     [
         b"GET / HTTP/1.1",
@@ -999,18 +1015,7 @@ async def test_return_close_header(http_protocol_cls: HTTPProtocol):
 
 async def test_close_connection_with_multiple_requests(http_protocol_cls: HTTPProtocol):
     response_content = b"Hello, world"
-
-    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
-        body = b""
-        more_body = True
-        while more_body:
-            message = await receive()
-            assert message["type"] == "http.request"
-            body += message.get("body", b"")
-            more_body = message.get("more_body", False)
-        response = Response(response_content, media_type="text/plain")
-        await response(scope, receive, send)
-
+    app = Response(response_content, media_type="text/plain")
     protocol = get_connected_protocol(app, http_protocol_cls)
     protocol.data_received(REQUEST_AFTER_CONNECTION_CLOSE)
     await protocol.loop.run_one()
@@ -1021,6 +1026,28 @@ async def test_close_connection_with_multiple_requests(http_protocol_cls: HTTPPr
     # to lowercase them. See: https://github.com/python-hyper/h11/issues/156
     assert b"connection: close" in protocol.transport.buffer.lower()
     assert response_content in protocol.transport.buffer
+
+
+@pytest.mark.parametrize(
+    "req_body", [CONNECTION_CLOSE_POST_REQUEST_WITH_BODY, CONNECTION_CLOSE_POST_REQUEST_WITHOUT_BODY]
+)
+async def test_close_connection_with_post_request(req_body: bytes, http_protocol_cls: HTTPProtocol):
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
+        body = b""
+        more_body = True
+        while more_body:
+            message = await receive()
+            assert message["type"] == "http.request"
+            body += message.get("body", b"")
+            more_body = message.get("more_body", False)
+        response = Response(b"Body: " + body, media_type="text/plain")
+        await response(scope, receive, send)
+
+    protocol = get_connected_protocol(app, http_protocol_cls)
+    protocol.data_received(req_body)
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert req_body.split(b"\r\n")[-1] in protocol.transport.buffer
 
 
 async def test_iterator_headers(http_protocol_cls: HTTPProtocol):
