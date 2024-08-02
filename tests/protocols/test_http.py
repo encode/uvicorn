@@ -1011,6 +1011,7 @@ async def test_return_close_header(http_protocol_cls: HTTPProtocol):
 
 async def test_close_connection_with_multiple_requests(http_protocol_cls: HTTPProtocol):
     app = Response("Hello, world", media_type="text/plain")
+
     protocol = get_connected_protocol(app, http_protocol_cls)
     protocol.data_received(REQUEST_AFTER_CONNECTION_CLOSE)
     await protocol.loop.run_one()
