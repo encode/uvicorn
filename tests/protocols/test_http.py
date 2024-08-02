@@ -61,6 +61,18 @@ SIMPLE_POST_REQUEST = b"\r\n".join(
 
 CONNECTION_CLOSE_REQUEST = b"\r\n".join([b"GET / HTTP/1.1", b"Host: example.org", b"Connection: close", b"", b""])
 
+CONNECTION_CLOSE_POST_REQUEST = b"\r\n".join(
+    [
+        b"POST / HTTP/1.1",
+        b"Host: example.org",
+        b"Connection: close",
+        b"Content-Type: application/json",
+        b"Content-Length: 18",
+        b"",
+        b"{'hello': 'world'}",
+    ]
+)
+
 REQUEST_AFTER_CONNECTION_CLOSE = b"\r\n".join(
     [
         b"GET / HTTP/1.1",
@@ -1009,6 +1021,25 @@ async def test_close_connection_with_multiple_requests(http_protocol_cls: HTTPPr
     # NOTE: We need to use `.lower()` because H11 implementation doesn't allow Uvicorn
     # to lowercase them. See: https://github.com/python-hyper/h11/issues/156
     assert b"connection: close" in protocol.transport.buffer.lower()
+
+
+async def test_close_connection_with_post_request(http_protocol_cls: HTTPProtocol):
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
+        body = b""
+        more_body = True
+        while more_body:
+            message = await receive()
+            assert message["type"] == "http.request"
+            body += message.get("body", b"")
+            more_body = message.get("more_body", False)
+        response = Response(b"Body: " + body, media_type="text/plain")
+        await response(scope, receive, send)
+
+    protocol = get_connected_protocol(app, http_protocol_cls)
+    protocol.data_received(CONNECTION_CLOSE_POST_REQUEST)
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Body: {'hello': 'world'}" in protocol.transport.buffer
 
 
 async def test_iterator_headers(http_protocol_cls: HTTPProtocol):
