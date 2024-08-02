@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.30.5 (2024-08-02)
+
+### Fixed
+
+- Don't close connection before receiving body on H11 (#2408)
+
 ## 0.30.4 (2024-07-31)
 
 ### Fixed
