@@ -7,7 +7,12 @@ import re
 import urllib
 from asyncio.events import TimerHandle
 from collections import deque
-from typing import Any, Callable, Literal, cast
+from typing import (
+    Any,
+    Callable,
+    Literal,
+    cast,
+)
 
 import httptools
 
@@ -21,8 +26,20 @@ from uvicorn._types import (
 )
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
-from uvicorn.protocols.http.flow_control import CLOSE_HEADER, HIGH_WATER_LIMIT, FlowControl, service_unavailable
-from uvicorn.protocols.utils import get_client_addr, get_local_addr, get_path_with_query_string, get_remote_addr, is_ssl
+from uvicorn.protocols.http.flow_control import (
+    CLOSE_HEADER,
+    HIGH_WATER_LIMIT,
+    FlowControl,
+    service_unavailable,
+)
+from uvicorn.protocols.utils import (
+    get_client_addr,
+    get_local_addr,
+    get_path_with_query_string,
+    get_remote_addr,
+    get_tls_info,
+    is_ssl,
+)
 from uvicorn.server import ServerState
 
 HEADER_RE = re.compile(b'[\x00-\x1f\x7f()<>@,;:[]={} \t\\"]')
@@ -79,6 +96,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.client: tuple[str, int] | None = None
         self.scheme: Literal["http", "https"] | None = None
         self.pipeline: deque[tuple[RequestResponseCycle, ASGI3Application]] = deque()
+        self.tls: dict[object, object] = {}
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
@@ -97,6 +115,11 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
         self.scheme = "https" if is_ssl(transport) else "http"
+
+        if self.config.is_ssl:
+            self.tls = get_tls_info(transport)
+            if self.tls:
+                self.tls["server_cert"] = self.config.ssl_cert_pem
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
@@ -220,7 +243,11 @@ class HttpToolsProtocol(asyncio.Protocol):
             "root_path": self.root_path,
             "headers": self.headers,
             "state": self.app_state.copy(),
+            "extensions": {},
         }
+
+        if self.config.is_ssl:
+            self.scope["extensions"]["tls"] = self.tls
 
     # Parser callbacks
     def on_url(self, url: bytes) -> None:
