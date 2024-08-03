@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ipaddress
 from typing import TYPE_CHECKING
 
 import httpx
@@ -52,6 +53,45 @@ async def test_proxy_headers_trusted_hosts(trusted_hosts: list[str] | str, respo
     transport = httpx.ASGITransport(app=app_with_middleware)  # type: ignore
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         headers = {"X-Forwarded-Proto": "https", "X-Forwarded-For": "1.2.3.4"}
+        response = await client.get("/", headers=headers)
+
+    assert response.status_code == 200
+    assert response.text == response_text
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("trusted_networks", "response_text"),
+    [
+        ([ipaddress.IPv4Network("192.168.0.0/24")], "Remote: https://10.0.2.1:0"),
+        (
+            [
+                ipaddress.IPv4Network("192.168.0.0/24"),
+                ipaddress.IPv4Network("10.0.0.0/16"),
+                ipaddress.IPv6Network("2001:db8::/64"),
+            ],
+            "Remote: https://1.2.3.4:0",
+        ),
+        (
+            [
+                ipaddress.IPv4Network("192.168.0.0/24"),
+                ipaddress.IPv4Network("10.0.0.0/16"),
+            ],
+            "Remote: https://2001:db8::1:0",
+        ),
+    ],
+)
+async def test_proxy_headers_trusted_networks(
+    trusted_networks: list[ipaddress.IPv4Network | ipaddress.IPv6Network],
+    response_text: str,
+) -> None:
+    app_with_middleware = ProxyHeadersMiddleware(app, trusted_networks=trusted_networks)
+    transport = httpx.ASGITransport(app=app_with_middleware)  # type: ignore
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        headers = {
+            "X-Forwarded-Proto": "https",
+            "X-Forwarded-For": "1.2.3.4, 2001:db8::1, 10.0.2.1, 192.168.0.2",
+        }
         response = await client.get("/", headers=headers)
 
     assert response.status_code == 200
