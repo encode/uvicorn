@@ -10,6 +10,7 @@ import socket
 import sys
 import threading
 import time
+import traceback
 from email.utils import formatdate
 from types import FrameType
 from typing import TYPE_CHECKING, Generator, Sequence, Union
@@ -61,8 +62,13 @@ class Server:
         self._captured_signals: list[int] = []
 
     def run(self, sockets: list[socket.socket] | None = None) -> None:
-        self.config.setup_event_loop()
-        return asyncio.run(self.serve(sockets=sockets))
+        try:
+            self.config.setup_event_loop()
+            return asyncio.run(self.serve(sockets=sockets))
+        except Exception as e:
+            tb = traceback.format_exc()
+            logger.error("run error, %s:\n\t%s", str(e), tb)
+            raise e
 
     async def serve(self, sockets: list[socket.socket] | None = None) -> None:
         with self.capture_signals():
