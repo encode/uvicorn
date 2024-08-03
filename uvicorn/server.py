@@ -65,7 +65,7 @@ class Server:
         try:
             self.config.setup_event_loop()
             return asyncio.run(self.serve(sockets=sockets))
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             tb = traceback.format_exc()
             logger.error("run error, %s:\n\t%s", str(e), tb)
             raise e
