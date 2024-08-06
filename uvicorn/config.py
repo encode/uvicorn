@@ -406,7 +406,11 @@ class Config:
         # get longest prefix in loggers to configure the main
         common = Config.get_longest_common_prefix(list(self._internal_logger_mappings.values()))
         if not common.endswith("."):  # pragma: no cover
-            raise Exception("failed to find a common ancestor for logger mappings")
+            check = f"{common}."
+            for s in self._internal_logger_mappings.values():
+                if s != common and not s.startswith(check):
+                    raise Exception("failed to find a common ancestor for logger mappings")
+            
         self._internal_logger_mappings["main"] = common[:-1]
 
         if self.log_config is not None:
