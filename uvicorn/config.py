@@ -383,17 +383,17 @@ class Config:
 
     @staticmethod
     def get_longest_common_prefix(strs: list) -> str:
-        if not strs: # pragma: no cover
+        if not strs:  # pragma: no cover
             return ""
         strs = sorted(strs)
         min_s = min(strs)
         max_s = max(strs)
-        if not min_s: # pragma: no cover
+        if not min_s:  # pragma: no cover
             return ""
         for i in range(len(min_s)):
             if max_s[i] != min_s[i]:
                 return max_s[:i]
-        return min_s[:] # pragma: no cover
+        return min_s[:]  # pragma: no cover
 
     def configure_logging(self) -> None:
         logging.addLevelName(TRACE_LOG_LEVEL, "TRACE")
@@ -405,7 +405,7 @@ class Config:
         }
         # get longest prefix in loggers to configure the main
         common = Config.get_longest_common_prefix(list(self._internal_logger_mappings.values()))
-        if not common.endswith("."): # pragma: no cover
+        if not common.endswith("."):  # pragma: no cover
             raise Exception("failed to find a common ancestor for logger mappings")
         self._internal_logger_mappings["main"] = common[:-1]
 
