@@ -412,7 +412,7 @@ class Config:
                     raise Exception("failed to find a common ancestor for logger mappings")
             # need to add the dot at the end for next line
             common = check
-            
+
         self._internal_logger_mappings["main"] = common[:-1]
 
         if self.log_config is not None:
