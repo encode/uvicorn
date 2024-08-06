@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import os
 import signal
 import threading
@@ -19,8 +18,6 @@ SIGNALS = {
     if hasattr(signal, f"SIG{x}")
 }
 
-logger = logging.getLogger("uvicorn.error")
-
 
 class Process:
     def __init__(
@@ -29,6 +26,7 @@ class Process:
         target: Callable[[list[socket] | None], None],
         sockets: list[socket],
     ) -> None:
+        self.config = config
         self.real_target = target
 
         self.parent_conn, self.child_conn = Pipe()
@@ -80,7 +78,7 @@ class Process:
                 os.kill(self.process.pid, signal.CTRL_BREAK_EVENT)  # type: ignore[attr-defined]
             else:
                 os.kill(self.process.pid, signal.SIGTERM)
-            logger.info(f"Terminated child process [{self.process.pid}]")
+            self.config.get_logger("general").info(f"Terminated child process [{self.process.pid}]")
 
             self.parent_conn.close()
             self.child_conn.close()
@@ -91,7 +89,7 @@ class Process:
         self.process.kill()
 
     def join(self) -> None:
-        logger.info(f"Waiting for child process [{self.process.pid}]")
+        self.config.get_logger("general").info(f"Waiting for child process [{self.process.pid}]")
         self.process.join()
 
     @property
@@ -144,7 +142,7 @@ class Multiprocess:
     def run(self) -> None:
         message = f"Started parent process [{os.getpid()}]"
         color_message = "Started parent process [{}]".format(click.style(str(os.getpid()), fg="cyan", bold=True))
-        logger.info(message, extra={"color_message": color_message})
+        self.config.get_logger("general").info(message, extra={"color_message": color_message})
 
         self.init_processes()
 
@@ -157,7 +155,7 @@ class Multiprocess:
 
         message = f"Stopping parent process [{os.getpid()}]"
         color_message = "Stopping parent process [{}]".format(click.style(str(os.getpid()), fg="cyan", bold=True))
-        logger.info(message, extra={"color_message": color_message})
+        self.config.get_logger("general").info(message, extra={"color_message": color_message})
 
     def keep_subprocess_alive(self) -> None:
         if self.should_exit.is_set():
@@ -173,7 +171,7 @@ class Multiprocess:
             if self.should_exit.is_set():
                 return  # pragma: full coverage
 
-            logger.info(f"Child process [{process.pid}] died")
+            self.config.get_logger("general").info(f"Child process [{process.pid}] died")
             process = Process(self.config, self.target, self.sockets)
             process.start()
             self.processes[idx] = process
@@ -186,35 +184,39 @@ class Multiprocess:
             if sig_handler is not None:
                 sig_handler()
             else:  # pragma: no cover
-                logger.debug(f"Received signal {sig_name}, but no handler is defined for it.")
+                self.config.get_logger("general").debug(
+                    f"Received signal {sig_name}, but no handler is defined for it."
+                )
 
     def handle_int(self) -> None:
-        logger.info("Received SIGINT, exiting.")
+        self.config.get_logger("general").info("Received SIGINT, exiting.")
         self.should_exit.set()
 
     def handle_term(self) -> None:
-        logger.info("Received SIGTERM, exiting.")
+        self.config.get_logger("general").info("Received SIGTERM, exiting.")
         self.should_exit.set()
 
     def handle_break(self) -> None:  # pragma: py-not-win32
-        logger.info("Received SIGBREAK, exiting.")
+        self.config.get_logger("general").info("Received SIGBREAK, exiting.")
         self.should_exit.set()
 
     def handle_hup(self) -> None:  # pragma: py-win32
-        logger.info("Received SIGHUP, restarting processes.")
+        self.config.get_logger("general").info("Received SIGHUP, restarting processes.")
         self.restart_all()
 
     def handle_ttin(self) -> None:  # pragma: py-win32
-        logger.info("Received SIGTTIN, increasing the number of processes.")
+        self.config.get_logger("general").info("Received SIGTTIN, increasing the number of processes.")
         self.processes_num += 1
         process = Process(self.config, self.target, self.sockets)
         process.start()
         self.processes.append(process)
 
     def handle_ttou(self) -> None:  # pragma: py-win32
-        logger.info("Received SIGTTOU, decreasing number of processes.")
+        self.config.get_logger("general").info("Received SIGTTOU, decreasing number of processes.")
         if self.processes_num <= 1:
-            logger.info("Already reached one process, cannot decrease the number of processes anymore.")
+            self.config.get_logger("general").info(
+                "Already reached one process, cannot decrease the number of processes anymore."
+            )
             return
         self.processes_num -= 1
         process = self.processes.pop()

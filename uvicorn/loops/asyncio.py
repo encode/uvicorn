@@ -1,8 +1,5 @@
 import asyncio
-import logging
 import sys
-
-logger = logging.getLogger("uvicorn.error")
 
 
 def asyncio_setup(use_subprocess: bool = False) -> None:

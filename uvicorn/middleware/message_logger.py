@@ -34,10 +34,10 @@ def message_with_placeholders(message: Any) -> Any:
 
 
 class MessageLoggerMiddleware:
-    def __init__(self, app: "ASGI3Application"):
+    def __init__(self, app: "ASGI3Application", logger: logging.Logger):
         self.task_counter = 0
         self.app = app
-        self.logger = logging.getLogger("uvicorn.asgi")
+        self.logger = logger
 
         def trace(message: Any, *args: Any, **kwargs: Any) -> None:
             self.logger.log(TRACE_LOG_LEVEL, message, *args, **kwargs)

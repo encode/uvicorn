@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import os
 import signal
 import sys
@@ -19,8 +18,6 @@ HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
 )
-
-logger = logging.getLogger("uvicorn.error")
 
 
 class BaseReload:
@@ -51,7 +48,7 @@ class BaseReload:
         self.startup()
         for changes in self:
             if changes:
-                logger.warning(
+                self.config.get_logger("general").warning(
                     "%s detected changes in %s. Reloading...",
                     self.reloader_name,
                     ", ".join(map(_display_path, changes)),
@@ -76,7 +73,7 @@ class BaseReload:
             click.style(str(self.pid), fg="cyan", bold=True),
             click.style(str(self.reloader_name), fg="cyan", bold=True),
         )
-        logger.info(message, extra={"color_message": color_message})
+        self.config.get_logger("general").info(message, extra={"color_message": color_message})
 
         for sig in HANDLED_SIGNALS:
             signal.signal(sig, self.signal_handler)
@@ -108,7 +105,7 @@ class BaseReload:
 
         message = f"Stopping reloader process [{str(self.pid)}]"
         color_message = "Stopping reloader process [{}]".format(click.style(str(self.pid), fg="cyan", bold=True))
-        logger.info(message, extra={"color_message": color_message})
+        self.config.get_logger("general").info(message, extra={"color_message": color_message})
 
     def should_restart(self) -> list[Path] | None:
         raise NotImplementedError("Reload strategies should override should_restart()")
