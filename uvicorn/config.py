@@ -410,6 +410,8 @@ class Config:
             for s in self._internal_logger_mappings.values():
                 if s != common and not s.startswith(check):
                     raise Exception("failed to find a common ancestor for logger mappings")
+            # need to add the dot at the end for next line
+            common = check
             
         self._internal_logger_mappings["main"] = common[:-1]
 
