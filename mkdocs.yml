@@ -43,5 +43,8 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.superfences
 
+extra_css:
+- css/custom.css
+
 hooks:
   - docs/plugins/main.py
