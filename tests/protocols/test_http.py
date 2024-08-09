@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import socket
 import threading
 import time
 from typing import TYPE_CHECKING, Any
 
+import httpx
 import pytest
 
 from tests.response import Response
+from tests.test_default_headers import app
+from tests.utils import run_server
 from uvicorn import Server
 from uvicorn._types import ASGIApplication, ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.config import WS_PROTOCOLS, Config
@@ -1080,3 +1084,16 @@ async def test_lifespan_state(http_protocol_cls: HTTPProtocol):
         assert b"Hi!" in protocol.transport.buffer
 
     assert not expected_states  # consumed
+
+
+async def test_request_than_limit_max_requests_warn_log(
+    unused_tcp_port: int, http_protocol_cls: HTTPProtocol, caplog: pytest.LogCaptureFixture
+):
+    caplog.set_level(logging.WARNING, logger="uvicorn.error")
+    config = Config(app=app, limit_max_requests=1, port=unused_tcp_port, http=http_protocol_cls)
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            tasks = [client.get(f"http://127.0.0.1:{unused_tcp_port}") for _ in range(3)]
+            responses = await asyncio.gather(*tasks)
+            assert len(responses) == 3
+    assert "Exceeded max request limit ending process." in caplog.text
