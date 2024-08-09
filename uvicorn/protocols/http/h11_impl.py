@@ -219,7 +219,9 @@ class H11Protocol(asyncio.Protocol):
                     app = service_unavailable
                     message = "Exceeded concurrency limit."
                     self.logger.warning(message)
-                elif self.server_state.total_requests >= self.config.limit_max_requests:
+                elif self.config.limit_max_requests is not None and (
+                    self.server_state.total_requests >= self.config.limit_max_requests
+                ):
                     app = service_unavailable
                     message = "Exceeded request limit."
                     self.logger.warning(message)
