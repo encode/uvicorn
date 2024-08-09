@@ -890,23 +890,6 @@ async def test_invalid_http_request(
     assert b"Invalid HTTP request received." in protocol.transport.buffer
 
 
-async def test_request_than_limit_max_requests(
-    unused_tcp_port: int, http_protocol_cls: HTTPProtocol, caplog: pytest.LogCaptureFixture
-):
-    caplog.set_level(logging.WARNING, logger="uvicorn.error")
-    config = Config(app=app, limit_max_requests=1, port=unused_tcp_port, http=http_protocol_cls)
-    async with run_server(config):
-        async with httpx.AsyncClient() as client:
-            tasks = [client.get(f"http://127.0.0.1:{unused_tcp_port}") for _ in range(2)]
-            responses = await asyncio.gather(*tasks)
-            assert len(responses) == 2
-            status_code_list = [response.status_code for response in responses]
-            resp_text_list = [response.text for response in responses]
-            assert [200, 503] == status_code_list
-            assert ["", "Service Unavailable"] == resp_text_list
-    assert "Exceeded request limit." in caplog.text
-
-
 @skip_if_no_httptools
 def test_fragmentation(unused_tcp_port: int):
     def receive_all(sock: socket.socket):
@@ -1101,3 +1084,20 @@ async def test_lifespan_state(http_protocol_cls: HTTPProtocol):
         assert b"Hi!" in protocol.transport.buffer
 
     assert not expected_states  # consumed
+
+
+async def test_request_than_limit_max_requests(
+    unused_tcp_port: int, http_protocol_cls: HTTPProtocol, caplog: pytest.LogCaptureFixture
+):
+    caplog.set_level(logging.WARNING, logger="uvicorn.error")
+    config = Config(app=app, limit_max_requests=1, port=unused_tcp_port, http=http_protocol_cls)
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            tasks = [client.get(f"http://127.0.0.1:{unused_tcp_port}") for _ in range(3)]
+            responses = await asyncio.gather(*tasks)
+            assert len(responses) == 3
+            status_code_list = [response.status_code for response in responses]
+            resp_text_list = [response.text for response in responses]
+            assert [200, 503, 503] == status_code_list
+            assert ["", "Service Unavailable", "Service Unavailable"] == resp_text_list
+    assert "Exceeded request limit." in caplog.text
