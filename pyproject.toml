@@ -11,6 +11,7 @@ license = "BSD-3-Clause"
 requires-python = ">=3.8"
 authors = [
     { name = "Tom Christie", email = "tom@tomchristie.com" },
+    { name = "Marcelo Trylesinski", email = "marcelotryle@gmail.com" }
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -100,12 +101,13 @@ omit = ["uvicorn/workers.py", "uvicorn/__main__.py"]
 
 [tool.coverage.report]
 precision = 2
-fail_under = 98.35
+fail_under = 100
 show_missing = true
 skip_covered = true
 exclude_lines = [
     "pragma: no cover",
     "pragma: nocover",
+    "pragma: full coverage",
     "if TYPE_CHECKING:",
     "if typing.TYPE_CHECKING:",
     "raise NotImplementedError",

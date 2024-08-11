@@ -261,9 +261,11 @@ class H11Protocol(asyncio.Protocol):
                     continue
                 self.cycle.more_body = False
                 self.cycle.message_event.set()
+                if self.conn.their_state == h11.MUST_CLOSE:
+                    break
 
     def handle_websocket_upgrade(self, event: h11.Request) -> None:
-        if self.logger.level <= TRACE_LOG_LEVEL:
+        if self.logger.level <= TRACE_LOG_LEVEL:  # pragma: full coverage
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sUpgrading to WebSocket", prefix)
 
@@ -333,13 +335,13 @@ class H11Protocol(asyncio.Protocol):
         """
         Called by the transport when the write buffer exceeds the high water mark.
         """
-        self.flow.pause_writing()
+        self.flow.pause_writing()  # pragma: full coverage
 
     def resume_writing(self) -> None:
         """
         Called by the transport when the write buffer drops below the low water mark.
         """
-        self.flow.resume_writing()
+        self.flow.resume_writing()  # pragma: full coverage
 
     def timeout_keep_alive_handler(self) -> None:
         """
@@ -441,10 +443,10 @@ class RequestResponseCycle:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
-            await self.flow.drain()
+            await self.flow.drain()  # pragma: full coverage
 
         if self.disconnected:
-            return
+            return  # pragma: full coverage
 
         if not self.response_started:
             # Sending response status line and headers

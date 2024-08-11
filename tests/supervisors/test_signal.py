@@ -60,7 +60,7 @@ async def test_sigint_abort_req(unused_tcp_port: int, caplog):
         await send({"type": "http.response.body", "body": b"start", "more_body": True})
         # we never continue this one, so this request will time out
         await server_event.wait()
-        await send({"type": "http.response.body", "body": b"end", "more_body": False})
+        await send({"type": "http.response.body", "body": b"end", "more_body": False})  # pragma: full coverage
 
     config = Config(app=forever_app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1)
     server: Server
@@ -90,7 +90,7 @@ async def test_sigint_deny_request_after_triggered(unused_tcp_port: int, caplog)
 
     async def app(scope, receive, send):
         await send({"type": "http.response.start", "status": 200, "headers": []})
-        await asyncio.sleep(1)
+        await asyncio.sleep(1)  # pragma: full coverage
 
     config = Config(app=app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1)
     server: Server

@@ -16,7 +16,7 @@ class FlowControl:
         self._is_writable_event.set()
 
     async def drain(self) -> None:
-        await self._is_writable_event.wait()
+        await self._is_writable_event.wait()  # pragma: full coverage
 
     def pause_reading(self) -> None:
         if not self.read_paused:
@@ -29,12 +29,12 @@ class FlowControl:
             self._transport.resume_reading()
 
     def pause_writing(self) -> None:
-        if not self.write_paused:
+        if not self.write_paused:  # pragma: full coverage
             self.write_paused = True
             self._is_writable_event.clear()
 
     def resume_writing(self) -> None:
-        if self.write_paused:
+        if self.write_paused:  # pragma: full coverage
             self.write_paused = False
             self._is_writable_event.set()
 

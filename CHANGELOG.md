@@ -1,5 +1,24 @@
 # Change Log
 
+## 0.30.5 (2024-08-02)
+
+### Fixed
+
+- Don't close connection before receiving body on H11 (#2408)
+
+## 0.30.4 (2024-07-31)
+
+### Fixed
+
+- Close connection when `h11` sets client state to `MUST_CLOSE` (#2375)
+
+## 0.30.3 (2024-07-20)
+
+### Fixed
+
+- Suppress `KeyboardInterrupt` from CLI and programmatic usage (#2384)
+- `ClientDisconnect` inherits from `OSError` instead of `IOError` (#2393)
+
 ## 0.30.2 (2024-07-20)
 
 ### Added
