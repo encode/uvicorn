@@ -4,7 +4,6 @@ import asyncio
 import http
 import logging
 import re
-import urllib
 from asyncio.events import TimerHandle
 from collections import deque
 from typing import Any, Callable, Literal, cast
