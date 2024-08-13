@@ -3,7 +3,7 @@ from asyncio import Transport
 
 import pytest
 
-from uvicorn.protocols.utils import get_client_addr, get_local_addr, get_remote_addr
+from uvicorn.protocols.utils import get_client_addr, get_local_addr, get_remote_addr, unquote_path
 
 
 class MockSocket:
@@ -71,6 +71,14 @@ def test_get_remote_addr():
 
     transport = MockTransport({"peername": ("123.45.6.7", 123)})
     assert get_remote_addr(transport) == ("123.45.6.7", 123)
+
+
+def test_unquote_path():
+    path = "/albert/bertram/marie-claude"
+    assert path == unquote_path(path)
+
+    path = "/albert/bertram%2Fmarie-claude"
+    assert path == unquote_path(path)
 
 
 @pytest.mark.parametrize(

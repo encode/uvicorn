@@ -4,7 +4,6 @@ import asyncio
 import http
 import logging
 from typing import Any, Callable, Literal, cast
-from urllib.parse import unquote
 
 import h11
 from h11._connection import DEFAULT_MAX_INCOMPLETE_EVENT_SIZE
@@ -21,7 +20,7 @@ from uvicorn._types import (
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.http.flow_control import CLOSE_HEADER, HIGH_WATER_LIMIT, FlowControl, service_unavailable
-from uvicorn.protocols.utils import get_client_addr, get_local_addr, get_path_with_query_string, get_remote_addr, is_ssl
+from uvicorn.protocols.utils import get_client_addr, get_local_addr, get_path_with_query_string, get_remote_addr, is_ssl, unquote_path
 from uvicorn.server import ServerState
 
 
@@ -185,7 +184,7 @@ class H11Protocol(asyncio.Protocol):
             elif isinstance(event, h11.Request):
                 self.headers = [(key.lower(), value) for key, value in event.headers]
                 raw_path, _, query_string = event.target.partition(b"?")
-                path = unquote(raw_path.decode("ascii"))
+                path = unquote_path(raw_path.decode("ascii"))
                 full_path = self.root_path + path
                 full_raw_path = self.root_path.encode("ascii") + raw_path
                 self.scope = {

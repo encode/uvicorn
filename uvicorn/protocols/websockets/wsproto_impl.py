@@ -4,7 +4,6 @@ import asyncio
 import logging
 import typing
 from typing import Literal, cast
-from urllib.parse import unquote
 
 import wsproto
 from wsproto import ConnectionType, events
@@ -31,6 +30,7 @@ from uvicorn.protocols.utils import (
     get_path_with_query_string,
     get_remote_addr,
     is_ssl,
+    unquote_path,
 )
 from uvicorn.server import ServerState
 
@@ -166,7 +166,7 @@ class WSProtocol(asyncio.Protocol):
         headers = [(b"host", event.host.encode())]
         headers += [(key.lower(), value) for key, value in event.extra_headers]
         raw_path, _, query_string = event.target.partition("?")
-        path = unquote(raw_path)
+        path = unquote_path(raw_path)
         full_path = self.root_path + path
         full_raw_path = self.root_path.encode("ascii") + raw_path.encode("ascii")
         self.scope: WebSocketScope = {

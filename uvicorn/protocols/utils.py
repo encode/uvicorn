@@ -54,3 +54,11 @@ def get_path_with_query_string(scope: WWWScope) -> str:
     if scope["query_string"]:
         path_with_query_string = "{}?{}".format(path_with_query_string, scope["query_string"].decode("ascii"))
     return path_with_query_string
+
+
+def unquote_path(path: str) -> str:
+    # the encode of % is %25, in order to differentiate %2f from /,
+    # we need to replace %2f with %252f before unquoting
+    # ref: https://www.w3.org/Addressing/URL/4_URI_Recommentations.html
+    path = path.replace('%2f', '%252f').replace('%2F', '%252F')
+    return urllib.parse.unquote(path)

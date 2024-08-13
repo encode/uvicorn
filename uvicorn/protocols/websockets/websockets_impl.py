@@ -4,7 +4,6 @@ import asyncio
 import http
 import logging
 from typing import Any, Literal, Optional, Sequence, cast
-from urllib.parse import unquote
 
 import websockets
 import websockets.legacy.handshake
@@ -37,6 +36,7 @@ from uvicorn.protocols.utils import (
     get_path_with_query_string,
     get_remote_addr,
     is_ssl,
+    unquote_path,
 )
 from uvicorn.server import ServerState
 
@@ -175,7 +175,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             (name.encode("ascii"), value.encode("ascii", errors="surrogateescape"))
             for name, value in request_headers.raw_items()
         ]
-        path = unquote(path_portion)
+        path = unquote_path(path_portion)
         full_path = self.root_path + path
         full_raw_path = self.root_path.encode("ascii") + path_portion.encode("ascii")
 
