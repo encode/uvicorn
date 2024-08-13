@@ -5,7 +5,7 @@ from asyncio import Event
 import httpx
 import pytest
 
-from tests.utils import run_server
+from tests.utils import assert_signal, run_server
 from uvicorn import Server
 from uvicorn.config import Config
 
@@ -31,8 +31,8 @@ async def test_sigint_finish_req(unused_tcp_port: int):
 
     config = Config(app=wait_app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1)
     server: Server
-    async with run_server(config) as server:
-        async with httpx.AsyncClient() as client:
+    with assert_signal(signal.SIGINT):
+        async with run_server(config) as server, httpx.AsyncClient() as client:
             req = asyncio.create_task(client.get(f"http://127.0.0.1:{unused_tcp_port}"))
             await asyncio.sleep(0.1)  # ensure next tick
             server.handle_exit(sig=signal.SIGINT, frame=None)  # exit
@@ -64,8 +64,8 @@ async def test_sigint_abort_req(unused_tcp_port: int, caplog):
 
     config = Config(app=forever_app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1)
     server: Server
-    async with run_server(config) as server:
-        async with httpx.AsyncClient() as client:
+    with assert_signal(signal.SIGINT):
+        async with run_server(config) as server, httpx.AsyncClient() as client:
             req = asyncio.create_task(client.get(f"http://127.0.0.1:{unused_tcp_port}"))
             await asyncio.sleep(0.1)  # next tick
             # trigger exit, this request should time out in ~1 sec
@@ -94,10 +94,10 @@ async def test_sigint_deny_request_after_triggered(unused_tcp_port: int, caplog)
 
     config = Config(app=app, reload=False, port=unused_tcp_port, timeout_graceful_shutdown=1)
     server: Server
-    async with run_server(config) as server:
-        # exit and ensure we do not accept more requests
-        server.handle_exit(sig=signal.SIGINT, frame=None)
-        await asyncio.sleep(0.1)  # next tick
-        async with httpx.AsyncClient() as client:
+    with assert_signal(signal.SIGINT):
+        async with run_server(config) as server, httpx.AsyncClient() as client:
+            # exit and ensure we do not accept more requests
+            server.handle_exit(sig=signal.SIGINT, frame=None)
+            await asyncio.sleep(0.1)  # next tick
             with pytest.raises(httpx.ConnectError):
                 await client.get(f"http://127.0.0.1:{unused_tcp_port}")
