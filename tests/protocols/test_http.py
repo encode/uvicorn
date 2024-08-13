@@ -680,8 +680,8 @@ async def test_raw_path(http_protocol_cls: HTTPProtocol):
         assert scope["type"] == "http"
         path = scope["path"]
         raw_path = scope.get("raw_path", None)
-        assert "/app/one%2Ftwo-three" == path, "encoded chars except '/' should be decoded"
-        assert b"/app/one%2Ftwo%2Dthree" == raw_path
+        assert "/app/one%2Ftwo-three" == path, "encoded chars except %2F should be decoded"
+        assert b"/app/one%2Ftwo%2Dthree" == raw_path, "raw_path should be kept as is"
 
         response = Response("Done", media_type="text/plain")
         await response(scope, receive, send)

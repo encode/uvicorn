@@ -283,8 +283,8 @@ async def test_path_and_raw_path(ws_protocol_cls: WSProtocol, http_protocol_cls:
         async def websocket_connect(self, message):
             path = self.scope.get("path")
             raw_path = self.scope.get("raw_path")
-            assert path == "/one/two"
-            assert raw_path == b"/one%2Ftwo"
+            assert path == "/one%2Ftwo-three", "encoded chars except %2F should be decoded"
+            assert raw_path == b"/one%2Ftwo%2Dthree", "raw_path should be kept as is"
             await self.send({"type": "websocket.accept"})
 
     async def open_connection(url: str):
@@ -299,7 +299,7 @@ async def test_path_and_raw_path(ws_protocol_cls: WSProtocol, http_protocol_cls:
         port=unused_tcp_port,
     )
     async with run_server(config):
-        is_open = await open_connection(f"ws://127.0.0.1:{unused_tcp_port}/one%2Ftwo")
+        is_open = await open_connection(f"ws://127.0.0.1:{unused_tcp_port}/one%2Ftwo%2Dthree")
         assert is_open
 
 
