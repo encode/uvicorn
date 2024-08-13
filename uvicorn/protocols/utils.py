@@ -60,5 +60,5 @@ def unquote_path(path: str) -> str:
     # the encode of % is %25, in order to differentiate %2f from /,
     # we need to replace %2f with %252f before unquoting
     # ref: https://www.w3.org/Addressing/URL/4_URI_Recommentations.html
-    path = path.replace('%2f', '%252f').replace('%2F', '%252F')
+    path = path.replace("%2f", "%252f").replace("%2F", "%252F")
     return urllib.parse.unquote(path)
