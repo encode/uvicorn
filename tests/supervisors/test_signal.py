@@ -40,6 +40,7 @@ async def test_sigint_finish_req(unused_tcp_port: int):
             # ensure httpx has processed the response and result is complete
             await req
             assert req.result().status_code == 200
+            await asyncio.sleep(0.1)  # ensure shutdown is complete
 
 
 @pytest.mark.anyio
