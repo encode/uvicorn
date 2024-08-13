@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.30.6 (2024-08-13)
+
+### Fixed
+
+- Don't warn when upgrade is not WebSocket and depedencies are installed (#2360)
+
 ## 0.30.5 (2024-08-02)
 
 ### Fixed
