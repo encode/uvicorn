@@ -2,6 +2,7 @@
 Look for a marker comment in docs pages, and place the output of
 `$ uvicorn --help` there. Pass `--check` to ensure the content is in sync.
 """
+
 import argparse
 import subprocess
 import sys
