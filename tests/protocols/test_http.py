@@ -113,7 +113,7 @@ FINISH_POST_REQUEST = b'{"hello": "world"}'
 
 HTTP10_GET_REQUEST = b"\r\n".join([b"GET / HTTP/1.0", b"Host: example.org", b"", b""])
 
-GET_REQUEST_WITH_RAW_PATH = b"\r\n".join([b"GET /one%2Ftwo HTTP/1.1", b"Host: example.org", b"", b""])
+GET_REQUEST_WITH_RAW_PATH = b"\r\n".join([b"GET /one%2Ftwo%2Dthree HTTP/1.1", b"Host: example.org", b"", b""])
 
 UPGRADE_REQUEST = b"\r\n".join(
     [
@@ -680,8 +680,8 @@ async def test_raw_path(http_protocol_cls: HTTPProtocol):
         assert scope["type"] == "http"
         path = scope["path"]
         raw_path = scope.get("raw_path", None)
-        assert "/app/one/two" == path
-        assert b"/app/one%2Ftwo" == raw_path
+        assert "/app/one%2Ftwo-three" == path, "encoded chars except '/' should be decoded"
+        assert b"/app/one%2Ftwo%2Dthree" == raw_path
 
         response = Response("Done", media_type="text/plain")
         await response(scope, receive, send)
