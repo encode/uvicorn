@@ -84,12 +84,13 @@ def test_multiprocess_health_check() -> None:
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
-    time.sleep(1)
+    time.sleep(0.5)
     process = supervisor.processes[0]
     process.kill()
+    time.sleep(0.5)
     try:
         assert not process.is_alive()
-        time.sleep(1)
+        time.sleep(0.5)
         for p in supervisor.processes:
             assert p.is_alive()
     finally:
