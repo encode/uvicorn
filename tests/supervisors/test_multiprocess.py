@@ -34,6 +34,7 @@ def new_console_in_windows(test_function: Callable[[], Any]) -> Callable[[], Any
                 "-c",
                 f"from {module} import {name}; {name}.__wrapped__()",
             ],
+            timeout=10,
             creationflags=subprocess.CREATE_NO_WINDOW,  # type: ignore[attr-defined]
         )
 
