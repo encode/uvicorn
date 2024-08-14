@@ -30,7 +30,7 @@ try:
     from uvicorn.protocols.websockets.wsproto_impl import WSProtocol as _WSProtocol
 
     skip_if_no_wsproto = pytest.mark.skipif(False, reason="wsproto is installed.")
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: no cover
     skip_if_no_wsproto = pytest.mark.skipif(True, reason="wsproto is not installed.")
 
 if typing.TYPE_CHECKING:
@@ -1041,11 +1041,6 @@ async def test_server_reject_connection_with_invalid_status(
             "headers": [(b"Content-Length", b"0"), (b"Content-Type", b"text/plain")],
         }
         await send(message)
-        message = {
-            "type": "websocket.http.response.body",
-            "body": b"",
-        }
-        await send(message)
 
     async def websocket_session(url):
         response = await wsresponse(url)
@@ -1213,7 +1208,7 @@ async def test_server_multiple_websocket_http_response_start_events(
     async def websocket_session(url: str):
         with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
             async with websockets.client.connect(url):
-                pass
+                pass  # pragma: no cover
         assert exc_info.value.status_code == 404
 
     config = Config(
