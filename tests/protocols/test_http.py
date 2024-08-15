@@ -21,7 +21,7 @@ try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 
     skip_if_no_httptools = pytest.mark.skipif(False, reason="httptools is installed")
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: no cover
     skip_if_no_httptools = pytest.mark.skipif(True, reason="httptools is not installed")
 
 if TYPE_CHECKING:
