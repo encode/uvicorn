@@ -76,7 +76,6 @@ def test_multiprocess_run() -> None:
     supervisor.join_all()
 
 
-@pytest.mark.flaky(reruns=3, reruns_delay=2)
 @new_console_in_windows
 def test_multiprocess_health_check() -> None:
     """
@@ -88,9 +87,10 @@ def test_multiprocess_health_check() -> None:
     time.sleep(1)  # ensure server is up
     process = supervisor.processes[0]
     process.kill()
+    process.join()
     try:
-        assert not process.is_alive(1)
-        time.sleep(1)  # release gil, ensure process restart.
+        assert not process.is_alive(0.5)
+        time.sleep(1.5)  # release gil, ensure process restart complete.
         for p in supervisor.processes:
             assert p.is_alive()
     finally:
