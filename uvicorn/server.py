@@ -82,10 +82,13 @@ class Server:
         logger.info(message, process_id, extra={"color_message": color_message})
 
         await self.startup(sockets=sockets)
-        if self.should_exit:
-            return
-        await self.main_loop()
-        await self.shutdown(sockets=sockets)
+
+        try:
+            if self.should_exit:
+                return
+            await self.main_loop()
+        finally:
+            await self.shutdown(sockets=sockets)
 
         message = "Finished server process [%d]"
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
