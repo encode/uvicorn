@@ -34,7 +34,7 @@ async def app(scope, receive, send):
 
 
 def test_loop_auto():
-    loop_factory = auto_loop_factory()
+    loop_factory = auto_loop_factory(use_subprocess=True)
     with contextlib.closing(loop_factory()) as loop:
         assert isinstance(loop, asyncio.AbstractEventLoop)
         assert type(loop).__module__.startswith(expected_loop)

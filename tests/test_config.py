@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import configparser
 import io
 import json
@@ -8,6 +9,7 @@ import os
 import socket
 import sys
 import typing
+from contextlib import closing
 from pathlib import Path
 from typing import Any, Literal
 from unittest.mock import MagicMock
@@ -25,7 +27,7 @@ from uvicorn._types import (
     Scope,
     StartResponse,
 )
-from uvicorn.config import Config
+from uvicorn.config import Config, LoopFactoryType
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -545,3 +547,22 @@ def test_warn_when_using_reload_and_workers(caplog: pytest.LogCaptureFixture) ->
     Config(app=asgi_app, reload=True, workers=2)
     assert len(caplog.records) == 1
     assert '"workers" flag is ignored when reloading is enabled.' in caplog.records[0].message
+
+
+@pytest.mark.parametrize(
+    ("loop_type", "expected_loop_factory"),
+    [
+        ("none", None),
+        ("asyncio", asyncio.ProactorEventLoop if sys.platform == "win32" else asyncio.SelectorEventLoop),  # type: ignore
+    ],
+)
+def test_get_loop_factory(loop_type: LoopFactoryType, expected_loop_factory: Any):
+    config = Config(app=asgi_app, loop=loop_type)
+    loop_factory = config.get_loop_factory()
+    if loop_factory is None:
+        assert expected_loop_factory is loop_factory
+    else:
+        loop = loop_factory()
+        with closing(loop):
+            assert loop is not None
+            assert isinstance(loop, expected_loop_factory)
