@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import configparser
 import io
 import json
@@ -18,7 +17,8 @@ import pytest
 import yaml
 from pytest_mock import MockerFixture
 
-from tests.utils import as_cwd
+from tests.custom_loop_utils import CustomLoop
+from tests.utils import as_cwd, get_asyncio_default_loop_per_os
 from uvicorn._types import (
     ASGIApplication,
     ASGIReceiveCallable,
@@ -553,7 +553,7 @@ def test_warn_when_using_reload_and_workers(caplog: pytest.LogCaptureFixture) ->
     ("loop_type", "expected_loop_factory"),
     [
         ("none", None),
-        ("asyncio", asyncio.ProactorEventLoop if sys.platform == "win32" else asyncio.SelectorEventLoop),  # type: ignore
+        ("asyncio", get_asyncio_default_loop_per_os()),
     ],
 )
 def test_get_loop_factory(loop_type: LoopFactoryType, expected_loop_factory: Any):
@@ -566,3 +566,29 @@ def test_get_loop_factory(loop_type: LoopFactoryType, expected_loop_factory: Any
         with closing(loop):
             assert loop is not None
             assert isinstance(loop, expected_loop_factory)
+
+
+def test_custom_loop__importable_custom_loop_setup_function() -> None:
+    config = Config(app=asgi_app, loop="tests.custom_loop_utils:custom_loop_factory")
+    config.load()
+    loop_factory = config.get_loop_factory()
+    assert loop_factory, "Loop factory should be set"
+    event_loop = loop_factory()
+    with closing(event_loop):
+        assert event_loop is not None
+        assert isinstance(event_loop, CustomLoop)
+
+
+@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
+def test_custom_loop__not_importable_custom_loop_setup_function(caplog: pytest.LogCaptureFixture) -> None:
+    config = Config(app=asgi_app, loop="tests.test_config:non_existing_setup_function")
+    config.load()
+    with pytest.raises(SystemExit):
+        config.get_loop_factory()
+    error_messages = [
+        record.message for record in caplog.records if record.name == "uvicorn.error" and record.levelname == "ERROR"
+    ]
+    assert (
+        'Error loading custom loop setup function. Attribute "non_existing_setup_function" not found in module "tests.test_config".'  # noqa: E501
+        == error_messages.pop(0)
+    )

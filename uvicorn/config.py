@@ -53,7 +53,7 @@ LIFESPAN: dict[LifespanType, str] = {
     "on": "uvicorn.lifespan.on:LifespanOn",
     "off": "uvicorn.lifespan.off:LifespanOff",
 }
-LOOP_FACTORIES: dict[LoopFactoryType, str | None] = {
+LOOP_FACTORIES: dict[str, str | None] = {
     "none": None,
     "auto": "uvicorn.loops.auto:auto_loop_factory",
     "asyncio": "uvicorn.loops.asyncio:asyncio_loop_factory",
@@ -180,7 +180,7 @@ class Config:
         port: int = 8000,
         uds: str | None = None,
         fd: int | None = None,
-        loop: LoopFactoryType = "auto",
+        loop: str = "auto",
         http: type[asyncio.Protocol] | HTTPProtocolType = "auto",
         ws: type[asyncio.Protocol] | WSProtocolType = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
@@ -472,7 +472,14 @@ class Config:
         self.loaded = True
 
     def get_loop_factory(self) -> Callable[[], asyncio.AbstractEventLoop] | None:
-        loop_factory: Callable | None = import_from_string(LOOP_FACTORIES[self.loop])
+        if self.loop in LOOP_FACTORIES:
+            loop_factory: Callable | None = import_from_string(LOOP_FACTORIES[self.loop])
+        else:
+            try:
+                loop_factory = import_from_string(self.loop)
+            except ImportFromStringError as exc:
+                logger.error("Error loading custom loop setup function. %s" % exc)
+                sys.exit(1)
         if loop_factory is None:
             return None
         return loop_factory(use_subprocess=self.use_subprocess)
