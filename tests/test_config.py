@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import configparser
 import io
 import json
@@ -12,10 +13,14 @@ from pathlib import Path
 from typing import Any, Literal
 from unittest.mock import MagicMock
 
+import httpx
 import pytest
 import yaml
 from pytest_mock import MockerFixture
+from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 
+from tests.test_default_headers import app
+from tests.utils import run_server
 from tests.utils import as_cwd
 from uvicorn._types import (
     ASGIApplication,
@@ -29,6 +34,8 @@ from uvicorn.config import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
+
+pytestmark = pytest.mark.anyio
 
 
 @pytest.fixture
@@ -545,3 +552,16 @@ def test_warn_when_using_reload_and_workers(caplog: pytest.LogCaptureFixture) ->
     Config(app=asgi_app, reload=True, workers=2)
     assert len(caplog.records) == 1
     assert '"workers" flag is ignored when reloading is enabled.' in caplog.records[0].message
+
+
+async def test_request_than_limit_max_requests_warn_log(
+    unused_tcp_port: int, http_protocol_cls: type[H11Protocol | HttpToolsProtocol], caplog: pytest.LogCaptureFixture
+):
+    caplog.set_level(logging.WARNING, logger="uvicorn.error")
+    config = Config(app=app, limit_max_requests=1, port=unused_tcp_port, http=http_protocol_cls)
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            tasks = [client.get(f"http://127.0.0.1:{unused_tcp_port}") for _ in range(2)]
+            responses = await asyncio.gather(*tasks)
+            assert len(responses) == 2
+    assert f"Maximum request limit of {config.limit_max_requests} exceeded. Terminating process." in caplog.text
