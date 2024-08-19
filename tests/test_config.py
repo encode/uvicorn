@@ -18,7 +18,6 @@ import pytest
 import yaml
 from pytest_mock import MockerFixture
 
-from tests.test_default_headers import app
 from tests.utils import as_cwd, run_server
 from uvicorn._types import (
     ASGIApplication,
@@ -58,6 +57,12 @@ async def asgi_app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCal
 
 def wsgi_app(environ: Environ, start_response: StartResponse) -> None:
     pass  # pragma: nocover
+
+
+async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
+    assert scope["type"] == "http"
+    await send({"type": "http.response.start", "status": 200, "headers": []})
+    await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
 @pytest.mark.parametrize(
@@ -223,14 +228,14 @@ def test_app_unimportable_module() -> None:
 
 
 def test_app_unimportable_other(caplog: pytest.LogCaptureFixture) -> None:
-    config = Config(app="tests.test_config:app")
+    config = Config(app="tests.test_config:unimportable_app")
     with pytest.raises(SystemExit):
         config.load()
     error_messages = [
         record.message for record in caplog.records if record.name == "uvicorn.error" and record.levelname == "ERROR"
     ]
     assert (
-        'Error loading ASGI app. Attribute "app" not found in module "tests.test_config".'  # noqa: E501
+        'Error loading ASGI app. Attribute "unimportable_app" not found in module "tests.test_config".'  # noqa: E501
         == error_messages.pop(0)
     )
 
