@@ -59,7 +59,11 @@ Source = "https://github.com/encode/uvicorn"
 path = "uvicorn/__init__.py"
 
 [tool.hatch.build.targets.sdist]
-include = ["/uvicorn"]
+include = [
+    "/uvicorn",
+    "/tests",
+    "/requirements.txt",
+]
 
 [tool.ruff]
 line-length = 120
