@@ -17,11 +17,9 @@ import httpx
 import pytest
 import yaml
 from pytest_mock import MockerFixture
-from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 
 from tests.test_default_headers import app
-from tests.utils import run_server
-from tests.utils import as_cwd
+from tests.utils import as_cwd, run_server
 from uvicorn._types import (
     ASGIApplication,
     ASGIReceiveCallable,
@@ -34,6 +32,7 @@ from uvicorn.config import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
+from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 
 pytestmark = pytest.mark.anyio
 
