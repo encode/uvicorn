@@ -26,6 +26,7 @@ coverage==7.5.4
 coverage-conditional-plugin==0.9.0
 httpx==0.27.0
 watchgod==0.8.2
+anyio==3.7.1
 
 # Documentation
 mkdocs==1.6.0
