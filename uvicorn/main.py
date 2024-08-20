@@ -576,8 +576,8 @@ def run(
             Multiprocess(config, target=server.run, sockets=[sock]).run()
         else:
             server.run()
-    except KeyboardInterrupt:
-        pass  # pragma: full coverage
+    except KeyboardInterrupt:  # pragma: full coverage
+        pass
     finally:
         if config.uds and os.path.exists(config.uds):
             os.remove(config.uds)  # pragma: py-win32
