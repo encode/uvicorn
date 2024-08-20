@@ -58,7 +58,7 @@ def asgi_app_factory(**kwargs):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
         pass  # pragma: nocover
 
-    app.worker_kwargs = kwargs
+    app.worker_kwargs = kwargs  # type: ignore
     return app
 
 

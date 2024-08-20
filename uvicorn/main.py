@@ -507,7 +507,7 @@ def run(
     app_dir: str | None = None,
     factory: bool = False,
     h11_max_incomplete_event_size: int | None = None,
-    worker_kwargs: dict,
+    worker_kwargs: dict | None = None,
 ) -> None:
     if app_dir is not None:
         sys.path.insert(0, app_dir)
