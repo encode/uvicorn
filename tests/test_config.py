@@ -195,7 +195,6 @@ def test_reload_includes_exclude_dir_patterns_are_matched(
 
 def test_wsgi_app() -> None:
     config = Config(app=wsgi_app, interface="wsgi", proxy_headers=False)
-    config.load()
 
     assert isinstance(config.loaded_app, WSGIMiddleware)
     assert config.interface == "wsgi"
@@ -204,22 +203,19 @@ def test_wsgi_app() -> None:
 
 def test_proxy_headers() -> None:
     config = Config(app=asgi_app)
-    config.load()
 
     assert config.proxy_headers is True
     assert isinstance(config.loaded_app, ProxyHeadersMiddleware)
 
 
 def test_app_unimportable_module() -> None:
-    config = Config(app="no.such:app")
     with pytest.raises(ImportError):
-        config.load()
+        Config(app="no.such:app")
 
 
 def test_app_unimportable_other(caplog: pytest.LogCaptureFixture) -> None:
-    config = Config(app="tests.test_config:app")
     with pytest.raises(SystemExit):
-        config.load()
+        Config(app="tests.test_config:app")
     error_messages = [
         record.message for record in caplog.records if record.name == "uvicorn.error" and record.levelname == "ERROR"
     ]
@@ -234,34 +230,29 @@ def test_app_factory(caplog: pytest.LogCaptureFixture) -> None:
         return asgi_app
 
     config = Config(app=create_app, factory=True, proxy_headers=False)
-    config.load()
     assert config.loaded_app is asgi_app
 
     # Flag not passed. In this case, successfully load the app, but issue a warning
     # to indicate that an explicit flag is preferred.
     caplog.clear()
-    config = Config(app=create_app, proxy_headers=False)
     with caplog.at_level(logging.WARNING):
-        config.load()
+        config = Config(app=create_app, proxy_headers=False)
     assert config.loaded_app is asgi_app
     assert len(caplog.records) == 1
     assert "--factory" in caplog.records[0].message
 
     # App not a no-arguments callable.
-    config = Config(app=asgi_app, factory=True)
     with pytest.raises(SystemExit):
-        config.load()
+        Config(app=asgi_app, factory=True)
 
 
 def test_concrete_http_class() -> None:
     config = Config(app=asgi_app, http=H11Protocol)
-    config.load()
     assert config.http_protocol_class is H11Protocol
 
 
 def test_socket_bind() -> None:
     config = Config(app=asgi_app)
-    config.load()
     sock = config.bind_socket()
     assert isinstance(sock, socket.socket)
     sock.close()
@@ -276,7 +267,6 @@ def test_ssl_config(
         ssl_certfile=tls_ca_certificate_pem_path,
         ssl_keyfile=tls_ca_certificate_private_key_path,
     )
-    config.load()
 
     assert config.is_ssl is True
 
@@ -286,7 +276,6 @@ def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
         app=asgi_app,
         ssl_certfile=tls_certificate_key_and_chain_path,
     )
-    config.load()
 
     assert config.is_ssl is True
 
@@ -301,7 +290,6 @@ def asgi2_app(scope: Scope) -> typing.Callable:
 @pytest.mark.parametrize("app, expected_interface", [(asgi_app, "3.0"), (asgi2_app, "2.0")])
 def test_asgi_version(app: ASGIApplication, expected_interface: Literal["2.0", "3.0"]) -> None:
     config = Config(app=app)
-    config.load()
     assert config.asgi_version == expected_interface
 
 
@@ -324,8 +312,7 @@ def test_log_config_default(
     Test that one can specify the use_colors option when using the default logging
     config.
     """
-    config = Config(app=asgi_app, use_colors=use_colors, log_config=logging_config)
-    config.load()
+    Config(app=asgi_app, use_colors=use_colors, log_config=logging_config)
 
     mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
 
@@ -344,8 +331,7 @@ def test_log_config_json(
     """
     mocked_open = mocker.patch("uvicorn.config.open", mocker.mock_open(read_data=json_logging_config))
 
-    config = Config(app=asgi_app, log_config="log_config.json")
-    config.load()
+    Config(app=asgi_app, log_config="log_config.json")
 
     mocked_open.assert_called_once_with("log_config.json")
     mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
@@ -364,8 +350,7 @@ def test_log_config_yaml(
     """
     mocked_open = mocker.patch("uvicorn.config.open", mocker.mock_open(read_data=yaml_logging_config))
 
-    config = Config(app=asgi_app, log_config=config_filename)
-    config.load()
+    Config(app=asgi_app, log_config=config_filename)
 
     mocked_open.assert_called_once_with(config_filename)
     mocked_logging_config_module.dictConfig.assert_called_once_with(logging_config)
@@ -379,8 +364,7 @@ def test_log_config_file(
     """
     Test that one can load a configparser config from disk.
     """
-    config = Config(app=asgi_app, log_config=config_file)
-    config.load()
+    Config(app=asgi_app, log_config=config_file)
 
     mocked_logging_config_module.fileConfig.assert_called_once_with(config_file, disable_existing_loggers=False)
 
@@ -413,7 +397,6 @@ def test_env_file(
     fp.write_text(content)
     with caplog.at_level(logging.INFO):
         config = Config(app=asgi_app, env_file=fp)
-        config.load()
 
     assert config.workers == int(str(os.getenv("WEB_CONCURRENCY")))
     assert config.forwarded_allow_ips == os.getenv("FORWARDED_ALLOW_IPS")
@@ -430,7 +413,6 @@ def test_env_file(
 )
 def test_config_access_log(access_log: bool, handlers: int) -> None:
     config = Config(app=asgi_app, access_log=access_log)
-    config.load()
 
     assert len(logging.getLogger("uvicorn.access").handlers) == handlers
     assert config.access_log == access_log
@@ -439,7 +421,6 @@ def test_config_access_log(access_log: bool, handlers: int) -> None:
 @pytest.mark.parametrize("log_level", [5, 10, 20, 30, 40, 50])
 def test_config_log_level(log_level: int) -> None:
     config = Config(app=asgi_app, log_level=log_level)
-    config.load()
 
     assert logging.getLogger("uvicorn.error").level == log_level
     assert logging.getLogger("uvicorn.access").level == log_level
@@ -458,8 +439,7 @@ def test_config_log_effective_level(log_level: int, uvicorn_logger_level: int) -
             "uvicorn": {"level": uvicorn_logger_level},
         },
     }
-    config = Config(app=asgi_app, log_level=log_level, log_config=log_config)
-    config.load()
+    Config(app=asgi_app, log_level=log_level, log_config=log_config)
 
     effective_level = log_level or uvicorn_logger_level or default_level
     assert logging.getLogger("uvicorn.error").getEffectiveLevel() == effective_level
@@ -469,13 +449,11 @@ def test_config_log_effective_level(log_level: int, uvicorn_logger_level: int) -
 
 def test_ws_max_size() -> None:
     config = Config(app=asgi_app, ws_max_size=1000)
-    config.load()
     assert config.ws_max_size == 1000
 
 
 def test_ws_max_queue() -> None:
     config = Config(app=asgi_app, ws_max_queue=64)
-    config.load()
     assert config.ws_max_queue == 64
 
 
@@ -492,7 +470,6 @@ def test_bind_unix_socket_works_with_reload_or_workers(
     tmp_path: Path, reload: bool, workers: int, short_socket_name: str
 ):  # pragma: py-win32
     config = Config(app=asgi_app, uds=short_socket_name, reload=reload, workers=workers)
-    config.load()
     sock = config.bind_socket()
     assert isinstance(sock, socket.socket)
     assert sock.family == socket.AF_UNIX
@@ -513,7 +490,6 @@ def test_bind_fd_works_with_reload_or_workers(reload: bool, workers: int):  # pr
     fdsock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     fd = fdsock.fileno()
     config = Config(app=asgi_app, fd=fd, reload=reload, workers=workers)
-    config.load()
     sock = config.bind_socket()
     assert isinstance(sock, socket.socket)
     assert sock.family == socket.AF_UNIX
@@ -537,7 +513,6 @@ def test_bind_fd_works_with_reload_or_workers(reload: bool, workers: int):  # pr
 )
 def test_config_use_subprocess(reload: bool, workers: int, expected: bool):
     config = Config(app=asgi_app, reload=reload, workers=workers)
-    config.load()
     assert config.use_subprocess == expected
 
 

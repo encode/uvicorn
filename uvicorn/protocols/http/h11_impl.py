@@ -43,9 +43,6 @@ class H11Protocol(asyncio.Protocol):
         app_state: dict[str, Any],
         _loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
-        if not config.loaded:
-            config.load()
-
         self.config = config
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()

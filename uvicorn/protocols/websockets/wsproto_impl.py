@@ -43,9 +43,6 @@ class WSProtocol(asyncio.Protocol):
         app_state: dict[str, typing.Any],
         _loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
-        if not config.loaded:
-            config.load()  # pragma: full coverage
-
         self.config = config
         self.app = cast(ASGI3Application, config.loaded_app)
         self.loop = _loop or asyncio.get_event_loop()

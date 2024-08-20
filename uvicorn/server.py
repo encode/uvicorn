@@ -72,9 +72,6 @@ class Server:
         process_id = os.getpid()
 
         config = self.config
-        if not config.loaded:
-            config.load()
-
         self.lifespan = config.lifespan_class(config)
 
         message = "Started server process [%d]"
