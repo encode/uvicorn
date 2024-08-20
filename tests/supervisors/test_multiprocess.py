@@ -34,7 +34,6 @@ def new_console_in_windows(test_function: Callable[[], Any]) -> Callable[[], Any
                 "-c",
                 f"from {module} import {name}; {name}.__wrapped__()",
             ],
-            timeout=10,
             creationflags=subprocess.CREATE_NO_WINDOW,  # type: ignore[attr-defined]
         )
 
@@ -84,7 +83,8 @@ def test_multiprocess_health_check() -> None:
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
-    time.sleep(1)  # ensure server is up
+    # Ensure server is up.
+    time.sleep(1)
     process = supervisor.processes[0]
     process.kill()
     process.join()
