@@ -269,7 +269,7 @@ class Config:
         self.encoded_headers: list[tuple[bytes, bytes]] = []
         self.factory = factory
         self.h11_max_incomplete_event_size = h11_max_incomplete_event_size
-        self.worker_kwargs = worker_kwargs
+        self.worker_kwargs = worker_kwargs or {}
 
         self.loaded = False
         self.configure_logging()
