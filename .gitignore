@@ -4,6 +4,10 @@
 __pycache__/
 uvicorn.egg-info/
 venv/
+.venv/
 htmlcov/
 site/
 dist/
+
+*.c
+*.pyd
