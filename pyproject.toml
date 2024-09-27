@@ -11,6 +11,7 @@ license = "BSD-3-Clause"
 requires-python = ">=3.8"
 authors = [
     { name = "Tom Christie", email = "tom@tomchristie.com" },
+    { name = "Marcelo Trylesinski", email = "marcelotryle@gmail.com" }
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -58,14 +59,18 @@ Source = "https://github.com/encode/uvicorn"
 path = "uvicorn/__init__.py"
 
 [tool.hatch.build.targets.sdist]
-include = ["/uvicorn"]
+include = [
+    "/uvicorn",
+    "/tests",
+    "/requirements.txt",
+]
 
 [tool.ruff]
 line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "FA", "UP"]
-ignore = ["B904", "B028"]
+ignore = ["B904", "B028", "UP031"]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
@@ -90,32 +95,34 @@ filterwarnings = [
     "error",
     'ignore: \"watchgod\" is deprecated\, you should switch to watchfiles \(`pip install watchfiles`\)\.:DeprecationWarning',
     "ignore:Uvicorn's native WSGI implementation is deprecated.*:DeprecationWarning",
-    "ignore: 'cgi' is deprecated and slated for removal in Python 3.13:DeprecationWarning"
+    "ignore: 'cgi' is deprecated and slated for removal in Python 3.13:DeprecationWarning",
 ]
 
 [tool.coverage.run]
 source_pkgs = ["uvicorn", "tests"]
 plugins = ["coverage_conditional_plugin"]
-omit = [
-    "uvicorn/workers.py",
-    "uvicorn/__main__.py",
-]
+omit = ["uvicorn/workers.py", "uvicorn/__main__.py"]
 
 [tool.coverage.report]
 precision = 2
-fail_under = 98.35
+fail_under = 100
 show_missing = true
 skip_covered = true
 exclude_lines = [
     "pragma: no cover",
     "pragma: nocover",
+    "pragma: full coverage",
     "if TYPE_CHECKING:",
     "if typing.TYPE_CHECKING:",
     "raise NotImplementedError",
 ]
 
 [tool.coverage.coverage_conditional_plugin.omit]
-"sys_platform == 'win32'" = ["uvicorn/loops/uvloop.py"]
+"sys_platform == 'win32'" = [
+    "uvicorn/loops/uvloop.py",
+    "uvicorn/supervisors/multiprocess.py",
+    "tests/supervisors/test_multiprocess.py",
+]
 "sys_platform != 'win32'" = ["uvicorn/loops/asyncio.py"]
 
 [tool.coverage.coverage_conditional_plugin.rules]
@@ -124,7 +131,7 @@ py-not-win32 = "sys_platform != 'win32'"
 py-linux = "sys_platform == 'linux'"
 py-darwin = "sys_platform == 'darwin'"
 py-gte-38 = "sys_version_info >= (3, 8)"
-py-lt-38 =  "sys_version_info < (3, 8)"
+py-lt-38 = "sys_version_info < (3, 8)"
 py-gte-39 = "sys_version_info >= (3, 9)"
 py-lt-39 = "sys_version_info < (3, 9)"
 py-gte-310 = "sys_version_info >= (3, 10)"

@@ -38,14 +38,14 @@ class BaseReload:
         self.is_restarting = False
         self.reloader_name: str | None = None
 
-    def signal_handler(self, sig: int, frame: FrameType | None) -> None:
+    def signal_handler(self, sig: int, frame: FrameType | None) -> None:  # pragma: full coverage
         """
         A signal handler that is registered with the parent process.
         """
         if sys.platform == "win32" and self.is_restarting:
-            self.is_restarting = False  # pragma: py-not-win32
+            self.is_restarting = False
         else:
-            self.should_exit.set()  # pragma: py-win32
+            self.should_exit.set()
 
     def run(self) -> None:
         self.startup()
