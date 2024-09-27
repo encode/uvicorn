@@ -92,7 +92,7 @@ class Process:
 
     def join(self, timeout: float | None = None) -> None:
         logger.info(f"Waiting for child process [{self.process.pid}]")
-        self.process.join(join_timeout)
+        self.process.join(timeout)
         # Timeout, kill the process
         while self.process.exitcode is None:
             self.process.kill()
