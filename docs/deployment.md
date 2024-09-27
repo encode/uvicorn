@@ -332,7 +332,7 @@ In those cases, you might want to use an ASGI middleware to set the `client` and
 
 ## Running behind a CDN
 
-Running behind a content delivery network, such as Cloudflare or Cloud Front, provides a serious layer of protection against DDOS attacks. Your service will be running behind huge clusters of proxies and load balancers that are designed for handling huge amounts of traffic, and have capabilities for detecting and closing off connections from DDOS attacks.
+Running behind a content delivery network, such as Cloudflare or Cloud Front, provides a serious layer of protection against DDoS attacks. Your service will be running behind huge clusters of proxies and load balancers that are designed for handling huge amounts of traffic, and have capabilities for detecting and closing off connections from DDoS attacks.
 
 Proper usage of cache control headers can mean that a CDN is able to serve large amounts of data without always having to forward the request on to your server.
 
@@ -364,21 +364,25 @@ $ gunicorn --keyfile=./key.pem --certfile=./cert.pem -k uvicorn.workers.UvicornW
 
 ## Proxies and Forwarded Headers
 
-When running an application behind one or more proxies, certain information about the request is lost. To avoid this most proxies will add headers containing this information for downstream servers to read.
+When running an application behind one or more proxies, certain information about the request is lost.
+To avoid this most proxies will add headers containing this information for downstream servers to read.
 
 Uvicorn currently supports the following headers:
 
 - `X-Forwarded-For` ([MDN Reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For))
 - `X-Forwarded-Proto`([MDN Reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto))
 
-Uvicorn can use these headers to correctly set the client and protocol in the request. However as anyone can set these headers you must configure which "clients" you will trust to have set them correctly.
+Uvicorn can use these headers to correctly set the client and protocol in the request.
+However as anyone can set these headers you must configure which "clients" you will trust to have set them correctly.
 
-Uvicorn can be configured to trust IP Addresses (e.g. `127.0.0.1`), IP Networks (e.g. `10.100.0.0/16`), or Literals (e.g. `/path/to/socket.sock`). When running from CLI these are configured using `--forwarded-trust-ips`.
+Uvicorn can be configured to trust IP Addresses (e.g. `127.0.0.1`), IP Networks (e.g. `10.100.0.0/16`),
+or Literals (e.g. `/path/to/socket.sock`). When running from CLI these are configured using `--forwarded-trust-ips`.
 
-!!! Warning: Only trust clients you can actually trust
+!!! Warning "Only trust clients you can actually trust!"
     Incorrectly trusting other clients can lead to malicious actors spoofing their apparent client address to your application.
 
-For more informations see [`ProxyHeadersMiddleware`](https://github.com/encode/uvicorn/blob/master/uvicorn/middleware/proxy_headers.py)
+For more information, check [`ProxyHeadersMiddleware`](https://github.com/encode/uvicorn/blob/master/uvicorn/middleware/proxy_headers.py).
+
 ### Client Port
 
 Currently if the `ProxyHeadersMiddleware` is able to retrieve a trusted client value then the client's port will be set to `0`. This is because port information is lost when using these headers.
@@ -388,10 +392,13 @@ Currently if the `ProxyHeadersMiddleware` is able to retrieve a trusted client v
 Although it is common for UNIX Domain Sockets to be used for communicating between various HTTP servers, they can mess with some of the expected received values as they will be various non-address strings or missing values.
 
 For example:
+
 - when NGINX itself is running behind a UDS it will add the literal `unix:` as the client in the `X-Forwarded-For` header.
 - When Uvicorn is running behind a UDS the initial client will be `None`.
 
 
 ### Trust Everything
 
-Rather than specifying what to trust, you can instruct Uvicorn to trust all clients using the literal `"*"`. You should only set this when you know you can trust all values within the forwarded headers (e.g. because your proxies remove the existing headers before setting their own).
+Rather than specifying what to trust, you can instruct Uvicorn to trust all clients using the literal `"*"`.
+You should only set this when you know you can trust all values within the forwarded headers (e.g. because
+your proxies remove the existing headers before setting their own).
