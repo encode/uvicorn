@@ -385,7 +385,8 @@ For more information, check [`ProxyHeadersMiddleware`](https://github.com/encode
 
 ### Client Port
 
-Currently if the `ProxyHeadersMiddleware` is able to retrieve a trusted client value then the client's port will be set to `0`. This is because port information is lost when using these headers.
+Currently if the `ProxyHeadersMiddleware` is able to retrieve a trusted client value then the client's port will be set to `0`.
+This is because port information is lost when using these headers.
 
 ### UNIX Domain Sockets (UDS)
 
@@ -395,7 +396,6 @@ For example:
 
 - when NGINX itself is running behind a UDS it will add the literal `unix:` as the client in the `X-Forwarded-For` header.
 - When Uvicorn is running behind a UDS the initial client will be `None`.
-
 
 ### Trust Everything
 
