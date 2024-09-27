@@ -1,9 +1,63 @@
 from __future__ import annotations
 
 import ipaddress
-from typing import Union, cast
 
-from uvicorn._types import ASGI3Application, ASGIReceiveCallable, ASGISendCallable, HTTPScope, Scope, WebSocketScope
+from uvicorn._types import ASGI3Application, ASGIReceiveCallable, ASGISendCallable, Scope
+
+
+class ProxyHeadersMiddleware:
+    """Middleware for handling known proxy headers
+
+    This middleware can be used when a known proxy is fronting the application,
+    and is trusted to be properly setting the `X-Forwarded-Proto` and
+    `X-Forwarded-For` headers with the connecting client information.
+
+    Modifies the `client` and `scheme` information so that they reference
+    the connecting client, rather that the connecting proxy.
+
+    References:
+    - <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies>
+    - <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For>
+    """
+
+    def __init__(self, app: ASGI3Application, trusted_hosts: list[str] | str = "127.0.0.1") -> None:
+        self.app = app
+        self.trusted_hosts = _TrustedHosts(trusted_hosts)
+
+    async def __call__(self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
+        if scope["type"] == "lifespan":
+            return await self.app(scope, receive, send)
+
+        client_addr = scope.get("client")
+        client_host = client_addr[0] if client_addr else None
+
+        if client_host in self.trusted_hosts:
+            headers = dict(scope["headers"])
+
+            if b"x-forwarded-proto" in headers:
+                x_forwarded_proto = headers[b"x-forwarded-proto"].decode("latin1").strip()
+
+                if x_forwarded_proto in {"http", "https", "ws", "wss"}:
+                    if scope["type"] == "websocket":
+                        scope["scheme"] = x_forwarded_proto.replace("http", "ws")
+                    else:
+                        scope["scheme"] = x_forwarded_proto
+
+            if b"x-forwarded-for" in headers:
+                x_forwarded_for = headers[b"x-forwarded-for"].decode("latin1")
+                host = self.trusted_hosts.get_trusted_client_host(x_forwarded_for)
+
+                if host:
+                    # If the x-forwarded-for header is empty then host is an empty string.
+                    # Only set the client if we actually got something usable.
+                    # See: https://github.com/encode/uvicorn/issues/1068
+
+                    # We've lost the connecting client's port information by now,
+                    # so only include the host.
+                    port = 0
+                    scope["client"] = (host, port)
+
+        return await self.app(scope, receive, send)
 
 
 def _parse_raw_hosts(value: str) -> list[str]:
@@ -13,18 +67,15 @@ def _parse_raw_hosts(value: str) -> list[str]:
 class _TrustedHosts:
     """Container for trusted hosts and networks"""
 
-    def __init__(
-        self,
-        trusted_hosts: list[str] | str,
-    ) -> None:
+    def __init__(self, trusted_hosts: list[str] | str) -> None:
         self.always_trust: bool = trusted_hosts == "*"
 
         self.trusted_literals: set[str] = set()
-        self.trusted_hosts: set[ipaddress._BaseAddress] = set()
-        self.trusted_networks: set[ipaddress._BaseNetwork] = set()
+        self.trusted_hosts: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
+        self.trusted_networks: set[ipaddress.IPv4Network | ipaddress.IPv6Network] = set()
 
         # Notes:
-        # - We seperate hosts from literals as there are many ways to write
+        # - We separate hosts from literals as there are many ways to write
         #   an IPv6 Address so we need to compare by object.
         # - We don't convert IP Address to single host networks (e.g. /32 / 128) as
         #   it more efficient to do an address lookup in a set than check for
@@ -52,25 +103,25 @@ class _TrustedHosts:
                     try:
                         self.trusted_hosts.add(ipaddress.ip_address(host))
                     except ValueError:
-                        # Was not a valid IP Adress
+                        # Was not a valid IP Address
                         self.trusted_literals.add(host)
         return
 
-    def __contains__(self, item: str | None) -> bool:
+    def __contains__(self, host: str | None) -> bool:
         if self.always_trust:
             return True
 
-        if not item:
+        if not host:
             return False
 
         try:
-            ip = ipaddress.ip_address(item)
+            ip = ipaddress.ip_address(host)
             if ip in self.trusted_hosts:
                 return True
             return any(ip in net for net in self.trusted_networks)
 
         except ValueError:
-            return item in self.trusted_literals
+            return host in self.trusted_literals
 
     def get_trusted_client_host(self, x_forwarded_for: str) -> str:
         """Extract the client host from x_forwarded_for header
@@ -90,61 +141,3 @@ class _TrustedHosts:
         # All hosts are trusted meaning that the client was also a trusted proxy
         # See https://github.com/encode/uvicorn/issues/1068#issuecomment-855371576
         return x_forwarded_for_hosts[0]
-
-
-class ProxyHeadersMiddleware:
-    """Middleware for handling known proxy headers
-
-    This middleware can be used when a known proxy is fronting the application,
-    and is trusted to be properly setting the `X-Forwarded-Proto` and
-    `X-Forwarded-For` headers with the connecting client information.
-
-    Modifies the `client` and `scheme` information so that they reference
-    the connecting client, rather that the connecting proxy.
-
-    References:
-    - <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies>
-    - <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For>
-    """
-
-    def __init__(
-        self,
-        app: ASGI3Application,
-        trusted_hosts: list[str] | str = "127.0.0.1",
-    ) -> None:
-        self.app = app
-        self.trusted_hosts = _TrustedHosts(trusted_hosts)
-
-    async def __call__(self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
-        if scope["type"] in ("http", "websocket"):
-            scope = cast(Union[HTTPScope, WebSocketScope], scope)
-            client_addr: tuple[str, int] | None = scope.get("client")
-            client_host = client_addr[0] if client_addr else None
-
-            if client_host in self.trusted_hosts:
-                headers = dict(scope["headers"])
-
-                if b"x-forwarded-proto" in headers:
-                    x_forwarded_proto = headers[b"x-forwarded-proto"].decode("latin1").strip()
-
-                    if x_forwarded_proto in {"http", "https", "ws", "wss"}:
-                        if scope["type"] == "websocket":
-                            scope["scheme"] = x_forwarded_proto.replace("http", "ws")
-                        else:
-                            scope["scheme"] = x_forwarded_proto
-
-                if b"x-forwarded-for" in headers:
-                    x_forwarded_for = headers[b"x-forwarded-for"].decode("latin1")
-                    host = self.trusted_hosts.get_trusted_client_host(x_forwarded_for)
-
-                    if host:
-                        # If the x-forwarded-for header is empty then host is an empty string.
-                        # Only set the client if we actually got something usable.
-                        # See: https://github.com/encode/uvicorn/issues/1068
-
-                        # We've lost the connecting client's port information by now,
-                        # so only include the host.
-                        port = 0
-                        scope["client"] = (host, port)
-
-        return await self.app(scope, receive, send)
