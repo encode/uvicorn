@@ -144,10 +144,10 @@ If tests are failing you will see this message under the coverage report:
 
 `=== 1 failed, 354 passed, 1 skipped, 1 xfailed in 37.08s ===`
 
-If tests succeed but coverage doesn't reach our current threshold, you will see this
+If tests succeed but coverage doesn't reach 100%, you will see this
 message under the coverage report:
 
-`Coverage failure: total of 88 is less than fail-under=95`
+`Coverage failure: total of 98 is less than fail-under=100`
 
 ## Releasing
 

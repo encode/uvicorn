@@ -37,10 +37,10 @@ async def dummy_app(scope, receive, send):  # pragma: py-win32
     pass
 
 
-if sys.platform == "win32":
+if sys.platform == "win32":  # pragma: py-not-win32
     signals = [signal.SIGBREAK]
     signal_captures = [capture_signal_sync]
-else:
+else:  # pragma: py-win32
     signals = [signal.SIGTERM, signal.SIGINT]
     signal_captures = [capture_signal_sync, capture_signal_async]
 
