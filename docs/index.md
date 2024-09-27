@@ -163,10 +163,12 @@ Options:
                                   Enable/Disable default Server header.
   --date-header / --no-date-header
                                   Enable/Disable default Date header.
-  --forwarded-allow-ips TEXT      Comma separated list of IPs to trust with
-                                  proxy headers. Defaults to the
-                                  $FORWARDED_ALLOW_IPS environment variable if
-                                  available, or '127.0.0.1'.
+  --forwarded-allow-ips TEXT      Comma separated list of IP Addresses, IP
+                                  Networks, or literals (e.g. UNIX Socket
+                                  path) to trust with proxy headers. Defaults
+                                  to the $FORWARDED_ALLOW_IPS environment
+                                  variable if available, or '127.0.0.1'. The
+                                  literal '*' means trust everything.
   --root-path TEXT                Set the ASGI 'root_path' for applications
                                   submounted below a given URL path.
   --limit-concurrency INTEGER     Maximum number of concurrent connections or
