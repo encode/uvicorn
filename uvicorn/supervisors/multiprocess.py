@@ -90,7 +90,7 @@ class Process:
         # In Unix, the method will send SIGKILL to the process.
         self.process.kill()
 
-    def join(self, join_timeout: float | None = None) -> None:
+    def join(self, timeout: float | None = None) -> None:
         logger.info(f"Waiting for child process [{self.process.pid}]")
         self.process.join(join_timeout)
         # Timeout, kill the process
