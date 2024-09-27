@@ -64,7 +64,7 @@ class Process:
 
     def is_alive(self, timeout: float = 5) -> bool:
         if not self.process.is_alive():
-            return False
+            return False  # pragma: full coverage
 
         return self.ping(timeout)
 
@@ -138,7 +138,7 @@ class Multiprocess:
             process.join(self.config.timeout_graceful_shutdown)
 
     def restart_all(self) -> None:
-        for idx, process in enumerate(tuple(self.processes)):
+        for idx, process in enumerate(self.processes):
             process.terminate()
             process.join()
             new_process = Process(self.config, self.target, self.sockets)
@@ -167,7 +167,7 @@ class Multiprocess:
         if self.should_exit.is_set():
             return  # parent process is exiting, no need to keep subprocess alive
 
-        for idx, process in enumerate(tuple(self.processes)):
+        for idx, process in enumerate(self.processes):
             if process.is_alive():
                 continue
 
@@ -175,13 +175,12 @@ class Multiprocess:
             process.join()
 
             if self.should_exit.is_set():
-                return
+                return  # pragma: full coverage
 
             logger.info(f"Child process [{process.pid}] died")
-            del self.processes[idx]
             process = Process(self.config, self.target, self.sockets)
             process.start()
-            self.processes.append(process)
+            self.processes[idx] = process
 
     def handle_signals(self) -> None:
         for sig in tuple(self.signal_queue):

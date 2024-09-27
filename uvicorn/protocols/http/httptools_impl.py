@@ -139,21 +139,22 @@ class HttpToolsProtocol(asyncio.Protocol):
                 upgrade = value.lower()
         if b"upgrade" in connection:
             return upgrade
-        return None
+        return None  # pragma: full coverage
 
-    def _should_upgrade_to_ws(self, upgrade: bytes | None) -> bool:
-        if upgrade == b"websocket" and self.ws_protocol_class is not None:
-            return True
-        if self.config.ws == "auto":
-            msg = "Unsupported upgrade request."
-            self.logger.warning(msg)
+    def _should_upgrade_to_ws(self) -> bool:
+        if self.ws_protocol_class is None:
+            return False
+        return True
+
+    def _unsupported_upgrade_warning(self) -> None:
+        self.logger.warning("Unsupported upgrade request.")
+        if not self._should_upgrade_to_ws():
             msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
             self.logger.warning(msg)
-        return False
 
     def _should_upgrade(self) -> bool:
         upgrade = self._get_upgrade()
-        return self._should_upgrade_to_ws(upgrade)
+        return upgrade == b"websocket" and self._should_upgrade_to_ws()
 
     def data_received(self, data: bytes) -> None:
         self._unset_keepalive_if_required()
@@ -166,9 +167,10 @@ class HttpToolsProtocol(asyncio.Protocol):
             self.send_400_response(msg)
             return
         except httptools.HttpParserUpgrade:
-            upgrade = self._get_upgrade()
-            if self._should_upgrade_to_ws(upgrade):
+            if self._should_upgrade():
                 self.handle_websocket_upgrade()
+            else:
+                self._unsupported_upgrade_warning()
 
     def handle_websocket_upgrade(self) -> None:
         if self.logger.level <= TRACE_LOG_LEVEL:
@@ -193,7 +195,7 @@ class HttpToolsProtocol(asyncio.Protocol):
     def send_400_response(self, msg: str) -> None:
         content = [STATUS_LINE[400]]
         for name, value in self.server_state.default_headers:
-            content.extend([name, b": ", value, b"\r\n"])
+            content.extend([name, b": ", value, b"\r\n"])  # pragma: full coverage
         content.extend(
             [
                 b"content-type: text/plain; charset=utf-8\r\n",
@@ -336,13 +338,13 @@ class HttpToolsProtocol(asyncio.Protocol):
         """
         Called by the transport when the write buffer exceeds the high water mark.
         """
-        self.flow.pause_writing()
+        self.flow.pause_writing()  # pragma: full coverage
 
     def resume_writing(self) -> None:
         """
         Called by the transport when the write buffer drops below the low water mark.
         """
-        self.flow.resume_writing()
+        self.flow.resume_writing()  # pragma: full coverage
 
     def timeout_keep_alive_handler(self) -> None:
         """
@@ -441,10 +443,10 @@ class RequestResponseCycle:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
-            await self.flow.drain()
+            await self.flow.drain()  # pragma: full coverage
 
         if self.disconnected:
-            return
+            return  # pragma: full coverage
 
         if not self.response_started:
             # Sending response status line and headers
@@ -477,7 +479,7 @@ class RequestResponseCycle:
 
             for name, value in headers:
                 if HEADER_RE.search(name):
-                    raise RuntimeError("Invalid HTTP header name.")
+                    raise RuntimeError("Invalid HTTP header name.")  # pragma: full coverage
                 if HEADER_VALUE_RE.search(value):
                     raise RuntimeError("Invalid HTTP header value.")
 

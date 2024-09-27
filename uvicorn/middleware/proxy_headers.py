@@ -37,7 +37,7 @@ class ProxyHeadersMiddleware:
             if host not in self.trusted_hosts:
                 return host
 
-        return None
+        return None  # pragma: full coverage
 
     async def __call__(self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
         if scope["type"] in ("http", "websocket"):
