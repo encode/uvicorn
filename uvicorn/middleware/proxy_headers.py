@@ -105,7 +105,6 @@ class _TrustedHosts:
                     except ValueError:
                         # Was not a valid IP Address
                         self.trusted_literals.add(host)
-        return
 
     def __contains__(self, host: str | None) -> bool:
         if self.always_trust:
