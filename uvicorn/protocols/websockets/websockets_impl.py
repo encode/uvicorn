@@ -357,9 +357,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             msg = "Unexpected ASGI message '%s', after sending 'websocket.close' " "or response already completed."
             raise RuntimeError(msg % message_type)
 
-    async def asgi_receive(
-        self,
-    ) -> WebSocketDisconnectEvent | WebSocketConnectEvent | WebSocketReceiveEvent:
+    async def asgi_receive(self) -> WebSocketDisconnectEvent | WebSocketConnectEvent | WebSocketReceiveEvent:
         if not self.connect_sent:
             self.connect_sent = True
             return {"type": "websocket.connect"}
@@ -380,8 +378,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             self.closed_event.set()
             if self.ws_server.closing:
                 return {"type": "websocket.disconnect", "code": 1012}
-            assert self.close_code is not None and self.close_reason is not None
-            return {"type": "websocket.disconnect", "code": self.close_code, "reason": self.close_reason}
+            return {"type": "websocket.disconnect", "code": self.close_code or 1005, "reason": self.close_reason}
 
         if isinstance(data, str):
             return {"type": "websocket.receive", "text": data}
