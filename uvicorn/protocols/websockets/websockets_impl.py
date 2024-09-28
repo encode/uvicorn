@@ -224,9 +224,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         # itself (see https://github.com/encode/uvicorn/issues/920)
         self.handshake_started_event.set()
 
-    async def ws_handler(  # type: ignore[override]
-        self, protocol: WebSocketServerProtocol, path: str
-    ) -> Any:
+    async def ws_handler(self, protocol: WebSocketServerProtocol, path: str) -> Any:  # type: ignore[override]
         """
         This is the main handler function for the 'websockets' implementation
         to call into. We just wait for close then return, and instead allow
@@ -378,11 +376,12 @@ class WebSocketProtocol(WebSocketServerProtocol):
 
         try:
             data = await self.recv()
-        except ConnectionClosed as exc:
+        except ConnectionClosed:
             self.closed_event.set()
             if self.ws_server.closing:
                 return {"type": "websocket.disconnect", "code": 1012}
-            return {"type": "websocket.disconnect", "code": exc.code, "reason": exc.reason}
+            assert self.close_code is not None and self.close_reason is not None
+            return {"type": "websocket.disconnect", "code": self.close_code, "reason": self.close_reason}
 
         if isinstance(data, str):
             return {"type": "websocket.receive", "text": data}
