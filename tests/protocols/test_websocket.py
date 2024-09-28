@@ -114,6 +114,7 @@ async def test_invalid_upgrade(ws_protocol_cls: WSProtocol, http_protocol_cls: H
                     "missing or empty sec-websocket-key header",  # wsproto
                     "failed to open a websocket connection: missing " "sec-websocket-key header",
                     "failed to open a websocket connection: missing or empty " "sec-websocket-key header",
+                    "failed to open a websocket connection: missing sec-websocket-key header; 'sec-websocket-key'",
                 ]
             )
 
