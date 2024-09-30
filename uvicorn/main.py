@@ -246,6 +246,12 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "The literal '*' means trust everything.",
 )
 @click.option(
+    "--forwarded-port/--no-forwarded-port",
+    is_flag=True,
+    default=True,
+    help="Enable/Disable X-Forwarded-Port to " "populate remote address info.",
+)
+@click.option(
     "--root-path",
     type=str,
     default="",

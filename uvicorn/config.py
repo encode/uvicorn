@@ -205,6 +205,7 @@ class Config:
         server_header: bool = True,
         date_header: bool = True,
         forwarded_allow_ips: list[str] | str | None = None,
+        forwarded_port: bool = False,
         root_path: str = "",
         limit_concurrency: int | None = None,
         limit_max_requests: int | None = None,
@@ -331,8 +332,10 @@ class Config:
         self.forwarded_allow_ips: list[str] | str
         if forwarded_allow_ips is None:
             self.forwarded_allow_ips = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
+            self.forwarded_port = False
         else:
             self.forwarded_allow_ips = forwarded_allow_ips  # pragma: full coverage
+            self.forwarded_port = forwarded_port
 
         if self.reload and self.workers > 1:
             logger.warning('"workers" flag is ignored when reloading is enabled.')
@@ -467,7 +470,7 @@ class Config:
         if logger.getEffectiveLevel() <= TRACE_LOG_LEVEL:
             self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
         if self.proxy_headers:
-            self.loaded_app = ProxyHeadersMiddleware(self.loaded_app, trusted_hosts=self.forwarded_allow_ips)
+            self.loaded_app = ProxyHeadersMiddleware(self.loaded_app, trusted_hosts=self.forwarded_allow_ips, forwarded_port=self.forwarded_port)
 
         self.loaded = True
 

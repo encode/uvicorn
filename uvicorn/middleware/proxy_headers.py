@@ -20,9 +20,11 @@ class ProxyHeadersMiddleware:
     - <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For>
     """
 
-    def __init__(self, app: ASGI3Application, trusted_hosts: list[str] | str = "127.0.0.1") -> None:
+    def __init__(self, app: ASGI3Application, trusted_hosts: list[str] | str = "127.0.0.1",
+                 forwarded_port: bool = False) -> None:
         self.app = app
         self.trusted_hosts = _TrustedHosts(trusted_hosts)
+        self.forwarded_port = forwarded_port
 
     async def __call__(self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
         if scope["type"] == "lifespan":
@@ -53,8 +55,13 @@ class ProxyHeadersMiddleware:
                     # See: https://github.com/encode/uvicorn/issues/1068
 
                     # We've lost the connecting client's port information by now,
-                    # so only include the host.
-                    port = 0
+                    # so unless X-Forwarded-Port is available and --forwarded-port is enabled,
+                    # only include the host.
+                    if self.forwarded_port and b"x-forwarded-port" in headers:
+                        x_forwarded_port = headers[b"x-forwarded-port"].decode("latin1")
+                        port = int(x_forwarded_port)
+                    else:
+                        port = 0
                     scope["client"] = (host, port)
 
         return await self.app(scope, receive, send)

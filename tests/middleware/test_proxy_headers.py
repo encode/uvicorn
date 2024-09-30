@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 X_FORWARDED_FOR = "X-Forwarded-For"
 X_FORWARDED_PROTO = "X-Forwarded-Proto"
+X_FORWARDED_PORT = "X-Forwarded-Port"
 
 
 async def default_app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
@@ -39,6 +40,7 @@ async def default_app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISend
 def make_httpx_client(
     trusted_hosts: str | list[str],
     client: tuple[str, int] = ("127.0.0.1", 123),
+    forwarded_port: bool = False,
 ) -> httpx.AsyncClient:
     """Create async client for use in test cases.
 
@@ -47,7 +49,7 @@ def make_httpx_client(
         client: transport client to use
     """
 
-    app = ProxyHeadersMiddleware(default_app, trusted_hosts)
+    app = ProxyHeadersMiddleware(default_app, trusted_hosts, forwarded_port)
     transport = httpx.ASGITransport(app=app, client=client)  # type: ignore
     return httpx.AsyncClient(transport=transport, base_url="http://testserver")
 
@@ -420,6 +422,24 @@ async def test_proxy_headers_multiple_proxies(trusted_hosts: str | list[str], ex
         response = await client.get("/", headers=headers)
     assert response.status_code == 200
     assert response.text == expected
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("forwarded_port", "port", "expected"),
+    [
+        (True, "443", 443),
+        (True, "1234", 1234),
+        (False, "1234", 0),
+        (False, "443", 0),
+    ]
+)
+async def test_proxy_headers_with_forwarded_port(forwarded_port, port, expected) -> None:
+    async with make_httpx_client("*", forwarded_port=forwarded_port) as client:
+        headers = {X_FORWARDED_FOR: "192.168.0.2", X_FORWARDED_PROTO: "https", X_FORWARDED_PORT: port}
+        response = await client.get("/", headers=headers)
+    assert response.status_code == 200
+    assert response.text == f"https://192.168.0.2:{expected}"
 
 
 @pytest.mark.anyio
