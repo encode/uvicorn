@@ -222,7 +222,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--proxy-headers/--no-proxy-headers",
     is_flag=True,
     default=True,
-    help="Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to " "populate remote address info.",
+    help="Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to populate remote address info.",
 )
 @click.option(
     "--server-header/--no-server-header",
@@ -248,8 +248,8 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 @click.option(
     "--forwarded-port/--no-forwarded-port",
     is_flag=True,
-    default=True,
-    help="Enable/Disable X-Forwarded-Port to " "populate remote address info.",
+    default=False,
+    help="Enable/Disable X-Forwarded-Port to populate remote address info.",
 )
 @click.option(
     "--root-path",
