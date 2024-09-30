@@ -170,7 +170,8 @@ Options:
                                   variable if available, or '127.0.0.1'. The
                                   literal '*' means trust everything.
   --forwarded-port / --no-forwarded-port
-                                  Enable/Disable X-Forwarded-Port handling.
+                                  Enable/Disable X-Forwarded-Port to populate
+                                  remote address info.
   --root-path TEXT                Set the ASGI 'root_path' for applications
                                   submounted below a given URL path.
   --limit-concurrency INTEGER     Maximum number of concurrent connections or
