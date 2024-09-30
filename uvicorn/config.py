@@ -332,10 +332,10 @@ class Config:
         self.forwarded_allow_ips: list[str] | str
         if forwarded_allow_ips is None:
             self.forwarded_allow_ips = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
-            self.forwarded_port = False
         else:
             self.forwarded_allow_ips = forwarded_allow_ips  # pragma: full coverage
-            self.forwarded_port = forwarded_port
+
+        self.forwarded_port = forwarded_port
 
         if self.reload and self.workers > 1:
             logger.warning('"workers" flag is ignored when reloading is enabled.')
