@@ -593,6 +593,6 @@ It has built-in Document-oriented Database, Caching System, Authentication and P
 [asgi]: https://asgi.readthedocs.io/en/latest/
 [asgi-http]: https://asgi.readthedocs.io/en/latest/specs/www.html
 [daphne]: https://github.com/django/daphne
-[hypercorn]: https://gitlab.com/pgjones/hypercorn
+[hypercorn]: https://github.com/pgjones/hypercorn
 [uvloop_docs]: https://uvloop.readthedocs.io/
 [httptools_vs_h11]: https://github.com/python-hyper/h11/issues/9
