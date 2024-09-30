@@ -432,7 +432,7 @@ async def test_proxy_headers_multiple_proxies(trusted_hosts: str | list[str], ex
         (True, "1234", 1234),
         (False, "1234", 0),
         (False, "443", 0),
-    ]
+    ],
 )
 async def test_proxy_headers_with_forwarded_port(forwarded_port, port, expected) -> None:
     async with make_httpx_client("*", forwarded_port=forwarded_port) as client:

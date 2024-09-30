@@ -20,8 +20,9 @@ class ProxyHeadersMiddleware:
     - <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For>
     """
 
-    def __init__(self, app: ASGI3Application, trusted_hosts: list[str] | str = "127.0.0.1",
-                 forwarded_port: bool = False) -> None:
+    def __init__(
+        self, app: ASGI3Application, trusted_hosts: list[str] | str = "127.0.0.1", forwarded_port: bool = False
+    ) -> None:
         self.app = app
         self.trusted_hosts = _TrustedHosts(trusted_hosts)
         self.forwarded_port = forwarded_port
