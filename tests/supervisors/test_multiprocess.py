@@ -233,3 +233,12 @@ def test_multiprocess_socket_balance() -> None:  # pragma: py-darwin pragma: py-
                 supervisor.join_all()
         min_conn, max_conn = sorted(d.values())
         assert (max_conn - min_conn) < 25
+
+
+def test_multiprocess_not_supported(monkeypatch):
+    monkeypatch.delattr(socket, "SO_REUSEPORT")
+    config = Config(app=app, workers=2, socket_load_balance=True, port=0, interface="asgi3")
+    with config.bind_socket() as sock:
+        supervisor = Multiprocess(config, target=run, sockets=[sock])
+        with pytest.raises(RuntimeError, match="socket_load_balance not supported"):
+            supervisor.run()
