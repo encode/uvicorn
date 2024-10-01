@@ -205,7 +205,6 @@ async def lb_app(
 @pytest.mark.skipif(
     not ((sys.platform == "linux" and hasattr(socket, "SO_REUSEPORT")) or hasattr(socket, "SO_REUSEPORT_LB")),
     reason="unsupported",
-    strict=True,
     raises=RuntimeError,
 )
 def test_multiprocess_socket_balance() -> None:
