@@ -135,6 +135,7 @@ Options:
                                   buffer of an incomplete event.
   --factory                       Treat APP as an application factory, i.e. a
                                   () -> <ASGI app> callable.
+  --socket-load-balance           Use kernel support for socket load balancing
   --help                          Show this message and exit.
 ```
 
