@@ -28,15 +28,17 @@ class SocketSharePickle:
 
 class SocketShareRebind:
     def __init__(self, sock: socket.socket):
-        if (sys.platform == "linux" and hasattr(socket, "SO_REUSEPORT")) or hasattr(socket, "SO_REUSEPORT_LB"):
+        if not (sys.platform == "linux" and hasattr(socket, "SO_REUSEPORT")) or hasattr(socket, "SO_REUSEPORT_LB"):
             raise RuntimeError("socket_load_balance not supported")
         sock.setsockopt(socket.SOL_SOCKET, getattr(socket, "SO_REUSEPORT_LB", socket.SO_REUSEPORT), 1)
         self._family = sock.family
+        self._type = sock.type
+        self._proto = sock.proto
         self._sockname = sock.getsockname()
 
     def get(self) -> socket.socket:
         try:
-            sock = socket.socket(family=self._family)
+            sock = socket.socket(family=self._family, type=self._type, proto=self._proto)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.setsockopt(socket.SOL_SOCKET, getattr(socket, "SO_REUSEPORT_LB", socket.SO_REUSEPORT), 1)
 
