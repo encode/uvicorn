@@ -30,13 +30,14 @@ class SocketShareRebind:
     def __init__(self, sock: socket.socket):
         if not (sys.platform == "linux" and hasattr(socket, "SO_REUSEPORT")) or hasattr(socket, "SO_REUSEPORT_LB"):
             raise RuntimeError("socket_load_balance not supported")
-        sock.setsockopt(socket.SOL_SOCKET, getattr(socket, "SO_REUSEPORT_LB", socket.SO_REUSEPORT), 1)
-        self._family = sock.family
-        self._type = sock.type
-        self._proto = sock.proto
-        self._sockname = sock.getsockname()
+        else:  # pragma: py-darwin pragma: py-win32
+            sock.setsockopt(socket.SOL_SOCKET, getattr(socket, "SO_REUSEPORT_LB", socket.SO_REUSEPORT), 1)
+            self._family = sock.family
+            self._type = sock.type
+            self._proto = sock.proto
+            self._sockname = sock.getsockname()
 
-    def get(self) -> socket.socket:
+    def get(self) -> socket.socket:  # pragma: py-darwin pragma: py-win32
         try:
             sock = socket.socket(family=self._family, type=self._type, proto=self._proto)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -73,7 +74,7 @@ def get_subprocess(
         stdin_fileno = None
 
     socket_shares: list[SocketShareRebind] | list[SocketSharePickle]
-    if config.socket_load_balance:
+    if config.socket_load_balance:  # pragma: py-darwin pragma: py-win32
         socket_shares = [SocketShareRebind(s) for s in sockets]
     else:
         socket_shares = [SocketSharePickle(s) for s in sockets]

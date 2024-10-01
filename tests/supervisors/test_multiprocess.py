@@ -189,7 +189,7 @@ async def lb_app(
     scope: Scope,
     receive: ASGIReceiveCallable,
     send: ASGISendCallable,
-) -> None:
+) -> None:  # pragma: py-darwin pragma: py-win32
     if scope["type"] == "lifespan":
         await receive()
         scope["state"]["count"] = box = Box(0)
@@ -210,7 +210,7 @@ async def lb_app(
     not ((sys.platform == "linux" and hasattr(socket, "SO_REUSEPORT")) or hasattr(socket, "SO_REUSEPORT_LB")),
     reason="unsupported",
 )
-def test_multiprocess_socket_balance() -> None:
+def test_multiprocess_socket_balance() -> None:  # pragma: py-darwin pragma: py-win32
     with multiprocessing.Manager() as m:
         started = m.Event()
         d = m.dict()
