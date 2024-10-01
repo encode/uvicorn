@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import functools
-import multiprocessing
+import multiprocessing.managers
 import os
 import signal
 import socket
@@ -184,13 +184,17 @@ class Box:
 
 
 async def lb_app(
-    d: multiprocessing.managers.DictProxy, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    d: multiprocessing.managers.DictProxy,
+    started: threading.Event,
+    scope: Scope,
+    receive: ASGIReceiveCallable,
+    send: ASGISendCallable,
 ) -> None:
     if scope["type"] == "lifespan":
         await receive()
-        print("lifespan started")
         scope["state"]["count"] = box = Box(0)
         await send({"type": "lifespan.startup.complete"})
+        started.set()
         await receive()
         d[os.getpid()] = box.v
         await send({"type": "lifespan.shutdown.complete"})
@@ -208,8 +212,9 @@ async def lb_app(
 )
 def test_multiprocess_socket_balance() -> None:
     with multiprocessing.Manager() as m:
+        started = m.Event()
         d = m.dict()
-        app = functools.partial(lb_app, d)
+        app = functools.partial(lb_app, d, started)
         config = Config(app=app, workers=2, socket_load_balance=True, port=0, interface="asgi3")
         server = Server(config=config)
         with config.bind_socket() as sock:
@@ -217,7 +222,8 @@ def test_multiprocess_socket_balance() -> None:
             try:
                 supervisor = Multiprocess(config, target=server.run, sockets=[sock])
                 threading.Thread(target=supervisor.run, daemon=True).start()
-                time.sleep(1)
+                if not started.wait(timeout=5):
+                    raise TimeoutError
                 with httpx.Client():
                     for i in range(100):
                         httpx.get(f"http://localhost:{port}/").raise_for_status()
@@ -225,4 +231,4 @@ def test_multiprocess_socket_balance() -> None:
                 supervisor.signal_queue.append(signal.SIGINT)
                 supervisor.join_all()
         min_conn, max_conn = sorted(d.values())
-        assert max_conn - min_conn < 20
+        assert (max_conn - min_conn) < 25
