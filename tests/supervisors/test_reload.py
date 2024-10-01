@@ -242,7 +242,7 @@ class TestBaseReload:
                 reload=True,
                 # We need to add *.txt otherwise no regular files will match
                 reload_includes=[".*", "*.txt"],
-                reload_excludes=["*.py"],
+                reload_excludes=["*.py", ".coverage.*"],
             )
             reloader = self._setup_reloader(config)
 

@@ -45,7 +45,7 @@ class SocketShareRebind:
 
             sock.bind(self._sockname)
             return sock
-        except BaseException:
+        except BaseException:  # pragma: no cover
             sock.close()
             raise
 

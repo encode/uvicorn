@@ -223,7 +223,7 @@ def test_multiprocess_socket_balance() -> None:  # pragma: py-darwin pragma: py-
             try:
                 supervisor = Multiprocess(config, target=server.run, sockets=[sock])
                 threading.Thread(target=supervisor.run, daemon=True).start()
-                if not started.wait(timeout=5):
+                if not started.wait(timeout=5):  # pragma: no cover
                     raise TimeoutError
                 with httpx.Client():
                     for i in range(100):

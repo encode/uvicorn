@@ -103,6 +103,8 @@ filterwarnings = [
 source_pkgs = ["uvicorn", "tests"]
 plugins = ["coverage_conditional_plugin"]
 omit = ["uvicorn/workers.py", "uvicorn/__main__.py"]
+concurrency = ["multiprocessing", "thread"]
+parallel = true
 
 [tool.coverage.report]
 precision = 2
