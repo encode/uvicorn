@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import functools
 import multiprocessing.managers
 import os
@@ -8,7 +9,7 @@ import socket
 import sys
 import threading
 import time
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Generic, TypeVar
 
 import httpx
 import pytest
@@ -178,9 +179,9 @@ def test_multiprocess_sigttou() -> None:
 T = TypeVar("T")
 
 
-class Box:
-    def __init__(self, v: T):
-        self.v = v
+@dataclasses.dataclass
+class Box(Generic[T]):
+    v: T
 
 
 async def lb_app(
