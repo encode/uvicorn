@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import functools
+import multiprocessing
 import os
 import signal
 import socket
+import sys
 import threading
 import time
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
 
+import httpx
 import pytest
 
 from uvicorn import Config
 from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
+from uvicorn.server import Server
 from uvicorn.supervisors import Multiprocess
 from uvicorn.supervisors.multiprocess import Process
 
@@ -169,3 +173,58 @@ def test_multiprocess_sigttou() -> None:
     assert len(supervisor.processes) == 1
     supervisor.signal_queue.append(signal.SIGINT)
     supervisor.join_all()
+
+
+T = TypeVar("T")
+
+
+class Box:
+    def __init__(self, v: T):
+        self.v = v
+
+
+async def lb_app(
+    d: multiprocessing.managers.DictProxy, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+) -> None:
+    if scope["type"] == "lifespan":
+        await receive()
+        print("lifespan started")
+        scope["state"]["count"] = box = Box(0)
+        await send({"type": "lifespan.startup.complete"})
+        await receive()
+        d[os.getpid()] = box.v
+        await send({"type": "lifespan.shutdown.complete"})
+        return
+
+    scope["state"]["count"].v += 1
+    headers = [(b"content-type", b"text/plain")]
+    await send({"type": "http.response.start", "status": 200, "headers": headers})
+    await send({"type": "http.response.body", "body": b"hello"})
+
+
+@pytest.mark.skipif(
+    not ((sys.platform == "linux" and hasattr(socket, "SO_REUSEPORT")) or hasattr(socket, "SO_REUSEPORT_LB")),
+    reason="unsupported",
+    strict=True,
+    raises=RuntimeError,
+)
+def test_multiprocess_socket_balance() -> None:
+    with multiprocessing.Manager() as m:
+        d = m.dict()
+        app = functools.partial(lb_app, d)
+        config = Config(app=app, workers=2, socket_load_balance=True, port=0, interface="asgi3")
+        server = Server(config=config)
+        with config.bind_socket() as sock:
+            port = sock.getsockname()[1]
+            try:
+                supervisor = Multiprocess(config, target=server.run, sockets=[sock])
+                threading.Thread(target=supervisor.run, daemon=True).start()
+                time.sleep(1)
+                with httpx.Client():
+                    for i in range(100):
+                        httpx.get(f"http://localhost:{port}/").raise_for_status()
+            finally:
+                supervisor.signal_queue.append(signal.SIGINT)
+                supervisor.join_all()
+        min_conn, max_conn = sorted(d.values())
+        assert max_conn - min_conn < 20
