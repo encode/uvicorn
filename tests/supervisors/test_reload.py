@@ -157,7 +157,7 @@ class TestBaseReload:
                 app="tests.test_config:asgi_app",
                 reload=True,
                 reload_includes=["*"],
-                reload_excludes=["*.js"],
+                reload_excludes=["*.js", ".coverage.*"],
             )
             reloader = self._setup_reloader(config)
 
