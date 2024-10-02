@@ -68,7 +68,8 @@ class _TrustedHosts:
     """Container for trusted hosts and networks"""
 
     def __init__(self, trusted_hosts: list[str] | str) -> None:
-        self.always_trust: bool = trusted_hosts == "*"
+        # gunicorn sends trusted hosts as a parsed list of strings while uvicorn forwards as is provided by input
+        self.always_trust: bool = trusted_hosts in ("*", ["*"])
 
         self.trusted_literals: set[str] = set()
         self.trusted_hosts: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()

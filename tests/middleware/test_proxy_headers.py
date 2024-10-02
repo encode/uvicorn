@@ -65,7 +65,7 @@ _TRUSTED_IPv6_ADDRESSES = [
     "::11.22.33.44",  # This is a dual address
 ]
 _TRUSTED_IPv6_NETWORKS = "2001:db8:abcd:0012::0/64"
-_TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
+_TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar, garba*gewith*"
 
 
 @pytest.mark.parametrize(
