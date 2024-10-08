@@ -4,6 +4,10 @@
 # Core dependencies
 h11 @ git+https://github.com/python-hyper/h11.git@master
 
+# Python 3.13 support
+# https://github.com/MagicStack/httptools/pull/107
+httptools @ git+https://github.com/jameshilliard/httptools.git@python313
+
 # Explicit optionals
 a2wsgi==1.10.6
 wsproto==1.2.0
