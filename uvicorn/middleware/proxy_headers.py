@@ -68,7 +68,7 @@ class _TrustedHosts:
     """Container for trusted hosts and networks"""
 
     def __init__(self, trusted_hosts: list[str] | str) -> None:
-        self.always_trust: bool = trusted_hosts == "*"
+        self.always_trust: bool = trusted_hosts in ("*", ["*"])
 
         self.trusted_literals: set[str] = set()
         self.trusted_hosts: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
