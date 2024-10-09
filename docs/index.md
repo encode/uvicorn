@@ -163,10 +163,12 @@ Options:
                                   Enable/Disable default Server header.
   --date-header / --no-date-header
                                   Enable/Disable default Date header.
-  --forwarded-allow-ips TEXT      Comma separated list of IPs to trust with
-                                  proxy headers. Defaults to the
-                                  $FORWARDED_ALLOW_IPS environment variable if
-                                  available, or '127.0.0.1'.
+  --forwarded-allow-ips TEXT      Comma separated list of IP Addresses, IP
+                                  Networks, or literals (e.g. UNIX Socket
+                                  path) to trust with proxy headers. Defaults
+                                  to the $FORWARDED_ALLOW_IPS environment
+                                  variable if available, or '127.0.0.1'. The
+                                  literal '*' means trust everything.
   --root-path TEXT                Set the ASGI 'root_path' for applications
                                   submounted below a given URL path.
   --limit-concurrency INTEGER     Maximum number of concurrent connections or
@@ -591,6 +593,6 @@ It has built-in Document-oriented Database, Caching System, Authentication and P
 [asgi]: https://asgi.readthedocs.io/en/latest/
 [asgi-http]: https://asgi.readthedocs.io/en/latest/specs/www.html
 [daphne]: https://github.com/django/daphne
-[hypercorn]: https://gitlab.com/pgjones/hypercorn
+[hypercorn]: https://github.com/pgjones/hypercorn
 [uvloop_docs]: https://uvloop.readthedocs.io/
 [httptools_vs_h11]: https://github.com/python-hyper/h11/issues/9

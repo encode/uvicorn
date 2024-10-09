@@ -1,5 +1,17 @@
 # Change Log
 
+## 0.31.0 (2024-09-27)
+
+### Added
+
+Improve `ProxyHeadersMiddleware` (#2468) and (#2231):
+
+- Fix the host for requests from clients running on the proxy server itself.
+- Fallback to host that was already set for empty x-forwarded-for headers.
+- Also allow to specify IP Networks as trusted hosts. This greatly simplifies deployments
+  on docker swarm/kubernetes, where the reverse proxy might have a dynamic IP.
+    - This includes support for IPv6 Address/Networks.
+
 ## 0.30.6 (2024-08-13)
 
 ### Fixed

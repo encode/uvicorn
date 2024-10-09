@@ -240,8 +240,10 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--forwarded-allow-ips",
     type=str,
     default=None,
-    help="Comma separated list of IPs to trust with proxy headers. Defaults to"
-    " the $FORWARDED_ALLOW_IPS environment variable if available, or '127.0.0.1'.",
+    help="Comma separated list of IP Addresses, IP Networks, or literals "
+    "(e.g. UNIX Socket path) to trust with proxy headers. Defaults to the "
+    "$FORWARDED_ALLOW_IPS environment variable if available, or '127.0.0.1'. "
+    "The literal '*' means trust everything.",
 )
 @click.option(
     "--root-path",
@@ -495,7 +497,7 @@ def run(
     limit_max_requests: int | None = None,
     timeout_keep_alive: int = 5,
     timeout_graceful_shutdown: int | None = None,
-    ssl_keyfile: str | None = None,
+    ssl_keyfile: str | os.PathLike[str] | None = None,
     ssl_certfile: str | os.PathLike[str] | None = None,
     ssl_keyfile_password: str | None = None,
     ssl_version: int = SSL_PROTOCOL_VERSION,

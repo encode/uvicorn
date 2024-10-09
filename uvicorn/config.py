@@ -213,7 +213,7 @@ class Config:
         timeout_notify: int = 30,
         timeout_graceful_shutdown: int | None = None,
         callback_notify: Callable[..., Awaitable[None]] | None = None,
-        ssl_keyfile: str | None = None,
+        ssl_keyfile: str | os.PathLike[str] | None = None,
         ssl_certfile: str | os.PathLike[str] | None = None,
         ssl_keyfile_password: str | None = None,
         ssl_version: int = SSL_PROTOCOL_VERSION,
