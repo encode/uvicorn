@@ -56,6 +56,7 @@ def make_httpx_client(
 # of the _TrustedHosts.__init__ method.
 _TRUSTED_NOTHING: list[str] = []
 _TRUSTED_EVERYTHING = "*"
+_TRUSTED_EVERYTHING_LIST = ["*"]
 _TRUSTED_IPv4_ADDRESSES = "127.0.0.1, 10.0.0.1"
 _TRUSTED_IPv4_NETWORKS = ["127.0.0.0/8", "10.0.0.0/8"]
 _TRUSTED_IPv6_ADDRESSES = [
@@ -65,7 +66,7 @@ _TRUSTED_IPv6_ADDRESSES = [
     "::11.22.33.44",  # This is a dual address
 ]
 _TRUSTED_IPv6_NETWORKS = "2001:db8:abcd:0012::0/64"
-_TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
+_TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar, garba*gewith*"
 
 
 @pytest.mark.parametrize(
@@ -122,6 +123,7 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_EVERYTHING, "192.168.0.0", True),
         (_TRUSTED_EVERYTHING, "192.168.0.1", True),
         (_TRUSTED_EVERYTHING, "1.1.1.1", True),
+        (_TRUSTED_EVERYTHING_LIST, "1.1.1.1", True),
         # Test IPv6 Addresses
         (_TRUSTED_EVERYTHING, "2001:db8::", True),
         (_TRUSTED_EVERYTHING, "2001:db8:abcd:0012::0", True),
@@ -136,6 +138,7 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_EVERYTHING, "::b16:212c", True),  # aka ::11.22.33.44
         (_TRUSTED_EVERYTHING, "a:b:c:d::", True),
         (_TRUSTED_EVERYTHING, "::a:b:c:d", True),
+        (_TRUSTED_EVERYTHING_LIST, "::a:b:c:d", True),
         # Test Literals
         (_TRUSTED_EVERYTHING, "some-literal", True),
         (_TRUSTED_EVERYTHING, "unix:///foo/bar", True),
@@ -145,6 +148,7 @@ _TRUSTED_LITERALS = "some-literal , unix:///foo/bar  ,  /foo/bar"
         (_TRUSTED_EVERYTHING, "unix:///another/path", True),
         (_TRUSTED_EVERYTHING, "/another/path", True),
         (_TRUSTED_EVERYTHING, "", True),
+        (_TRUSTED_EVERYTHING_LIST, "", True),
         ## Trust IPv4 Addresses
         ## -----------------------------
         # Test IPv4 Addresses
