@@ -90,4 +90,4 @@ async def test_request_than_limit_max_requests_warn_log(
             tasks = [client.get(f"http://127.0.0.1:{unused_tcp_port}") for _ in range(2)]
             responses = await asyncio.gather(*tasks)
             assert len(responses) == 2
-    assert f"Maximum request limit of {config.limit_max_requests} exceeded. Terminating process." in caplog.text
+    assert "Maximum request limit of 1 exceeded. Terminating process." in caplog.text
