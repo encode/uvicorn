@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import socket
 from asyncio import Transport
+from typing import Any
 
 import pytest
 
@@ -20,11 +23,11 @@ class MockSocket:
 
 
 class MockTransport(Transport):
-    def __init__(self, info):
+    def __init__(self, info: dict[str, Any]) -> None:
         self.info = info
 
-    def get_extra_info(self, info_type):
-        return self.info.get(info_type)
+    def get_extra_info(self, name: str, default: Any = None) -> Any:
+        return self.info.get(name)
 
 
 def test_get_local_addr_with_socket():
