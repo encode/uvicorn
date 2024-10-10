@@ -83,15 +83,19 @@ def test_multiprocess_health_check() -> None:
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
+    # Ensure server is up.
     time.sleep(1)
     process = supervisor.processes[0]
     process.kill()
-    assert not process.is_alive()
-    time.sleep(1)
-    for p in supervisor.processes:
-        assert p.is_alive()
-    supervisor.signal_queue.append(signal.SIGINT)
-    supervisor.join_all()
+    process.join()
+    try:
+        assert not process.is_alive(0.5)
+        time.sleep(1.5)  # release gil, ensure process restart complete.
+        for p in supervisor.processes:
+            assert p.is_alive()
+    finally:
+        supervisor.signal_queue.append(signal.SIGINT)
+        supervisor.join_all()
 
 
 @new_console_in_windows
