@@ -136,7 +136,7 @@ class WatchGodReload(BaseReload):
         for directory in config.reload_dirs:
             if Path.cwd() not in directory.parents:
                 reload_dirs.append(directory)
-        if Path.cwd() not in reload_dirs:
+        if (len(reload_dirs) == 0) and (Path.cwd() not in reload_dirs):
             reload_dirs.append(Path.cwd())
         for w in reload_dirs:
             self.watchers.append(CustomWatcher(w.resolve(), self.config))
