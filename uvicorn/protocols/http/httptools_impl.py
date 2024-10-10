@@ -54,8 +54,8 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.config = config
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
-        self.logger = logging.getLogger("uvicorn.error")
-        self.access_logger = logging.getLogger("uvicorn.access")
+        self.logger = config.get_logger("general")
+        self.access_logger = config.get_logger("access")
         self.access_log = self.access_logger.hasHandlers()
         self.parser = httptools.HttpRequestParser(self)
         self.ws_protocol_class = config.ws_protocol_class

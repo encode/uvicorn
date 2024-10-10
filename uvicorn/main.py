@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import os
 import platform
 import ssl
@@ -40,8 +39,6 @@ LOOP_CHOICES = click.Choice([key for key in LOOP_SETUPS.keys() if key != "none"]
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
 STARTUP_FAILURE = 3
-
-logger = logging.getLogger("uvicorn.error")
 
 
 def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> None:
@@ -486,6 +483,7 @@ def run(
     env_file: str | os.PathLike[str] | None = None,
     log_config: dict[str, Any] | str | RawConfigParser | IO[Any] | None = LOGGING_CONFIG,
     log_level: str | int | None = None,
+    logger_mappings: dict | None = None,
     access_log: bool = True,
     proxy_headers: bool = True,
     server_header: bool = True,
@@ -539,6 +537,7 @@ def run(
         log_config=log_config,
         log_level=log_level,
         access_log=access_log,
+        logger_mappings=logger_mappings,
         proxy_headers=proxy_headers,
         server_header=server_header,
         date_header=date_header,
@@ -564,8 +563,9 @@ def run(
     server = Server(config=config)
 
     if (config.reload or config.workers > 1) and not isinstance(app, str):
-        logger = logging.getLogger("uvicorn.error")
-        logger.warning("You must pass the application as an import string to enable 'reload' or " "'workers'.")
+        config.get_logger("general").warning(
+            "You must pass the application as an import string to enable 'reload' or " "'workers'."
+        )
         sys.exit(1)
 
     try:

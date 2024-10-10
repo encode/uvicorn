@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import warnings
 from pathlib import Path
 from socket import socket
@@ -16,11 +15,10 @@ if TYPE_CHECKING:
 
     DirEntry = os.DirEntry[str]
 
-logger = logging.getLogger("uvicorn.error")
-
 
 class CustomWatcher(DefaultWatcher):
     def __init__(self, root_path: Path, config: Config):
+        self.config = config
         default_includes = ["*.py"]
         self.includes = [default for default in default_includes if default not in config.reload_excludes]
         self.includes.extend(config.reload_includes)
@@ -85,7 +83,7 @@ class CustomWatcher(DefaultWatcher):
                         is_watched = True
 
                 if is_watched:
-                    logger.debug(
+                    self.config.get_logger("general").debug(
                         "WatchGodReload detected a new excluded dir '%s' in '%s'; " "Adding to exclude list.",
                         entry_path.relative_to(self.resolved_root),
                         str(self.resolved_root),
@@ -105,7 +103,7 @@ class CustomWatcher(DefaultWatcher):
 
         for include_pattern in self.includes:
             if entry_path.match(include_pattern):
-                logger.info(
+                self.config.get_logger("general").info(
                     "WatchGodReload detected a new reload dir '%s' in '%s'; " "Adding to watch list.",
                     str(entry_path.relative_to(self.resolved_root)),
                     str(self.resolved_root),

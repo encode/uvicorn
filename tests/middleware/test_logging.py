@@ -29,6 +29,11 @@ if typing.TYPE_CHECKING:
     WSProtocol: TypeAlias = "type[WebSocketProtocol | _WSProtocol]"
 
 pytestmark = pytest.mark.anyio
+my_logger_mappings = {
+    "general": "mylogger.general",
+    "access": "mylogger.access",
+    "asgi": "mylogger.asgi",
+}
 
 
 @contextlib.contextmanager
@@ -49,20 +54,23 @@ async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
-async def test_trace_logging(caplog: pytest.LogCaptureFixture, logging_config, unused_tcp_port: int):
+@pytest.mark.parametrize("logger_mappings", [None, my_logger_mappings])
+async def test_trace_logging(caplog: pytest.LogCaptureFixture, logging_config, unused_tcp_port: int, logger_mappings):
     config = Config(
         app=app,
         log_level="trace",
         log_config=logging_config,
+        logger_mappings=logger_mappings,
         lifespan="auto",
         port=unused_tcp_port,
     )
-    with caplog_for_logger(caplog, "uvicorn.asgi"):
+    logger_name = config.get_logger_name("asgi")
+    with caplog_for_logger(caplog, logger_name):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
                 response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
         assert response.status_code == 204
-        messages = [record.message for record in caplog.records if record.name == "uvicorn.asgi"]
+        messages = [record.message for record in caplog.records if record.name == logger_name]
         assert "ASGI [1] Started scope=" in messages.pop(0)
         assert "ASGI [1] Raised exception" in messages.pop(0)
         assert "ASGI [2] Started scope=" in messages.pop(0)
@@ -71,29 +79,40 @@ async def test_trace_logging(caplog: pytest.LogCaptureFixture, logging_config, u
         assert "ASGI [2] Completed" in messages.pop(0)
 
 
-async def test_trace_logging_on_http_protocol(http_protocol_cls, caplog, logging_config, unused_tcp_port: int):
+@pytest.mark.parametrize("logger_mappings", [None, my_logger_mappings])
+async def test_trace_logging_on_http_protocol(
+    http_protocol_cls,
+    caplog,
+    logging_config,
+    unused_tcp_port: int,
+    logger_mappings,
+):
     config = Config(
         app=app,
         log_level="trace",
         http=http_protocol_cls,
         log_config=logging_config,
+        logger_mappings=logger_mappings,
         port=unused_tcp_port,
     )
-    with caplog_for_logger(caplog, "uvicorn.error"):
+    logger_name = config.get_logger_name("general")
+    with caplog_for_logger(caplog, logger_name):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
                 response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
         assert response.status_code == 204
-        messages = [record.message for record in caplog.records if record.name == "uvicorn.error"]
+        messages = [record.message for record in caplog.records if record.name == logger_name]
         assert any(" - HTTP connection made" in message for message in messages)
         assert any(" - HTTP connection lost" in message for message in messages)
 
 
+@pytest.mark.parametrize("logger_mappings", [None, my_logger_mappings])
 async def test_trace_logging_on_ws_protocol(
     ws_protocol_cls: WSProtocol,
     caplog,
     logging_config,
     unused_tcp_port: int,
+    logger_mappings,
 ):
     async def websocket_app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         assert scope["type"] == "websocket"
@@ -112,43 +131,72 @@ async def test_trace_logging_on_ws_protocol(
         app=websocket_app,
         log_level="trace",
         log_config=logging_config,
+        logger_mappings=logger_mappings,
         ws=ws_protocol_cls,
         port=unused_tcp_port,
     )
-    with caplog_for_logger(caplog, "uvicorn.error"):
+    logger_name = config.get_logger_name("general")
+    with caplog_for_logger(caplog, logger_name):
         async with run_server(config):
             is_open = await open_connection(f"ws://127.0.0.1:{unused_tcp_port}")
         assert is_open
-        messages = [record.message for record in caplog.records if record.name == "uvicorn.error"]
+        messages = [record.message for record in caplog.records if record.name == logger_name]
         assert any(" - Upgrading to WebSocket" in message for message in messages)
         assert any(" - WebSocket connection made" in message for message in messages)
         assert any(" - WebSocket connection lost" in message for message in messages)
 
 
+@pytest.mark.parametrize("logger_mappings", [None, my_logger_mappings])
 @pytest.mark.parametrize("use_colors", [(True), (False), (None)])
-async def test_access_logging(use_colors: bool, caplog: pytest.LogCaptureFixture, logging_config, unused_tcp_port: int):
-    config = Config(app=app, use_colors=use_colors, log_config=logging_config, port=unused_tcp_port)
-    with caplog_for_logger(caplog, "uvicorn.access"):
+async def test_access_logging(
+    use_colors: bool,
+    caplog: pytest.LogCaptureFixture,
+    logging_config,
+    unused_tcp_port: int,
+    logger_mappings,
+):
+    config = Config(
+        app=app,
+        use_colors=use_colors,
+        log_config=logging_config,
+        logger_mappings=logger_mappings,
+        port=unused_tcp_port,
+    )
+    logger_name = config.get_logger_name("access")
+    with caplog_for_logger(caplog, logger_name):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
                 response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
 
         assert response.status_code == 204
-        messages = [record.message for record in caplog.records if record.name == "uvicorn.access"]
+        messages = [record.message for record in caplog.records if record.name == logger_name]
         assert '"GET / HTTP/1.1" 204' in messages.pop()
 
 
+@pytest.mark.parametrize("logger_mappings", [None, my_logger_mappings])
 @pytest.mark.parametrize("use_colors", [(True), (False)])
 async def test_default_logging(
-    use_colors: bool, caplog: pytest.LogCaptureFixture, logging_config, unused_tcp_port: int
+    use_colors: bool,
+    caplog: pytest.LogCaptureFixture,
+    logging_config,
+    unused_tcp_port: int,
+    logger_mappings,
 ):
-    config = Config(app=app, use_colors=use_colors, log_config=logging_config, port=unused_tcp_port)
-    with caplog_for_logger(caplog, "uvicorn.access"):
+    config = Config(
+        app=app,
+        use_colors=use_colors,
+        log_config=logging_config,
+        logger_mappings=logger_mappings,
+        port=unused_tcp_port,
+    )
+    main_logger_name = config.get_logger_name("main")
+    logger_name = config.get_logger_name("access")
+    with caplog_for_logger(caplog, logger_name):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
                 response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
         assert response.status_code == 204
-        messages = [record.message for record in caplog.records if "uvicorn" in record.name]
+        messages = [record.message for record in caplog.records if main_logger_name in record.name]
         assert "Started server process" in messages.pop(0)
         assert "Waiting for application startup" in messages.pop(0)
         assert "ASGI 'lifespan' protocol appears unsupported" in messages.pop(0)
@@ -159,53 +207,91 @@ async def test_default_logging(
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
+@pytest.mark.parametrize("logger_mappings", [None, my_logger_mappings])
 async def test_running_log_using_uds(
-    caplog: pytest.LogCaptureFixture, short_socket_name: str, unused_tcp_port: int
+    caplog: pytest.LogCaptureFixture,
+    short_socket_name: str,
+    unused_tcp_port: int,
+    logger_mappings,
 ):  # pragma: py-win32
-    config = Config(app=app, uds=short_socket_name, port=unused_tcp_port)
-    with caplog_for_logger(caplog, "uvicorn.access"):
+    config = Config(
+        app=app,
+        uds=short_socket_name,
+        port=unused_tcp_port,
+        logger_mappings=logger_mappings,
+    )
+    with caplog_for_logger(caplog, config.get_logger_name("access")):
         async with run_server(config):
             ...
 
-    messages = [record.message for record in caplog.records if "uvicorn" in record.name]
+    messages = [record.message for record in caplog.records if config.get_logger_name("main") in record.name]
     assert f"Uvicorn running on unix socket {short_socket_name} (Press CTRL+C to quit)" in messages
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="require unix-like system")
-async def test_running_log_using_fd(caplog: pytest.LogCaptureFixture, unused_tcp_port: int):  # pragma: py-win32
+@pytest.mark.parametrize("logger_mappings", [None, my_logger_mappings])
+async def test_running_log_using_fd(
+    caplog: pytest.LogCaptureFixture,
+    unused_tcp_port: int,
+    logger_mappings,
+):  # pragma: py-win32
     with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
         fd = sock.fileno()
-        config = Config(app=app, fd=fd, port=unused_tcp_port)
-        with caplog_for_logger(caplog, "uvicorn.access"):
+        config = Config(
+            app=app,
+            fd=fd,
+            port=unused_tcp_port,
+            logger_mappings=logger_mappings,
+        )
+        with caplog_for_logger(caplog, config.get_logger_name("access")):
             async with run_server(config):
                 ...
         sockname = sock.getsockname()
-    messages = [record.message for record in caplog.records if "uvicorn" in record.name]
+    messages = [record.message for record in caplog.records if config.get_logger_name("main") in record.name]
     assert f"Uvicorn running on socket {sockname} (Press CTRL+C to quit)" in messages
 
 
-async def test_unknown_status_code(caplog: pytest.LogCaptureFixture, unused_tcp_port: int):
+@pytest.mark.parametrize("logger_mappings", [None, my_logger_mappings])
+async def test_unknown_status_code(
+    caplog: pytest.LogCaptureFixture,
+    unused_tcp_port: int,
+    logger_mappings,
+):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         assert scope["type"] == "http"
         await send({"type": "http.response.start", "status": 599, "headers": []})
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
-    config = Config(app=app, port=unused_tcp_port)
-    with caplog_for_logger(caplog, "uvicorn.access"):
+    config = Config(
+        app=app,
+        port=unused_tcp_port,
+        logger_mappings=logger_mappings,
+    )
+    logger_name = config.get_logger_name("access")
+    with caplog_for_logger(caplog, logger_name):
         async with run_server(config):
             async with httpx.AsyncClient() as client:
                 response = await client.get(f"http://127.0.0.1:{unused_tcp_port}")
 
         assert response.status_code == 599
-        messages = [record.message for record in caplog.records if record.name == "uvicorn.access"]
+        messages = [record.message for record in caplog.records if record.name == logger_name]
         assert '"GET / HTTP/1.1" 599' in messages.pop()
 
 
-async def test_server_start_with_port_zero(caplog: pytest.LogCaptureFixture):
-    config = Config(app=app, port=0)
+@pytest.mark.parametrize("logger_mappings", [None, my_logger_mappings])
+async def test_server_start_with_port_zero(
+    caplog: pytest.LogCaptureFixture,
+    logger_mappings,
+):
+    config = Config(
+        app=app,
+        port=0,
+        logger_mappings=logger_mappings,
+    )
+    logger_name = config.get_logger_name("main")
     async with run_server(config) as _server:
         server = _server.servers[0]
         sock = server.sockets[0]
         host, port = sock.getsockname()
-    messages = [record.message for record in caplog.records if "uvicorn" in record.name]
+    messages = [record.message for record in caplog.records if logger_name in record.name]
     assert f"Uvicorn running on http://{host}:{port} (Press CTRL+C to quit)" in messages
