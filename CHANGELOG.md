@@ -1,5 +1,13 @@
 # Change Log
 
+## 0.31.1 (2024-10-09)
+
+### Fixed
+
+* Support WebSockets 0.13.1 (#2471)
+* Restore support for `[*]` in trusted hosts (#2480)
+* Add `PathLike[str]` type hint for `ssl_keyfile` (#2481)
+
 ## 0.31.0 (2024-09-27)
 
 ### Added

@@ -2,24 +2,26 @@
 Look for a marker comment in docs pages, and place the output of
 `$ uvicorn --help` there. Pass `--check` to ensure the content is in sync.
 """
+
+from __future__ import annotations
+
 import argparse
 import subprocess
 import sys
-import typing
 from pathlib import Path
 
 
-def _get_usage_lines() -> typing.List[str]:
+def _get_usage_lines() -> list[str]:
     res = subprocess.run(["uvicorn", "--help"], stdout=subprocess.PIPE)
     help_text = res.stdout.decode("utf-8")
     return ["```", "$ uvicorn --help", *help_text.splitlines(), "```"]
 
 
-def _find_next_codefence_lineno(lines: typing.List[str], after: int) -> int:
+def _find_next_codefence_lineno(lines: list[str], after: int) -> int:
     return next(lineno for lineno, line in enumerate(lines[after:], after) if line == "```")
 
 
-def _get_insert_location(lines: typing.List[str]) -> typing.Tuple[int, int]:
+def _get_insert_location(lines: list[str]) -> tuple[int, int]:
     marker = lines.index("<!-- :cli_usage: -->")
     start = marker + 1
 
