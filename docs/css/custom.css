@@ -1,0 +1,24 @@
+.user {
+  margin: 1em;
+  min-width: 7em;
+}
+
+.user .avatar-wrapper {
+  width: 80px;
+  height: 80px;
+  margin: 10px auto;
+  overflow: hidden;
+  border-radius: 50%;
+  position: relative;
+}
+
+.user .avatar-wrapper img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.user .title {
+  text-align: center;
+}
