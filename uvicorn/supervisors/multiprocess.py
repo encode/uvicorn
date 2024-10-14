@@ -182,7 +182,7 @@ class Multiprocess:
             if exitcode is not None and exitcode < 0:
                 try:
                     signal_name = signal.Signals(-exitcode).name
-                except ValueError:
+                except ValueError:  # pragma: no cover
                     pass
             logger.info(f"Child process [{process.pid}] died", extra={"exitcode": exitcode, "signal_name": signal_name})
             process = Process(self.config, self.target, self.sockets)
