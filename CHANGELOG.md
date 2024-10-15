@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.32.0 (2024-10-15)
+
+### Added
+
+* Officially support Python 3.13 (#2482)
+* Warn when `max_request_limit` is exceeded (#2430)
+
 ## 0.31.1 (2024-10-09)
 
 ### Fixed
