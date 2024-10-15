@@ -259,8 +259,12 @@ class Server:
         return False
 
     async def shutdown(self, sockets: list[socket.socket] | None = None) -> None:
-        logger.info("Shutting down")
+        if self.config.shutdown_delay:
+            logger.info(f"Shutting down in {self.config.shutdown_delay} seconds")
+            self.config.app.uvicorn_shutdown_triggered = True
+            await asyncio.sleep(self.config.shutdown_delay)
 
+        logger.info("Shutting down")
         # Stop accepting new connections.
         for server in self.servers:
             server.close()
