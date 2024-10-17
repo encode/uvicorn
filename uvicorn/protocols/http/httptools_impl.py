@@ -58,6 +58,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.access_logger = logging.getLogger("uvicorn.access")
         self.access_log = self.access_logger.hasHandlers()
         self.parser = httptools.HttpRequestParser(self)
+        self.parser.set_dangerous_leniencies(lenient_data_after_close=True)
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
         self.limit_concurrency = config.limit_concurrency
