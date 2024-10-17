@@ -225,7 +225,7 @@ class Config:
         h11_max_incomplete_event_size: int | None = None,
     ):
         self.app = app
-        if host and isinstance(host, str):
+        if isinstance(host, str):
             host = [host]
         self.host = host
         self.port = port
