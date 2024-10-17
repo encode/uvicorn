@@ -67,6 +67,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     default=[
         "127.0.0.1",
     ],
+    show_default=True,
 )
 @click.option(
     "--port",
