@@ -1,5 +1,20 @@
 # Change Log
 
+## 0.32.0 (2024-10-15)
+
+### Added
+
+* Officially support Python 3.13 (#2482)
+* Warn when `max_request_limit` is exceeded (#2430)
+
+## 0.31.1 (2024-10-09)
+
+### Fixed
+
+* Support WebSockets 0.13.1 (#2471)
+* Restore support for `[*]` in trusted hosts (#2480)
+* Add `PathLike[str]` type hint for `ssl_keyfile` (#2481)
+
 ## 0.31.0 (2024-09-27)
 
 ### Added
