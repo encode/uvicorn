@@ -464,7 +464,7 @@ def main(
 def run(
     app: ASGIApplication | Callable[..., Any] | str,
     *,
-    host: list[str] | str | None = "127.0.0.1",
+    host: list[str] | str = "127.0.0.1",
     port: int = 8000,
     uds: str | None = None,
     fd: int | None = None,
