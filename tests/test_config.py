@@ -262,9 +262,10 @@ def test_concrete_http_class() -> None:
 def test_socket_bind() -> None:
     config = Config(app=asgi_app)
     config.load()
-    sock = config.bind_socket()
-    assert isinstance(sock, socket.socket)
-    sock.close()
+    sockets = config.bind_socket()
+    for sock in sockets:
+        assert isinstance(sock, socket.socket)
+        sock.close()
 
 
 def test_ssl_config(
@@ -493,11 +494,12 @@ def test_bind_unix_socket_works_with_reload_or_workers(
 ):  # pragma: py-win32
     config = Config(app=asgi_app, uds=short_socket_name, reload=reload, workers=workers)
     config.load()
-    sock = config.bind_socket()
-    assert isinstance(sock, socket.socket)
-    assert sock.family == socket.AF_UNIX
-    assert sock.getsockname() == short_socket_name
-    sock.close()
+    sockets = config.bind_socket()
+    for sock in sockets:
+        assert isinstance(sock, socket.socket)
+        assert sock.family == socket.AF_UNIX
+        assert sock.getsockname() == short_socket_name
+        sock.close()
 
 
 @pytest.mark.parametrize(
@@ -514,12 +516,13 @@ def test_bind_fd_works_with_reload_or_workers(reload: bool, workers: int):  # pr
     fd = fdsock.fileno()
     config = Config(app=asgi_app, fd=fd, reload=reload, workers=workers)
     config.load()
-    sock = config.bind_socket()
-    assert isinstance(sock, socket.socket)
-    assert sock.family == socket.AF_UNIX
-    assert sock.getsockname() == ""
-    sock.close()
-    fdsock.close()
+    sockets = config.bind_socket()
+    for sock in sockets:
+        assert isinstance(sock, socket.socket)
+        assert sock.family == socket.AF_UNIX
+        assert sock.getsockname() == ""
+        sock.close()
+        fdsock.close()
 
 
 @pytest.mark.parametrize(
