@@ -101,8 +101,7 @@ $ uvicorn --help
 Usage: uvicorn [OPTIONS] APP
 
 Options:
-  --host TEXT                     Bind socket to this host.  [default:
-                                  127.0.0.1]
+  --host TEXT                     Bind socket to this host.
   --port INTEGER                  Bind socket to this port. If 0, an available
                                   port will be picked.  [default: 8000]
   --uds TEXT                      Bind to a UNIX domain socket.
