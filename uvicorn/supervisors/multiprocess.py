@@ -64,7 +64,7 @@ class Process:
 
     def is_alive(self, timeout: float = 5) -> bool:
         if not self.process.is_alive():
-            return False
+            return False  # pragma: full coverage
 
         return self.ping(timeout)
 
