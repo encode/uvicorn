@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import logging
 import os
 import platform
 import signal
@@ -32,8 +31,6 @@ HANDLED_SIGNALS = (
 )
 if sys.platform == "win32":  # pragma: py-not-win32
     HANDLED_SIGNALS += (signal.SIGBREAK,)  # Windows signal 21. Sent by Ctrl+Break.
-
-logger = logging.getLogger("uvicorn.error")
 
 
 class ServerState:
@@ -79,7 +76,7 @@ class Server:
 
         message = "Started server process [%d]"
         color_message = "Started server process [" + click.style("%d", fg="cyan") + "]"
-        logger.info(message, process_id, extra={"color_message": color_message})
+        self.config.get_logger("general").info(message, process_id, extra={"color_message": color_message})
 
         await self.startup(sockets=sockets)
         if self.should_exit:
@@ -89,7 +86,7 @@ class Server:
 
         message = "Finished server process [%d]"
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
-        logger.info(message, process_id, extra={"color_message": color_message})
+        self.config.get_logger("general").info(message, process_id, extra={"color_message": color_message})
 
     async def startup(self, sockets: list[socket.socket] | None = None) -> None:
         await self.lifespan.startup()
@@ -167,7 +164,7 @@ class Server:
                     backlog=config.backlog,
                 )
             except OSError as exc:
-                logger.error(exc)
+                self.config.get_logger("general").error(exc)
                 await self.lifespan.shutdown()
                 sys.exit(1)
 
@@ -189,13 +186,16 @@ class Server:
 
         if config.fd is not None:  # pragma: py-win32
             sock = listeners[0]
-            logger.info(
+            self.config.get_logger("general").info(
                 "Uvicorn running on socket %s (Press CTRL+C to quit)",
                 sock.getsockname(),
             )
 
         elif config.uds is not None:  # pragma: py-win32
-            logger.info("Uvicorn running on unix socket %s (Press CTRL+C to quit)", config.uds)
+            self.config.get_logger("general").info(
+                "Uvicorn running on unix socket %s (Press CTRL+C to quit)",
+                config.uds,
+            )
 
         else:
             addr_format = "%s://%s:%d"
@@ -211,7 +211,7 @@ class Server:
             protocol_name = "https" if config.ssl else "http"
             message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
             color_message = "Uvicorn running on " + click.style(addr_format, bold=True) + " (Press CTRL+C to quit)"
-            logger.info(
+            self.config.get_logger("general").info(
                 message,
                 protocol_name,
                 host,
@@ -253,13 +253,15 @@ class Server:
 
         max_requests = self.config.limit_max_requests
         if max_requests is not None and self.server_state.total_requests >= max_requests:
-            logger.warning(f"Maximum request limit of {max_requests} exceeded. Terminating process.")
+            self.config.get_logger("general").warning(
+                f"Maximum request limit of {max_requests} exceeded. Terminating process."
+            )
             return True
 
         return False
 
     async def shutdown(self, sockets: list[socket.socket] | None = None) -> None:
-        logger.info("Shutting down")
+        self.config.get_logger("general").info("Shutting down")
 
         # Stop accepting new connections.
         for server in self.servers:
@@ -279,7 +281,7 @@ class Server:
                 timeout=self.config.timeout_graceful_shutdown,
             )
         except asyncio.TimeoutError:
-            logger.error(
+            self.config.get_logger("general").error(
                 "Cancel %s running task(s), timeout graceful shutdown exceeded",
                 len(self.server_state.tasks),
             )
@@ -297,14 +299,14 @@ class Server:
         # Wait for existing connections to finish sending responses.
         if self.server_state.connections and not self.force_exit:
             msg = "Waiting for connections to close. (CTRL+C to force quit)"
-            logger.info(msg)
+            self.config.get_logger("general").info(msg)
             while self.server_state.connections and not self.force_exit:
                 await asyncio.sleep(0.1)
 
         # Wait for existing tasks to complete.
         if self.server_state.tasks and not self.force_exit:
             msg = "Waiting for background tasks to complete. (CTRL+C to force quit)"
-            logger.info(msg)
+            self.config.get_logger("general").info(msg)
             while self.server_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
 

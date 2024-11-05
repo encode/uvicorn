@@ -108,7 +108,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
             ping_interval=self.config.ws_ping_interval,
             ping_timeout=self.config.ws_ping_timeout,
             extensions=extensions,
-            logger=logging.getLogger("uvicorn.error"),
+            logger=self.config.get_logger("general"),
         )
         self.server_header = None
         self.extra_headers = [

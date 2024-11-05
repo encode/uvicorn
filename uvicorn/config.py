@@ -10,6 +10,7 @@ import socket
 import ssl
 import sys
 from configparser import RawConfigParser
+from copy import deepcopy
 from pathlib import Path
 from typing import IO, Any, Awaitable, Callable, Literal
 
@@ -95,8 +96,6 @@ LOGGING_CONFIG: dict[str, Any] = {
         "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
     },
 }
-
-logger = logging.getLogger("uvicorn.error")
 
 
 def create_ssl_context(
@@ -194,6 +193,7 @@ class Config:
         log_level: str | int | None = None,
         access_log: bool = True,
         use_colors: bool | None = None,
+        logger_mappings: dict | None = None,
         interface: InterfaceType = "auto",
         reload: bool = False,
         reload_dirs: list[str] | str | None = None,
@@ -270,6 +270,7 @@ class Config:
         self.h11_max_incomplete_event_size = h11_max_incomplete_event_size
 
         self.loaded = False
+        self.logger_mappings = logger_mappings if logger_mappings else {}
         self.configure_logging()
 
         self.reload_dirs: list[Path] = []
@@ -278,7 +279,7 @@ class Config:
         self.reload_excludes: list[str] = []
 
         if (reload_dirs or reload_includes or reload_excludes) and not self.should_reload:
-            logger.warning(
+            self.get_logger("general").warning(
                 "Current configuration will not reload as not all conditions are met, " "please refer to documentation."
             )
 
@@ -307,14 +308,14 @@ class Config:
 
             if not self.reload_dirs:
                 if reload_dirs:
-                    logger.warning(
+                    self.get_logger("general").warning(
                         "Provided reload directories %s did not contain valid "
                         + "directories, watching current working directory.",
                         reload_dirs,
                     )
                 self.reload_dirs = [Path(os.getcwd())]
 
-            logger.info(
+            self.get_logger("general").info(
                 "Will watch for changes in these directories: %s",
                 sorted(list(map(str, self.reload_dirs))),
             )
@@ -322,7 +323,7 @@ class Config:
         if env_file is not None:
             from dotenv import load_dotenv
 
-            logger.info("Loading environment from '%s'", env_file)
+            self.get_logger("general").info("Loading environment from '%s'", env_file)
             load_dotenv(dotenv_path=env_file)
 
         if workers is None and "WEB_CONCURRENCY" in os.environ:
@@ -335,7 +336,7 @@ class Config:
             self.forwarded_allow_ips = forwarded_allow_ips  # pragma: full coverage
 
         if self.reload and self.workers > 1:
-            logger.warning('"workers" flag is ignored when reloading is enabled.')
+            self.get_logger("general").warning('"workers" flag is ignored when reloading is enabled.')
 
     @property
     def asgi_version(self) -> Literal["2.0", "3.0"]:
@@ -354,19 +355,76 @@ class Config:
     def use_subprocess(self) -> bool:
         return bool(self.reload or self.workers > 1)
 
+    def get_logger_name(self, sub_logger: str) -> str:
+        return self._internal_logger_mappings[sub_logger]
+
+    def get_logger(self, sub_logger: str) -> logging.Logger:
+        return logging.getLogger(self.get_logger_name(sub_logger))
+
+    def do_dict_config(self, log_config: dict) -> None:
+        # # rewrite the log config to use correct logger names
+        if "loggers" in log_config:
+            # do a deep copy to keep original values
+            cpy = deepcopy(log_config)
+            # very dirty hack to keep maximum compatibility
+            loggers = {}
+            log_map = {
+                "uvicorn": "main",
+                "uvicorn.error": "general",
+                "uvicorn.access": "access",
+                "uvicorn.asgi": "asgi",
+            }
+            for k, v in cpy["loggers"].items():
+                loggers[self.get_logger_name(log_map[k]) if k in log_map else k] = v
+            cpy["loggers"] = loggers
+            log_config = cpy
+        # # apply log configuration
+        logging.config.dictConfig(log_config)
+
+    @staticmethod
+    def get_longest_common_prefix(strs: list) -> str:
+        if not strs:  # pragma: no cover
+            return ""
+        strs = sorted(strs)
+        min_s = min(strs)
+        max_s = max(strs)
+        if not min_s:  # pragma: no cover
+            return ""
+        for i in range(len(min_s)):
+            if max_s[i] != min_s[i]:
+                return max_s[:i]
+        return min_s[:]  # pragma: no cover
+
     def configure_logging(self) -> None:
         logging.addLevelName(TRACE_LOG_LEVEL, "TRACE")
+
+        self._internal_logger_mappings = {
+            "general": self.logger_mappings.get("general", "uvicorn.error"),
+            "access": self.logger_mappings.get("access", "uvicorn.access"),
+            "asgi": self.logger_mappings.get("asgi", "uvicorn.asgi"),
+        }
+        # get longest prefix in loggers to configure the main
+        common = Config.get_longest_common_prefix(list(self._internal_logger_mappings.values()))
+        if not common.endswith("."):  # pragma: no cover
+            check = f"{common}."
+            for s in self._internal_logger_mappings.values():
+                if s != common and not s.startswith(check):
+                    raise Exception("failed to find a common ancestor for logger mappings")
+            # need to add the dot at the end for next line
+            common = check
+
+        self._internal_logger_mappings["main"] = common[:-1]
 
         if self.log_config is not None:
             if isinstance(self.log_config, dict):
                 if self.use_colors in (True, False):
                     self.log_config["formatters"]["default"]["use_colors"] = self.use_colors
                     self.log_config["formatters"]["access"]["use_colors"] = self.use_colors
-                logging.config.dictConfig(self.log_config)
+                self.do_dict_config(self.log_config)
             elif isinstance(self.log_config, str) and self.log_config.endswith(".json"):
                 with open(self.log_config) as file:
                     loaded_config = json.load(file)
-                    logging.config.dictConfig(loaded_config)
+                    self.do_dict_config(loaded_config)
             elif isinstance(self.log_config, str) and self.log_config.endswith((".yaml", ".yml")):
                 # Install the PyYAML package or the uvicorn[standard] optional
                 # dependencies to enable this functionality.
@@ -374,7 +432,7 @@ class Config:
 
                 with open(self.log_config) as file:
                     loaded_config = yaml.safe_load(file)
-                    logging.config.dictConfig(loaded_config)
+                    self.do_dict_config(loaded_config)
             else:
                 # See the note about fileConfig() here:
                 # https://docs.python.org/3/library/logging.config.html#configuration-file-format
@@ -385,12 +443,12 @@ class Config:
                 log_level = LOG_LEVELS[self.log_level]
             else:
                 log_level = self.log_level
-            logging.getLogger("uvicorn.error").setLevel(log_level)
-            logging.getLogger("uvicorn.access").setLevel(log_level)
-            logging.getLogger("uvicorn.asgi").setLevel(log_level)
+            self.get_logger("general").setLevel(log_level)
+            self.get_logger("access").setLevel(log_level)
+            self.get_logger("asgi").setLevel(log_level)
         if self.access_log is False:
-            logging.getLogger("uvicorn.access").handlers = []
-            logging.getLogger("uvicorn.access").propagate = False
+            self.get_logger("access").handlers = []
+            self.get_logger("access").propagate = False
 
     def load(self) -> None:
         assert not self.loaded
@@ -433,18 +491,18 @@ class Config:
         try:
             self.loaded_app = import_from_string(self.app)
         except ImportFromStringError as exc:
-            logger.error("Error loading ASGI app. %s" % exc)
+            self.get_logger("general").error("Error loading ASGI app. %s" % exc)
             sys.exit(1)
 
         try:
             self.loaded_app = self.loaded_app()
         except TypeError as exc:
             if self.factory:
-                logger.error("Error loading ASGI app factory: %s", exc)
+                self.get_logger("general").error("Error loading ASGI app factory: %s", exc)
                 sys.exit(1)
         else:
             if not self.factory:
-                logger.warning(
+                self.get_logger("general").warning(
                     "ASGI app factory detected. Using it, " "but please consider setting the --factory flag explicitly."
                 )
 
@@ -464,8 +522,9 @@ class Config:
         elif self.interface == "asgi2":
             self.loaded_app = ASGI2Middleware(self.loaded_app)
 
-        if logger.getEffectiveLevel() <= TRACE_LOG_LEVEL:
-            self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
+        if self.get_logger("general").getEffectiveLevel() <= TRACE_LOG_LEVEL:
+            # self.loaded_app = MessageLoggerMiddleware(self.loaded_app)
+            self.loaded_app = MessageLoggerMiddleware(self.loaded_app, self.get_logger("asgi"))
         if self.proxy_headers:
             self.loaded_app = ProxyHeadersMiddleware(self.loaded_app, trusted_hosts=self.forwarded_allow_ips)
 
@@ -486,7 +545,7 @@ class Config:
                 uds_perms = 0o666
                 os.chmod(self.uds, uds_perms)
             except OSError as exc:  # pragma: full coverage
-                logger.error(exc)
+                self.get_logger("general").error(exc)
                 sys.exit(1)
 
             message = "Uvicorn running on unix socket %s (Press CTRL+C to quit)"
@@ -513,14 +572,14 @@ class Config:
             try:
                 sock.bind((self.host, self.port))
             except OSError as exc:  # pragma: full coverage
-                logger.error(exc)
+                self.get_logger("general").error(exc)
                 sys.exit(1)
 
             message = f"Uvicorn running on {addr_format} (Press CTRL+C to quit)"
             color_message = "Uvicorn running on " + click.style(addr_format, bold=True) + " (Press CTRL+C to quit)"
             protocol_name = "https" if self.is_ssl else "http"
             logger_args = [protocol_name, self.host, sock.getsockname()[1]]
-        logger.info(message, *logger_args, extra={"color_message": color_message})
+        self.get_logger("general").info(message, *logger_args, extra={"color_message": color_message})
         sock.set_inheritable(True)
         return sock
 

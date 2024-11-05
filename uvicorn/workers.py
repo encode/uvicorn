@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import signal
 import sys
 import warnings
@@ -31,16 +30,6 @@ class UvicornWorker(Worker):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        logger = logging.getLogger("uvicorn.error")
-        logger.handlers = self.log.error_log.handlers
-        logger.setLevel(self.log.error_log.level)
-        logger.propagate = False
-
-        logger = logging.getLogger("uvicorn.access")
-        logger.handlers = self.log.access_log.handlers
-        logger.setLevel(self.log.access_log.level)
-        logger.propagate = False
-
         config_kwargs: dict = {
             "app": None,
             "log_config": None,
@@ -69,6 +58,16 @@ class UvicornWorker(Worker):
         config_kwargs.update(self.CONFIG_KWARGS)
 
         self.config = Config(**config_kwargs)
+
+        logger = self.config.get_logger("general")
+        logger.handlers = self.log.error_log.handlers
+        logger.setLevel(self.log.error_log.level)
+        logger.propagate = False
+
+        logger = self.config.get_logger("access")
+        logger.handlers = self.log.access_log.handlers
+        logger.setLevel(self.log.access_log.level)
+        logger.propagate = False
 
     def init_process(self) -> None:
         self.config.setup_event_loop()

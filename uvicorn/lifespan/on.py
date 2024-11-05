@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from asyncio import Queue
 from typing import Any, Union
 
@@ -34,7 +33,7 @@ class LifespanOn:
             config.load()
 
         self.config = config
-        self.logger = logging.getLogger("uvicorn.error")
+        self.logger = config.get_logger("general")
         self.startup_event = asyncio.Event()
         self.shutdown_event = asyncio.Event()
         self.receive_queue: Queue[LifespanReceiveMessage] = asyncio.Queue()
