@@ -114,6 +114,8 @@ Options:
   --timeout-graceful-shutdown INTEGER
                                   Maximum number of seconds to wait for
                                   graceful shutdown.
+  --shutdown-delay FLOAT
+                                  Time in seconds to delay shutdown when a shutdown-signal is received
   --ssl-keyfile TEXT              SSL key file
   --ssl-certfile TEXT             SSL certificate file
   --ssl-keyfile-password TEXT     SSL keyfile password
