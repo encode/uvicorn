@@ -15,14 +15,27 @@ class ProxyHeadersMiddleware:
     Modifies the `client` and `scheme` information so that they reference
     the connecting client, rather that the connecting proxy.
 
+    You can pass through a list of trusted hosts via the `trusted_hosts`
+    parameter, which can be either a list or single entry. Each entry can be
+    either a host ("127.0.0.1") or a network ("192.168.0.0/24"). An entry of
+    "*" means that all hosts are trusted.
+
+    Alternatively, if you know how many proxies are in front of your application
+    you can pass the `trust_number_of_proxies` parameter to only trust the first
+    N proxies. In this case you probably want to pass an empty list for
+    `trusted_hosts`.
+
     References:
     - <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#Proxies>
     - <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For>
     """
 
-    def __init__(self, app: ASGI3Application, trusted_hosts: list[str] | str = "127.0.0.1") -> None:
+    def __init__(
+        self, app: ASGI3Application, trusted_hosts: list[str] | str = "127.0.0.1", trust_number_of_proxies: int = 0
+    ) -> None:
         self.app = app
-        self.trusted_hosts = _TrustedHosts(trusted_hosts)
+        self.trust_number_of_proxies = trust_number_of_proxies
+        self.trusted_hosts = _TrustedHosts(trusted_hosts, trust_number_of_proxies)
 
     async def __call__(self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
         if scope["type"] == "lifespan":
@@ -31,7 +44,7 @@ class ProxyHeadersMiddleware:
         client_addr = scope.get("client")
         client_host = client_addr[0] if client_addr else None
 
-        if client_host in self.trusted_hosts:
+        if self.trust_number_of_proxies > 0 or client_host in self.trusted_hosts:
             headers = dict(scope["headers"])
 
             if b"x-forwarded-proto" in headers:
@@ -67,12 +80,16 @@ def _parse_raw_hosts(value: str) -> list[str]:
 class _TrustedHosts:
     """Container for trusted hosts and networks"""
 
-    def __init__(self, trusted_hosts: list[str] | str) -> None:
+    def __init__(self, trusted_hosts: list[str] | str, trust_number_of_proxies: int = 0) -> None:
         self.always_trust: bool = trusted_hosts in ("*", ["*"])
 
         self.trusted_literals: set[str] = set()
         self.trusted_hosts: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
         self.trusted_networks: set[ipaddress.IPv4Network | ipaddress.IPv6Network] = set()
+
+        # Always trust the first N proxies, only apply the other arguments after
+        # bypassing these.
+        self.trust_number_of_proxies: int = trust_number_of_proxies
 
         # Notes:
         # - We separate hosts from literals as there are many ways to write
@@ -133,7 +150,15 @@ class _TrustedHosts:
             return x_forwarded_for_hosts[0]
 
         # Note: each proxy appends to the header list so check it in reverse order
-        for host in reversed(x_forwarded_for_hosts):
+        #
+        # If we have trust_number_of_proxies set, remember that the 'first' one we are skipping is the
+        # original source of the request, so we actually remove N-1 proxies from the X-Forwarded-For list.
+        x_forwarded_skip = self.trust_number_of_proxies - 1
+        if x_forwarded_skip > len(x_forwarded_for_hosts):
+            return x_forwarded_for_hosts[0]
+
+        hosts_to_check = x_forwarded_for_hosts[: len(x_forwarded_for_hosts) - x_forwarded_skip]
+        for host in reversed(hosts_to_check):
             if host not in self:
                 return host
 

@@ -39,15 +39,17 @@ async def default_app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISend
 def make_httpx_client(
     trusted_hosts: str | list[str],
     client: tuple[str, int] = ("127.0.0.1", 123),
+    trust_number_of_proxies: int = 0,
 ) -> httpx.AsyncClient:
     """Create async client for use in test cases.
 
     Args:
         trusted_hosts: trusted_hosts for proxy middleware
         client: transport client to use
+        trust_number_of_proxies: number of proxies to trust
     """
 
-    app = ProxyHeadersMiddleware(default_app, trusted_hosts)
+    app = ProxyHeadersMiddleware(default_app, trusted_hosts, trust_number_of_proxies)
     transport = httpx.ASGITransport(app=app, client=client)  # type: ignore
     return httpx.AsyncClient(transport=transport, base_url="http://testserver")
 
@@ -492,3 +494,25 @@ async def test_proxy_headers_empty_x_forwarded_for() -> None:
         response = await client.get("/", headers=headers)
     assert response.status_code == 200
     assert response.text == "https://127.0.0.1:123"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("x_forwarded_for", "trust_number_of_proxies", "expected"),
+    [
+        ("", 0, "http://127.0.0.1:123"),
+        ("", 1, "http://127.0.0.1:123"),
+        ("192.168.0.0, 192.168.0.1, 192.168.0.2", 0, "http://127.0.0.1:123"),
+        ("192.168.0.0, 192.168.0.1, 192.168.0.2", 1, "http://192.168.0.2:0"),
+        ("192.168.0.0, 192.168.0.1, 192.168.0.2", 2, "http://192.168.0.1:0"),
+        ("192.168.0.0, 192.168.0.1, 192.168.0.2", 3, "http://192.168.0.0:0"),
+        ("192.168.0.0, 192.168.0.1, 192.168.0.2", 4, "http://192.168.0.0:0"),
+        ("192.168.0.0, 192.168.0.1, 192.168.0.2", 5, "http://192.168.0.0:0"),
+    ],
+)
+async def test_trust_number_of_proxies(x_forwarded_for: str, trust_number_of_proxies: int, expected: str) -> None:
+    async with make_httpx_client([], trust_number_of_proxies=trust_number_of_proxies) as client:
+        headers = {X_FORWARDED_FOR: x_forwarded_for}
+        response = await client.get("/", headers=headers)
+    assert response.status_code == 200
+    assert response.text == expected
