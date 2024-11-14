@@ -48,6 +48,10 @@ class ServerState:
         self.default_headers: list[tuple[bytes, bytes]] = []
 
 
+class ShutdownTrigger:
+    is_shutdown_triggered: bool = False
+
+
 class Server:
     def __init__(self, config: Config) -> None:
         self.config = config
@@ -261,7 +265,7 @@ class Server:
     async def shutdown(self, sockets: list[socket.socket] | None = None) -> None:
         if self.config.shutdown_delay:
             logger.info(f"Shutting down in {self.config.shutdown_delay} seconds")
-            self.config.app.uvicorn_shutdown_triggered = True
+            ShutdownTrigger.is_shutdown_triggered = True
             await asyncio.sleep(self.config.shutdown_delay)
 
         logger.info("Shutting down")
