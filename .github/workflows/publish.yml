@@ -43,7 +43,7 @@ jobs:
 
     environment:
       name: pypi
-      url: https://pypi.org/project/uvicorn/${{ needs.build.outputs.version }}
+      url: https://pypi.org/project/uvicorn
 
     steps:
       - name: Download artifacts
