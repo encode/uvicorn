@@ -1,5 +1,39 @@
 # Change Log
 
+## 0.32.1 (2024-11-20)
+
+### Fixed
+
+* Drop ASGI spec version to 2.3 on HTTP scope [#2513](https://github.com/encode/uvicorn/pull/2513)
+* Enable httptools lenient data on `httptools >= 0.6.3` [#2488](https://github.com/encode/uvicorn/pull/2488)
+
+## 0.32.0 (2024-10-15)
+
+### Added
+
+* Officially support Python 3.13 (#2482)
+* Warn when `max_request_limit` is exceeded (#2430)
+
+## 0.31.1 (2024-10-09)
+
+### Fixed
+
+* Support WebSockets 0.13.1 (#2471)
+* Restore support for `[*]` in trusted hosts (#2480)
+* Add `PathLike[str]` type hint for `ssl_keyfile` (#2481)
+
+## 0.31.0 (2024-09-27)
+
+### Added
+
+Improve `ProxyHeadersMiddleware` (#2468) and (#2231):
+
+- Fix the host for requests from clients running on the proxy server itself.
+- Fallback to host that was already set for empty x-forwarded-for headers.
+- Also allow to specify IP Networks as trusted hosts. This greatly simplifies deployments
+  on docker swarm/kubernetes, where the reverse proxy might have a dynamic IP.
+    - This includes support for IPv6 Address/Networks.
+
 ## 0.30.6 (2024-08-13)
 
 ### Fixed

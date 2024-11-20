@@ -58,6 +58,14 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.access_logger = logging.getLogger("uvicorn.access")
         self.access_log = self.access_logger.hasHandlers()
         self.parser = httptools.HttpRequestParser(self)
+
+        try:
+            # Enable dangerous leniencies to allow server to a response on the first request from a pipelined request.
+            self.parser.set_dangerous_leniencies(lenient_data_after_close=True)
+        except AttributeError:  # pragma: no cover
+            # httptools < 0.6.3
+            pass
+
         self.ws_protocol_class = config.ws_protocol_class
         self.root_path = config.root_path
         self.limit_concurrency = config.limit_concurrency
@@ -214,7 +222,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.headers = []
         self.scope = {  # type: ignore[typeddict-item]
             "type": "http",
-            "asgi": {"version": self.config.asgi_version, "spec_version": "2.4"},
+            "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
             "http_version": "1.1",
             "server": self.server,
             "client": self.client,

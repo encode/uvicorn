@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Internet :: WWW/HTTP",
@@ -38,7 +39,7 @@ dependencies = [
 [project.optional-dependencies]
 standard = [
     "colorama>=0.4;sys_platform == 'win32'",
-    "httptools>=0.5.0",
+    "httptools>=0.6.3",
     "python-dotenv>=0.13",
     "PyYAML>=5.1",
     "uvloop>=0.14.0,!=0.15.0,!=0.15.1; sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')",
@@ -59,7 +60,11 @@ Source = "https://github.com/encode/uvicorn"
 path = "uvicorn/__init__.py"
 
 [tool.hatch.build.targets.sdist]
-include = ["/uvicorn"]
+include = [
+    "/uvicorn",
+    "/tests",
+    "/requirements.txt",
+]
 
 [tool.ruff]
 line-length = 120
@@ -92,6 +97,7 @@ filterwarnings = [
     'ignore: \"watchgod\" is deprecated\, you should switch to watchfiles \(`pip install watchfiles`\)\.:DeprecationWarning',
     "ignore:Uvicorn's native WSGI implementation is deprecated.*:DeprecationWarning",
     "ignore: 'cgi' is deprecated and slated for removal in Python 3.13:DeprecationWarning",
+    "ignore: remove second argument of ws_handler:DeprecationWarning:websockets"
 ]
 
 [tool.coverage.run]
