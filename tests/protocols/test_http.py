@@ -21,7 +21,7 @@ try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 
     skip_if_no_httptools = pytest.mark.skipif(False, reason="httptools is installed")
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: no cover
     skip_if_no_httptools = pytest.mark.skipif(True, reason="httptools is not installed")
 
 if TYPE_CHECKING:
@@ -158,6 +158,18 @@ GET_REQUEST_HUGE_HEADERS = [
     ),
     b"".join([b"x" * 32 * 1024 + b"\r\n", b"\r\n", b"\r\n"]),
 ]
+
+UPGRADE_REQUEST_ERROR_FIELD = b"\r\n".join(
+    [
+        b"GET / HTTP/1.1",
+        b"Host: example.org",
+        b"Connection: upgrade",
+        b"Upgrade: not-websocket",
+        b"Sec-WebSocket-Version: 11",
+        b"",
+        b"",
+    ]
+)
 
 
 class MockTransport:
@@ -1080,3 +1092,35 @@ async def test_lifespan_state(http_protocol_cls: HTTPProtocol):
         assert b"Hi!" in protocol.transport.buffer
 
     assert not expected_states  # consumed
+
+
+async def test_header_upgrade_is_not_websocket_depend_installed(
+    caplog: pytest.LogCaptureFixture, http_protocol_cls: HTTPProtocol
+):
+    caplog.set_level(logging.WARNING, logger="uvicorn.error")
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, http_protocol_cls)
+    protocol.data_received(UPGRADE_REQUEST_ERROR_FIELD)
+    await protocol.loop.run_one()
+    assert "Unsupported upgrade request." in caplog.text
+    msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
+    assert msg not in caplog.text
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
+
+
+async def test_header_upgrade_is_websocket_depend_not_installed(
+    caplog: pytest.LogCaptureFixture, http_protocol_cls: HTTPProtocol
+):
+    caplog.set_level(logging.WARNING, logger="uvicorn.error")
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, http_protocol_cls, ws="none")
+    protocol.data_received(UPGRADE_REQUEST_ERROR_FIELD)
+    await protocol.loop.run_one()
+    assert "Unsupported upgrade request." in caplog.text
+    msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
+    assert msg in caplog.text
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer

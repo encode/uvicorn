@@ -2,14 +2,22 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 import signal
 import sys
 from typing import Callable, ContextManager, Generator
 
+import httpx
 import pytest
 
+from tests.utils import run_server
+from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.config import Config
+from uvicorn.protocols.http.h11_impl import H11Protocol
+from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 from uvicorn.server import Server
+
+pytestmark = pytest.mark.anyio
 
 
 # asyncio does NOT allow raising in signal handlers, so to detect
@@ -37,6 +45,12 @@ async def dummy_app(scope, receive, send):  # pragma: py-win32
     pass
 
 
+async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
+    assert scope["type"] == "http"
+    await send({"type": "http.response.start", "status": 200, "headers": []})
+    await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+
 if sys.platform == "win32":  # pragma: py-not-win32
     signals = [signal.SIGBREAK]
     signal_captures = [capture_signal_sync]
@@ -45,7 +59,6 @@ else:  # pragma: py-win32
     signal_captures = [capture_signal_sync, capture_signal_async]
 
 
-@pytest.mark.anyio
 @pytest.mark.parametrize("exception_signal", signals)
 @pytest.mark.parametrize("capture_signal", signal_captures)
 async def test_server_interrupt(
@@ -65,3 +78,16 @@ async def test_server_interrupt(
     assert witness
     # set by the server's graceful exit handler
     assert server.should_exit
+
+
+async def test_request_than_limit_max_requests_warn_log(
+    unused_tcp_port: int, http_protocol_cls: type[H11Protocol | HttpToolsProtocol], caplog: pytest.LogCaptureFixture
+):
+    caplog.set_level(logging.WARNING, logger="uvicorn.error")
+    config = Config(app=app, limit_max_requests=1, port=unused_tcp_port, http=http_protocol_cls)
+    async with run_server(config):
+        async with httpx.AsyncClient() as client:
+            tasks = [client.get(f"http://127.0.0.1:{unused_tcp_port}") for _ in range(2)]
+            responses = await asyncio.gather(*tasks)
+            assert len(responses) == 2
+    assert "Maximum request limit of 1 exceeded. Terminating process." in caplog.text
