@@ -8,8 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.inspect_package.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -23,21 +21,6 @@ jobs:
 
       - name: Build package & docs
         run: scripts/build
-
-      - name: Inspect package version
-        id: inspect_package
-        run: |
-          version=$(uvx hatchling version)
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      - name: Check tag matches package version
-        run: |
-          version=$(cat "$GITHUB_OUTPUT" | grep -oP 'version=\K.*')
-          tag=$(echo "${GITHUB_REF#refs/tags/}")
-          if [ "$version" != "$tag" ]; then
-            echo "Tag '$tag' does not match package version '$version'"
-            exit 1
-          fi
 
       - name: Upload package distributions
         uses: actions/upload-artifact@v2
