@@ -200,10 +200,7 @@ class H11Protocol(asyncio.Protocol):
                 full_raw_path = self.root_path.encode("ascii") + raw_path
                 self.scope = {
                     "type": "http",
-                    "asgi": {
-                        "version": self.config.asgi_version,
-                        "spec_version": "2.4",
-                    },
+                    "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
                     "http_version": event.http_version.decode("ascii"),
                     "server": self.server,
                     "client": self.client,
