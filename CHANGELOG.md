@@ -1,5 +1,19 @@
 # Change Log
 
+## 0.32.1 (2024-11-20)
+
+### Fixed
+
+* Drop ASGI spec version to 2.3 on HTTP scope [#2513](https://github.com/encode/uvicorn/pull/2513)
+* Enable httptools lenient data on `httptools >= 0.6.3` [#2488](https://github.com/encode/uvicorn/pull/2488)
+
+## 0.32.0 (2024-10-15)
+
+### Added
+
+* Officially support Python 3.13 (#2482)
+* Warn when `max_request_limit` is exceeded (#2430)
+
 ## 0.31.1 (2024-10-09)
 
 ### Fixed
