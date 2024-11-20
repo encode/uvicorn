@@ -62,7 +62,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         try:
             # Enable dangerous leniencies to allow server to a response on the first request from a pipelined request.
             self.parser.set_dangerous_leniencies(lenient_data_after_close=True)
-        except AttributeError:
+        except AttributeError:  # pragma: no cover
             # httptools < 0.6.3
             pass
 
