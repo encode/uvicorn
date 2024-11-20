@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.33.0 (2024-11-20)
+
+### Fixed
+
+* Drop ASGI spec version to 2.3 on HTTP scope [#2513](https://github.com/encode/uvicorn/pull/2513)
+* Enable httptools lenient data on `httptools >= 0.6.3` [#2488](https://github.com/encode/uvicorn/pull/2488)
+
 ## 0.32.0 (2024-10-15)
 
 ### Added
