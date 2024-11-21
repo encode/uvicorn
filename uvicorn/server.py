@@ -264,8 +264,9 @@ class Server:
         logger.info("Shutting down")
 
         # Stop accepting new connections.
-        for server in self.servers:
-            server.close()
+        if hasattr(self, "servers") and self.servers:
+            for server in self.servers:
+                server.close()
         for sock in sockets or []:
             sock.close()  # pragma: full coverage
 
