@@ -308,8 +308,9 @@ class Server:
             while self.server_state.tasks and not self.force_exit:
                 await asyncio.sleep(0.1)
 
-        for server in self.servers:
-            await server.wait_closed()
+        if hasattr(self, "servers") and self.servers:
+            for server in self.servers:
+                await server.wait_closed()
 
     @contextlib.contextmanager
     def capture_signals(self) -> Generator[None, None, None]:
