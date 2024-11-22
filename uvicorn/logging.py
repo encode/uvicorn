@@ -16,7 +16,7 @@ class ColourizedFormatter(logging.Formatter):
     A custom log formatter class that:
 
     * Outputs the LOG_LEVEL with an appropriate color.
-    * If a log call includes an `extras={"color_message": ...}` it will be used
+    * If a log call includes an `extra={"color_message": ...}` it will be used
       for formatting the output, instead of the plain text message.
     """
 
