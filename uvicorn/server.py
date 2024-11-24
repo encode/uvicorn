@@ -35,6 +35,7 @@ if sys.platform == "win32":  # pragma: py-not-win32
 
 logger = logging.getLogger("uvicorn.error")
 
+
 def get_interface_ip(family: socket.AddressFamily) -> str:
     """Get the IP address of an external interface. Used when binding to
     0.0.0.0 or ::1 to show a more useful URL.
