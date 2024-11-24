@@ -51,7 +51,7 @@ def get_interface_ip(family: socket.AddressFamily) -> str:
         except OSError:
             return "::1" if family == socket.AF_INET6 else "127.0.0.1"
 
-        return s.getsockname()[0]  # type: ignore
+        return s.getsockname()[0]
 
 
 class ServerState:
