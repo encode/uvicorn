@@ -147,13 +147,23 @@ class H11Protocol(asyncio.Protocol):
 
     def _should_upgrade_to_ws(self) -> bool:
         if self.ws_protocol_class is None:
-            if self.config.ws == "auto":
-                msg = "Unsupported upgrade request."
-                self.logger.warning(msg)
-                msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
-                self.logger.warning(msg)
             return False
         return True
+
+    def _unsupported_upgrade_warning(self) -> None:
+        msg = "Unsupported upgrade request."
+        self.logger.warning(msg)
+        if not self._should_upgrade_to_ws():
+            msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
+            self.logger.warning(msg)
+
+    def _should_upgrade(self) -> bool:
+        upgrade = self._get_upgrade()
+        if upgrade == b"websocket" and self._should_upgrade_to_ws():
+            return True
+        if upgrade is not None:
+            self._unsupported_upgrade_warning()
+        return False
 
     def data_received(self, data: bytes) -> None:
         self._unset_keepalive_if_required()
@@ -190,10 +200,7 @@ class H11Protocol(asyncio.Protocol):
                 full_raw_path = self.root_path.encode("ascii") + raw_path
                 self.scope = {
                     "type": "http",
-                    "asgi": {
-                        "version": self.config.asgi_version,
-                        "spec_version": "2.4",
-                    },
+                    "asgi": {"version": self.config.asgi_version, "spec_version": "2.3"},
                     "http_version": event.http_version.decode("ascii"),
                     "server": self.server,
                     "client": self.client,
@@ -206,9 +213,7 @@ class H11Protocol(asyncio.Protocol):
                     "headers": self.headers,
                     "state": self.app_state.copy(),
                 }
-
-                upgrade = self._get_upgrade()
-                if upgrade == b"websocket" and self._should_upgrade_to_ws():
+                if self._should_upgrade():
                     self.handle_websocket_upgrade(event)
                     return
 
@@ -261,9 +266,11 @@ class H11Protocol(asyncio.Protocol):
                     continue
                 self.cycle.more_body = False
                 self.cycle.message_event.set()
+                if self.conn.their_state == h11.MUST_CLOSE:
+                    break
 
     def handle_websocket_upgrade(self, event: h11.Request) -> None:
-        if self.logger.level <= TRACE_LOG_LEVEL:
+        if self.logger.level <= TRACE_LOG_LEVEL:  # pragma: full coverage
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sUpgrading to WebSocket", prefix)
 
@@ -333,13 +340,13 @@ class H11Protocol(asyncio.Protocol):
         """
         Called by the transport when the write buffer exceeds the high water mark.
         """
-        self.flow.pause_writing()
+        self.flow.pause_writing()  # pragma: full coverage
 
     def resume_writing(self) -> None:
         """
         Called by the transport when the write buffer drops below the low water mark.
         """
-        self.flow.resume_writing()
+        self.flow.resume_writing()  # pragma: full coverage
 
     def timeout_keep_alive_handler(self) -> None:
         """
@@ -441,10 +448,10 @@ class RequestResponseCycle:
         message_type = message["type"]
 
         if self.flow.write_paused and not self.disconnected:
-            await self.flow.drain()
+            await self.flow.drain()  # pragma: full coverage
 
         if self.disconnected:
-            return
+            return  # pragma: full coverage
 
         if not self.response_started:
             # Sending response status line and headers

@@ -21,7 +21,7 @@ try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
 
     skip_if_no_httptools = pytest.mark.skipif(False, reason="httptools is installed")
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: no cover
     skip_if_no_httptools = pytest.mark.skipif(True, reason="httptools is not installed")
 
 if TYPE_CHECKING:
@@ -60,6 +60,32 @@ SIMPLE_POST_REQUEST = b"\r\n".join(
 )
 
 CONNECTION_CLOSE_REQUEST = b"\r\n".join([b"GET / HTTP/1.1", b"Host: example.org", b"Connection: close", b"", b""])
+
+CONNECTION_CLOSE_POST_REQUEST = b"\r\n".join(
+    [
+        b"POST / HTTP/1.1",
+        b"Host: example.org",
+        b"Connection: close",
+        b"Content-Type: application/json",
+        b"Content-Length: 18",
+        b"",
+        b"{'hello': 'world'}",
+    ]
+)
+
+REQUEST_AFTER_CONNECTION_CLOSE = b"\r\n".join(
+    [
+        b"GET / HTTP/1.1",
+        b"Host: example.org",
+        b"Connection: close",
+        b"",
+        b"",
+        b"GET / HTTP/1.1",
+        b"Host: example.org",
+        b"",
+        b"",
+    ]
+)
 
 LARGE_POST_REQUEST = b"\r\n".join(
     [
@@ -132,6 +158,18 @@ GET_REQUEST_HUGE_HEADERS = [
     ),
     b"".join([b"x" * 32 * 1024 + b"\r\n", b"\r\n", b"\r\n"]),
 ]
+
+UPGRADE_REQUEST_ERROR_FIELD = b"\r\n".join(
+    [
+        b"GET / HTTP/1.1",
+        b"Host: example.org",
+        b"Connection: upgrade",
+        b"Upgrade: not-websocket",
+        b"Sec-WebSocket-Version: 11",
+        b"",
+        b"",
+    ]
+)
 
 
 class MockTransport:
@@ -822,8 +860,8 @@ def asgi2app(scope: Scope):
 @pytest.mark.parametrize(
     "asgi2or3_app, expected_scopes",
     [
-        (asgi3app, {"version": "3.0", "spec_version": "2.4"}),
-        (asgi2app, {"version": "2.0", "spec_version": "2.4"}),
+        (asgi3app, {"version": "3.0", "spec_version": "2.3"}),
+        (asgi2app, {"version": "2.0", "spec_version": "2.3"}),
     ],
 )
 async def test_scopes(
@@ -983,6 +1021,39 @@ async def test_return_close_header(http_protocol_cls: HTTPProtocol):
     assert b"connection: close" in protocol.transport.buffer.lower()
 
 
+async def test_close_connection_with_multiple_requests(http_protocol_cls: HTTPProtocol):
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, http_protocol_cls)
+    protocol.data_received(REQUEST_AFTER_CONNECTION_CLOSE)
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"content-type: text/plain" in protocol.transport.buffer
+    assert b"content-length: 12" in protocol.transport.buffer
+    # NOTE: We need to use `.lower()` because H11 implementation doesn't allow Uvicorn
+    # to lowercase them. See: https://github.com/python-hyper/h11/issues/156
+    assert b"connection: close" in protocol.transport.buffer.lower()
+
+
+async def test_close_connection_with_post_request(http_protocol_cls: HTTPProtocol):
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
+        body = b""
+        more_body = True
+        while more_body:
+            message = await receive()
+            assert message["type"] == "http.request"
+            body += message.get("body", b"")
+            more_body = message.get("more_body", False)
+        response = Response(b"Body: " + body, media_type="text/plain")
+        await response(scope, receive, send)
+
+    protocol = get_connected_protocol(app, http_protocol_cls)
+    protocol.data_received(CONNECTION_CLOSE_POST_REQUEST)
+    await protocol.loop.run_one()
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Body: {'hello': 'world'}" in protocol.transport.buffer
+
+
 async def test_iterator_headers(http_protocol_cls: HTTPProtocol):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         headers = iter([(b"x-test-header", b"test value")])
@@ -1021,3 +1092,35 @@ async def test_lifespan_state(http_protocol_cls: HTTPProtocol):
         assert b"Hi!" in protocol.transport.buffer
 
     assert not expected_states  # consumed
+
+
+async def test_header_upgrade_is_not_websocket_depend_installed(
+    caplog: pytest.LogCaptureFixture, http_protocol_cls: HTTPProtocol
+):
+    caplog.set_level(logging.WARNING, logger="uvicorn.error")
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, http_protocol_cls)
+    protocol.data_received(UPGRADE_REQUEST_ERROR_FIELD)
+    await protocol.loop.run_one()
+    assert "Unsupported upgrade request." in caplog.text
+    msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
+    assert msg not in caplog.text
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer
+
+
+async def test_header_upgrade_is_websocket_depend_not_installed(
+    caplog: pytest.LogCaptureFixture, http_protocol_cls: HTTPProtocol
+):
+    caplog.set_level(logging.WARNING, logger="uvicorn.error")
+    app = Response("Hello, world", media_type="text/plain")
+
+    protocol = get_connected_protocol(app, http_protocol_cls, ws="none")
+    protocol.data_received(UPGRADE_REQUEST_ERROR_FIELD)
+    await protocol.loop.run_one()
+    assert "Unsupported upgrade request." in caplog.text
+    msg = "No supported WebSocket library detected. Please use \"pip install 'uvicorn[standard]'\", or install 'websockets' or 'wsproto' manually."  # noqa: E501
+    assert msg in caplog.text
+    assert b"HTTP/1.1 200 OK" in protocol.transport.buffer
+    assert b"Hello, world" in protocol.transport.buffer

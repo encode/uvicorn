@@ -145,7 +145,7 @@ def is_dir(path: Path) -> bool:
         if not path.is_absolute():
             path = path.resolve()
         return path.is_dir()
-    except OSError:
+    except OSError:  # pragma: full coverage
         return False
 
 
@@ -174,9 +174,9 @@ def resolve_reload_patterns(patterns_list: list[str], directories_list: list[str
 
     children = []
     for j in range(len(directories)):
-        for k in range(j + 1, len(directories)):
+        for k in range(j + 1, len(directories)):  # pragma: full coverage
             if directories[j] in directories[k].parents:
-                children.append(directories[k])  # pragma: py-darwin
+                children.append(directories[k])
             elif directories[k] in directories[j].parents:
                 children.append(directories[j])
 
@@ -234,7 +234,7 @@ class Config:
         timeout_notify: int = 30,
         timeout_graceful_shutdown: int | None = None,
         callback_notify: Callable[..., Awaitable[None]] | None = None,
-        ssl_keyfile: str | None = None,
+        ssl_keyfile: str | os.PathLike[str] | None = None,
         ssl_certfile: str | os.PathLike[str] | None = None,
         ssl_keyfile_password: str | None = None,
         ssl_version: int = SSL_PROTOCOL_VERSION,
@@ -321,12 +321,12 @@ class Config:
                     if directory == reload_directory or directory in reload_directory.parents:
                         try:
                             self.reload_dirs.remove(reload_directory)
-                        except ValueError:
+                        except ValueError:  # pragma: full coverage
                             pass
 
             for pattern in self.reload_excludes:
                 if pattern in self.reload_includes:
-                    self.reload_includes.remove(pattern)
+                    self.reload_includes.remove(pattern)  # pragma: full coverage
 
             if not self.reload_dirs:
                 if reload_dirs:
@@ -355,7 +355,7 @@ class Config:
         if forwarded_allow_ips is None:
             self.forwarded_allow_ips = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
         else:
-            self.forwarded_allow_ips = forwarded_allow_ips
+            self.forwarded_allow_ips = forwarded_allow_ips  # pragma: full coverage
 
         if self.reload and self.workers > 1:
             logger.warning('"workers" flag is ignored when reloading is enabled.')
@@ -519,7 +519,7 @@ class Config:
                 sock.bind(path)
                 uds_perms = 0o666
                 os.chmod(self.uds, uds_perms)
-            except OSError as exc:
+            except OSError as exc:  # pragma: full coverage
                 logger.error(exc)
                 sys.exit(1)
 
@@ -537,7 +537,7 @@ class Config:
             family = socket.AF_INET
             addr_format = "%s://%s:%d"
 
-            if self.host and ":" in self.host:  # pragma: py-win32
+            if self.host and ":" in self.host:  # pragma: full coverage
                 # It's an IPv6 address.
                 family = socket.AF_INET6
                 addr_format = "%s://[%s]:%d"
@@ -546,7 +546,7 @@ class Config:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
                 sock.bind((self.host, self.port))
-            except OSError as exc:
+            except OSError as exc:  # pragma: full coverage
                 logger.error(exc)
                 sys.exit(1)
 

@@ -45,7 +45,7 @@ async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
 
 
 def run(sockets: list[socket.socket] | None) -> None:
-    while True:
+    while True:  # pragma: no cover
         time.sleep(1)
 
 
