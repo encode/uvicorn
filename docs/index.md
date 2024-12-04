@@ -169,8 +169,12 @@ Options:
                                   to the $FORWARDED_ALLOW_IPS environment
                                   variable if available, or '127.0.0.1'. The
                                   literal '*' means trust everything.
-  --root-path TEXT                Set the ASGI 'root_path' for applications
-                                  submounted below a given URL path.
+  --root-path TEXT                Serve the application under the provided
+                                  root path.
+  --asgi-root-path TEXT           Set the ASGI 'root_path' for applications
+                                  submounted below a given URL path. This is
+                                  useful for applications served on a sub-URL,
+                                  such as behind a reverse proxy.
   --limit-concurrency INTEGER     Maximum number of concurrent connections or
                                   tasks to allow, before issuing HTTP 503
                                   responses.
