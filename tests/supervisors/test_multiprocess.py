@@ -1,17 +1,22 @@
 from __future__ import annotations
 
+import dataclasses
 import functools
+import multiprocessing.managers
 import os
 import signal
 import socket
+import sys
 import threading
 import time
-from typing import Any, Callable
+from typing import Any, Callable, Generic, TypeVar
 
+import httpx
 import pytest
 
 from uvicorn import Config
 from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
+from uvicorn.server import Server
 from uvicorn.supervisors import Multiprocess
 from uvicorn.supervisors.multiprocess import Process
 
@@ -169,3 +174,71 @@ def test_multiprocess_sigttou() -> None:
     assert len(supervisor.processes) == 1
     supervisor.signal_queue.append(signal.SIGINT)
     supervisor.join_all()
+
+
+T = TypeVar("T")
+
+
+@dataclasses.dataclass
+class Box(Generic[T]):
+    v: T
+
+
+async def lb_app(
+    d: multiprocessing.managers.DictProxy,
+    started: threading.Event,
+    scope: Scope,
+    receive: ASGIReceiveCallable,
+    send: ASGISendCallable,
+) -> None:  # pragma: py-darwin pragma: py-win32
+    if scope["type"] == "lifespan":
+        await receive()
+        scope["state"]["count"] = box = Box(0)
+        await send({"type": "lifespan.startup.complete"})
+        started.set()
+        await receive()
+        d[os.getpid()] = box.v
+        await send({"type": "lifespan.shutdown.complete"})
+        return
+
+    scope["state"]["count"].v += 1
+    headers = [(b"content-type", b"text/plain")]
+    await send({"type": "http.response.start", "status": 200, "headers": headers})
+    await send({"type": "http.response.body", "body": b"hello"})
+
+
+@pytest.mark.skipif(
+    not ((sys.platform == "linux" and hasattr(socket, "SO_REUSEPORT")) or hasattr(socket, "SO_REUSEPORT_LB")),
+    reason="unsupported",
+)
+def test_multiprocess_socket_balance() -> None:  # pragma: py-darwin pragma: py-win32
+    with multiprocessing.Manager() as m:
+        started = m.Event()
+        d = m.dict()
+        app = functools.partial(lb_app, d, started)
+        config = Config(app=app, workers=2, socket_load_balance=True, port=0, interface="asgi3")
+        server = Server(config=config)
+        with config.bind_socket() as sock:
+            port = sock.getsockname()[1]
+            try:
+                supervisor = Multiprocess(config, target=server.run, sockets=[sock])
+                threading.Thread(target=supervisor.run, daemon=True).start()
+                if not started.wait(timeout=5):  # pragma: no cover
+                    raise TimeoutError
+                with httpx.Client():
+                    for i in range(100):
+                        httpx.get(f"http://localhost:{port}/").raise_for_status()
+            finally:
+                supervisor.signal_queue.append(signal.SIGINT)
+                supervisor.join_all()
+        min_conn, max_conn = sorted(d.values())
+        assert (max_conn - min_conn) < 25
+
+
+def test_multiprocess_not_supported(monkeypatch):
+    monkeypatch.delattr(socket, "SO_REUSEPORT")
+    config = Config(app=app, workers=2, socket_load_balance=True, port=0, interface="asgi3")
+    with config.bind_socket() as sock:
+        supervisor = Multiprocess(config, target=run, sockets=[sock])
+        with pytest.raises(RuntimeError, match="socket_load_balance not supported"):
+            supervisor.run()
