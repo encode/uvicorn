@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from asyncio import Queue
-from typing import cast, Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 from uvicorn import Config
 from uvicorn._types import (
