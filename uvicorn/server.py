@@ -94,7 +94,7 @@ class Server:
     async def startup(self, sockets: list[socket.socket] | None = None, process_num: int = 0) -> None:
         # inject process_num as worker id into lifespan state
         worker_id = process_num + 1
-        self.lifespan.state['uvicorn_worker_id'] = worker_id
+        self.lifespan.state["uvicorn_worker_id"] = worker_id
 
         await self.lifespan.startup()
         if self.lifespan.should_exit:

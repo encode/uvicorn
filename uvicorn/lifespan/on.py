@@ -80,7 +80,7 @@ class LifespanOn:
             app = self.config.loaded_app
 
             # inject worker id into app state
-            app.app.state.uvicorn_worker_id = self.state['uvicorn_worker_id']
+            app.app.state.uvicorn_worker_id = self.state["uvicorn_worker_id"]
 
             scope: LifespanScope = {
                 "type": "lifespan",
