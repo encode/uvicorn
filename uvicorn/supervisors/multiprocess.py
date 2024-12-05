@@ -26,7 +26,7 @@ class Process:
     def __init__(
         self,
         config: Config,
-        target: Callable[[list[socket] | None], None],
+        target: Callable[[list[socket] | None, int], None],
         sockets: list[socket],
         process_num: int,
     ) -> None:
@@ -62,7 +62,7 @@ class Process:
             )
 
         threading.Thread(target=self.always_pong, daemon=True).start()
-        return self.real_target(sockets)
+        return self.real_target(sockets, self.process_num)
 
     def is_alive(self, timeout: float = 5) -> bool:
         if not self.process.is_alive():
@@ -105,7 +105,7 @@ class Multiprocess:
     def __init__(
         self,
         config: Config,
-        target: Callable[[list[socket] | None], None],
+        target: Callable[[list[socket] | None, int], None],
         sockets: list[socket],
     ) -> None:
         self.config = config

@@ -60,15 +60,15 @@ class Server:
 
         self._captured_signals: list[int] = []
 
-    def run(self, sockets: list[socket.socket] | None = None) -> None:
+    def run(self, sockets: list[socket.socket] | None = None, process_num: int = 0) -> None:
         self.config.setup_event_loop()
-        return asyncio.run(self.serve(sockets=sockets))
+        return asyncio.run(self.serve(sockets=sockets, process_num=process_num))
 
-    async def serve(self, sockets: list[socket.socket] | None = None) -> None:
+    async def serve(self, sockets: list[socket.socket] | None = None, process_num: int = 0) -> None:
         with self.capture_signals():
-            await self._serve(sockets)
+            await self._serve(sockets, process_num)
 
-    async def _serve(self, sockets: list[socket.socket] | None = None) -> None:
+    async def _serve(self, sockets: list[socket.socket] | None = None, process_num: int = 0) -> None:
         process_id = os.getpid()
 
         config = self.config
@@ -81,7 +81,7 @@ class Server:
         color_message = "Started server process [" + click.style("%d", fg="cyan") + "]"
         logger.info(message, process_id, extra={"color_message": color_message})
 
-        await self.startup(sockets=sockets)
+        await self.startup(sockets=sockets, process_num=process_num)
         if self.should_exit:
             return
         await self.main_loop()
@@ -91,7 +91,11 @@ class Server:
         color_message = "Finished server process [" + click.style("%d", fg="cyan") + "]"
         logger.info(message, process_id, extra={"color_message": color_message})
 
-    async def startup(self, sockets: list[socket.socket] | None = None) -> None:
+    async def startup(self, sockets: list[socket.socket] | None = None, process_num: int = 0) -> None:
+        # inject process_num as worker id into lifespan state
+        worker_id = process_num + 1
+        self.lifespan.state['uvicorn_worker_id'] = worker_id
+
         await self.lifespan.startup()
         if self.lifespan.should_exit:
             self.should_exit = True
