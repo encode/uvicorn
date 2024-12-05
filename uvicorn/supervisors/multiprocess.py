@@ -112,7 +112,6 @@ class Multiprocess:
         self.target = target
         self.sockets = sockets
 
-        self.processes_num = config.workers
         self.processes: list[Process] = []
 
         self.should_exit = threading.Event()
@@ -121,8 +120,12 @@ class Multiprocess:
         for sig in SIGNALS:
             signal.signal(sig, lambda sig, frame: self.signal_queue.append(sig))
 
+    @property
+    def processes_num(self) -> int:
+        return len(self.processes)
+
     def init_processes(self) -> None:
-        for process_num in range(self.processes_num):
+        for process_num in range(self.config.workers):
             process = Process(self.config, self.target, self.sockets, process_num)
             process.start()
             self.processes.append(process)
@@ -208,9 +211,8 @@ class Multiprocess:
 
     def handle_ttin(self) -> None:  # pragma: py-win32
         logger.info("Received SIGTTIN, increasing the number of processes.")
-        processes_num = self.processes_num
-        self.processes_num += 1
-        process = Process(self.config, self.target, self.sockets, processes_num)
+        process_num = self.processes_num
+        process = Process(self.config, self.target, self.sockets, process_num)
         process.start()
         self.processes.append(process)
 
@@ -219,7 +221,6 @@ class Multiprocess:
         if self.processes_num <= 1:
             logger.info("Already reached one process, cannot decrease the number of processes anymore.")
             return
-        self.processes_num -= 1
         process = self.processes.pop()
         process.terminate()
         process.join()
