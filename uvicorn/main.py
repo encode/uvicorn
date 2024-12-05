@@ -360,6 +360,13 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     help="Treat APP as an application factory, i.e. a () -> <ASGI app> callable.",
     show_default=True,
 )
+@click.option(
+    "--worker-healthcheck-timeout",
+    "worker_healthcheck_timeout",
+    type=float,
+    default=5.0,
+    help="Timeout for healthcheck between supervisor and worker in seconds (used only if workers > 1).",
+)
 def main(
     app: str,
     host: str,
@@ -408,6 +415,7 @@ def main(
     app_dir: str,
     h11_max_incomplete_event_size: int | None,
     factory: bool,
+    worker_healthcheck_timeout: float,
 ) -> None:
     run(
         app,
@@ -457,6 +465,7 @@ def main(
         factory=factory,
         app_dir=app_dir,
         h11_max_incomplete_event_size=h11_max_incomplete_event_size,
+        worker_healthcheck_timeout=worker_healthcheck_timeout,
     )
 
 
@@ -509,6 +518,7 @@ def run(
     app_dir: str | None = None,
     factory: bool = False,
     h11_max_incomplete_event_size: int | None = None,
+    worker_healthcheck_timeout: float = 5.0,
 ) -> None:
     if app_dir is not None:
         sys.path.insert(0, app_dir)
@@ -560,6 +570,7 @@ def run(
         use_colors=use_colors,
         factory=factory,
         h11_max_incomplete_event_size=h11_max_incomplete_event_size,
+        worker_healthcheck_timeout=worker_healthcheck_timeout,
     )
     server = Server(config=config)
 

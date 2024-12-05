@@ -135,6 +135,10 @@ Options:
                                   buffer of an incomplete event.
   --factory                       Treat APP as an application factory, i.e. a
                                   () -> <ASGI app> callable.
+  --worker-healthcheck-timeout FLOAT
+                                  Timeout for healthcheck between supervisor
+                                  and worker in seconds (used only if workers
+                                  > 1).
   --help                          Show this message and exit.
 ```
 

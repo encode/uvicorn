@@ -164,8 +164,10 @@ class Multiprocess:
             return  # parent process is exiting, no need to keep subprocess alive
 
         for idx, process in enumerate(self.processes):
-            if process.is_alive():
+            if process.is_alive(self.config.worker_healthcheck_timeout):
                 continue
+
+            logger.info(f"Child process [{process.pid}] is unresponsive")
 
             process.kill()  # process is hung, kill it
             process.join()
@@ -173,7 +175,6 @@ class Multiprocess:
             if self.should_exit.is_set():
                 return  # pragma: full coverage
 
-            logger.info(f"Child process [{process.pid}] died")
             process = Process(self.config, self.target, self.sockets)
             process.start()
             self.processes[idx] = process
