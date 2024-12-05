@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from asyncio import Queue
-from typing import Any, Union
+from typing import cast, Any, Optional, Union
 
 from uvicorn import Config
 from uvicorn._types import (
@@ -80,7 +80,9 @@ class LifespanOn:
             app = self.config.loaded_app
 
             # inject worker id into app state
-            app.app.state.uvicorn_worker_id = self.state["uvicorn_worker_id"]
+            uvicorn_worker_id = cast(Optional[int], self.state.get("uvicorn_worker_id"))
+            if uvicorn_worker_id is not None:
+                app.app.state.uvicorn_worker_id = uvicorn_worker_id
 
             scope: LifespanScope = {
                 "type": "lifespan",
