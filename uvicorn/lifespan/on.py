@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from asyncio import Queue
-from typing import Any, Optional, Union, cast
+from typing import Any
 
 from uvicorn import Config
 from uvicorn._types import (
@@ -16,13 +16,16 @@ from uvicorn._types import (
     LifespanStartupFailedEvent,
 )
 
-LifespanReceiveMessage = Union[LifespanStartupEvent, LifespanShutdownEvent]
-LifespanSendMessage = Union[
-    LifespanStartupFailedEvent,
-    LifespanShutdownFailedEvent,
-    LifespanStartupCompleteEvent,
-    LifespanShutdownCompleteEvent,
-]
+LifespanReceiveMessage = (
+      LifespanStartupEvent
+    | LifespanShutdownEvent
+)
+LifespanSendMessage = (
+      LifespanStartupFailedEvent
+    | LifespanShutdownFailedEvent
+    | LifespanStartupCompleteEvent
+    | LifespanShutdownCompleteEvent
+)
 
 
 STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
@@ -80,7 +83,7 @@ class LifespanOn:
             app = self.config.loaded_app
 
             # inject worker id into app state
-            uvicorn_worker_id = cast(Optional[int], self.state.get("uvicorn_worker_id"))
+            uvicorn_worker_id: int | None = self.state.get("uvicorn_worker_id")
             if uvicorn_worker_id is not None and hasattr(app.app, "__iter__") and "state" in app.app:
                 app.app.state.uvicorn_worker_id = uvicorn_worker_id
 
