@@ -81,7 +81,7 @@ class LifespanOn:
 
             # inject worker id into app state
             uvicorn_worker_id = cast(Optional[int], self.state.get("uvicorn_worker_id"))
-            if uvicorn_worker_id is not None and hasattr(app.app, "__iter__") and "state" in app.app:
+            if uvicorn_worker_id is not None and hasattr(app.app, "state"):
                 app.app.state.uvicorn_worker_id = uvicorn_worker_id
 
             scope: LifespanScope = {
