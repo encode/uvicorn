@@ -28,7 +28,9 @@ class Process:
         config: Config,
         target: Callable[[list[socket] | None], None],
         sockets: list[socket],
+        process_num: int,
     ) -> None:
+        self.process_num = process_num
         self.real_target = target
 
         self.parent_conn, self.child_conn = Pipe()
@@ -120,8 +122,8 @@ class Multiprocess:
             signal.signal(sig, lambda sig, frame: self.signal_queue.append(sig))
 
     def init_processes(self) -> None:
-        for _ in range(self.processes_num):
-            process = Process(self.config, self.target, self.sockets)
+        for process_num in range(self.processes_num):
+            process = Process(self.config, self.target, self.sockets, process_num)
             process.start()
             self.processes.append(process)
 
@@ -137,7 +139,7 @@ class Multiprocess:
         for idx, process in enumerate(self.processes):
             process.terminate()
             process.join()
-            new_process = Process(self.config, self.target, self.sockets)
+            new_process = Process(self.config, self.target, self.sockets, process.process_num)
             new_process.start()
             self.processes[idx] = new_process
 
@@ -174,7 +176,7 @@ class Multiprocess:
                 return  # pragma: full coverage
 
             logger.info(f"Child process [{process.pid}] died")
-            process = Process(self.config, self.target, self.sockets)
+            process = Process(self.config, self.target, self.sockets, process.process_num)
             process.start()
             self.processes[idx] = process
 
@@ -206,8 +208,9 @@ class Multiprocess:
 
     def handle_ttin(self) -> None:  # pragma: py-win32
         logger.info("Received SIGTTIN, increasing the number of processes.")
+        processes_num = self.processes_num
         self.processes_num += 1
-        process = Process(self.config, self.target, self.sockets)
+        process = Process(self.config, self.target, self.sockets, processes_num)
         process.start()
         self.processes.append(process)
 

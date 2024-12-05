@@ -50,13 +50,13 @@ def run(sockets: list[socket.socket] | None) -> None:
 
 
 def test_process_ping_pong() -> None:
-    process = Process(Config(app=app), target=lambda x: None, sockets=[])
+    process = Process(Config(app=app), target=lambda x: None, sockets=[], process_num=0)
     threading.Thread(target=process.always_pong, daemon=True).start()
     assert process.ping()
 
 
 def test_process_ping_pong_timeout() -> None:
-    process = Process(Config(app=app), target=lambda x: None, sockets=[])
+    process = Process(Config(app=app), target=lambda x: None, sockets=[], process_num=0)
     assert not process.ping(0.1)
 
 
