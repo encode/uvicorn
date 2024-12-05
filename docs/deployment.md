@@ -198,6 +198,8 @@ You can also manage child processes by sending specific signals to the main proc
 - `SIGTTIN`: Increase the number of worker processes by one.
 - `SIGTTOU`: Decrease the number of worker processes by one.
 
+Additionally, if the built-in process manager is used uvicorn will provide you with an unique worker ID for each worker. This worker ID will be injected into the [state](https://asgi.readthedocs.io/en/latest/specs/lifespan.html#lifespan-state) of your application as the entry `'uvicorn_worker_id': int`. This ID is consistent across restarts and enables you to define idempotent startup- and shutdown-routines for each worker process.
+
 ### Gunicorn
 
 !!! warning
