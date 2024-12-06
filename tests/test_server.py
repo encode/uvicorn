@@ -91,3 +91,9 @@ async def test_request_than_limit_max_requests_warn_log(
             responses = await asyncio.gather(*tasks)
             assert len(responses) == 2
     assert "Maximum request limit of 1 exceeded. Terminating process." in caplog.text
+
+
+async def test_log_messages_for_all_addresses(unused_tcp_port: int, caplog: pytest.LogCaptureFixture):
+    config = Config(app=app, host="0.0.0.0", port=unused_tcp_port)
+    async with run_server(config):
+        assert f"Running on http://127.0.0.1:{unused_tcp_port}" in caplog.text
