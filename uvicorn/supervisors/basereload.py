@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import ctypes
 import logging
 import os
 import signal
 import sys
 import threading
-import ctypes
 from pathlib import Path
 from socket import socket
 from types import FrameType
