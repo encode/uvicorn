@@ -512,7 +512,13 @@ def run(
 ) -> None:
     if app_dir is not None:
         sys.path.insert(0, app_dir)
-
+    if isinstance(port, str):
+        try:
+            port = int(port)
+        except ValueError:
+            pass  # The next check ensures port is int and not any other type like dict, str etc.
+    if not isinstance(port, int):
+        raise ValueError("Port Must Be a valid interger")
     config = Config(
         app,
         host=host,
