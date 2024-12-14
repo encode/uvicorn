@@ -22,6 +22,7 @@ try:
 except ImportError:  # pragma: no cover
     WatchFilesReload = None  # type: ignore[misc,assignment]
 
+pytestmark = pytest.mark.xdist_group(name="reloader")
 
 # TODO: Investigate why this is flaky on MacOS M1.
 skip_if_m1 = pytest.mark.skipif(
