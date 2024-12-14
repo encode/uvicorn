@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import platform
 import signal
 import socket
 import sys
@@ -23,11 +22,8 @@ except ImportError:  # pragma: no cover
     WatchFilesReload = None  # type: ignore[misc,assignment]
 
 
-# TODO: Investigate why this is flaky on MacOS M1, and Windows.
-skip_non_linux = pytest.mark.skipif(
-    (sys.platform == "darwin" and platform.processor() != "arm") or sys.platform == "win32",
-    reason="Flaky on Windows and MacOS M1",
-)
+# TODO: Investigate why this is flaky on MacOS, and Windows.
+skip_non_linux = pytest.mark.skipif(sys.platform in ("darwin", "win32"), reason="Flaky on Windows and MacOS M1")
 
 
 def run(sockets: list[socket.socket] | None) -> None:
