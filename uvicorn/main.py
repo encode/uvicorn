@@ -578,7 +578,7 @@ def run(
         else:
             server.run()
     except KeyboardInterrupt:
-        pass
+        pass  # pragma: full coverage
     finally:
         if config.uds and os.path.exists(config.uds):
             os.remove(config.uds)  # pragma: py-win32
