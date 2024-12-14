@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.33.0 (2024-12-14)
+
+### Removed
+
+* Remove `WatchGod` support for `--reload` [#2536](https://github.com/encode/uvicorn/pull/2536)
+
 ## 0.32.1 (2024-11-20)
 
 ### Fixed
