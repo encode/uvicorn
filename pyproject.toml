@@ -96,6 +96,7 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
+parallel = true
 source_pkgs = ["uvicorn", "tests"]
 plugins = ["coverage_conditional_plugin"]
 omit = ["uvicorn/workers.py", "uvicorn/__main__.py"]
