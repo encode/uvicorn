@@ -26,7 +26,6 @@ coverage==7.6.1; python_version < '3.9'
 coverage==7.6.4; python_version >= '3.9'
 coverage-conditional-plugin==0.9.0
 httpx==0.27.2
-watchgod==0.8.2
 
 # Documentation
 mkdocs==1.6.1

@@ -11,7 +11,7 @@ license = "BSD-3-Clause"
 requires-python = ">=3.8"
 authors = [
     { name = "Tom Christie", email = "tom@tomchristie.com" },
-    { name = "Marcelo Trylesinski", email = "marcelotryle@gmail.com" }
+    { name = "Marcelo Trylesinski", email = "marcelotryle@gmail.com" },
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -60,11 +60,7 @@ Source = "https://github.com/encode/uvicorn"
 path = "uvicorn/__init__.py"
 
 [tool.hatch.build.targets.sdist]
-include = [
-    "/uvicorn",
-    "/tests",
-    "/requirements.txt",
-]
+include = ["/uvicorn", "/tests", "/requirements.txt"]
 
 [tool.ruff]
 line-length = 120
@@ -94,10 +90,9 @@ addopts = "-rxXs --strict-config --strict-markers"
 xfail_strict = true
 filterwarnings = [
     "error",
-    'ignore: \"watchgod\" is deprecated\, you should switch to watchfiles \(`pip install watchfiles`\)\.:DeprecationWarning',
     "ignore:Uvicorn's native WSGI implementation is deprecated.*:DeprecationWarning",
     "ignore: 'cgi' is deprecated and slated for removal in Python 3.13:DeprecationWarning",
-    "ignore: remove second argument of ws_handler:DeprecationWarning:websockets"
+    "ignore: remove second argument of ws_handler:DeprecationWarning:websockets",
 ]
 
 [tool.coverage.run]
