@@ -153,7 +153,9 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [pytest.param(WatchFilesReload, marks=skip_if_m1)])
-    def test_should_not_reload_when_exclude_pattern_match_file_is_changed(self, touch_soon: Callable[[Path], None]):
+    def test_should_not_reload_when_exclude_pattern_match_file_is_changed(
+        self, touch_soon: Callable[[Path], None]
+    ):  # pragma: py-darwin
         python_file = self.reload_path / "app" / "src" / "main.py"
         css_file = self.reload_path / "app" / "css" / "main.css"
         js_file = self.reload_path / "app" / "js" / "main.js"
@@ -227,7 +229,7 @@ class TestBaseReload:
         reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [pytest.param(WatchFilesReload, marks=skip_if_m1)])
-    def test_override_defaults(self, touch_soon: Callable[[Path], None]) -> None:
+    def test_override_defaults(self, touch_soon: Callable[[Path], None]) -> None:  # pragma: py-darwin
         dotted_file = self.reload_path / ".dotted"
         dotted_dir_file = self.reload_path / ".dotted_dir" / "file.txt"
         python_file = self.reload_path / "main.py"
@@ -249,7 +251,7 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize("reloader_class", [pytest.param(WatchFilesReload, marks=skip_if_m1)])
-    def test_explicit_paths(self, touch_soon: Callable[[Path], None]) -> None:
+    def test_explicit_paths(self, touch_soon: Callable[[Path], None]) -> None:  # pragma: py-darwin
         dotted_file = self.reload_path / ".dotted"
         non_dotted_file = self.reload_path / "ext" / "ext.jpg"
         python_file = self.reload_path / "main.py"
