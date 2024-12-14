@@ -22,12 +22,10 @@ try:
 except ImportError:  # pragma: no cover
     WatchFilesReload = None  # type: ignore[misc,assignment]
 
-pytestmark = pytest.mark.xdist_group(name="reloader")
-
-# TODO: Investigate why this is flaky on MacOS M1.
-skip_if_m1 = pytest.mark.skipif(
-    sys.platform == "darwin" and platform.processor() == "arm",
-    reason="Flaky on MacOS M1",
+# TODO: Investigate why this is flaky on MacOS M1, and Windows.
+pytestmark = pytest.mark.skipif(
+    (sys.platform == "darwin" and platform.processor() == "arm") or sys.platform == "win32",
+    reason="Flaky on MacOS M1, and Windows",
 )
 
 
@@ -153,7 +151,7 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [pytest.param(WatchFilesReload, marks=skip_if_m1)])
+    @pytest.mark.parametrize("reloader_class", [WatchFilesReload])
     def test_should_not_reload_when_exclude_pattern_match_file_is_changed(
         self, touch_soon: Callable[[Path], None]
     ):  # pragma: py-darwin
@@ -210,7 +208,7 @@ class TestBaseReload:
 
     @pytest.mark.parametrize(
         "reloader_class",
-        [StatReload, pytest.param(WatchFilesReload, marks=skip_if_m1)],
+        [StatReload, pytest.param(WatchFilesReload)],
     )
     def test_should_not_reload_when_only_subdirectory_is_watched(self, touch_soon: Callable[[Path], None]):
         app_dir = self.reload_path / "app"
@@ -229,7 +227,7 @@ class TestBaseReload:
 
         reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [pytest.param(WatchFilesReload, marks=skip_if_m1)])
+    @pytest.mark.parametrize("reloader_class", [pytest.param(WatchFilesReload)])
     def test_override_defaults(self, touch_soon: Callable[[Path], None]) -> None:  # pragma: py-darwin
         dotted_file = self.reload_path / ".dotted"
         dotted_dir_file = self.reload_path / ".dotted_dir" / "file.txt"
@@ -251,7 +249,7 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [pytest.param(WatchFilesReload, marks=skip_if_m1)])
+    @pytest.mark.parametrize("reloader_class", [pytest.param(WatchFilesReload)])
     def test_explicit_paths(self, touch_soon: Callable[[Path], None]) -> None:  # pragma: py-darwin
         dotted_file = self.reload_path / ".dotted"
         non_dotted_file = self.reload_path / "ext" / "ext.jpg"

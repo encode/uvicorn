@@ -15,8 +15,6 @@ from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.supervisors import Multiprocess
 from uvicorn.supervisors.multiprocess import Process
 
-pytestmark = pytest.mark.xdist_group(name="multiprocess")
-
 
 def new_console_in_windows(test_function: Callable[[], Any]) -> Callable[[], Any]:  # pragma: no cover
     if os.name != "nt":
