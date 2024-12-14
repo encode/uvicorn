@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 import httpx
 import httpx._transports.asgi
 import pytest
-
 import websockets.client
+
 from tests.response import Response
 from tests.utils import run_server
 from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
