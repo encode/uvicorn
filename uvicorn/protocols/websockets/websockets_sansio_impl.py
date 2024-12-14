@@ -7,6 +7,7 @@ from http import HTTPStatus
 from typing import Any, Literal, cast
 from urllib.parse import unquote
 
+from websockets import InvalidState
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from websockets.frames import Frame, Opcode
 from websockets.http11 import Request
@@ -26,11 +27,17 @@ from uvicorn._types import (
 )
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
-from uvicorn.protocols.utils import get_local_addr, get_path_with_query_string, get_remote_addr, is_ssl
+from uvicorn.protocols.utils import (
+    ClientDisconnected,
+    get_local_addr,
+    get_path_with_query_string,
+    get_remote_addr,
+    is_ssl,
+)
 from uvicorn.server import ServerState
 
 
-class WebSocketSansIOProtocol(asyncio.Protocol):
+class WebSocketsSansIOProtocol(asyncio.Protocol):
     def __init__(
         self,
         config: Config,
@@ -96,12 +103,20 @@ class WebSocketSansIOProtocol(asyncio.Protocol):
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection made", prefix)
 
     def connection_lost(self, exc: Exception | None) -> None:
+        code = 1005 if self.handshake_complete else 1006
+        self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
         self.connections.remove(self)
+
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
             self.logger.log(TRACE_LOG_LEVEL, "%sWebSocket connection lost", prefix)
-        if self.handshake_initiated and not self.close_sent:
-            self.queue.put_nowait({"type": "websocket.disconnect", "code": 1006})
+
+        self.handshake_complete = True
+        if exc is None:
+            self.transport.close()
+
+    def eof_received(self) -> None:
+        pass
 
     def shutdown(self) -> None:
         if not self.transport.is_closing():
@@ -110,8 +125,8 @@ class WebSocketSansIOProtocol(asyncio.Protocol):
                 self.close_sent = True
                 self.conn.send_close(1012)
                 output = self.conn.data_to_send()
-                self.transport.writelines(output)
-            elif self.handshake_initiated:
+                self.transport.write(b"".join(output))
+            elif not self.handshake_initiated:
                 self.send_500_response()
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": 1006})
             self.transport.close()
@@ -152,7 +167,7 @@ class WebSocketSansIOProtocol(asyncio.Protocol):
             self.close_sent = True
             self.conn.send_response(self.response)
             output = self.conn.data_to_send()
-            self.transport.writelines(output)
+            self.transport.write(b"".join(output))
             self.transport.close()
             return
 
@@ -213,29 +228,29 @@ class WebSocketSansIOProtocol(asyncio.Protocol):
 
     def handle_ping(self, event: Frame) -> None:
         output = self.conn.data_to_send()
-        self.transport.writelines(output)
+        self.transport.write(b"".join(output))
 
     def handle_close(self, event: Frame) -> None:
-        if not self.close_sent and self.conn.close_rcvd and not self.transport.is_closing():
+        if not self.close_sent and not self.transport.is_closing():
             disconnect_event: WebSocketDisconnectEvent = {
                 "type": "websocket.disconnect",
-                "code": self.conn.close_rcvd.code,
-                "reason": self.conn.close_rcvd.reason,
+                "code": self.conn.close_rcvd.code,  # type: ignore[union-attr]
+                "reason": self.conn.close_rcvd.reason,  # type: ignore[union-attr]
             }
             self.queue.put_nowait(disconnect_event)
             output = self.conn.data_to_send()
-            self.transport.writelines(output)
-            self.close_sent = True
+            self.transport.write(b"".join(output))
             self.transport.close()
 
     def handle_parser_exception(self) -> None:
         disconnect_event: WebSocketDisconnectEvent = {
             "type": "websocket.disconnect",
-            "code": self.conn.close_sent.code if self.conn.close_sent else 1006,
+            "code": self.conn.close_sent.code,  # type: ignore[union-attr]
+            "reason": self.conn.close_sent.reason,  # type: ignore[union-attr]
         }
         self.queue.put_nowait(disconnect_event)
         output = self.conn.data_to_send()
-        self.transport.writelines(output)
+        self.transport.write(b"".join(output))
         self.close_sent = True
         self.transport.close()
 
@@ -245,10 +260,11 @@ class WebSocketSansIOProtocol(asyncio.Protocol):
     async def run_asgi(self) -> None:
         try:
             result = await self.app(self.scope, self.receive, self.send)
+        except ClientDisconnected:
+            self.transport.close()
         except BaseException:
             self.logger.exception("Exception in ASGI application\n")
-            if not self.handshake_complete:
-                self.send_500_response()
+            self.send_500_response()
             self.transport.close()
         else:
             if not self.handshake_complete:
@@ -262,10 +278,12 @@ class WebSocketSansIOProtocol(asyncio.Protocol):
                 self.transport.close()
 
     def send_500_response(self) -> None:
+        if self.initial_response or self.handshake_complete:
+            return
         response = self.conn.reject(500, "Internal Server Error")
         self.conn.send_response(response)
         output = self.conn.data_to_send()
-        self.transport.writelines(output)
+        self.transport.write(b"".join(output))
 
     async def send(self, message: ASGISendEvent) -> None:
         await self.writable.wait()
@@ -293,7 +311,7 @@ class WebSocketSansIOProtocol(asyncio.Protocol):
                     self.handshake_complete = True
                     self.conn.send_response(self.response)
                     output = self.conn.data_to_send()
-                    self.transport.writelines(output)
+                    self.transport.write(b"".join(output))
 
             elif message_type == "websocket.close":
                 message = cast(WebSocketCloseEvent, message)
@@ -308,10 +326,12 @@ class WebSocketSansIOProtocol(asyncio.Protocol):
                 output = self.conn.data_to_send()
                 self.close_sent = True
                 self.handshake_complete = True
-                self.transport.writelines(output)
+                self.transport.write(b"".join(output))
                 self.transport.close()
-            elif message_type == "websocket.http.response.start":
+            elif message_type == "websocket.http.response.start" and self.initial_response is None:
                 message = cast(WebSocketResponseStartEvent, message)
+                if not (100 <= message["status"] < 600):
+                    raise RuntimeError("Invalid HTTP status code '%d' in response." % message["status"])
                 self.logger.info(
                     '%s - "WebSocket %s" %d',
                     self.scope["client"],
@@ -329,34 +349,36 @@ class WebSocketSansIOProtocol(asyncio.Protocol):
                     "or 'websocket.http.response.start' "
                     "but got '%s'."
                 )
-                print(message)
                 raise RuntimeError(msg % message_type)
 
         elif not self.close_sent and self.initial_response is None:
-            if message_type == "websocket.send" and not self.transport.is_closing():
-                message = cast(WebSocketSendEvent, message)
-                bytes_data = message.get("bytes")
-                text_data = message.get("text")
-                if text_data:
-                    self.conn.send_text(text_data.encode())
-                elif bytes_data:
-                    self.conn.send_binary(bytes_data)
-                output = self.conn.data_to_send()
-                self.transport.writelines(output)
+            try:
+                if message_type == "websocket.send":
+                    message = cast(WebSocketSendEvent, message)
+                    bytes_data = message.get("bytes")
+                    text_data = message.get("text")
+                    if text_data:
+                        self.conn.send_text(text_data.encode())
+                    elif bytes_data:
+                        self.conn.send_binary(bytes_data)
+                    output = self.conn.data_to_send()
+                    self.transport.write(b"".join(output))
 
-            elif message_type == "websocket.close" and not self.transport.is_closing():
-                message = cast(WebSocketCloseEvent, message)
-                code = message.get("code", 1000)
-                reason = message.get("reason", "") or ""
-                self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
-                self.conn.send_close(code, reason)
-                output = self.conn.data_to_send()
-                self.transport.writelines(output)
-                self.close_sent = True
-                self.transport.close()
-            else:
-                msg = "Expected ASGI message 'websocket.send' or 'websocket.close'," " but got '%s'."
-                raise RuntimeError(msg % message_type)
+                elif message_type == "websocket.close" and not self.transport.is_closing():
+                    message = cast(WebSocketCloseEvent, message)
+                    code = message.get("code", 1000)
+                    reason = message.get("reason", "") or ""
+                    self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
+                    self.conn.send_close(code, reason)
+                    output = self.conn.data_to_send()
+                    self.transport.write(b"".join(output))
+                    self.close_sent = True
+                    self.transport.close()
+                else:
+                    msg = "Expected ASGI message 'websocket.send' or 'websocket.close'," " but got '%s'."
+                    raise RuntimeError(msg % message_type)
+            except InvalidState:
+                raise ClientDisconnected()
         elif self.initial_response is not None:
             if message_type == "websocket.http.response.body":
                 message = cast(WebSocketResponseBodyEvent, message)
@@ -365,10 +387,11 @@ class WebSocketSansIOProtocol(asyncio.Protocol):
                 if not message.get("more_body", False):
                     response = self.conn.reject(self.initial_response[0], body.decode())
                     response.headers.update(self.initial_response[1])
+                    self.queue.put_nowait({"type": "websocket.disconnect", "code": 1006})
                     self.conn.send_response(response)
                     output = self.conn.data_to_send()
                     self.close_sent = True
-                    self.transport.writelines(output)
+                    self.transport.write(b"".join(output))
                     self.transport.close()
             else:
                 msg = "Expected ASGI message 'websocket.http.response.body' " "but got '%s'."

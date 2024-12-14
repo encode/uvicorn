@@ -235,7 +235,7 @@ def unused_tcp_port() -> int:
         ),
         pytest.param("uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol", id="websockets"),
         pytest.param(
-            "uvicorn.protocols.websockets.websockets_sansio_impl:WebSocketSansIOProtocol", id="websockets-sansio"
+            "uvicorn.protocols.websockets.websockets_sansio_impl:WebSocketsSansIOProtocol", id="websockets-sansio"
         ),
     ]
 )

@@ -46,7 +46,7 @@ WS_PROTOCOLS: dict[WSProtocolType, str | None] = {
     "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",
     "none": None,
     "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
-    "websockets-sansio": "uvicorn.protocols.websockets.websockets_sansio_impl:WebSocketSansIOProtocol",
+    "websockets-sansio": "uvicorn.protocols.websockets.websockets_sansio_impl:WebSocketsSansIOProtocol",
     "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
 }
 LIFESPAN: dict[LifespanType, str] = {

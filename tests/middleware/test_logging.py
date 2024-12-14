@@ -91,7 +91,6 @@ async def test_trace_logging_on_http_protocol(http_protocol_cls, caplog, logging
         assert any(" - HTTP connection lost" in message for message in messages)
 
 
-@pytest.mark.skip()
 async def test_trace_logging_on_ws_protocol(
     ws_protocol_cls: WSProtocol,
     caplog: pytest.LogCaptureFixture,
