@@ -10,9 +10,10 @@ import socket
 import sys
 import threading
 import time
+from collections.abc import Generator, Sequence
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, Generator, Sequence, Union
+from typing import TYPE_CHECKING, Union
 
 import click
 
