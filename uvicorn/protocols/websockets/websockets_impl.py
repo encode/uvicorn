@@ -13,8 +13,7 @@ from websockets.datastructures import Headers
 from websockets.exceptions import ConnectionClosed
 from websockets.extensions.base import ServerExtensionFactory
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
-from websockets.legacy.server import HTTPResponse
-from websockets.server import WebSocketServerProtocol
+from websockets.legacy.server import HTTPResponse, WebSocketServerProtocol
 from websockets.typing import Subprotocol
 
 from uvicorn._types import (
@@ -95,7 +94,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
         self.lost_connection_before_handshake = False
         self.accepted_subprotocol: Subprotocol | None = None
 
-        self.ws_server = Server()
+        self.ws_server: Server = Server()
 
         extensions: list[ServerExtensionFactory] = []
         if self.config.ws_per_message_deflate:

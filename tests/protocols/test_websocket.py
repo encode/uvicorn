@@ -7,10 +7,9 @@ from copy import deepcopy
 import httpx
 import pytest
 import websockets
-import websockets.exceptions
 from typing_extensions import TypedDict
-from websockets import WebSocketClientProtocol
-from websockets.asyncio.client import connect
+from websockets.asyncio.client import ClientConnection, connect
+from websockets.exceptions import ConnectionClosed, ConnectionClosedError, InvalidHandshake, InvalidStatus
 from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from websockets.typing import Subprotocol
 
@@ -203,7 +202,7 @@ async def test_close_connection(ws_protocol_cls: WSProtocol, http_protocol_cls: 
     async def open_connection(url: str):
         try:
             await connect(url)
-        except websockets.exceptions.InvalidHandshake:
+        except InvalidHandshake:
             return False
         return True  # pragma: no cover
 
@@ -412,9 +411,9 @@ async def test_missing_handshake(ws_protocol_cls: WSProtocol, http_protocol_cls:
 
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
     async with run_server(config):
-        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
+        with pytest.raises(InvalidStatus) as exc_info:
             await open_connection(f"ws://127.0.0.1:{unused_tcp_port}")
-        assert exc_info.value.status_code == 500
+        assert exc_info.value.response.status_code == 500
 
 
 async def test_send_before_handshake(
@@ -428,9 +427,9 @@ async def test_send_before_handshake(
 
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
     async with run_server(config):
-        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
+        with pytest.raises(InvalidStatus) as exc_info:
             await open_connection(f"ws://127.0.0.1:{unused_tcp_port}")
-        assert exc_info.value.status_code == 500
+        assert exc_info.value.response.status_code == 500
 
 
 async def test_duplicate_handshake(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int):
@@ -441,9 +440,9 @@ async def test_duplicate_handshake(ws_protocol_cls: WSProtocol, http_protocol_cl
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
     async with run_server(config):
         async with connect(f"ws://127.0.0.1:{unused_tcp_port}") as websocket:
-            with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
+            with pytest.raises(ConnectionClosed):
                 _ = await websocket.recv()
-            assert exc_info.value.code == 1006
+            assert websocket.protocol.close_code == 1006
 
 
 async def test_asgi_return_value(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int):
@@ -459,7 +458,7 @@ async def test_asgi_return_value(ws_protocol_cls: WSProtocol, http_protocol_cls:
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
     async with run_server(config):
         async with connect(f"ws://127.0.0.1:{unused_tcp_port}") as websocket:
-            with pytest.raises(websockets.exceptions.ConnectionClosed) as exc_info:
+            with pytest.raises(ConnectionClosed) as exc_info:
                 _ = await websocket.recv()
         assert exc_info.value.code == 1006
 
@@ -493,13 +492,13 @@ async def test_app_close(
 
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
     async with run_server(config):
-        async with websockets.client.connect(f"ws://127.0.0.1:{unused_tcp_port}") as websocket:
+        async with connect(f"ws://127.0.0.1:{unused_tcp_port}") as websocket:
             await websocket.ping()
             await websocket.send("abc")
-            with pytest.raises(websockets.exceptions.ConnectionClosed):
+            with pytest.raises(ConnectionClosed) as exc_info:
                 await websocket.recv()
-        assert websocket.close_code == (code or 1000)
-        assert websocket.close_reason == (reason or "")
+        assert exc_info.value.code == (code or 1000)
+        assert exc_info.value.reason == (reason or "")
 
 
 async def test_client_close(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int):
@@ -555,7 +554,7 @@ async def test_client_connection_lost(
         port=unused_tcp_port,
     )
     async with run_server(config):
-        async with websockets.client.connect(f"ws://127.0.0.1:{unused_tcp_port}") as websocket:
+        async with connect(f"ws://127.0.0.1:{unused_tcp_port}") as websocket:
             websocket.transport.close()
             await asyncio.sleep(0.1)
             got_disconnect_event_before_shutdown = got_disconnect_event
@@ -583,7 +582,7 @@ async def test_client_connection_lost_on_send(
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
     async with run_server(config):
         url = f"ws://127.0.0.1:{unused_tcp_port}"
-        async with websockets.client.connect(url):
+        async with connect(url):
             await asyncio.sleep(0.1)
         disconnect.set()
 
@@ -648,11 +647,11 @@ async def test_send_close_on_server_shutdown(
                 disconnect_message = message
                 break
 
-    websocket: WebSocketClientProtocol | None = None
+    websocket: ClientConnection | None = None
 
     async def websocket_session(uri: str):
         nonlocal websocket
-        async with websockets.client.connect(uri) as ws_connection:
+        async with connect(uri) as ws_connection:
             websocket = ws_connection
             await server_shutdown_event.wait()
 
@@ -682,9 +681,7 @@ async def test_subprotocols(
             await self.send({"type": "websocket.accept", "subprotocol": subprotocol})
 
     async def get_subprotocol(url: str):
-        async with websockets.client.connect(
-            url, subprotocols=[Subprotocol("proto1"), Subprotocol("proto2")]
-        ) as websocket:
+        async with connect(url, subprotocols=[Subprotocol("proto1"), Subprotocol("proto2")]) as websocket:
             return websocket.subprotocol
 
     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
@@ -743,9 +740,9 @@ async def test_send_binary_data_to_server_bigger_than_default_on_websockets(
                 data = await ws.recv()
                 assert data == b"\x01" * client_size_sent
             else:
-                with pytest.raises(websockets.exceptions.ConnectionClosedError) as exc_info:
+                with pytest.raises(ConnectionClosedError):
                     await ws.recv()
-                assert exc_info.value.code == expected_result
+                assert ws.protocol.close_code == expected_result
 
 
 async def test_server_reject_connection(
@@ -770,10 +767,10 @@ async def test_server_reject_connection(
         disconnected_message = await receive()
 
     async def websocket_session(url: str):
-        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
+        with pytest.raises(InvalidStatus) as exc_info:
             async with connect(url):
                 pass  # pragma: no cover
-        assert exc_info.value.status_code == 403
+        assert exc_info.value.response.status_code == 403
 
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
     async with run_server(config):
@@ -940,10 +937,10 @@ async def test_server_reject_connection_with_invalid_msg(
         await send(message)
 
     async def websocket_session(url: str):
-        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
+        with pytest.raises(InvalidStatus) as exc_info:
             async with connect(url):
                 pass  # pragma: no cover
-        assert exc_info.value.status_code == 404
+        assert exc_info.value.response.status_code == 404
 
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
     async with run_server(config):
@@ -971,10 +968,10 @@ async def test_server_reject_connection_with_missing_body(
         # no further message
 
     async def websocket_session(url: str):
-        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
+        with pytest.raises(InvalidStatus) as exc_info:
             async with connect(url):
                 pass  # pragma: no cover
-        assert exc_info.value.status_code == 404
+        assert exc_info.value.response.status_code == 404
 
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
     async with run_server(config):
@@ -1012,10 +1009,10 @@ async def test_server_multiple_websocket_http_response_start_events(
             exception_message = str(exc)
 
     async def websocket_session(url: str):
-        with pytest.raises(websockets.exceptions.InvalidStatusCode) as exc_info:
+        with pytest.raises(InvalidStatus) as exc_info:
             async with connect(url):
                 pass  # pragma: no cover
-        assert exc_info.value.status_code == 404
+        assert exc_info.value.response.status_code == 404
 
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
     async with run_server(config):
