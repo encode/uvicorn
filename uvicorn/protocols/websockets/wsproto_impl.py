@@ -149,12 +149,13 @@ class WSProtocol(asyncio.Protocol):
         self.writable.set()  # pragma: full coverage
 
     def shutdown(self) -> None:
-        if self.handshake_complete:
-            self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
-            output = self.conn.send(wsproto.events.CloseConnection(code=1012))
-            self.transport.write(output)
-        else:
-            self.send_500_response()
+        if not self.response_started:
+            if self.handshake_complete:
+                self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
+                output = self.conn.send(wsproto.events.CloseConnection(code=1012))
+                self.transport.write(output)
+            else:
+                self.send_500_response()
         self.transport.close()
 
     def on_task_complete(self, task: asyncio.Task[None]) -> None:
@@ -221,12 +222,14 @@ class WSProtocol(asyncio.Protocol):
     def send_500_response(self) -> None:
         if self.response_started or self.handshake_complete:
             return  # we cannot send responses anymore
+        reject_data = b"Internal Server Error"
         headers: list[tuple[bytes, bytes]] = [
             (b"content-type", b"text/plain; charset=utf-8"),
+            (b"content-length", str(len(reject_data)).encode()),
             (b"connection", b"close"),
         ]
         output = self.conn.send(wsproto.events.RejectConnection(status_code=500, headers=headers, has_body=True))
-        output += self.conn.send(wsproto.events.RejectData(data=b"Internal Server Error"))
+        output += self.conn.send(wsproto.events.RejectData(data=reject_data))
         self.transport.write(output)
 
     async def run_asgi(self) -> None:

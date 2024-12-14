@@ -6,7 +6,6 @@ from copy import deepcopy
 
 import httpx
 import pytest
-import websockets
 from typing_extensions import TypedDict
 from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosed, ConnectionClosedError, InvalidHandshake, InvalidStatus
@@ -222,7 +221,7 @@ async def test_headers(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProto
             await self.send({"type": "websocket.accept"})
 
     async def open_connection(url: str):
-        async with connect(url, extra_headers=[("username", "abraão")]):
+        async with connect(url, additional_headers=[("username", "abraão")]):
             return True
 
     config = Config(app=App, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
@@ -458,9 +457,9 @@ async def test_asgi_return_value(ws_protocol_cls: WSProtocol, http_protocol_cls:
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
     async with run_server(config):
         async with connect(f"ws://127.0.0.1:{unused_tcp_port}") as websocket:
-            with pytest.raises(ConnectionClosed) as exc_info:
+            with pytest.raises(ConnectionClosed):
                 _ = await websocket.recv()
-        assert exc_info.value.code == 1006
+        assert websocket.protocol.close_code == 1006
 
 
 @pytest.mark.parametrize("code", [None, 1000, 1001])
@@ -495,10 +494,10 @@ async def test_app_close(
         async with connect(f"ws://127.0.0.1:{unused_tcp_port}") as websocket:
             await websocket.ping()
             await websocket.send("abc")
-            with pytest.raises(ConnectionClosed) as exc_info:
+            with pytest.raises(ConnectionClosed):
                 await websocket.recv()
-        assert exc_info.value.code == (code or 1000)
-        assert exc_info.value.reason == (reason or "")
+        assert websocket.protocol.close_code == (code or 1000)
+        assert websocket.protocol.close_reason == (reason or "")
 
 
 async def test_client_close(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int):
@@ -517,7 +516,7 @@ async def test_client_close(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTP
                 break
 
     async def websocket_session(url: str):
-        async with websockets.client.connect(url) as websocket:
+        async with connect(url) as websocket:
             await websocket.ping()
             await websocket.send("abc")
             await websocket.close(code=1001, reason="custom reason")
@@ -691,7 +690,7 @@ async def test_subprotocols(
 
 
 MAX_WS_BYTES = 1024 * 1024 * 16
-MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 1
+MAX_WS_BYTES_PLUS1 = MAX_WS_BYTES + 10
 
 
 @pytest.mark.parametrize(
@@ -1019,7 +1018,7 @@ async def test_server_multiple_websocket_http_response_start_events(
         await websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
 
     assert exception_message == (
-        "Expected ASGI message 'websocket.http.response.body' but got " "'websocket.http.response.start'."
+        "Expected ASGI message 'websocket.http.response.body' but got 'websocket.http.response.start'."
     )
 
 
