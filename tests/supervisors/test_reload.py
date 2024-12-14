@@ -137,7 +137,7 @@ class TestBaseReload:
             reloader.shutdown()
 
     @pytest.mark.parametrize(
-        "reloader_class, result", [(StatReload, False), pytest.param((WatchFilesReload, True), marks=skip_non_linux)]
+        "reloader_class, result", [(StatReload, False), pytest.param(WatchFilesReload, True, marks=skip_non_linux)]
     )
     def test_reload_when_pattern_matched_file_is_changed(
         self, result: bool, touch_soon: Callable[[Path], None]
