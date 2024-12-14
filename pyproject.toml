@@ -127,6 +127,7 @@ exclude_lines = [
 py-win32 = "sys_platform == 'win32'"
 py-not-win32 = "sys_platform != 'win32'"
 py-linux = "sys_platform == 'linux'"
+py-not-linux = "sys_platform != 'linux'"
 py-darwin = "sys_platform == 'darwin'"
 py-gte-38 = "sys_version_info >= (3, 8)"
 py-lt-38 = "sys_version_info < (3, 8)"
