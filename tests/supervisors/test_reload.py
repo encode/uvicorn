@@ -151,7 +151,7 @@ class TestBaseReload:
     @pytest.mark.parametrize("reloader_class", [pytest.param(WatchFilesReload, marks=skip_non_linux)])
     def test_should_not_reload_when_exclude_pattern_match_file_is_changed(
         self, touch_soon: Callable[[Path], None]
-    ):  # pragma: py-darwin
+    ):  # pragma: py-not-linux
         python_file = self.reload_path / "app" / "src" / "main.py"
         css_file = self.reload_path / "app" / "css" / "main.css"
         js_file = self.reload_path / "app" / "js" / "main.js"
