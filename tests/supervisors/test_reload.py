@@ -136,8 +136,12 @@ class TestBaseReload:
 
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class, result", [(StatReload, False), (WatchFilesReload, True)])
-    def test_reload_when_pattern_matched_file_is_changed(self, result: bool, touch_soon: Callable[[Path], None]):
+    @pytest.mark.parametrize(
+        "reloader_class, result", [(StatReload, False), pytest.param((WatchFilesReload, True), marks=skip_non_linux)]
+    )
+    def test_reload_when_pattern_matched_file_is_changed(
+        self, result: bool, touch_soon: Callable[[Path], None]
+    ):  # pragma: py-not-linux
         file = self.reload_path / "app" / "js" / "main.js"
 
         with as_cwd(self.reload_path):
