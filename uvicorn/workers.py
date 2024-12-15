@@ -12,7 +12,7 @@ from gunicorn.workers.base import Worker
 
 from uvicorn._compat import asyncio_run
 from uvicorn.config import Config
-from uvicorn.main import Server
+from uvicorn.server import Server
 
 warnings.warn(
     "The `uvicorn.workers` module is deprecated. Please use `uvicorn-worker` package instead.\n"

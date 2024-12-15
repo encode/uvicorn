@@ -10,9 +10,10 @@ import socket
 import sys
 import threading
 import time
+from collections.abc import Generator, Sequence
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, Generator, Sequence, Union
+from typing import TYPE_CHECKING, Union
 
 import click
 
@@ -284,10 +285,7 @@ class Server:
                 len(self.server_state.tasks),
             )
             for t in self.server_state.tasks:
-                if sys.version_info < (3, 9):  # pragma: py-gte-39
-                    t.cancel()
-                else:  # pragma: py-lt-39
-                    t.cancel(msg="Task cancelled, timeout graceful shutdown exceeded")
+                t.cancel(msg="Task cancelled, timeout graceful shutdown exceeded")
 
         # Send the lifespan shutdown event, and wait for application shutdown.
         if not self.force_exit:
