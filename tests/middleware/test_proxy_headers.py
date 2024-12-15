@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import httpx
 import httpx._transports.asgi
 import pytest
-import websockets.client
+from websockets.asyncio.client import connect
 
 from tests.response import Response
 from tests.utils import run_server
@@ -478,7 +478,7 @@ async def test_proxy_headers_websocket_x_forwarded_proto(
     async with run_server(config):
         url = f"ws://127.0.0.1:{unused_tcp_port}"
         headers = {X_FORWARDED_FOR: "1.2.3.4", X_FORWARDED_PROTO: forwarded_proto}
-        async with websockets.client.connect(url, extra_headers=headers) as websocket:
+        async with connect(url, additional_headers=headers) as websocket:
             data = await websocket.recv()
             assert data == expected
 

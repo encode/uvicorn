@@ -8,8 +8,7 @@ import typing
 
 import httpx
 import pytest
-import websockets
-import websockets.client
+from websockets.asyncio.client import connect
 
 from tests.utils import run_server
 from uvicorn import Config
@@ -104,9 +103,9 @@ async def test_trace_logging_on_ws_protocol(
             elif message["type"] == "websocket.disconnect":
                 break
 
-    async def open_connection(url):
-        async with websockets.client.connect(url) as websocket:
-            return websocket.open
+    async def open_connection(url: str):
+        async with connect(url):
+            return True
 
     config = Config(
         app=websocket_app,
