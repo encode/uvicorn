@@ -26,9 +26,11 @@ class Process:
     def __init__(
         self,
         config: Config,
-        target: Callable[[list[socket] | None], None],
+        target: Callable[[list[socket] | None, int], None],
         sockets: list[socket],
+        process_num: int,
     ) -> None:
+        self.process_num = process_num
         self.real_target = target
 
         self.parent_conn, self.child_conn = Pipe()
@@ -60,7 +62,7 @@ class Process:
             )
 
         threading.Thread(target=self.always_pong, daemon=True).start()
-        return self.real_target(sockets)
+        return self.real_target(sockets, self.process_num)
 
     def is_alive(self, timeout: float = 5) -> bool:
         if not self.process.is_alive():
@@ -103,14 +105,13 @@ class Multiprocess:
     def __init__(
         self,
         config: Config,
-        target: Callable[[list[socket] | None], None],
+        target: Callable[[list[socket] | None, int], None],
         sockets: list[socket],
     ) -> None:
         self.config = config
         self.target = target
         self.sockets = sockets
 
-        self.processes_num = config.workers
         self.processes: list[Process] = []
 
         self.should_exit = threading.Event()
@@ -119,9 +120,13 @@ class Multiprocess:
         for sig in SIGNALS:
             signal.signal(sig, lambda sig, frame: self.signal_queue.append(sig))
 
+    @property
+    def processes_num(self) -> int:
+        return len(self.processes)
+
     def init_processes(self) -> None:
-        for _ in range(self.processes_num):
-            process = Process(self.config, self.target, self.sockets)
+        for process_num in range(self.config.workers):
+            process = Process(self.config, self.target, self.sockets, process_num)
             process.start()
             self.processes.append(process)
 
@@ -137,7 +142,7 @@ class Multiprocess:
         for idx, process in enumerate(self.processes):
             process.terminate()
             process.join()
-            new_process = Process(self.config, self.target, self.sockets)
+            new_process = Process(self.config, self.target, self.sockets, process.process_num)
             new_process.start()
             self.processes[idx] = new_process
 
@@ -174,7 +179,7 @@ class Multiprocess:
                 return  # pragma: full coverage
 
             logger.info(f"Child process [{process.pid}] died")
-            process = Process(self.config, self.target, self.sockets)
+            process = Process(self.config, self.target, self.sockets, process.process_num)
             process.start()
             self.processes[idx] = process
 
@@ -206,8 +211,8 @@ class Multiprocess:
 
     def handle_ttin(self) -> None:  # pragma: py-win32
         logger.info("Received SIGTTIN, increasing the number of processes.")
-        self.processes_num += 1
-        process = Process(self.config, self.target, self.sockets)
+        process_num = self.processes_num
+        process = Process(self.config, self.target, self.sockets, process_num)
         process.start()
         self.processes.append(process)
 
@@ -216,7 +221,6 @@ class Multiprocess:
         if self.processes_num <= 1:
             logger.info("Already reached one process, cannot decrease the number of processes anymore.")
             return
-        self.processes_num -= 1
         process = self.processes.pop()
         process.terminate()
         process.join()
