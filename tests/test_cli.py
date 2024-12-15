@@ -3,9 +3,9 @@ import importlib
 import os
 import platform
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 from textwrap import dedent
-from typing import Iterator
 from unittest import mock
 
 import pytest

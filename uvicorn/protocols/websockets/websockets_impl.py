@@ -3,7 +3,8 @@ from __future__ import annotations
 import asyncio
 import http
 import logging
-from typing import Any, Literal, Optional, Sequence, cast
+from collections.abc import Sequence
+from typing import Any, Literal, Optional, cast
 from urllib.parse import unquote
 
 import websockets
