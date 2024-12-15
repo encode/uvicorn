@@ -23,7 +23,7 @@ except ImportError:  # pragma: no cover
 
 
 # TODO: Investigate why this is flaky on MacOS, and Windows.
-skip_non_linux = pytest.mark.skipif(sys.platform in ("darwin", "win32"), reason="Flaky on Windows and MacOS M1")
+skip_non_linux = pytest.mark.skipif(sys.platform in ("darwin", "win32"), reason="Flaky on Windows and MacOS")
 
 
 def run(sockets: list[socket.socket] | None) -> None:
