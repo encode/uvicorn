@@ -184,6 +184,9 @@ Options:
   --timeout-graceful-shutdown INTEGER
                                   Maximum number of seconds to wait for
                                   graceful shutdown.
+  --timeout-worker-is-alive FLOAT
+                                  Maximum number of seconds to wait for
+                                  judging if a worker process is alive.
   --ssl-keyfile TEXT              SSL key file
   --ssl-certfile TEXT             SSL certificate file
   --ssl-keyfile-password TEXT     SSL keyfile password
