@@ -9,9 +9,10 @@ import os
 import socket
 import ssl
 import sys
+from collections.abc import Awaitable
 from configparser import RawConfigParser
 from pathlib import Path
-from typing import IO, Any, Awaitable, Callable, Literal
+from typing import IO, Any, Callable, Literal
 
 import click
 
