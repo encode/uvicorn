@@ -224,6 +224,7 @@ class WSProtocol(asyncio.Protocol):
         headers: list[tuple[bytes, bytes]] = [
             (b"content-type", b"text/plain; charset=utf-8"),
             (b"connection", b"close"),
+            (b"content-length", b"21"),
         ]
         output = self.conn.send(wsproto.events.RejectConnection(status_code=500, headers=headers, has_body=True))
         output += self.conn.send(wsproto.events.RejectData(data=b"Internal Server Error"))

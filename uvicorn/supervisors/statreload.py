@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from pathlib import Path
 from socket import socket
-from typing import Callable, Iterator
+from typing import Callable
 
 from uvicorn.config import Config
 from uvicorn.supervisors.basereload import BaseReload
