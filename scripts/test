@@ -11,6 +11,8 @@ if [ -z $GITHUB_ACTIONS ]; then
     scripts/check
 fi
 
+export COVERAGE_PROCESS_START=$(pwd)/pyproject.toml
+
 ${PREFIX}coverage run --debug config -m pytest "$@"
 
 if [ -z $GITHUB_ACTIONS ]; then

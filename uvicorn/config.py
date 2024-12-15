@@ -138,7 +138,7 @@ def resolve_reload_patterns(patterns_list: list[str], directories_list: list[str
         # Special case for the .* pattern, otherwise this would only match
         # hidden directories which is probably undesired
         if pattern == ".*":
-            continue  # pragma: py-darwin
+            continue  # pragma: py-not-linux
         patterns.append(pattern)
         if is_dir(Path(pattern)):
             directories.append(Path(pattern))
