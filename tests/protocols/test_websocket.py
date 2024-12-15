@@ -7,6 +7,8 @@ from copy import deepcopy
 import httpx
 import pytest
 import websockets
+import websockets.asyncio
+import websockets.asyncio.client
 import websockets.client
 import websockets.exceptions
 from typing_extensions import TypedDict
@@ -603,18 +605,15 @@ async def test_connection_lost_before_handshake_complete(
 
     async def websocket_session(uri: str):
         async with httpx.AsyncClient() as client:
-            try:
-                await client.get(
-                    f"http://127.0.0.1:{unused_tcp_port}",
-                    headers={
-                        "upgrade": "websocket",
-                        "connection": "upgrade",
-                        "sec-websocket-version": "13",
-                        "sec-websocket-key": "dGhlIHNhbXBsZSBub25jZQ==",
-                    },
-                )
-            except httpx.RemoteProtocolError:
-                pass  # pragma: no cover
+            await client.get(
+                f"http://127.0.0.1:{unused_tcp_port}",
+                headers={
+                    "upgrade": "websocket",
+                    "connection": "upgrade",
+                    "sec-websocket-version": "13",
+                    "sec-websocket-key": "dGhlIHNhbXBsZSBub25jZQ==",
+                },
+            )
 
     config = Config(app=app, ws=ws_protocol_cls, http=http_protocol_cls, lifespan="off", port=unused_tcp_port)
     async with run_server(config):

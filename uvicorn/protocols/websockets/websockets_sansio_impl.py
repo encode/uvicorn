@@ -119,17 +119,14 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         pass
 
     def shutdown(self) -> None:
-        if not self.transport.is_closing():
-            if self.handshake_complete:
-                self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
-                self.close_sent = True
-                self.conn.send_close(1012)
-                output = self.conn.data_to_send()
-                self.transport.write(b"".join(output))
-            elif not self.handshake_initiated:
-                self.send_500_response()
-                self.queue.put_nowait({"type": "websocket.disconnect", "code": 1006})
-            self.transport.close()
+        if self.handshake_complete:
+            self.queue.put_nowait({"type": "websocket.disconnect", "code": 1012})
+            self.conn.send_close(1012)
+            output = self.conn.data_to_send()
+            self.transport.write(b"".join(output))
+        else:
+            self.send_500_response()
+        self.transport.close()
 
     def data_received(self, data: bytes) -> None:
         self.conn.receive_data(data)
@@ -161,7 +158,6 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         self.request = event
         self.response = self.conn.accept(event)
         self.handshake_initiated = True
-        # if status_code is not 101 return response
         if self.response.status_code != 101:
             self.handshake_complete = True
             self.close_sent = True
