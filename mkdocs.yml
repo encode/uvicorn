@@ -1,5 +1,6 @@
 site_name: Uvicorn
 site_description: The lightning-fast ASGI server.
+site_url: https://www.uvicorn.org
 
 theme:
   name: material
@@ -19,11 +20,14 @@ theme:
         icon: "material/lightbulb-outline"
         name: "Switch to light mode"
   features:
-    - content.code.copy
+    - content.code.copy # https://squidfunk.github.io/mkdocs-material/upgrade/?h=content+copy#contentcodecopy
+    - navigation.top # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#back-to-top-button
+    - navigation.footer # https://squidfunk.github.io/mkdocs-material/upgrade/?h=content+copy#navigationfooter
+    - toc.follow # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#anchor-following
 
 repo_name: encode/uvicorn
 repo_url: https://github.com/encode/uvicorn
-edit_uri: ""
+edit_uri: edit/master/docs/
 
 nav:
   - Introduction: index.md

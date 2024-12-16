@@ -9,9 +9,10 @@ import os
 import socket
 import ssl
 import sys
+from collections.abc import Awaitable
 from configparser import RawConfigParser
 from pathlib import Path
-from typing import IO, Any, Awaitable, Callable, Literal
+from typing import IO, Any, Callable, Literal
 
 import click
 
@@ -137,7 +138,7 @@ def resolve_reload_patterns(patterns_list: list[str], directories_list: list[str
         # Special case for the .* pattern, otherwise this would only match
         # hidden directories which is probably undesired
         if pattern == ".*":
-            continue
+            continue  # pragma: py-darwin
         patterns.append(pattern)
         if is_dir(Path(pattern)):
             directories.append(Path(pattern))

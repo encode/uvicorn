@@ -1,11 +1,27 @@
 # Change Log
 
+## 0.34.0 (2024-12-15)
+
+### Added
+
+* Add `content-length` to 500 response in `wsproto` implementation (#2542)
+
+### Removed
+
+* Drop support for Python 3.8 (#2543)
+
+## 0.33.0 (2024-12-14)
+
+### Removed
+
+* Remove `WatchGod` support for `--reload` (#2536)
+
 ## 0.32.1 (2024-11-20)
 
 ### Fixed
 
-* Drop ASGI spec version to 2.3 on HTTP scope [#2513](https://github.com/encode/uvicorn/pull/2513)
-* Enable httptools lenient data on `httptools >= 0.6.3` [#2488](https://github.com/encode/uvicorn/pull/2488)
+* Drop ASGI spec version to 2.3 on HTTP scope (#2513)
+* Enable httptools lenient data on `httptools >= 0.6.3` (#2488)
 
 ## 0.32.0 (2024-10-15)
 
