@@ -90,15 +90,17 @@ def test_multiprocess_health_check() -> None:
     process.join()
     try:
         assert not process.is_alive(0.5)
-        while retry := 3:
+        time.sleep(0.5)
+        start_time = time.time()
+        while time.time() - start_time < 6:
             try:
                 for p in supervisor.processes:
                     assert p.is_alive()
-            except AssertionError:
-                retry -= 1
-                time.sleep(0.5)
-            else:
                 break
+            except AssertionError:
+                time.sleep(1)
+        else:
+            raise RuntimeError()
     finally:
         supervisor.signal_queue.append(signal.SIGINT)
         supervisor.join_all()
