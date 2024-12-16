@@ -97,9 +97,9 @@ def test_multiprocess_health_check() -> None:
                 for p in supervisor.processes:
                     assert p.is_alive()
                 break
-            except AssertionError:
+            except AssertionError:  # pragma: no cover
                 time.sleep(1)
-        else:
+        else:  # pragma: no cover
             raise RuntimeError()
     finally:
         supervisor.signal_queue.append(signal.SIGINT)
