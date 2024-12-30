@@ -49,8 +49,7 @@ def as_cwd(path: Path):
 
 def get_asyncio_default_loop_per_os() -> type[asyncio.AbstractEventLoop]:
     """Get the default asyncio loop per OS."""
-    if sys.version_info >= (3, 13):  # pragma: nocover
-        return asyncio.EventLoop
     if sys.platform == "win32":
         return asyncio.ProactorEventLoop  # type: ignore  # pragma: nocover
-    return asyncio.SelectorEventLoop  # pragma: nocover
+    else:
+        return asyncio.SelectorEventLoop  # pragma: nocover
