@@ -13,13 +13,14 @@ from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
 
 try:
     importlib.import_module("uvloop")
-    expected_loop = "uvloop"  # pragma: py-win32
 except ImportError:  # pragma: py-not-win32
     expected_loop = "asyncio"
-except AttributeError:
-    if sys.version_info < (3, 14):
+except AttributeError:  # pragma: py-lt-314
+    if sys.version_info < (3, 14):  # pragma: no cover
         raise
     expected_loop = "asyncio"
+else:  # pragma: py-win32  # pragma: py-gte-314
+    expected_loop = "uvloop"
 
 try:
     importlib.import_module("httptools")

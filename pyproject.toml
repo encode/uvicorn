@@ -120,6 +120,7 @@ exclude_lines = [
     "tests/supervisors/test_multiprocess.py",
 ]
 "sys_platform != 'win32'" = ["uvicorn/loops/asyncio.py"]
+"sys_version_info >= (3, 14)" = ["uvicorn/loops/uvloop.py"]
 
 [tool.coverage.coverage_conditional_plugin.rules]
 py-win32 = "sys_platform == 'win32'"
@@ -132,3 +133,5 @@ py-gte-310 = "sys_version_info >= (3, 10)"
 py-lt-310 = "sys_version_info < (3, 10)"
 py-gte-311 = "sys_version_info >= (3, 11)"
 py-lt-311 = "sys_version_info < (3, 11)"
+py-gte-314 = "sys_version_info >= (3, 14)"
+py-lt-314 = "sys_version_info < (3, 14)"
