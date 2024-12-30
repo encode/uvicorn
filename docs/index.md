@@ -203,7 +203,8 @@ Options:
   --version                       Display the uvicorn version and exit.
   --app-dir TEXT                  Look for APP in the specified directory, by
                                   adding this to the PYTHONPATH. Defaults to
-                                  the current working directory.
+                                  the current working directory.  [default:
+                                  ""]
   --h11-max-incomplete-event-size INTEGER
                                   For h11, the maximum number of bytes to
                                   buffer of an incomplete event.
