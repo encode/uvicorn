@@ -11,7 +11,7 @@ from uvicorn._compat import asyncio_run
 
 
 async def assert_event_loop(expected_loop_class: type[AbstractEventLoop]):
-    assert isinstance(asyncio.get_event_loop(), expected_loop_class)
+    assert isinstance(asyncio.get_running_loop(), expected_loop_class)
 
 
 def test_asyncio_run__default_loop_factory() -> None:
