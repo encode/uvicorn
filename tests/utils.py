@@ -52,7 +52,7 @@ def get_asyncio_default_loop_per_os() -> type[asyncio.AbstractEventLoop]:
     return (
         asyncio.EventLoop
         if sys.version_info >= (3, 13)
-        else asyncio.ProactorEventLoop  # type: ignore[attr-defined]
+        else asyncio.ProactoEventLoop  # type: ignore[attr-defined]
         if sys.platform == "win32"
         else asyncio.SelectorEventLoop
     )
