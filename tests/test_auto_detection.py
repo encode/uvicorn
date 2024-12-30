@@ -15,7 +15,7 @@ try:
     importlib.import_module("uvloop")
 except ImportError:  # pragma: py-not-win32
     expected_loop = "asyncio"
-except AttributeError:  # pragma: py-lt-314
+except AttributeError:  # pragma: py-lt-314  # pragma: py-win32
     if sys.version_info < (3, 14):  # pragma: no cover
         raise
     expected_loop = "asyncio"
