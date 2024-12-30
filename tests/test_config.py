@@ -569,7 +569,7 @@ def test_get_loop_factory(loop_type: LoopFactoryType, expected_loop_factory: Any
 
 
 def test_custom_loop__importable_custom_loop_setup_function() -> None:
-    config = Config(app=asgi_app, loop="tests.custom_loop_utils:custom_loop_factory")
+    config = Config(app=asgi_app, loop="tests.custom_loop_utils:CustomLoop")
     config.load()
     loop_factory = config.get_loop_factory()
     assert loop_factory, "Loop factory should be set"

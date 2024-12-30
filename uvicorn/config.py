@@ -477,7 +477,7 @@ class Config:
             loop_factory: Callable | None = import_from_string(LOOP_FACTORIES[self.loop])
         else:
             try:
-                loop_factory = import_from_string(self.loop)
+                return import_from_string(self.loop)
             except ImportFromStringError as exc:
                 logger.error("Error loading custom loop setup function. %s" % exc)
                 sys.exit(1)
