@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from asyncio import AbstractEventLoop
 
 import pytest
@@ -23,7 +24,7 @@ def test_asyncio_run__custom_loop_factory() -> None:
 
 
 def test_asyncio_run__passing_a_non_awaitable_callback_should_throw_error() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError if sys.version_info >= (3, 14) else ValueError):
         asyncio_run(
             lambda: None,  # type: ignore
             loop_factory=CustomLoop,

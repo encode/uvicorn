@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import importlib
+import sys
 
 import pytest
 
@@ -14,6 +15,10 @@ try:
     importlib.import_module("uvloop")
     expected_loop = "uvloop"  # pragma: py-win32
 except ImportError:  # pragma: py-not-win32
+    expected_loop = "asyncio"
+except AttributeError:
+    if sys.version_info < (3, 14):
+        raise
     expected_loop = "asyncio"
 
 try:
