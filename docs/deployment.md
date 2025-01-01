@@ -1,5 +1,3 @@
-# Deployment
-
 Server deployment is a complex area, that will depend on what kind of service you're deploying Uvicorn onto.
 
 As a general rule, you probably want to:
