@@ -1,19 +1,26 @@
 import asyncio
+import contextlib
 import importlib
+import sys
 
 import pytest
 
 from uvicorn.config import Config
-from uvicorn.loops.auto import auto_loop_setup
+from uvicorn.loops.auto import auto_loop_factory
 from uvicorn.main import ServerState
 from uvicorn.protocols.http.auto import AutoHTTPProtocol
 from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
 
 try:
     importlib.import_module("uvloop")
-    expected_loop = "uvloop"  # pragma: py-win32
 except ImportError:  # pragma: py-not-win32
     expected_loop = "asyncio"
+except AttributeError:  # pragma: py-lt-314  # pragma: py-win32
+    if sys.version_info < (3, 14):  # pragma: no cover
+        raise
+    expected_loop = "asyncio"
+else:  # pragma: py-win32  # pragma: py-gte-314
+    expected_loop = "uvloop"
 
 try:
     importlib.import_module("httptools")
@@ -33,10 +40,10 @@ async def app(scope, receive, send):
 
 
 def test_loop_auto():
-    auto_loop_setup()
-    policy = asyncio.get_event_loop_policy()
-    assert isinstance(policy, asyncio.events.BaseDefaultEventLoopPolicy)
-    assert type(policy).__module__.startswith(expected_loop)
+    loop_factory = auto_loop_factory(use_subprocess=True)
+    with contextlib.closing(loop_factory()) as loop:
+        assert isinstance(loop, asyncio.AbstractEventLoop)
+        assert type(loop).__module__.startswith(expected_loop)
 
 
 @pytest.mark.anyio

@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Internet :: WWW/HTTP",
@@ -97,7 +98,7 @@ filterwarnings = [
 [tool.coverage.run]
 source_pkgs = ["uvicorn", "tests"]
 plugins = ["coverage_conditional_plugin"]
-omit = ["uvicorn/workers.py", "uvicorn/__main__.py"]
+omit = ["uvicorn/workers.py", "uvicorn/__main__.py", "uvicorn/_compat.py"]
 
 [tool.coverage.report]
 precision = 2
@@ -120,6 +121,7 @@ exclude_lines = [
     "tests/supervisors/test_multiprocess.py",
 ]
 "sys_platform != 'win32'" = ["uvicorn/loops/asyncio.py"]
+"sys_version_info >= (3, 14)" = ["uvicorn/loops/uvloop.py"]
 
 [tool.coverage.coverage_conditional_plugin.rules]
 py-win32 = "sys_platform == 'win32'"
@@ -132,3 +134,5 @@ py-gte-310 = "sys_version_info >= (3, 10)"
 py-lt-310 = "sys_version_info < (3, 10)"
 py-gte-311 = "sys_version_info >= (3, 11)"
 py-lt-311 = "sys_version_info < (3, 11)"
+py-gte-314 = "sys_version_info >= (3, 14)"
+py-lt-314 = "sys_version_info < (3, 14)"
