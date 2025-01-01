@@ -51,7 +51,7 @@ standard = [
 uvicorn = "uvicorn.main:main"
 
 [project.urls]
-Changelog = "https://github.com/encode/uvicorn/blob/master/CHANGELOG.md"
+Changelog = "https://www.uvicorn.org/release-notes"
 Funding = "https://github.com/sponsors/encode"
 Homepage = "https://www.uvicorn.org/"
 Source = "https://github.com/encode/uvicorn"

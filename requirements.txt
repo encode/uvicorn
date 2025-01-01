@@ -14,18 +14,18 @@ build==1.2.2.post1
 twine==6.0.1
 
 # Testing
-ruff==0.8.3
+ruff==0.8.4
 pytest==8.3.4
 pytest-mock==3.14.0
-mypy==1.13.0
+mypy==1.14.1
 types-click==7.1.8
-types-pyyaml==6.0.12.20240917
+types-pyyaml==6.0.12.20241230
 trustme==1.2.0
 cryptography==44.0.0
-coverage==7.6.9
+coverage==7.6.10
 coverage-conditional-plugin==0.9.0
 httpx==0.28.1
 
 # Documentation
 mkdocs==1.6.1
-mkdocs-material==9.5.48
+mkdocs-material==9.5.49
