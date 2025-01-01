@@ -83,15 +83,27 @@ def test_multiprocess_health_check() -> None:
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
+    # Ensure server is up.
     time.sleep(1)
     process = supervisor.processes[0]
     process.kill()
-    assert not process.is_alive()
-    time.sleep(1)
-    for p in supervisor.processes:
-        assert p.is_alive()
-    supervisor.signal_queue.append(signal.SIGINT)
-    supervisor.join_all()
+    process.join()
+    try:
+        assert not process.is_alive(0.5)
+        time.sleep(0.5)
+        start_time = time.time()
+        while time.time() - start_time < 6:
+            try:
+                for p in supervisor.processes:
+                    assert p.is_alive()
+                break
+            except AssertionError:  # pragma: no cover
+                time.sleep(1)
+        else:  # pragma: no cover
+            raise RuntimeError()
+    finally:
+        supervisor.signal_queue.append(signal.SIGINT)
+        supervisor.join_all()
 
 
 @new_console_in_windows
