@@ -64,7 +64,9 @@ else:  # pragma: py-win32
 @pytest.mark.parametrize("exception_signal", signals)
 @pytest.mark.parametrize("capture_signal", signal_captures)
 async def test_server_interrupt(
-    exception_signal: signal.Signals, capture_signal: Callable[[signal.Signals], AbstractContextManager[None]]
+    exception_signal: signal.Signals,
+    capture_signal: Callable[[signal.Signals], AbstractContextManager[None]],
+    unused_tcp_port: int,
 ):  # pragma: py-win32
     """Test interrupting a Server that is run explicitly inside asyncio"""
 
@@ -73,7 +75,7 @@ async def test_server_interrupt(
             await asyncio.sleep(0.01)
         signal.raise_signal(exception_signal)
 
-    server = Server(Config(app=dummy_app, loop="asyncio"))
+    server = Server(Config(app=dummy_app, loop="asyncio", port=unused_tcp_port))
     asyncio.create_task(interrupt_running(server))
     with capture_signal(exception_signal) as witness:
         await server.serve()

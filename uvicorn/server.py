@@ -119,7 +119,7 @@ class Server:
 
             def _share_socket(
                 sock: socket.SocketType,
-            ) -> socket.SocketType:  # pragma py-linux pragma: py-darwin
+            ) -> socket.SocketType:  # pragma py-not-win32
                 # Windows requires the socket be explicitly shared across
                 # multiple workers (processes).
                 from socket import fromshare  # type: ignore[attr-defined]
