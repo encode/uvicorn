@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ctypes
 import logging
 import os
 import signal
@@ -89,7 +90,10 @@ class BaseReload:
         if sys.platform == "win32":  # pragma: py-not-win32
             self.is_restarting = True
             assert self.process.pid is not None
-            os.kill(self.process.pid, signal.CTRL_C_EVENT)
+            if ctypes.windll.kernel32.GetConsoleWindow() != 0:
+                os.kill(self.process.pid, signal.CTRL_C_EVENT)
+            else:
+                self.process.terminate()
         else:  # pragma: py-win32
             self.process.terminate()
         self.process.join()
