@@ -84,8 +84,6 @@ class Server:
 
         await self.startup(sockets=sockets)
         # FIX: make sure always execute the shutdown logic, even if server received a signal during startup
-        # if self.should_exit:
-        #     return
         await self.main_loop()
         await self.shutdown(sockets=sockets)
 
