@@ -33,7 +33,6 @@ def on_page_markdown(markdown: str, page: Page, config: Config, files: Files) ->
 
 def uvicorn_print_help(markdown: str, page: Page) -> str:
     # if you don't filter to the specific route that needs this substitution, things will be very slow
-    print(page.file.src_uri)
     if page.file.src_uri not in ("index.md", "deployment.md"):
         return markdown
 
