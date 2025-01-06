@@ -90,10 +90,10 @@ def test_multiprocess_health_check() -> None:
     process.join()
     try:
         assert not process.is_alive(0.5)
-        time.sleep(0) # release gil.
-        time.sleep(1) # ensure process restart complete.
+        time.sleep(0)  # release gil.
+        time.sleep(1)  # ensure process restart complete.
         for p in supervisor.processes:
-              assert p.is_alive()
+            assert p.is_alive()
     finally:
         supervisor.signal_queue.append(signal.SIGINT)
         supervisor.join_all()
