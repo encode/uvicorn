@@ -59,7 +59,7 @@ LOOP_SETUPS: dict[LoopSetupType, str | None] = {
     "auto": "uvicorn.loops.auto:auto_loop_setup",
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
-    "winloop": "uvicorn.loops.winloop:winloop_setup"
+    "winloop": "uvicorn.loops.winloop:winloop_setup",
 }
 
 INTERFACES: list[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
