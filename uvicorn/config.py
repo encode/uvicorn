@@ -27,7 +27,7 @@ from uvicorn.middleware.wsgi import WSGIMiddleware
 HTTPProtocolType = Literal["auto", "h11", "httptools"]
 WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
 LifespanType = Literal["auto", "on", "off"]
-LoopSetupType = Literal["none", "auto", "asyncio", "uvloop"]
+LoopSetupType = Literal["none", "auto", "asyncio", "uvloop", "winloop"]
 InterfaceType = Literal["auto", "asgi3", "asgi2", "wsgi"]
 
 LOG_LEVELS: dict[str, int] = {
@@ -59,7 +59,9 @@ LOOP_SETUPS: dict[LoopSetupType, str | None] = {
     "auto": "uvicorn.loops.auto:auto_loop_setup",
     "asyncio": "uvicorn.loops.asyncio:asyncio_setup",
     "uvloop": "uvicorn.loops.uvloop:uvloop_setup",
+    "winloop": "uvicorn.loops.winloop:winloop_setup"
 }
+
 INTERFACES: list[InterfaceType] = ["auto", "asgi3", "asgi2", "wsgi"]
 
 SSL_PROTOCOL_VERSION: int = ssl.PROTOCOL_TLS_SERVER
