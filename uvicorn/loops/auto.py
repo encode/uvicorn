@@ -14,6 +14,5 @@ def auto_loop_setup(use_subprocess: bool = False) -> None:
             loop_setup(use_subprocess=use_subprocess)
     else:  # pragma: no cover
         from uvicorn.loops.uvloop import uvloop_setup
-
         uvloop_setup(use_subprocess=use_subprocess)
 
