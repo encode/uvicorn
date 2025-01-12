@@ -27,7 +27,7 @@ def get_remote_addr(transport: asyncio.Transport) -> tuple[str, int] | None:
     return None
 
 
-def get_local_addr(transport: asyncio.Transport) -> tuple[str, int] | None:
+def get_local_addr(transport: asyncio.Transport) -> tuple[str, int | None] | None:
     socket_info: socket.socket | None = transport.get_extra_info("socket")
     if socket_info is not None:
         info = socket_info.getsockname()
