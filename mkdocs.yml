@@ -2,6 +2,10 @@ site_name: Uvicorn
 site_description: The lightning-fast ASGI server.
 site_url: https://www.uvicorn.org
 
+repo_name: encode/uvicorn
+repo_url: https://github.com/encode/uvicorn
+edit_uri: edit/master/docs/
+
 theme:
   name: material
   custom_dir: docs/overrides
@@ -25,17 +29,15 @@ theme:
     - navigation.footer # https://squidfunk.github.io/mkdocs-material/upgrade/?h=content+copy#navigationfooter
     - toc.follow # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#anchor-following
 
-repo_name: encode/uvicorn
-repo_url: https://github.com/encode/uvicorn
-edit_uri: edit/master/docs/
-
 nav:
   - Introduction: index.md
   - Settings: settings.md
   - Deployment: deployment.md
   - Server Behavior: server-behavior.md
   - Release Notes: release-notes.md
-  - Contributing: contributing.md
+  - Community:
+      - Sponsorship: community/sponsorship.md
+      - Contributing: community/contributing.md
 
 markdown_extensions:
   - admonition
@@ -46,6 +48,10 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 hooks:
   - docs/plugins/main.py

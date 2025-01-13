@@ -22,13 +22,21 @@
 
 # Introduction
 
-Uvicorn is an ASGI web server implementation for Python.
+**Uvicorn** is an ASGI web server implementation for Python.
 
 Until recently Python has lacked a minimal low-level server/application interface for
 async frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
 start building a common set of tooling usable across all async frameworks.
 
 Uvicorn currently supports **HTTP/1.1** and **WebSockets**.
+
+## Sponsors
+
+Uvicorn survives thanks to the support of its sponsors. :heart:
+
+If you or your company use Uvicorn, [consider becoming a sponsor](community/sponsorship.md)!
+
+{{ sponsors }}
 
 ## Quickstart
 
