@@ -1,6 +1,7 @@
 site_name: Uvicorn
 site_description: The lightning-fast ASGI server.
 site_url: https://www.uvicorn.org
+strict: true
 
 theme:
   name: material
@@ -21,6 +22,7 @@ theme:
         name: "Switch to light mode"
   features:
     - content.code.copy # https://squidfunk.github.io/mkdocs-material/upgrade/?h=content+copy#contentcodecopy
+    - navigation.sections # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation
     - navigation.top # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#back-to-top-button
     - navigation.footer # https://squidfunk.github.io/mkdocs-material/upgrade/?h=content+copy#navigationfooter
     - toc.follow # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#anchor-following
@@ -28,6 +30,12 @@ theme:
 repo_name: encode/uvicorn
 repo_url: https://github.com/encode/uvicorn
 edit_uri: edit/master/docs/
+
+# https://www.mkdocs.org/user-guide/configuration/#validation
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
 
 nav:
   - Introduction: index.md
@@ -38,6 +46,7 @@ nav:
   - Contributing: contributing.md
 
 markdown_extensions:
+  - attr_list
   - admonition
   - codehilite:
       css_class: highlight
@@ -46,6 +55,9 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 hooks:
   - docs/plugins/main.py
