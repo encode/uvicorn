@@ -319,9 +319,7 @@ def test_should_watch_one_dir_cwd(mocker: MockerFixture, reload_directory_struct
 
 
 @pytest.mark.skipif(WatchFilesReload is None, reason="watchfiles not available")
-def test_should_only_watch_specified_dirs(
-    mocker: MockerFixture, reload_directory_structure: Path
-):
+def test_should_only_watch_specified_dirs(mocker: MockerFixture, reload_directory_structure: Path):
     mock_watch = mocker.patch("uvicorn.supervisors.watchfilesreload.watch")
     app_dir = reload_directory_structure / "app"
     app_first_dir = reload_directory_structure / "app_first"
