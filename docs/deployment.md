@@ -171,7 +171,7 @@ In managed environments such as `Heroku`, you won't typically need to configure 
 
 The recommended configuration for proxying from Nginx is to use a UNIX domain socket between Nginx and whatever the process manager that is being used to run Uvicorn. If using Uvicorn directly you can bind it to a UNIX domain socket using `uvicorn --uds /path/to/socket.sock <...>`.
 
-When running your application behind one or more proxies you will want to make sure that each proxy sets appropriate headers to ensure that your application can properly determine the client address of the incoming connection, and if the connection was over `http` or `https`. For more information see [Proxies and Forwarded Headers][#proxies-and-forwarded-headers] below.
+When running your application behind one or more proxies you will want to make sure that each proxy sets appropriate headers to ensure that your application can properly determine the client address of the incoming connection, and if the connection was over `http` or `https`. For more information see [Proxies and Forwarded Headers](#proxies-and-forwarded-headers) below.
 
 Here's how a simple Nginx configuration might look. This example includes setting proxy headers, and using a UNIX domain socket to communicate with the application server.
 
