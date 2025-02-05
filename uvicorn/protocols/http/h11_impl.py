@@ -465,8 +465,11 @@ class RequestResponseCycle:
 
             status = message["status"]
             headers = self.default_headers + list(message.get("headers", []))
+            # we need to make sure that the headers are a list, the spec requires only an iterator
+            scope_headers = list(self.scope["headers"])
+            self.scope["headers"] = scope_headers
 
-            if CLOSE_HEADER in self.scope["headers"] and CLOSE_HEADER not in headers:
+            if CLOSE_HEADER in scope_headers and CLOSE_HEADER not in headers:
                 headers = headers + [CLOSE_HEADER]
 
             if self.access_log:
