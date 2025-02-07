@@ -860,8 +860,8 @@ def asgi2app(scope: Scope):
 @pytest.mark.parametrize(
     "asgi2or3_app, expected_scopes",
     [
-        (asgi3app, {"version": "3.0", "spec_version": "2.4"}),
-        (asgi2app, {"version": "2.0", "spec_version": "2.4"}),
+        (asgi3app, {"version": "3.0", "spec_version": "2.3"}),
+        (asgi2app, {"version": "2.0", "spec_version": "2.3"}),
     ],
 )
 async def test_scopes(

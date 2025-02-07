@@ -13,4 +13,3 @@ set -x
 ${PREFIX}ruff format --check --diff $SOURCE_FILES
 ${PREFIX}mypy $SOURCE_FILES
 ${PREFIX}ruff check $SOURCE_FILES
-${PREFIX}python -m tools.cli_usage --check

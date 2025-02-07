@@ -6,7 +6,7 @@ import io
 import sys
 import warnings
 from collections import deque
-from typing import Iterable
+from collections.abc import Iterable
 
 from uvicorn._types import (
     ASGIReceiveCallable,
