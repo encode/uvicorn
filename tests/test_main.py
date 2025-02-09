@@ -79,7 +79,7 @@ def test_run_invalid_app_config_combination(caplog: pytest.LogCaptureFixture) ->
     assert caplog.records[-1].name == "uvicorn.error"
     assert caplog.records[-1].levelno == WARNING
     assert caplog.records[-1].message == (
-        "You must pass the application as an import string to enable " "'reload' or 'workers'."
+        "You must pass the application as an import string to enable 'reload' or 'workers'."
     )
 
 

@@ -7,7 +7,7 @@ h11 @ git+https://github.com/python-hyper/h11.git@master
 # Explicit optionals
 a2wsgi==1.10.8
 wsproto==1.2.0
-websockets==14.2
+websockets==13.1
 
 # Packaging
 build==1.2.2.post1

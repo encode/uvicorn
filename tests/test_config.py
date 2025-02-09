@@ -409,7 +409,7 @@ def test_env_file(
     Test that one can load environment variables using an env file.
     """
     fp = tmp_path / ".env"
-    content = f"WEB_CONCURRENCY={web_concurrency}\n" f"FORWARDED_ALLOW_IPS={forwarded_allow_ips}\n"
+    content = f"WEB_CONCURRENCY={web_concurrency}\nFORWARDED_ALLOW_IPS={forwarded_allow_ips}\n"
     fp.write_text(content)
     with caplog.at_level(logging.INFO):
         config = Config(app=asgi_app, env_file=fp)
