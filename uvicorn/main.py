@@ -589,10 +589,10 @@ def run(
 
 
 def __getattr__(name: str) -> Any:
-    # Deprecate ServerState
     if name == "ServerState":
         warnings.warn(
-            "uvicorn.main.ServerState is deprecated, use uvicorn.server.ServerState instead.", DeprecationWarning
+            "uvicorn.main.ServerState is deprecated, use uvicorn.server.ServerState instead.",
+            DeprecationWarning,
         )
         from uvicorn.server import ServerState
 
