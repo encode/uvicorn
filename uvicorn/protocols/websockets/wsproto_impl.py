@@ -344,7 +344,7 @@ class WSProtocol(asyncio.Protocol):
                         self.transport.close()
 
                 else:
-                    msg = "Expected ASGI message 'websocket.send' or 'websocket.close'," " but got '%s'."
+                    msg = "Expected ASGI message 'websocket.send' or 'websocket.close', but got '%s'."
                     raise RuntimeError(msg % message_type)
             except LocalProtocolError as exc:
                 raise ClientDisconnected from exc
@@ -362,7 +362,7 @@ class WSProtocol(asyncio.Protocol):
                     self.transport.close()
 
             else:
-                msg = "Expected ASGI message 'websocket.http.response.body' " "but got '%s'."
+                msg = "Expected ASGI message 'websocket.http.response.body' but got '%s'."
                 raise RuntimeError(msg % message_type)
 
         else:
