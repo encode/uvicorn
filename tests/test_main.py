@@ -6,6 +6,7 @@ from logging import WARNING
 import httpx
 import pytest
 
+import uvicorn.server
 from tests.utils import run_server
 from uvicorn import Server
 from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
@@ -122,4 +123,4 @@ def test_deprecated_server_state_from_main() -> None:
     ):
         main = importlib.import_module("uvicorn.main")
         server_state_cls = getattr(main, "ServerState")
-    assert server_state_cls is not None
+    assert server_state_cls is uvicorn.server.ServerState
