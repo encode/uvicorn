@@ -6,6 +6,7 @@ import os
 import platform
 import ssl
 import sys
+import warnings
 from configparser import RawConfigParser
 from typing import IO, Any, Callable
 
@@ -29,7 +30,7 @@ from uvicorn.config import (
     LoopSetupType,
     WSProtocolType,
 )
-from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
+from uvicorn.server import Server
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
@@ -585,6 +586,18 @@ def run(
 
     if not server.started and not config.should_reload and config.workers == 1:
         sys.exit(STARTUP_FAILURE)
+
+
+def __getattr__(name: str) -> Any:
+    # Deprecate ServerState
+    if name == "ServerState":
+        warnings.warn(
+            "uvicorn.main.ServerState is deprecated, use uvicorn.server.ServerState instead.", DeprecationWarning
+        )
+        from uvicorn.server import ServerState
+
+        return ServerState
+    raise AttributeError(f"module {__name__} has no attribute {name}")
 
 
 if __name__ == "__main__":

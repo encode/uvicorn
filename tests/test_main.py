@@ -1,3 +1,4 @@
+import importlib
 import inspect
 import socket
 from logging import WARNING
@@ -113,3 +114,12 @@ async def test_exit_on_create_server_with_invalid_host() -> None:
         server = Server(config=config)
         await server.serve()
     assert exc_info.value.code == 1
+
+
+def test_deprecated_server_state_from_main() -> None:
+    with pytest.deprecated_call(
+        match="uvicorn.main.ServerState is deprecated, use uvicorn.server.ServerState instead."
+    ):
+        main = importlib.import_module("uvicorn.main")
+        server_state_cls = getattr(main, "ServerState")
+    assert server_state_cls is not None
