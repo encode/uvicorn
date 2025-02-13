@@ -150,7 +150,7 @@ def resolve_reload_patterns(patterns_list: list[str], directories_list: list[str
     directories = list(set(directories))
     directories = list(map(Path, directories))
     directories = list(map(lambda x: x.resolve(), directories))
-    directories = list({reload_path for reload_path in directories if is_dir(reload_path)})
+    directories = list(set(directories))
 
     children = []
     for j in range(len(directories)):
