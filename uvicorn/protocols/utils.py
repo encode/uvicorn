@@ -3,28 +3,10 @@ from __future__ import annotations
 import asyncio
 import ssl
 import urllib.parse
+import sys
 
 from uvicorn._types import WWWScope
-from uvicorn.protocols.http.tls_const import TLS_CIPHER_SUITES
-
-RDNS_MAPPING: dict[str, str] = {
-    "domainComponent": "DC",
-    "commonName": "CN",
-    "organizationalUnitName": "OU",
-    "organizationName": "O",
-    "streetAddress": "STREET",
-    "localityName": "L",
-    "stateOrProvinceName": "ST",
-    "countryName": "C",
-    "userId": "UID",
-}
-
-TLS_VERSION_MAP: dict[str, int] = {
-    "TLSv1": 0x0301,
-    "TLSv1.1": 0x0302,
-    "TLSv1.2": 0x0303,
-    "TLSv1.3": 0x0304,
-}
+from uvicorn.config import Config
 
 
 class ClientDisconnected(OSError): ...
@@ -77,38 +59,11 @@ def get_path_with_query_string(scope: WWWScope) -> str:
     return path_with_query_string
 
 
-def escape_dn_chars(s: str) -> str:
-    """
-    Escape all DN special characters found in s
-    with a back-slash (see RFC 4514, section 2.4)
 
-    Based upon the implementation here - https://github.com/python-ldap/python-ldap/blob/e885b621562a3c987934be3fba3873d21026bf5c/Lib/ldap/dn.py#L17
-    """
-    if s:
-        s = s.replace("\\", "\\\\")
-        s = s.replace(",", "\\,")
-        s = s.replace("+", "\\+")
-        s = s.replace('"', '\\"')
-        s = s.replace("<", "\\<")
-        s = s.replace(">", "\\>")
-        s = s.replace(";", "\\;")
-        s = s.replace("=", "\\=")
-        s = s.replace("\000", "\\\000")
-        s = s.replace("\n", "\\0a")
-        s = s.replace("\r", "\\0d")
-        if s[-1] == " ":
-            s = "".join((s[:-1], "\\ "))
-        if s[0] == "#" or s[0] == " ":
-            s = "".join(("\\", s))
-    return s
-
-
-def get_tls_info(transport: asyncio.Transport) -> dict[object, object]:
+def get_tls_info(transport: asyncio.Transport, server_config: Config) -> dict[object, object]:
     ###
-    # server_cert: Unable to set from transport information
-    # client_cert_chain: Just the peercert, currently no access to the full cert chain
-    # client_cert_name:
-    # client_cert_error: No access to this
+    # server_cert: Unable to set from transport information, need to set from server_config
+    # client_cert_chain: 
     # tls_version:
     # cipher_suite:
     ###
@@ -116,33 +71,26 @@ def get_tls_info(transport: asyncio.Transport) -> dict[object, object]:
     ssl_info: dict[object, object] = {
         "server_cert": None,
         "client_cert_chain": [],
-        "client_cert_name": None,
-        "client_cert_error": None,
         "tls_version": None,
         "cipher_suite": None,
     }
 
-    ssl_object = transport.get_extra_info("ssl_object", default=None)
-    peercert = ssl_object.getpeercert()
+    ssl_info["server_cert"] = server_config.ssl_cert_pem
 
-    if peercert:
-        rdn_strings = []
-        for rdn in peercert["subject"]:
-            rdn_strings.append(
-                "+".join(
-                    [
-                        f"{RDNS_MAPPING[entry[0]]}={escape_dn_chars(entry[1])}"
-                        for entry in reversed(rdn)
-                        if entry[0] in RDNS_MAPPING
-                    ]
-                )
-            )
-
-        ssl_info["client_cert_chain"] = [ssl.DER_cert_to_PEM_cert(ssl_object.getpeercert(binary_form=True))]
-        ssl_info["client_cert_name"] = ",".join(rdn_strings) if rdn_strings else ""
-        ssl_info["tls_version"] = (
-            TLS_VERSION_MAP[ssl_object.version()] if ssl_object.version() in TLS_VERSION_MAP else None
-        )
-        ssl_info["cipher_suite"] = TLS_CIPHER_SUITES.get(ssl_object.cipher()[0], None)
+    ssl_object = transport.get_extra_info("ssl_object")
+    if not ssl_object:
+        return ssl_info
+    
+    if sys.version_info < (3, 13):
+        peer_cert = ssl_object.getpeercert(binary_form=True)
+        if peer_cert:
+            ssl_info["client_cert_chain"].append(ssl.DER_cert_to_PEM_cert(peer_cert))
+    else:
+        client_chain = ssl_object.get_verified_chain()
+        for cert in client_chain:
+            ssl_info["client_cert_chain"].append(ssl.DER_cert_to_PEM_cert(cert))
+        
+    ssl_info["tls_version"] = ssl_object.version()
+    ssl_info["cipher_suite"] = ssl_object.cipher()[0] if ssl_object.cipher() else None
 
     return ssl_info

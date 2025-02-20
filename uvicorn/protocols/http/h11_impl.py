@@ -98,9 +98,7 @@ class H11Protocol(asyncio.Protocol):
         self.scheme = "https" if is_ssl(transport) else "http"
 
         if self.config.is_ssl:
-            self.tls = get_tls_info(transport)
-            if self.tls:
-                self.tls["server_cert"] = self.config.ssl_cert_pem
+            self.tls = get_tls_info(transport, self.config)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
@@ -218,7 +216,7 @@ class H11Protocol(asyncio.Protocol):
                     "query_string": query_string,
                     "headers": self.headers,
                     "state": self.app_state.copy(),
-                    "extensions": {"tls": self.tls},"extensions": {},
+                    "extensions": {},
                 }
 
                 if self.config.is_ssl:
