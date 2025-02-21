@@ -86,6 +86,14 @@ You can also manage child processes by sending specific signals to the main proc
 - `SIGTTIN`: Increase the number of worker processes by one.
 - `SIGTTOU`: Decrease the number of worker processes by one.
 
+### Using cloud provider process manager
+
+Modern deployments often are deployed on a Softare as a Service platform or a Platform as a Service.
+Examples include various offerings from AWS, GCP, Render, fly.io and Kubernetes (available as a service on many cloud providers).
+These are just examples, Uvicorn does not necessarily recommend or endorse any of these above other options.
+Kubernetes for example functions both as a process manager and load balancer.
+These options can range form simple to complex, and they may not be better than other options listed below, but if you are already using Kubernetes or another option that offers load balancing and process maangement you do not need to also run your own process manager and load balancer.
+
 ### Gunicorn
 
 !!! warning
@@ -107,7 +115,7 @@ The `UvicornWorker` implementation uses the `uvloop` and `httptools` implementat
 
 `gunicorn -w 4 -k uvicorn.workers.UvicornH11Worker`
 
-Gunicorn provides a different set of configuration options to Uvicorn, so  some options such as `--limit-concurrency` are not yet supported when running with Gunicorn.
+Gunicorn provides a different set of configuration options to Uvicorn, so some options such as `--limit-concurrency` are not yet supported when running with Gunicorn.
 
 If you need to pass uvicorn's config arguments to gunicorn workers then you'll have to subclass `UvicornWorker`:
 
