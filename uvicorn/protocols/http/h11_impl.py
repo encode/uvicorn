@@ -20,8 +20,8 @@ from uvicorn._types import (
 )
 from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
-from uvicorn.protocols.http.flow_control import CLOSE_HEADER, HIGH_WATER_LIMIT, FlowControl, service_unavailable
-from uvicorn.protocols.utils import get_client_addr, get_local_addr, get_path_with_query_string, get_remote_addr, is_ssl
+from uvicorn.protocols.http.flow_control import CLOSE_HEADER,HIGH_WATER_LIMIT,FlowControl, service_unavailable
+from uvicorn.protocols.utils import TLSInfo, get_client_addr, get_local_addr, get_path_with_query_string, get_remote_addr, get_tls_info, is_ssl
 from uvicorn.server import ServerState
 
 
@@ -78,7 +78,7 @@ class H11Protocol(asyncio.Protocol):
         self.server: tuple[str, int] | None = None
         self.client: tuple[str, int] | None = None
         self.scheme: Literal["http", "https"] | None = None
-        self.tls: dict[object, object] = {}
+        self.tls: TLSInfo = TLSInfo()
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
@@ -220,8 +220,8 @@ class H11Protocol(asyncio.Protocol):
                 }
 
                 if self.config.is_ssl:
-                    self.scope["extensions"]["tls"] = self.tls
-                    
+                    self.scope["extensions"]["tls"] = cast(dict[object, object], self.tls)
+
                 if self._should_upgrade():
                     self.handle_websocket_upgrade(event)
                     return

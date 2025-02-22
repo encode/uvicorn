@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import ssl
 import urllib.parse
-import sys
+from typing import TypedDict
 
 from uvicorn._types import WWWScope
 from uvicorn.config import Config
@@ -59,16 +59,22 @@ def get_path_with_query_string(scope: WWWScope) -> str:
     return path_with_query_string
 
 
+class TLSInfo(TypedDict, total=False):
+    server_cert: str | None
+    client_cert_chain: list[str]
+    tls_version: str | None
+    cipher_suite: str | None
 
-def get_tls_info(transport: asyncio.Transport, server_config: Config) -> dict[object, object]:
+
+def get_tls_info(transport: asyncio.Transport, server_config: Config) -> TLSInfo:
     ###
     # server_cert: Unable to set from transport information, need to set from server_config
-    # client_cert_chain: 
+    # client_cert_chain:
     # tls_version:
     # cipher_suite:
     ###
 
-    ssl_info: dict[object, object] = {
+    ssl_info: TLSInfo = {
         "server_cert": None,
         "client_cert_chain": [],
         "tls_version": None,
@@ -79,11 +85,15 @@ def get_tls_info(transport: asyncio.Transport, server_config: Config) -> dict[ob
 
     ssl_object = transport.get_extra_info("ssl_object")
     if ssl_object is not None:
-        client_chain = ssl_object.get_verified_chain() if hasattr(ssl_object, "get_verified_chain") else [ssl_object.getpeercert(binary_form=True)]
+        client_chain = (
+            ssl_object.get_verified_chain()
+            if hasattr(ssl_object, "get_verified_chain")
+            else [ssl_object.getpeercert(binary_form=True)]
+        )
         for cert in client_chain:
             if cert is not None:
                 ssl_info["client_cert_chain"].append(ssl.DER_cert_to_PEM_cert(cert))
-            
+
         ssl_info["tls_version"] = ssl_object.version()
         ssl_info["cipher_suite"] = ssl_object.cipher()[0] if ssl_object.cipher() else None
 
