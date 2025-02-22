@@ -78,19 +78,13 @@ def get_tls_info(transport: asyncio.Transport, server_config: Config) -> dict[ob
     ssl_info["server_cert"] = server_config.ssl_cert_pem
 
     ssl_object = transport.get_extra_info("ssl_object")
-    if not ssl_object:
-        return ssl_info
-    
-    if sys.version_info < (3, 13):
-        peer_cert = ssl_object.getpeercert(binary_form=True)
-        if peer_cert:
-            ssl_info["client_cert_chain"].append(ssl.DER_cert_to_PEM_cert(peer_cert))
-    else:
-        client_chain = ssl_object.get_verified_chain()
+    if ssl_object is not None:
+        client_chain = ssl_object.get_verified_chain() if hasattr(ssl_object, "get_verified_chain") else [ssl_object.getpeercert(binary_form=True)]
         for cert in client_chain:
-            ssl_info["client_cert_chain"].append(ssl.DER_cert_to_PEM_cert(cert))
-        
-    ssl_info["tls_version"] = ssl_object.version()
-    ssl_info["cipher_suite"] = ssl_object.cipher()[0] if ssl_object.cipher() else None
+            if cert is not None:
+                ssl_info["client_cert_chain"].append(ssl.DER_cert_to_PEM_cert(cert))
+            
+        ssl_info["tls_version"] = ssl_object.version()
+        ssl_info["cipher_suite"] = ssl_object.cipher()[0] if ssl_object.cipher() else None
 
     return ssl_info
