@@ -113,23 +113,19 @@ def tls_ca_ssl_context(tls_certificate_authority: trustme.CA) -> ssl.SSLContext:
     tls_certificate_authority.configure_trust(ssl_ctx)
     return ssl_ctx
 
+
 @pytest.fixture
-def tls_client_ssl_context(tls_certificate_authority: trustme.CA, tls_client_certificate: trustme.LeafCert) -> ssl.SSLContext:
+def tls_client_ssl_context(
+    tls_certificate_authority: trustme.CA, tls_client_certificate: trustme.LeafCert
+) -> ssl.SSLContext:
     ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
     tls_certificate_authority.configure_trust(ssl_ctx)
 
     # Load the client certificate chain into the SSL context
     with tls_client_certificate.private_key_and_cert_chain_pem.tempfile() as client_cert_pem:
         ssl_ctx.load_cert_chain(certfile=client_cert_pem)
-    
 
     return ssl_ctx
-
-@pytest.fixture
-def tls_client_certificate_pem_path(tls_client_certificate: trustme.LeafCert):
-    private_key_and_cert_chain = tls_client_certificate.private_key_and_cert_chain_pem
-    with private_key_and_cert_chain.tempfile() as client_cert_pem:
-        yield client_cert_pem
 
 
 @pytest.fixture(scope="package")
@@ -283,8 +279,3 @@ def ws_protocol_cls(request: pytest.FixtureRequest):
 )
 def http_protocol_cls(request: pytest.FixtureRequest):
     return import_from_string(request.param)
-@pytest.fixture
-def tls_client_certificate_pem_path(tls_client_certificate: trustme.LeafCert):
-    private_key_and_cert_chain = tls_client_certificate.private_key_and_cert_chain_pem
-    with private_key_and_cert_chain.tempfile() as client_cert_pem:
-        yield client_cert_pem

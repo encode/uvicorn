@@ -2,7 +2,6 @@ import ssl
 
 import httpx
 import pytest
-
 from cryptography import x509
 
 from tests.utils import run_server
@@ -46,8 +45,6 @@ async def test_run(
     ],
     indirect=["tls_client_certificate"],
 )
-
-
 @pytest.mark.anyio
 async def test_run_httptools_client_cert(
     tls_client_ssl_context,
@@ -59,11 +56,13 @@ async def test_run_httptools_client_cert(
     async def app(scope, receive, send):
         assert scope["type"] == "http"
         assert len(scope["extensions"]["tls"]["client_cert_chain"]) >= 1
-        cert = x509.load_pem_x509_certificate(scope["extensions"]["tls"]["client_cert_chain"][0].encode('utf-8'))
+        cert = x509.load_pem_x509_certificate(scope["extensions"]["tls"]["client_cert_chain"][0].encode("utf-8"))
         assert cert.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[0].value == expected_common_name
-        cipher_suites = [cipher['name'] for cipher in ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER).get_ciphers()]
+        cipher_suites = [cipher["name"] for cipher in ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER).get_ciphers()]
         assert scope["extensions"]["tls"]["cipher_suite"] in cipher_suites
-        assert (scope["extensions"]["tls"]["tls_version"].startswith("TLSv") or scope["extensions"]["tls"]["tls_version"].startswith("SSLv"))
+        assert scope["extensions"]["tls"]["tls_version"].startswith("TLSv") or scope["extensions"]["tls"][
+            "tls_version"
+        ].startswith("SSLv")
 
         await send({"type": "http.response.start", "status": 204, "headers": []})
         await send({"type": "http.response.body", "body": b"", "more_body": False})

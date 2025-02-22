@@ -33,6 +33,7 @@ from uvicorn.protocols.http.flow_control import (
     service_unavailable,
 )
 from uvicorn.protocols.utils import (
+    TLSInfo,
     get_client_addr,
     get_local_addr,
     get_path_with_query_string,
@@ -40,6 +41,7 @@ from uvicorn.protocols.utils import (
     get_tls_info,
     is_ssl,
 )
+from uvicorn.server import ServerState
 
 HEADER_RE = re.compile(b'[\x00-\x1f\x7f()<>@,;:[]={} \t\\"]')
 HEADER_VALUE_RE = re.compile(b"[\x00-\x08\x0a-\x1f\x7f]")
@@ -103,7 +105,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.client: tuple[str, int] | None = None
         self.scheme: Literal["http", "https"] | None = None
         self.pipeline: deque[tuple[RequestResponseCycle, ASGI3Application]] = deque()
-        self.tls: dict[object, object] = {}
+        self.tls: TLSInfo = TLSInfo()
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
@@ -124,7 +126,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.scheme = "https" if is_ssl(transport) else "http"
 
         if self.config.is_ssl:
-            self.tls = get_tls_info(transport,self.config)
+            self.tls = get_tls_info(transport, self.config)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
@@ -250,11 +252,11 @@ class HttpToolsProtocol(asyncio.Protocol):
             "root_path": self.root_path,
             "headers": self.headers,
             "state": self.app_state.copy(),
-                "extensions": {},
+            "extensions": {},
         }
 
         if self.config.is_ssl:
-            self.scope["extensions"]["tls"] = self.tls
+            self.scope["extensions"]["tls"] = cast(dict[object, object], self.tls)
 
     # Parser callbacks
     def on_url(self, url: bytes) -> None:
