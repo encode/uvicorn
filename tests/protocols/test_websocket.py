@@ -9,7 +9,6 @@ import pytest
 import websockets
 import websockets.client
 import websockets.exceptions
-from typing_extensions import TypedDict
 from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from websockets.typing import Subprotocol
 
@@ -777,7 +776,7 @@ async def test_server_reject_connection(
     assert disconnected_message == {"type": "websocket.disconnect", "code": 1006}
 
 
-class EmptyDict(TypedDict): ...
+class EmptyDict(typing.TypedDict): ...
 
 
 async def test_server_reject_connection_with_response(
