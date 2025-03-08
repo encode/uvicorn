@@ -109,7 +109,7 @@ We currently manage sponsorships *exclusively* through **GitHub Sponsors**. This
 
 <div style="text-align: center; margin: 2rem 0;">
     <h3>🤝 Custom Sponsor</h3>
-    <p>Looking for something different? <a href="mailto:your-email@example.com">Contact us</a> to discuss custom sponsorship options!</p>
+    <p>Looking for something different? <a href="mailto:marcelotryle@gmail.com">Contact us</a> to discuss custom sponsorship options!</p>
 </div>
 
 ## Current Sponsors
@@ -171,7 +171,7 @@ Special thanks to some of our most impactful contributors:
 - **Tom Christie** ([@tomchristie](https://github.com/tomchristie)) - The original creator of Starlette and Uvicorn.
 - **Adrian Garcia Badaracco** ([@adriangb](https://github.com/adriangb)) - Major contributor to Starlette.
 - **Thomas Grainger** ([@graingert](https://github.com/graingert)) - Major contributor to AnyIO, and significant contributions to Starlette and Uvicorn.
-- **Alex Grönholm** ([@AlexGrönholm](https://github.com/agronholm)) - Creator of AnyIO.
+- **Alex Grönholm** ([@agronholm](https://github.com/agronholm)) - Creator of AnyIO.
 - **Florimond Manca** ([@florimondmanca](https://github.com/florimondmanca)) - Important contributions to Starlette and Uvicorn.
 
 If you want your name removed from the list above, or if I forgot a significant contributor, please let me know.
