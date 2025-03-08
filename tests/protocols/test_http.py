@@ -14,8 +14,8 @@ from uvicorn._types import ASGIApplication, ASGIReceiveCallable, ASGISendCallabl
 from uvicorn.config import WS_PROTOCOLS, Config
 from uvicorn.lifespan.off import LifespanOff
 from uvicorn.lifespan.on import LifespanOn
-from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
+from uvicorn.server import ServerState
 
 try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
