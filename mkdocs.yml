@@ -44,6 +44,7 @@ nav:
   - Server Behavior: server-behavior.md
   - Release Notes: release-notes.md
   - Contributing: contributing.md
+  - Sponsorship: sponsorship.md
 
 markdown_extensions:
   - attr_list
