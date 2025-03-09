@@ -95,7 +95,7 @@ class TestBaseReload:
             reloader = self._setup_reloader(config)
             reloader.shutdown()
 
-    @pytest.mark.parametrize("reloader_class", [StatReload, WatchFilesReload])
+    @pytest.mark.parametrize("reloader_class", [StatReload, pytest.param(WatchFilesReload, marks=skip_non_linux)])
     def test_reload_when_python_file_is_changed(self, touch_soon: Callable[[Path], None]):
         file = self.reload_path / "main.py"
 
