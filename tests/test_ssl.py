@@ -52,6 +52,7 @@ async def test_run_httptools_client_cert(
     tls_certificate_private_key_path,
     tls_ca_certificate_pem_path,
     expected_common_name,
+    unused_tcp_port: int,
 ):
     async def app(scope, receive, send):
         assert scope["type"] == "http"
@@ -76,10 +77,11 @@ async def test_run_httptools_client_cert(
         ssl_certfile=tls_certificate_server_cert_path,
         ssl_ca_certs=tls_ca_certificate_pem_path,
         ssl_cert_reqs=ssl.CERT_REQUIRED,
+        port=unused_tcp_port,
     )
     async with run_server(config):
         async with httpx.AsyncClient(verify=tls_client_ssl_context) as client:
-            response = await client.get("https://127.0.0.1:8000")
+            response = await client.get(f"https://127.0.0.1:{unused_tcp_port}")
     assert response.status_code == 204
 
 
@@ -89,6 +91,7 @@ async def test_run_h11_client_cert(
     tls_ca_certificate_pem_path,
     tls_certificate_server_cert_path,
     tls_certificate_private_key_path,
+    unused_tcp_port: int,
 ):
     config = Config(
         app=app,
@@ -99,10 +102,11 @@ async def test_run_h11_client_cert(
         ssl_certfile=tls_certificate_server_cert_path,
         ssl_ca_certs=tls_ca_certificate_pem_path,
         ssl_cert_reqs=ssl.CERT_REQUIRED,
+        port=unused_tcp_port,
     )
     async with run_server(config):
         async with httpx.AsyncClient(verify=tls_client_ssl_context) as client:
-            response = await client.get("https://127.0.0.1:8000")
+            response = await client.get(f"https://127.0.0.1:{unused_tcp_port}")
     assert response.status_code == 204
 
 
