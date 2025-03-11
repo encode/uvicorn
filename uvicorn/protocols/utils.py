@@ -58,7 +58,7 @@ def get_path_with_query_string(scope: WWWScope) -> str:
     return path_with_query_string
 
 
-def get_tls_info(transport: asyncio.Transport, server_config: Config) -> TLSExtensionInfo:
+def get_tls_info(transport: asyncio.Transport, config: Config) -> TLSExtensionInfo:
     ###
     # server_cert: Unable to set from transport information, need to set from server_config
     # client_cert_chain:
@@ -73,7 +73,7 @@ def get_tls_info(transport: asyncio.Transport, server_config: Config) -> TLSExte
         "cipher_suite": None,
     }
 
-    ssl_info["server_cert"] = server_config.ssl_cert_pem
+    ssl_info["server_cert"] = config.ssl_cert_pem
 
     ssl_object = transport.get_extra_info("ssl_object")
     if ssl_object is not None:
