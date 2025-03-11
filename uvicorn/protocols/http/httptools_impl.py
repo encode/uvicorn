@@ -87,6 +87,7 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.client: tuple[str, int] | None = None
         self.scheme: Literal["http", "https"] | None = None
         self.pipeline: deque[tuple[RequestResponseCycle, ASGI3Application]] = deque()
+        self.tls = None
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
@@ -105,6 +106,11 @@ class HttpToolsProtocol(asyncio.Protocol):
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
         self.scheme = "https" if is_ssl(transport) else "http"
+
+        if self.config.is_ssl:
+            self.tls = get_tls_info(transport)
+            if self.tls:
+                self.tls["server_cert"] = self.config.ssl_cert_pem
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
@@ -230,6 +236,9 @@ class HttpToolsProtocol(asyncio.Protocol):
             "root_path": self.root_path,
             "headers": self.headers,
             "state": self.app_state.copy(),
+            "extensions": {
+                "tls": self.tls,
+            },
         }
 
     # Parser callbacks
