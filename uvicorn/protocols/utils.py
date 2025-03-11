@@ -3,9 +3,8 @@ from __future__ import annotations
 import asyncio
 import ssl
 import urllib.parse
-from typing import TypedDict
 
-from uvicorn._types import WWWScope
+from uvicorn._types import TLSExtensionInfo, WWWScope
 from uvicorn.config import Config
 
 
@@ -59,14 +58,7 @@ def get_path_with_query_string(scope: WWWScope) -> str:
     return path_with_query_string
 
 
-class TLSInfo(TypedDict, total=False):
-    server_cert: str | None
-    client_cert_chain: list[str]
-    tls_version: str | None
-    cipher_suite: str | None
-
-
-def get_tls_info(transport: asyncio.Transport, server_config: Config) -> TLSInfo:
+def get_tls_info(transport: asyncio.Transport, server_config: Config) -> TLSExtensionInfo:
     ###
     # server_cert: Unable to set from transport information, need to set from server_config
     # client_cert_chain:
@@ -74,7 +66,7 @@ def get_tls_info(transport: asyncio.Transport, server_config: Config) -> TLSInfo
     # cipher_suite:
     ###
 
-    ssl_info: TLSInfo = {
+    ssl_info: TLSExtensionInfo = {
         "server_cert": None,
         "client_cert_chain": [],
         "tls_version": None,
