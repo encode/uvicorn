@@ -45,8 +45,8 @@ class BaseReload:
         A signal handler that is registered with the parent process.
         """
         if sig == signal.SIGHUP:
--            logger.info("Received SIGHUP. Reloading...")
--            self.restart()
+            logger.info("Received SIGHUP. Reloading...")
+            self.restart()
         else:
             # shutdown
             if sys.platform == "win32" and self.is_restarting:
