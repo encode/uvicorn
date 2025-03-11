@@ -78,7 +78,6 @@ class H11Protocol(asyncio.Protocol):
         self.server: tuple[str, int] | None = None
         self.client: tuple[str, int] | None = None
         self.scheme: Literal["http", "https"] | None = None
-        self.tls: TLSInfo = TLSInfo()
 
         # Per-request state
         self.scope: HTTPScope = None  # type: ignore[assignment]
@@ -96,9 +95,6 @@ class H11Protocol(asyncio.Protocol):
         self.server = get_local_addr(transport)
         self.client = get_remote_addr(transport)
         self.scheme = "https" if is_ssl(transport) else "http"
-
-        if self.config.is_ssl:
-            self.tls = get_tls_info(transport, self.config)
 
         if self.logger.level <= TRACE_LOG_LEVEL:
             prefix = "%s:%d - " % self.client if self.client else ""
@@ -220,7 +216,7 @@ class H11Protocol(asyncio.Protocol):
                 }
 
                 if self.config.is_ssl:
-                    self.scope["extensions"]["tls"] = cast(dict[object, object], self.tls)
+                    self.scope["extensions"]["tls"] = get_tls_info(self.transport, self.config)
 
                 if self._should_upgrade():
                     self.handle_websocket_upgrade(event)
