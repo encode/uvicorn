@@ -306,24 +306,21 @@ class TestBaseReload:
 
 
 @pytest.mark.skipif(WatchFilesReload is None, reason="watchfiles not available")
-def test_should_watch_one_dir_cwd(mocker: MockerFixture, reload_directory_structure: Path):
+def test_should_watch_cwd(mocker: MockerFixture, reload_directory_structure: Path):
     mock_watch = mocker.patch("uvicorn.supervisors.watchfilesreload.watch")
-    app_dir = reload_directory_structure / "app"
-    app_first_dir = reload_directory_structure / "app_first"
 
-    with as_cwd(reload_directory_structure):
-        config = Config(
-            app="tests.test_config:asgi_app",
-            reload=True,
-            reload_dirs=[str(app_dir), str(app_first_dir)],
-        )
-        WatchFilesReload(config, target=run, sockets=[])
-        mock_watch.assert_called_once()
-        assert mock_watch.call_args[0] == (Path.cwd(),)
+    config = Config(
+        app="tests.test_config:asgi_app",
+        reload=True,
+        reload_dirs=[],
+    )
+    WatchFilesReload(config, target=run, sockets=[])
+    mock_watch.assert_called_once()
+    assert mock_watch.call_args[0] == (Path.cwd(),)
 
 
 @pytest.mark.skipif(WatchFilesReload is None, reason="watchfiles not available")
-def test_should_watch_separate_dirs_outside_cwd(mocker: MockerFixture, reload_directory_structure: Path):
+def test_should_watch_multiple_dirs(mocker: MockerFixture, reload_directory_structure: Path):
     mock_watch = mocker.patch("uvicorn.supervisors.watchfilesreload.watch")
     app_dir = reload_directory_structure / "app"
     app_first_dir = reload_directory_structure / "app_first"
@@ -337,7 +334,6 @@ def test_should_watch_separate_dirs_outside_cwd(mocker: MockerFixture, reload_di
     assert set(mock_watch.call_args[0]) == {
         app_dir,
         app_first_dir,
-        Path.cwd(),
     }
 
 
