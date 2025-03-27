@@ -13,12 +13,13 @@ from uvicorn.supervisors.basereload import BaseReload
 class FileFilter:
     def __init__(self, config: Config):
         default_includes = ["*.py"]
-        self.includes = [default for default in default_includes if default not in config.reload_excludes]
-        self.includes.extend(config.reload_includes)
-        self.includes = list(set(self.includes))
+        self.includes = list(
+            # Remove any included defaults that are excluded
+            (set(default_includes) - set(config.reload_excludes))
+            # Merge with any user-provided includes
+            | set(config.reload_includes)
+        )
 
-        default_excludes = [".*", ".py[cod]", ".sw.*", "~*"]
-        self.excludes = [default for default in default_excludes if default not in config.reload_includes]
         self.exclude_dirs = []
         """List of excluded directories resolved to absolute paths"""
 
@@ -32,6 +33,13 @@ class FileFilter:
                 # gets raised on Windows for values like "*.py"
                 pass
 
+        default_excludes = [".*", ".py[cod]", ".sw.*", "~*"]
+        self.excludes = list(
+            # Remove any excluded defaults that are included
+            (set(default_excludes) - set(config.reload_includes))
+            # Merge with any user-provided excludes (excluding directories)
+            | (set(config.reload_excludes) - set(str(ex_dir) for ex_dir in self.exclude_dirs))
+        )
 
         self._exclude_dir_names_set = set(
             exclude for exclude in config.reload_excludes if "*" not in exclude and "/" not in exclude
