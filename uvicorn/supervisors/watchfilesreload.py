@@ -33,12 +33,18 @@ class FileFilter:
                 pass
 
 
+        self._exclude_dir_names_set = set(
+            exclude for exclude in config.reload_excludes if "*" not in exclude and "/" not in exclude
+        )
+        """Set of excluded directory names that do not contain a wildcard or path separator"""
+
     def __call__(self, path: Path) -> bool:
         for include_pattern in self.includes:
             if path.match(include_pattern):
                 if str(path).endswith(include_pattern):
                     return True  # pragma: full coverage
 
+                # Exclude if the pattern matches the file path
                 for exclude_pattern in self.excludes:
                     if path.match(exclude_pattern):
                         return False  # pragma: full coverage
@@ -51,6 +57,12 @@ class FileFilter:
                 for exclude_dir in self.exclude_dirs:
                     if exclude_dir in path_parents:
                         return False
+
+                # Exclude if any parent directory name is an exact match to an excluded value
+                # Ex: `aaa/bbb/ccc/d.txt` will be excluded if `bbb` is in the exclude list,
+                #     but not `bb` or `bb*` or `bbb/**`
+                if set(path.parent.parts) & self._exclude_dir_names_set:
+                    return False
 
                 return True
         return False
