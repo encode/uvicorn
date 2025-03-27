@@ -20,19 +20,18 @@ class FileFilter:
         default_excludes = [".*", ".py[cod]", ".sw.*", "~*"]
         self.excludes = [default for default in default_excludes if default not in config.reload_includes]
         self.exclude_dirs = []
+        """List of excluded directories resolved to absolute paths"""
+
         for e in config.reload_excludes:
             p = Path(e)
             try:
-                is_dir = p.is_dir()
+                if p.is_dir():
+                    # Storing absolute path to always match `path.parents` values (which are absolute)
+                    self.exclude_dirs.append(p.absolute())
             except OSError:  # pragma: no cover
                 # gets raised on Windows for values like "*.py"
-                is_dir = False
+                pass
 
-            if is_dir:
-                self.exclude_dirs.append(p)
-            else:
-                self.excludes.append(e)  # pragma: full coverage
-        self.excludes = list(set(self.excludes))
 
     def __call__(self, path: Path) -> bool:
         for include_pattern in self.includes:
@@ -40,13 +39,18 @@ class FileFilter:
                 if str(path).endswith(include_pattern):
                     return True  # pragma: full coverage
 
-                for exclude_dir in self.exclude_dirs:
-                    if exclude_dir in path.parents:
-                        return False
-
                 for exclude_pattern in self.excludes:
                     if path.match(exclude_pattern):
                         return False  # pragma: full coverage
+
+                # Exclude if any parent of the path is an excluded directory
+                # Ex: `/www/xxx/yyy/z.txt` will be excluded if
+                # * `/www` or `/www/xxx` is in the exclude list
+                # * `xxx/yyy` is in the exclude list and the current directory is `/www`
+                path_parents = path.parents
+                for exclude_dir in self.exclude_dirs:
+                    if exclude_dir in path_parents:
+                        return False
 
                 return True
         return False
