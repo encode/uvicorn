@@ -90,7 +90,7 @@ class BaseReload:
             self.is_restarting = True
             assert self.process.pid is not None
             os.kill(self.process.pid, signal.CTRL_C_EVENT)
-            print("") # This helps trigger windows to respond to the Ctrl+C event
+            print("")  # This helps trigger windows to respond to the Ctrl+C event
         else:  # pragma: py-win32
             self.process.terminate()
         self.process.join()
