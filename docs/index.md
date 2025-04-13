@@ -193,7 +193,7 @@ gunicorn example:app -w 4 -k uvicorn.workers.UvicornWorker
 
 For a [PyPy][pypy] compatible configuration use `uvicorn.workers.UvicornH11Worker`.
 
-For more information, see the [deployment documentation](deployment.md).
+For more information, see the [deployment documentation](deployment/index.md).
 
 ### Application factories
 
