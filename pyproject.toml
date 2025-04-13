@@ -134,8 +134,3 @@ py-gte-310 = "sys_version_info >= (3, 10)"
 py-lt-310 = "sys_version_info < (3, 10)"
 py-gte-311 = "sys_version_info >= (3, 11)"
 py-lt-311 = "sys_version_info < (3, 11)"
-
-[tool.uv.workspace]
-members = [
-    "app",
-]
