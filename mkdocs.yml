@@ -33,6 +33,7 @@ theme:
     - navigation.tracking
     - navigation.footer # https://squidfunk.github.io/mkdocs-material/upgrade/?h=content+copy#navigationfooter
     - toc.follow # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#anchor-following
+    - announce.dismiss # https://squidfunk.github.io/mkdocs-material/setup/setting-up-the-header/#mark-as-read
 
 repo_name: encode/uvicorn
 repo_url: https://github.com/encode/uvicorn
