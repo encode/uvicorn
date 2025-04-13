@@ -92,7 +92,7 @@ class BaseReload:
             os.kill(self.process.pid, signal.CTRL_C_EVENT)
 
             # This is a workaround to ensure the Ctrl+C event is processed
-            sys.stdout.write(" ") # This has to be a non-empty string
+            sys.stdout.write(" ")  # This has to be a non-empty string
             sys.stdout.flush()
         else:  # pragma: py-win32
             self.process.terminate()
