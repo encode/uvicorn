@@ -44,19 +44,19 @@ async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     pass  # pragma: no cover
 
 
-def run(sockets: list[socket.socket] | None) -> None:
+def run(sockets: list[socket.socket] | None, process_num: int) -> None:
     while True:  # pragma: no cover
         time.sleep(1)
 
 
 def test_process_ping_pong() -> None:
-    process = Process(Config(app=app), target=lambda x: None, sockets=[])
+    process = Process(Config(app=app), target=lambda x, y: None, sockets=[], process_num=0)
     threading.Thread(target=process.always_pong, daemon=True).start()
     assert process.ping()
 
 
 def test_process_ping_pong_timeout() -> None:
-    process = Process(Config(app=app), target=lambda x: None, sockets=[])
+    process = Process(Config(app=app), target=lambda x, y: None, sockets=[], process_num=0)
     assert not process.ping(0.1)
 
 
