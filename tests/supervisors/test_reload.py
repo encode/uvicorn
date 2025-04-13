@@ -309,11 +309,7 @@ class TestBaseReload:
 def test_should_watch_cwd(mocker: MockerFixture, reload_directory_structure: Path):
     mock_watch = mocker.patch("uvicorn.supervisors.watchfilesreload.watch")
 
-    config = Config(
-        app="tests.test_config:asgi_app",
-        reload=True,
-        reload_dirs=[],
-    )
+    config = Config(app="tests.test_config:asgi_app", reload=True, reload_dirs=[])
     WatchFilesReload(config, target=run, sockets=[])
     mock_watch.assert_called_once()
     assert mock_watch.call_args[0] == (Path.cwd(),)
