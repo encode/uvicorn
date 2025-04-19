@@ -2,6 +2,7 @@ from __future__ import annotations as _annotations
 
 import re
 import subprocess
+from functools import lru_cache
 
 from mkdocs.config import Config
 from mkdocs.structure.files import Files
@@ -32,10 +33,10 @@ def on_page_markdown(markdown: str, page: Page, config: Config, files: Files) ->
 
 
 def uvicorn_print_help(markdown: str, page: Page) -> str:
-    # if you don't filter to the specific route that needs this substitution, things will be very slow
-    if page.file.src_uri not in ("index.md", "deployment.md"):
-        return markdown
+    return re.sub(r"{{ *uvicorn_help *}}", get_uvicorn_help(), markdown)
 
+
+@lru_cache
+def get_uvicorn_help():
     output = subprocess.run(["uvicorn", "--help"], capture_output=True, check=True)
-    logfire_help = output.stdout.decode()
-    return re.sub(r"{{ *uvicorn_help *}}", logfire_help, markdown)
+    return output.stdout.decode()
