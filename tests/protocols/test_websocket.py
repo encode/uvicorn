@@ -11,7 +11,6 @@ import websockets.asyncio
 import websockets.asyncio.client
 import websockets.client
 import websockets.exceptions
-from typing_extensions import TypedDict
 from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from websockets.typing import Subprotocol
 
@@ -111,17 +110,14 @@ async def test_invalid_upgrade(ws_protocol_cls: WSProtocol, http_protocol_cls: H
             pass  # ok, wsproto 0.13
         else:
             assert response.status_code == 400
-            assert (
-                response.text.lower().strip().rstrip(".")
-                in [
-                    "missing sec-websocket-key header",
-                    "missing sec-websocket-version header",  # websockets
-                    "missing or empty sec-websocket-key header",  # wsproto
-                    "failed to open a websocket connection: missing " "sec-websocket-key header",
-                    "failed to open a websocket connection: missing or empty " "sec-websocket-key header",
-                    "failed to open a websocket connection: missing sec-websocket-key header; 'sec-websocket-key'",
-                ]
-            )
+            assert response.text.lower().strip().rstrip(".") in [
+                "missing sec-websocket-key header",
+                "missing sec-websocket-version header",  # websockets
+                "missing or empty sec-websocket-key header",  # wsproto
+                "failed to open a websocket connection: missing sec-websocket-key header",
+                "failed to open a websocket connection: missing or empty sec-websocket-key header",
+                "failed to open a websocket connection: missing sec-websocket-key header; 'sec-websocket-key'",
+            ]
 
 
 async def test_accept_connection(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int):
@@ -776,7 +772,7 @@ async def test_server_reject_connection(
     assert disconnected_message == {"type": "websocket.disconnect", "code": 1006}
 
 
-class EmptyDict(TypedDict): ...
+class EmptyDict(typing.TypedDict): ...
 
 
 async def test_server_reject_connection_with_response(
@@ -1024,7 +1020,7 @@ async def test_server_multiple_websocket_http_response_start_events(
         await websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
 
     assert exception_message == (
-        "Expected ASGI message 'websocket.http.response.body' but got " "'websocket.http.response.start'."
+        "Expected ASGI message 'websocket.http.response.body' but got 'websocket.http.response.start'."
     )
 
 

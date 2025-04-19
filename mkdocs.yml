@@ -1,6 +1,7 @@
 site_name: Uvicorn
 site_description: The lightning-fast ASGI server.
 site_url: https://www.uvicorn.org
+strict: true
 
 theme:
   name: material
@@ -20,32 +21,57 @@ theme:
         icon: "material/lightbulb-outline"
         name: "Switch to light mode"
   features:
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotate
     - content.code.copy # https://squidfunk.github.io/mkdocs-material/upgrade/?h=content+copy#contentcodecopy
+    - navigation.path
+    - navigation.indexes
+    - navigation.sections # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation
     - navigation.top # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#back-to-top-button
+    - navigation.tracking
     - navigation.footer # https://squidfunk.github.io/mkdocs-material/upgrade/?h=content+copy#navigationfooter
     - toc.follow # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#anchor-following
+    - announce.dismiss # https://squidfunk.github.io/mkdocs-material/setup/setting-up-the-header/#mark-as-read
 
 repo_name: encode/uvicorn
 repo_url: https://github.com/encode/uvicorn
 edit_uri: edit/master/docs/
 
+# https://www.mkdocs.org/user-guide/configuration/#validation
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+
 nav:
   - Introduction: index.md
   - Settings: settings.md
-  - Deployment: deployment.md
+  - Deployment:
+      - Deployment: deployment/index.md
+      - Docker: deployment/docker.md
   - Server Behavior: server-behavior.md
   - Release Notes: release-notes.md
   - Contributing: contributing.md
+  - Sponsorship: sponsorship.md
 
 markdown_extensions:
+  - attr_list
   - admonition
   - codehilite:
       css_class: highlight
   - toc:
       permalink: true
+  - pymdownx.details
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.tasklist:
+      custom_checkbox: true
 
 hooks:
   - docs/plugins/main.py
