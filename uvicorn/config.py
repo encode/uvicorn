@@ -313,7 +313,7 @@ class Config:
                         + "directories, watching current working directory.",
                         reload_dirs,
                     )
-                self.reload_dirs = [Path(os.getcwd())]
+                self.reload_dirs = [Path.cwd()]
 
             logger.info(
                 "Will watch for changes in these directories: %s",
