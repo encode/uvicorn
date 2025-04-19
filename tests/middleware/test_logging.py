@@ -10,6 +10,7 @@ import httpx
 import pytest
 import websockets
 import websockets.client
+from websockets.protocol import State
 
 from tests.utils import run_server
 from uvicorn import Config
@@ -49,7 +50,9 @@ async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
-async def test_trace_logging(caplog: pytest.LogCaptureFixture, logging_config, unused_tcp_port: int):
+async def test_trace_logging(
+    caplog: pytest.LogCaptureFixture, logging_config: dict[str, typing.Any], unused_tcp_port: int
+):
     config = Config(
         app=app,
         log_level="trace",
@@ -91,8 +94,8 @@ async def test_trace_logging_on_http_protocol(http_protocol_cls, caplog, logging
 
 async def test_trace_logging_on_ws_protocol(
     ws_protocol_cls: WSProtocol,
-    caplog,
-    logging_config,
+    caplog: pytest.LogCaptureFixture,
+    logging_config: dict[str, typing.Any],
     unused_tcp_port: int,
 ):
     async def websocket_app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
@@ -104,9 +107,9 @@ async def test_trace_logging_on_ws_protocol(
             elif message["type"] == "websocket.disconnect":
                 break
 
-    async def open_connection(url):
+    async def open_connection(url: str):
         async with websockets.client.connect(url) as websocket:
-            return websocket.open
+            return websocket.state is State.OPEN
 
     config = Config(
         app=websocket_app,
