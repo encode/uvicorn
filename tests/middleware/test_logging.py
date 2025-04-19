@@ -10,6 +10,7 @@ import httpx
 import pytest
 import websockets
 import websockets.client
+from websockets.protocol import State
 
 from tests.utils import run_server
 from uvicorn import Config
@@ -108,7 +109,7 @@ async def test_trace_logging_on_ws_protocol(
 
     async def open_connection(url: str):
         async with websockets.client.connect(url) as websocket:
-            return websocket.open
+            return websocket.state is State.OPEN
 
     config = Config(
         app=websocket_app,

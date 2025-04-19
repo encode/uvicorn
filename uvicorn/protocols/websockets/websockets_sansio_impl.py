@@ -7,7 +7,7 @@ from http import HTTPStatus
 from typing import Any, Literal, cast
 from urllib.parse import unquote
 
-from websockets import InvalidState
+from websockets.exceptions import InvalidState
 from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from websockets.frames import Frame, Opcode
 from websockets.http11 import Request
@@ -371,7 +371,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                     self.close_sent = True
                     self.transport.close()
                 else:
-                    msg = "Expected ASGI message 'websocket.send' or 'websocket.close'," " but got '%s'."
+                    msg = "Expected ASGI message 'websocket.send' or 'websocket.close', but got '%s'."
                     raise RuntimeError(msg % message_type)
             except InvalidState:
                 raise ClientDisconnected()
@@ -390,7 +390,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                     self.transport.write(b"".join(output))
                     self.transport.close()
             else:
-                msg = "Expected ASGI message 'websocket.http.response.body' " "but got '%s'."
+                msg = "Expected ASGI message 'websocket.http.response.body' but got '%s'."
                 raise RuntimeError(msg % message_type)
 
         else:
