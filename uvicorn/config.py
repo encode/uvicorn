@@ -94,10 +94,11 @@ LOGGING_CONFIG: dict[str, Any] = {
         "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": False},
         "uvicorn.error": {"level": "INFO"},
         "uvicorn.access": {"handlers": ["access"], "level": "INFO", "propagate": False},
+        "uvicorn.log": {"level": "INFO"},
     },
 }
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger("uvicorn.log")
 
 
 def create_ssl_context(
@@ -386,6 +387,7 @@ class Config:
                 log_level = LOG_LEVELS[self.log_level]
             else:
                 log_level = self.log_level
+            logging.getLogger("uvicorn.log").setLevel(log_level)
             logging.getLogger("uvicorn.error").setLevel(log_level)
             logging.getLogger("uvicorn.access").setLevel(log_level)
             logging.getLogger("uvicorn.asgi").setLevel(log_level)

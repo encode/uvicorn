@@ -19,7 +19,7 @@ SIGNALS = {
     if hasattr(signal, f"SIG{x}")
 }
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger("uvicorn.log")
 
 
 class Process:

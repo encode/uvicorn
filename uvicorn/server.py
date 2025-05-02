@@ -34,7 +34,7 @@ HANDLED_SIGNALS = (
 if sys.platform == "win32":  # pragma: py-not-win32
     HANDLED_SIGNALS += (signal.SIGBREAK,)  # Windows signal 21. Sent by Ctrl+Break.
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger("uvicorn.log")
 
 
 class ServerState:

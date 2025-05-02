@@ -42,7 +42,7 @@ INTERFACE_CHOICES = click.Choice(INTERFACES)
 
 STARTUP_FAILURE = 3
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger("uvicorn.log")
 
 
 def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> None:
@@ -565,8 +565,8 @@ def run(
     server = Server(config=config)
 
     if (config.reload or config.workers > 1) and not isinstance(app, str):
-        logger = logging.getLogger("uvicorn.error")
-        logger.warning("You must pass the application as an import string to enable 'reload' or 'workers'.")
+        error_logger = logging.getLogger("uvicorn.log")
+        error_logger.warning("You must pass the application as an import string to enable 'reload' or 'workers'.")
         sys.exit(1)
 
     try:

@@ -49,7 +49,7 @@ class H11Protocol(asyncio.Protocol):
         self.config = config
         self.app = config.loaded_app
         self.loop = _loop or asyncio.get_event_loop()
-        self.logger = logging.getLogger("uvicorn.error")
+        self.logger = logging.getLogger("uvicorn.log")
         self.access_logger = logging.getLogger("uvicorn.access")
         self.access_log = self.access_logger.hasHandlers()
         self.conn = h11.Connection(
