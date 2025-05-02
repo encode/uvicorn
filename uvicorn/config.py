@@ -448,6 +448,11 @@ class Config:
                 logger.warning(
                     "ASGI app factory detected. Using it, but please consider setting the --factory flag explicitly."
                 )
+                
+        if isinstance(self.before_graceful_exit_hook, str):
+            self.before_graceful_exit_hook = import_from_string(
+                self.before_graceful_exit_hook
+            )
 
         if self.interface == "auto":
             if inspect.isclass(self.loaded_app):

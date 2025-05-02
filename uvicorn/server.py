@@ -14,6 +14,7 @@ from collections.abc import Generator, Sequence
 from email.utils import formatdate
 from types import FrameType
 from typing import TYPE_CHECKING, Union
+import inspect
 
 import click
 
@@ -262,6 +263,10 @@ class Server:
     async def shutdown(self, sockets: list[socket.socket] | None = None) -> None:
         logger.info("Shutting down")
 
+        if callable(self.config.before_graceful_exit_hook):
+            f = self.config.before_graceful_exit_hook()
+            if inspect.isawaitable(f):
+                await f
         # Stop accepting new connections.
         for server in self.servers:
             server.close()
