@@ -6,7 +6,7 @@ h11==0.16.0
 # Explicit optionals
 a2wsgi==1.10.8
 wsproto==1.2.0
-websockets==15.0.1
+websockets==13.1
 
 # Packaging
 build==1.2.2.post1
