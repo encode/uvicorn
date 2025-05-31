@@ -7,9 +7,9 @@ import logging
 import os
 import socket
 import sys
-import typing
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Literal
+from typing import IO, Any, Callable, Literal
 from unittest.mock import MagicMock
 
 import pytest
@@ -291,7 +291,7 @@ def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
     assert config.is_ssl is True
 
 
-def asgi2_app(scope: Scope) -> typing.Callable:
+def asgi2_app(scope: Scope) -> Callable:
     async def asgi(receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:  # pragma: nocover
         pass
 
@@ -374,7 +374,7 @@ def test_log_config_yaml(
 @pytest.mark.parametrize("config_file", ["log_config.ini", configparser.ConfigParser(), io.StringIO()])
 def test_log_config_file(
     mocked_logging_config_module: MagicMock,
-    config_file: str | configparser.RawConfigParser | typing.IO[Any],
+    config_file: str | configparser.RawConfigParser | IO[Any],
 ) -> None:
     """
     Test that one can load a configparser config from disk.
@@ -386,14 +386,14 @@ def test_log_config_file(
 
 
 @pytest.fixture(params=[0, 1])
-def web_concurrency(request: pytest.FixtureRequest) -> typing.Iterator[int]:
+def web_concurrency(request: pytest.FixtureRequest) -> Iterator[int]:
     yield request.param
     if os.getenv("WEB_CONCURRENCY"):
         del os.environ["WEB_CONCURRENCY"]
 
 
 @pytest.fixture(params=["127.0.0.1", "127.0.0.2"])
-def forwarded_allow_ips(request: pytest.FixtureRequest) -> typing.Iterator[str]:
+def forwarded_allow_ips(request: pytest.FixtureRequest) -> Iterator[str]:
     yield request.param
     if os.getenv("FORWARDED_ALLOW_IPS"):
         del os.environ["FORWARDED_ALLOW_IPS"]
