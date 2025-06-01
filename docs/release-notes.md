@@ -2,11 +2,12 @@
 toc_depth: 2
 ---
 
-## 0.34.3 (April 19, 2025)
+## 0.34.3 (June 1, 2025)
 
 ### Fixed
 
 * Don't include `cwd()` when non-empty `--reload-dirs` is passed (#2598)
+* Apply `get_client_addr` formatting to WebSocket logging (#2636)
 
 ## 0.34.2 (April 19, 2025)
 
