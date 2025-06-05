@@ -58,7 +58,7 @@ def asgi_app_factory(**kwargs):
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
         pass  # pragma: nocover
 
-    app.worker_kwargs = kwargs  # type: ignore
+    app.factory_kwargs = kwargs  # type: ignore
     return app
 
 
@@ -555,14 +555,14 @@ def test_warn_when_using_reload_and_workers(caplog: pytest.LogCaptureFixture) ->
     assert '"workers" flag is ignored when reloading is enabled.' in caplog.records[0].message
 
 
-def test_config_worker_kwargs():
+def test_config_factory_kwargs():
     config = Config(
         app="tests.test_config:asgi_app_factory",
-        worker_kwargs={"alpha": 12, "beta": [3, 4, 5]},
+        factory_kwargs={"alpha": 12, "beta": [3, 4, 5]},
         factory=True,
         workers=4,
         proxy_headers=False,
     )
     config.load()
 
-    assert config.loaded_app.worker_kwargs == {"alpha": 12, "beta": [3, 4, 5]}
+    assert config.loaded_app.factory_kwargs == {"alpha": 12, "beta": [3, 4, 5]}

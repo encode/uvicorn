@@ -223,7 +223,7 @@ class Config:
         headers: list[tuple[str, str]] | None = None,
         factory: bool = False,
         h11_max_incomplete_event_size: int | None = None,
-        worker_kwargs: dict | None = None,
+        factory_kwargs: dict | None = None,
     ):
         self.app = app
         self.host = host
@@ -269,7 +269,7 @@ class Config:
         self.encoded_headers: list[tuple[bytes, bytes]] = []
         self.factory = factory
         self.h11_max_incomplete_event_size = h11_max_incomplete_event_size
-        self.worker_kwargs = worker_kwargs or {}
+        self.factory_kwargs = factory_kwargs or {}
 
         self.loaded = False
         self.configure_logging()
@@ -439,7 +439,7 @@ class Config:
             sys.exit(1)
 
         try:
-            self.loaded_app = self.loaded_app(**self.worker_kwargs)
+            self.loaded_app = self.loaded_app(**self.factory_kwargs)
         except TypeError as exc:
             if self.factory:
                 logger.error("Error loading ASGI app factory: %s", exc)
