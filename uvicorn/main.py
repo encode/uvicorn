@@ -6,6 +6,7 @@ import os
 import platform
 import ssl
 import sys
+import warnings
 from configparser import RawConfigParser
 from typing import IO, Any, Callable
 
@@ -29,7 +30,7 @@ from uvicorn.config import (
     LoopSetupType,
     WSProtocolType,
 )
-from uvicorn.server import Server, ServerState  # noqa: F401  # Used to be defined here.
+from uvicorn.server import Server
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
 LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
@@ -81,7 +82,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--reload-dir",
     "reload_dirs",
     multiple=True,
-    help="Set reload directories explicitly, instead of using the current working" " directory.",
+    help="Set reload directories explicitly, instead of using the current working directory.",
     type=click.Path(exists=True),
 )
 @click.option(
@@ -106,7 +107,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     type=float,
     default=0.25,
     show_default=True,
-    help="Delay between previous and next check if application needs to be." " Defaults to 0.25s.",
+    help="Delay between previous and next check if application needs to be. Defaults to 0.25s.",
 )
 @click.option(
     "--workers",
@@ -222,7 +223,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--proxy-headers/--no-proxy-headers",
     is_flag=True,
     default=True,
-    help="Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to " "populate remote address info.",
+    help="Enable/Disable X-Forwarded-Proto, X-Forwarded-For, X-Forwarded-Port to populate remote address info.",
 )
 @click.option(
     "--server-header/--no-server-header",
@@ -240,8 +241,10 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--forwarded-allow-ips",
     type=str,
     default=None,
-    help="Comma separated list of IPs to trust with proxy headers. Defaults to"
-    " the $FORWARDED_ALLOW_IPS environment variable if available, or '127.0.0.1'.",
+    help="Comma separated list of IP Addresses, IP Networks, or literals "
+    "(e.g. UNIX Socket path) to trust with proxy headers. Defaults to the "
+    "$FORWARDED_ALLOW_IPS environment variable if available, or '127.0.0.1'. "
+    "The literal '*' means trust everything.",
 )
 @click.option(
     "--root-path",
@@ -253,7 +256,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     "--limit-concurrency",
     type=int,
     default=None,
-    help="Maximum number of concurrent connections or tasks to allow, before issuing" " HTTP 503 responses.",
+    help="Maximum number of concurrent connections or tasks to allow, before issuing HTTP 503 responses.",
 )
 @click.option(
     "--backlog",
@@ -495,7 +498,7 @@ def run(
     limit_max_requests: int | None = None,
     timeout_keep_alive: int = 5,
     timeout_graceful_shutdown: int | None = None,
-    ssl_keyfile: str | None = None,
+    ssl_keyfile: str | os.PathLike[str] | None = None,
     ssl_certfile: str | os.PathLike[str] | None = None,
     ssl_keyfile_password: str | None = None,
     ssl_version: int = SSL_PROTOCOL_VERSION,
@@ -565,7 +568,7 @@ def run(
 
     if (config.reload or config.workers > 1) and not isinstance(app, str):
         logger = logging.getLogger("uvicorn.error")
-        logger.warning("You must pass the application as an import string to enable 'reload' or " "'workers'.")
+        logger.warning("You must pass the application as an import string to enable 'reload' or 'workers'.")
         sys.exit(1)
 
     try:
@@ -585,6 +588,18 @@ def run(
 
     if not server.started and not config.should_reload and config.workers == 1:
         sys.exit(STARTUP_FAILURE)
+
+
+def __getattr__(name: str) -> Any:
+    if name == "ServerState":
+        warnings.warn(
+            "uvicorn.main.ServerState is deprecated, use uvicorn.server.ServerState instead.",
+            DeprecationWarning,
+        )
+        from uvicorn.server import ServerState
+
+        return ServerState
+    raise AttributeError(f"module {__name__} has no attribute {name}")
 
 
 if __name__ == "__main__":

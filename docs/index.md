@@ -1,3 +1,10 @@
+<style>
+  .md-typeset h1,
+  .md-content__button {
+    display: none;
+  }
+</style>
+
 <p align="center">
   <img width="320" height="320" src="../../uvicorn.png" alt='uvicorn'>
 </p>
@@ -20,9 +27,13 @@
 
 ---
 
-# Introduction
+**Documentation**: [https://www.uvicorn.org](https://www.uvicorn.org)
 
-Uvicorn is an ASGI web server implementation for Python.
+**Source Code**: [https://www.github.com/encode/uvicorn](https://www.github.com/encode/uvicorn)
+
+---
+
+**Uvicorn** is an ASGI web server implementation for Python.
 
 Until recently Python has lacked a minimal low-level server/application interface for
 async frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
@@ -35,13 +46,13 @@ Uvicorn currently supports **HTTP/1.1** and **WebSockets**.
 Install using `pip`:
 
 ```shell
-$ pip install uvicorn
+pip install uvicorn
 ```
 
 This will install uvicorn with minimal (pure Python) dependencies.
 
 ```shell
-$ pip install 'uvicorn[standard]'
+pip install 'uvicorn[standard]'
 ```
 
 This will install uvicorn with "Cython-based" dependencies (where possible) and other "optional extras".
@@ -58,7 +69,7 @@ Moreover, "optional extras" means that:
 
 - the websocket protocol will be handled by `websockets` (should you want to use `wsproto` you'd need to install it manually) if possible.
 - the `--reload` flag in development mode will use `watchfiles`.
-- windows users will have `colorama` installed for the colored logs.
+- Windows users will have `colorama` installed for the colored logs.
 - `python-dotenv` will be installed should you want to use the `--env-file` option.
 - `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
 
@@ -72,7 +83,8 @@ async def app(scope, receive, send):
         'type': 'http.response.start',
         'status': 200,
         'headers': [
-            [b'content-type', b'text/plain'],
+            (b'content-type', b'text/plain'),
+            (b'content-length', b'13'),
         ],
     })
     await send({
@@ -84,7 +96,7 @@ async def app(scope, receive, send):
 Run the server:
 
 ```shell
-$ uvicorn main:app
+uvicorn main:app
 ```
 
 ---
@@ -95,115 +107,8 @@ The uvicorn command line tool is the easiest way to run your application.
 
 ### Command line options
 
-<!-- :cli_usage: -->
-```
-$ uvicorn --help
-Usage: uvicorn [OPTIONS] APP
-
-Options:
-  --host TEXT                     Bind socket to this host.  [default:
-                                  127.0.0.1]
-  --port INTEGER                  Bind socket to this port. If 0, an available
-                                  port will be picked.  [default: 8000]
-  --uds TEXT                      Bind to a UNIX domain socket.
-  --fd INTEGER                    Bind to socket from this file descriptor.
-  --reload                        Enable auto-reload.
-  --reload-dir PATH               Set reload directories explicitly, instead
-                                  of using the current working directory.
-  --reload-include TEXT           Set glob patterns to include while watching
-                                  for files. Includes '*.py' by default; these
-                                  defaults can be overridden with `--reload-
-                                  exclude`. This option has no effect unless
-                                  watchfiles is installed.
-  --reload-exclude TEXT           Set glob patterns to exclude while watching
-                                  for files. Includes '.*, .py[cod], .sw.*,
-                                  ~*' by default; these defaults can be
-                                  overridden with `--reload-include`. This
-                                  option has no effect unless watchfiles is
-                                  installed.
-  --reload-delay FLOAT            Delay between previous and next check if
-                                  application needs to be. Defaults to 0.25s.
-                                  [default: 0.25]
-  --workers INTEGER               Number of worker processes. Defaults to the
-                                  $WEB_CONCURRENCY environment variable if
-                                  available, or 1. Not valid with --reload.
-  --loop [auto|asyncio|uvloop]    Event loop implementation.  [default: auto]
-  --http [auto|h11|httptools]     HTTP protocol implementation.  [default:
-                                  auto]
-  --ws [auto|none|websockets|wsproto]
-                                  WebSocket protocol implementation.
-                                  [default: auto]
-  --ws-max-size INTEGER           WebSocket max size message in bytes
-                                  [default: 16777216]
-  --ws-max-queue INTEGER          The maximum length of the WebSocket message
-                                  queue.  [default: 32]
-  --ws-ping-interval FLOAT        WebSocket ping interval in seconds.
-                                  [default: 20.0]
-  --ws-ping-timeout FLOAT         WebSocket ping timeout in seconds.
-                                  [default: 20.0]
-  --ws-per-message-deflate BOOLEAN
-                                  WebSocket per-message-deflate compression
-                                  [default: True]
-  --lifespan [auto|on|off]        Lifespan implementation.  [default: auto]
-  --interface [auto|asgi3|asgi2|wsgi]
-                                  Select ASGI3, ASGI2, or WSGI as the
-                                  application interface.  [default: auto]
-  --env-file PATH                 Environment configuration file.
-  --log-config PATH               Logging configuration file. Supported
-                                  formats: .ini, .json, .yaml.
-  --log-level [critical|error|warning|info|debug|trace]
-                                  Log level. [default: info]
-  --access-log / --no-access-log  Enable/Disable access log.
-  --use-colors / --no-use-colors  Enable/Disable colorized logging.
-  --proxy-headers / --no-proxy-headers
-                                  Enable/Disable X-Forwarded-Proto,
-                                  X-Forwarded-For, X-Forwarded-Port to
-                                  populate remote address info.
-  --server-header / --no-server-header
-                                  Enable/Disable default Server header.
-  --date-header / --no-date-header
-                                  Enable/Disable default Date header.
-  --forwarded-allow-ips TEXT      Comma separated list of IPs to trust with
-                                  proxy headers. Defaults to the
-                                  $FORWARDED_ALLOW_IPS environment variable if
-                                  available, or '127.0.0.1'.
-  --root-path TEXT                Set the ASGI 'root_path' for applications
-                                  submounted below a given URL path.
-  --limit-concurrency INTEGER     Maximum number of concurrent connections or
-                                  tasks to allow, before issuing HTTP 503
-                                  responses.
-  --backlog INTEGER               Maximum number of connections to hold in
-                                  backlog
-  --limit-max-requests INTEGER    Maximum number of requests to service before
-                                  terminating the process.
-  --timeout-keep-alive INTEGER    Close Keep-Alive connections if no new data
-                                  is received within this timeout.  [default:
-                                  5]
-  --timeout-graceful-shutdown INTEGER
-                                  Maximum number of seconds to wait for
-                                  graceful shutdown.
-  --ssl-keyfile TEXT              SSL key file
-  --ssl-certfile TEXT             SSL certificate file
-  --ssl-keyfile-password TEXT     SSL keyfile password
-  --ssl-version INTEGER           SSL version to use (see stdlib ssl module's)
-                                  [default: 17]
-  --ssl-cert-reqs INTEGER         Whether client certificate is required (see
-                                  stdlib ssl module's)  [default: 0]
-  --ssl-ca-certs TEXT             CA certificates file
-  --ssl-ciphers TEXT              Ciphers to use (see stdlib ssl module's)
-                                  [default: TLSv1]
-  --header TEXT                   Specify custom default HTTP response headers
-                                  as a Name:Value pair
-  --version                       Display the uvicorn version and exit.
-  --app-dir TEXT                  Look for APP in the specified directory, by
-                                  adding this to the PYTHONPATH. Defaults to
-                                  the current working directory.
-  --h11-max-incomplete-event-size INTEGER
-                                  For h11, the maximum number of bytes to
-                                  buffer of an incomplete event.
-  --factory                       Treat APP as an application factory, i.e. a
-                                  () -> <ASGI app> callable.
-  --help                          Show this message and exit.
+```bash
+{{ uvicorn_help }}
 ```
 
 For more information, see the [settings documentation](settings.md).
@@ -288,7 +193,7 @@ gunicorn example:app -w 4 -k uvicorn.workers.UvicornWorker
 
 For a [PyPy][pypy] compatible configuration use `uvicorn.workers.UvicornH11Worker`.
 
-For more information, see the [deployment documentation](deployment.md).
+For more information, see the [deployment documentation](deployment/index.md).
 
 ### Application factories
 
@@ -301,7 +206,7 @@ def create_app():
 ```
 
 ```shell
-$ uvicorn --factory main:create_app
+uvicorn --factory main:create_app
 ```
 
 ## The ASGI interface
@@ -507,9 +412,9 @@ It is run widely in production, and supports HTTP/1.1, HTTP/2, and WebSockets.
 
 Any of the example applications given here can equally well be run using `daphne` instead.
 
-```
-$ pip install daphne
-$ daphne app:App
+```shell
+pip install daphne
+daphne app:App
 ```
 
 ### Hypercorn
@@ -519,9 +424,9 @@ being separated out into a standalone ASGI server.
 
 Hypercorn supports HTTP/1.1, HTTP/2, HTTP/3 and WebSockets.
 
-```
-$ pip install hypercorn
-$ hypercorn app:App
+```shell
+pip install hypercorn
+hypercorn app:App
 ```
 
 ---
@@ -591,6 +496,6 @@ It has built-in Document-oriented Database, Caching System, Authentication and P
 [asgi]: https://asgi.readthedocs.io/en/latest/
 [asgi-http]: https://asgi.readthedocs.io/en/latest/specs/www.html
 [daphne]: https://github.com/django/daphne
-[hypercorn]: https://gitlab.com/pgjones/hypercorn
+[hypercorn]: https://github.com/pgjones/hypercorn
 [uvloop_docs]: https://uvloop.readthedocs.io/
 [httptools_vs_h11]: https://github.com/python-hyper/h11/issues/9

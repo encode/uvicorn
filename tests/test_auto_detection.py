@@ -5,9 +5,9 @@ import pytest
 
 from uvicorn.config import Config
 from uvicorn.loops.auto import auto_loop_setup
-from uvicorn.main import ServerState
 from uvicorn.protocols.http.auto import AutoHTTPProtocol
 from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
+from uvicorn.server import ServerState
 
 try:
     importlib.import_module("uvloop")

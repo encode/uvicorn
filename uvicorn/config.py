@@ -9,9 +9,10 @@ import os
 import socket
 import ssl
 import sys
+from collections.abc import Awaitable
 from configparser import RawConfigParser
 from pathlib import Path
-from typing import IO, Any, Awaitable, Callable, Literal
+from typing import IO, Any, Callable, Literal
 
 import click
 
@@ -137,7 +138,7 @@ def resolve_reload_patterns(patterns_list: list[str], directories_list: list[str
         # Special case for the .* pattern, otherwise this would only match
         # hidden directories which is probably undesired
         if pattern == ".*":
-            continue
+            continue  # pragma: py-not-linux
         patterns.append(pattern)
         if is_dir(Path(pattern)):
             directories.append(Path(pattern))
@@ -213,7 +214,7 @@ class Config:
         timeout_notify: int = 30,
         timeout_graceful_shutdown: int | None = None,
         callback_notify: Callable[..., Awaitable[None]] | None = None,
-        ssl_keyfile: str | None = None,
+        ssl_keyfile: str | os.PathLike[str] | None = None,
         ssl_certfile: str | os.PathLike[str] | None = None,
         ssl_keyfile_password: str | None = None,
         ssl_version: int = SSL_PROTOCOL_VERSION,
@@ -281,7 +282,7 @@ class Config:
 
         if (reload_dirs or reload_includes or reload_excludes) and not self.should_reload:
             logger.warning(
-                "Current configuration will not reload as not all conditions are met, " "please refer to documentation."
+                "Current configuration will not reload as not all conditions are met, please refer to documentation."
             )
 
         if self.should_reload:
@@ -314,7 +315,7 @@ class Config:
                         + "directories, watching current working directory.",
                         reload_dirs,
                     )
-                self.reload_dirs = [Path(os.getcwd())]
+                self.reload_dirs = [Path.cwd()]
 
             logger.info(
                 "Will watch for changes in these directories: %s",
@@ -447,7 +448,7 @@ class Config:
         else:
             if not self.factory:
                 logger.warning(
-                    "ASGI app factory detected. Using it, " "but please consider setting the --factory flag explicitly."
+                    "ASGI app factory detected. Using it, but please consider setting the --factory flag explicitly."
                 )
 
         if self.interface == "auto":

@@ -10,9 +10,10 @@ import socket
 import sys
 import threading
 import time
+from collections.abc import Generator, Sequence
 from email.utils import formatdate
 from types import FrameType
-from typing import TYPE_CHECKING, Generator, Sequence, Union
+from typing import TYPE_CHECKING, Union
 
 import click
 
@@ -118,7 +119,7 @@ class Server:
 
             def _share_socket(
                 sock: socket.SocketType,
-            ) -> socket.SocketType:  # pragma py-linux pragma: py-darwin
+            ) -> socket.SocketType:  # pragma py-not-win32
                 # Windows requires the socket be explicitly shared across
                 # multiple workers (processes).
                 from socket import fromshare  # type: ignore[attr-defined]
@@ -250,8 +251,12 @@ class Server:
         # Determine if we should exit.
         if self.should_exit:
             return True
-        if self.config.limit_max_requests is not None:
-            return self.server_state.total_requests >= self.config.limit_max_requests
+
+        max_requests = self.config.limit_max_requests
+        if max_requests is not None and self.server_state.total_requests >= max_requests:
+            logger.warning(f"Maximum request limit of {max_requests} exceeded. Terminating process.")
+            return True
+
         return False
 
     async def shutdown(self, sockets: list[socket.socket] | None = None) -> None:
@@ -280,10 +285,7 @@ class Server:
                 len(self.server_state.tasks),
             )
             for t in self.server_state.tasks:
-                if sys.version_info < (3, 9):  # pragma: py-gte-39
-                    t.cancel()
-                else:  # pragma: py-lt-39
-                    t.cancel(msg="Task cancelled, timeout graceful shutdown exceeded")
+                t.cancel(msg="Task cancelled, timeout graceful shutdown exceeded")
 
         # Send the lifespan shutdown event, and wait for application shutdown.
         if not self.force_exit:
