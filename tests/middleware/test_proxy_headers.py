@@ -465,6 +465,7 @@ async def test_proxy_headers_websocket_x_forwarded_proto(
         host, port = scope["client"]
         await send({"type": "websocket.accept"})
         await send({"type": "websocket.send", "text": f"{scheme}://{host}:{port}"})
+        await send({"type": "websocket.close"})
 
     app_with_middleware = ProxyHeadersMiddleware(websocket_app, trusted_hosts="*")
     config = Config(
