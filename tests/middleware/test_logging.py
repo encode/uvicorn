@@ -5,11 +5,10 @@ import logging
 import socket
 import sys
 from collections.abc import Iterator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import httpx
 import pytest
-import websockets
 import websockets.client
 from websockets.protocol import State
 
@@ -51,9 +50,7 @@ async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 
 
-async def test_trace_logging(
-    caplog: pytest.LogCaptureFixture, logging_config: dict[str, typing.Any], unused_tcp_port: int
-):
+async def test_trace_logging(caplog: pytest.LogCaptureFixture, logging_config: dict[str, Any], unused_tcp_port: int):
     config = Config(
         app=app,
         log_level="trace",
@@ -96,7 +93,7 @@ async def test_trace_logging_on_http_protocol(http_protocol_cls, caplog, logging
 async def test_trace_logging_on_ws_protocol(
     ws_protocol_cls: WSProtocol,
     caplog: pytest.LogCaptureFixture,
-    logging_config: dict[str, typing.Any],
+    logging_config: dict[str, Any],
     unused_tcp_port: int,
 ):
     async def websocket_app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
@@ -130,7 +127,9 @@ async def test_trace_logging_on_ws_protocol(
 
 
 @pytest.mark.parametrize("use_colors", [(True), (False), (None)])
-async def test_access_logging(use_colors: bool, caplog: pytest.LogCaptureFixture, logging_config, unused_tcp_port: int):
+async def test_access_logging(
+    use_colors: bool, caplog: pytest.LogCaptureFixture, logging_config: dict[str, Any], unused_tcp_port: int
+):
     config = Config(app=app, use_colors=use_colors, log_config=logging_config, port=unused_tcp_port)
     with caplog_for_logger(caplog, "uvicorn.access"):
         async with run_server(config):
@@ -144,7 +143,7 @@ async def test_access_logging(use_colors: bool, caplog: pytest.LogCaptureFixture
 
 @pytest.mark.parametrize("use_colors", [(True), (False)])
 async def test_default_logging(
-    use_colors: bool, caplog: pytest.LogCaptureFixture, logging_config, unused_tcp_port: int
+    use_colors: bool, caplog: pytest.LogCaptureFixture, logging_config: dict[str, Any], unused_tcp_port: int
 ):
     config = Config(app=app, use_colors=use_colors, log_config=logging_config, port=unused_tcp_port)
     with caplog_for_logger(caplog, "uvicorn.access"):

@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING, Any, TypedDict
 import httpx
 import pytest
 import websockets
-import websockets.asyncio
-import websockets.asyncio.client
 import websockets.client
 import websockets.exceptions
 from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory

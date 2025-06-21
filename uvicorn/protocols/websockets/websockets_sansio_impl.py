@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sys
 from asyncio.transports import BaseTransport, Transport
 from http import HTTPStatus
 from typing import Any, Literal, cast
@@ -18,8 +19,6 @@ from uvicorn._types import (
     ASGISendEvent,
     WebSocketAcceptEvent,
     WebSocketCloseEvent,
-    WebSocketDisconnectEvent,
-    WebSocketReceiveEvent,
     WebSocketResponseBodyEvent,
     WebSocketResponseStartEvent,
     WebSocketScope,
@@ -35,6 +34,11 @@ from uvicorn.protocols.utils import (
     is_ssl,
 )
 from uvicorn.server import ServerState
+
+if sys.version_info >= (3, 11):  # pragma: no cover
+    from typing import assert_never
+else:  # pragma: no cover
+    from typing_extensions import assert_never
 
 
 class WebSocketsSansIOProtocol(asyncio.Protocol):
@@ -75,7 +79,13 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
         extensions = []
         if self.config.ws_per_message_deflate:
-            extensions = [ServerPerMessageDeflateFactory()]
+            extensions = [
+                ServerPerMessageDeflateFactory(
+                    server_max_window_bits=12,
+                    client_max_window_bits=12,
+                    compress_settings={"memLevel": 5},
+                )
+            ]
         self.conn = ServerProtocol(
             extensions=extensions,
             max_size=self.config.ws_max_size,
@@ -130,8 +140,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
     def data_received(self, data: bytes) -> None:
         self.conn.receive_data(data)
-        parser_exc = self.conn.parser_exc
-        if parser_exc is not None:
+        if self.conn.parser_exc is not None:  # pragma: no cover
             self.handle_parser_exception()
             return
         self.handle_events()
@@ -142,15 +151,19 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                 self.handle_connect(event)
             if isinstance(event, Frame):
                 if event.opcode == Opcode.CONT:
-                    self.handle_cont(event)
+                    self.handle_cont(event)  # pragma: no cover
                 elif event.opcode == Opcode.TEXT:
                     self.handle_text(event)
                 elif event.opcode == Opcode.BINARY:
                     self.handle_bytes(event)
                 elif event.opcode == Opcode.PING:
-                    self.handle_ping(event)
+                    self.handle_ping()
+                elif event.opcode == Opcode.PONG:
+                    pass  # pragma: no cover
                 elif event.opcode == Opcode.CLOSE:
                     self.handle_close(event)
+                else:
+                    assert_never(event.opcode)  # pragma: no cover
 
     # Event handlers
 
@@ -193,7 +206,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         task.add_done_callback(self.on_task_complete)
         self.tasks.add(task)
 
-    def handle_cont(self, event: Frame) -> None:
+    def handle_cont(self, event: Frame) -> None:  # pragma: no cover
         self.bytes += event.data
         if event.fin:
             self.send_receive_event_to_app()
@@ -211,40 +224,35 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             self.send_receive_event_to_app()
 
     def send_receive_event_to_app(self) -> None:
-        data_type = self.curr_msg_data_type
-        msg: WebSocketReceiveEvent
-        if data_type == "text":
-            msg = {"type": "websocket.receive", data_type: self.bytes.decode()}
+        if self.curr_msg_data_type == "text":
+            self.queue.put_nowait({"type": "websocket.receive", "text": self.bytes.decode()})
         else:
-            msg = {"type": "websocket.receive", data_type: self.bytes}
-        self.queue.put_nowait(msg)
+            self.queue.put_nowait({"type": "websocket.receive", "bytes": self.bytes})
         if not self.read_paused:
             self.read_paused = True
             self.transport.pause_reading()
 
-    def handle_ping(self, event: Frame) -> None:
+    def handle_ping(self) -> None:
         output = self.conn.data_to_send()
         self.transport.write(b"".join(output))
 
     def handle_close(self, event: Frame) -> None:
         if not self.close_sent and not self.transport.is_closing():
-            disconnect_event: WebSocketDisconnectEvent = {
-                "type": "websocket.disconnect",
-                "code": self.conn.close_rcvd.code,  # type: ignore[union-attr]
-                "reason": self.conn.close_rcvd.reason,  # type: ignore[union-attr]
-            }
-            self.queue.put_nowait(disconnect_event)
+            assert self.conn.close_rcvd is not None
+            code = self.conn.close_rcvd.code
+            reason = self.conn.close_rcvd.reason
+            self.queue.put_nowait({"type": "websocket.disconnect", "code": code, "reason": reason})
+
             output = self.conn.data_to_send()
             self.transport.write(b"".join(output))
             self.transport.close()
 
-    def handle_parser_exception(self) -> None:
-        disconnect_event: WebSocketDisconnectEvent = {
-            "type": "websocket.disconnect",
-            "code": self.conn.close_sent.code,  # type: ignore[union-attr]
-            "reason": self.conn.close_sent.reason,  # type: ignore[union-attr]
-        }
-        self.queue.put_nowait(disconnect_event)
+    def handle_parser_exception(self) -> None:  # pragma: no cover
+        assert self.conn.close_sent is not None
+        code = self.conn.close_sent.code
+        reason = self.conn.close_sent.reason
+        self.queue.put_nowait({"type": "websocket.disconnect", "code": code, "reason": reason})
+
         output = self.conn.data_to_send()
         self.transport.write(b"".join(output))
         self.close_sent = True
@@ -257,7 +265,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
         try:
             result = await self.app(self.scope, self.receive, self.send)
         except ClientDisconnected:
-            self.transport.close()
+            self.transport.close()  # pragma: no cover
         except BaseException:
             self.logger.exception("Exception in ASGI application\n")
             self.send_500_response()
@@ -389,7 +397,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                     self.close_sent = True
                     self.transport.write(b"".join(output))
                     self.transport.close()
-            else:
+            else:  # pragma: no cover
                 msg = "Expected ASGI message 'websocket.http.response.body' but got '%s'."
                 raise RuntimeError(msg % message_type)
 
