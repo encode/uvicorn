@@ -225,7 +225,13 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
 
     def send_receive_event_to_app(self) -> None:
         if self.curr_msg_data_type == "text":
-            self.queue.put_nowait({"type": "websocket.receive", "text": self.bytes.decode()})
+            try:
+                self.queue.put_nowait({"type": "websocket.receive", "text": self.bytes.decode()})
+            except UnicodeDecodeError:  # pragma: no cover
+                self.logger.exception("Invalid UTF-8 sequence received from client.")
+                self.conn.send_close(1007)
+                self.handle_parser_exception()
+                return
         else:
             self.queue.put_nowait({"type": "websocket.receive", "bytes": self.bytes})
         if not self.read_paused:
@@ -272,13 +278,11 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
             self.transport.close()
         else:
             if not self.handshake_complete:
-                msg = "ASGI callable returned without completing handshake."
-                self.logger.error(msg)
+                self.logger.error("ASGI callable returned without completing handshake.")
                 self.send_500_response()
                 self.transport.close()
             elif result is not None:
-                msg = "ASGI callable should return None, but returned '%s'."
-                self.logger.error(msg, result)
+                self.logger.error("ASGI callable should return None, but returned '%s'.", result)
                 self.transport.close()
 
     def send_500_response(self) -> None:
@@ -372,7 +376,7 @@ class WebSocketsSansIOProtocol(asyncio.Protocol):
                     message = cast(WebSocketCloseEvent, message)
                     code = message.get("code", 1000)
                     reason = message.get("reason", "") or ""
-                    self.queue.put_nowait({"type": "websocket.disconnect", "code": code})
+                    self.queue.put_nowait({"type": "websocket.disconnect", "code": code, "reason": reason})
                     self.conn.send_close(code, reason)
                     output = self.conn.data_to_send()
                     self.transport.write(b"".join(output))
