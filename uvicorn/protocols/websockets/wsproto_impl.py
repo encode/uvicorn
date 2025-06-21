@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import typing
-from typing import Literal, cast
+from typing import Any, Literal, cast
 from urllib.parse import unquote
 
 import wsproto
@@ -27,6 +26,7 @@ from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import (
     ClientDisconnected,
+    get_client_addr,
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
@@ -40,7 +40,7 @@ class WSProtocol(asyncio.Protocol):
         self,
         config: Config,
         server_state: ServerState,
-        app_state: dict[str, typing.Any],
+        app_state: dict[str, Any],
         _loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         if not config.loaded:
@@ -255,10 +255,10 @@ class WSProtocol(asyncio.Protocol):
 
         if not self.handshake_complete:
             if message_type == "websocket.accept":
-                message = typing.cast(WebSocketAcceptEvent, message)
+                message = cast(WebSocketAcceptEvent, message)
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
-                    self.scope["client"],
+                    get_client_addr(self.scope),
                     get_path_with_query_string(self.scope),
                 )
                 subprotocol = message.get("subprotocol")
@@ -281,7 +281,7 @@ class WSProtocol(asyncio.Protocol):
                 self.queue.put_nowait({"type": "websocket.disconnect", "code": 1006})
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
-                    self.scope["client"],
+                    get_client_addr(self.scope),
                     get_path_with_query_string(self.scope),
                 )
                 self.handshake_complete = True
@@ -292,14 +292,14 @@ class WSProtocol(asyncio.Protocol):
                 self.transport.close()
 
             elif message_type == "websocket.http.response.start":
-                message = typing.cast(WebSocketResponseStartEvent, message)
+                message = cast(WebSocketResponseStartEvent, message)
                 # ensure status code is in the valid range
                 if not (100 <= message["status"] < 600):
                     msg = "Invalid HTTP status code '%d' in response."
                     raise RuntimeError(msg % message["status"])
                 self.logger.info(
                     '%s - "WebSocket %s" %d',
-                    self.scope["client"],
+                    get_client_addr(self.scope),
                     get_path_with_query_string(self.scope),
                     message["status"],
                 )
@@ -324,7 +324,7 @@ class WSProtocol(asyncio.Protocol):
         elif not self.close_sent and not self.response_started:
             try:
                 if message_type == "websocket.send":
-                    message = typing.cast(WebSocketSendEvent, message)
+                    message = cast(WebSocketSendEvent, message)
                     bytes_data = message.get("bytes")
                     text_data = message.get("text")
                     data = text_data if bytes_data is None else bytes_data
@@ -333,7 +333,7 @@ class WSProtocol(asyncio.Protocol):
                         self.transport.write(output)
 
                 elif message_type == "websocket.close":
-                    message = typing.cast(WebSocketCloseEvent, message)
+                    message = cast(WebSocketCloseEvent, message)
                     self.close_sent = True
                     code = message.get("code", 1000)
                     reason = message.get("reason", "") or ""
@@ -350,7 +350,7 @@ class WSProtocol(asyncio.Protocol):
                 raise ClientDisconnected from exc
         elif self.response_started:
             if message_type == "websocket.http.response.body":
-                message = typing.cast("WebSocketResponseBodyEvent", message)
+                message = cast("WebSocketResponseBodyEvent", message)
                 body_finished = not message.get("more_body", False)
                 reject_data = events.RejectData(data=message["body"], body_finished=body_finished)
                 output = self.conn.send(reject_data)

@@ -4,7 +4,8 @@ import contextlib
 import logging
 import socket
 import sys
-import typing
+from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
 import httpx
 import pytest
@@ -16,7 +17,7 @@ from tests.utils import run_server
 from uvicorn import Config
 from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     import sys
 
     from uvicorn.protocols.websockets.websockets_impl import WebSocketProtocol
@@ -33,7 +34,7 @@ pytestmark = pytest.mark.anyio
 
 
 @contextlib.contextmanager
-def caplog_for_logger(caplog: pytest.LogCaptureFixture, logger_name: str) -> typing.Iterator[pytest.LogCaptureFixture]:
+def caplog_for_logger(caplog: pytest.LogCaptureFixture, logger_name: str) -> Iterator[pytest.LogCaptureFixture]:
     logger = logging.getLogger(logger_name)
     logger.propagate, old_propagate = False, logger.propagate
     logger.addHandler(caplog.handler)

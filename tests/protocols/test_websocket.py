@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import typing
 from copy import deepcopy
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import httpx
 import pytest
@@ -37,7 +37,7 @@ try:
 except ModuleNotFoundError:  # pragma: no cover
     skip_if_no_wsproto = pytest.mark.skipif(True, reason="wsproto is not installed.")
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     import sys
 
     from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -772,7 +772,7 @@ async def test_server_reject_connection(
     assert disconnected_message == {"type": "websocket.disconnect", "code": 1006}
 
 
-class EmptyDict(typing.TypedDict): ...
+class EmptyDict(TypedDict): ...
 
 
 async def test_server_reject_connection_with_response(
@@ -1146,12 +1146,12 @@ async def test_multiple_server_header(
 
 
 async def test_lifespan_state(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int):
-    expected_states: list[dict[str, typing.Any]] = [
+    expected_states: list[dict[str, Any]] = [
         {"a": 123, "b": [1]},
         {"a": 123, "b": [1, 2]},
     ]
 
-    actual_states: list[dict[str, typing.Any]] = []
+    actual_states: list[dict[str, Any]] = []
 
     async def lifespan_app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         message = await receive()
