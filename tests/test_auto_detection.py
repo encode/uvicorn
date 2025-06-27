@@ -38,10 +38,8 @@ def test_loop_auto():
     policy = asyncio.get_event_loop_policy()
 
     # https://github.com/python/cpython/issues/131148
-    if sys.version_info >= (3, 14):
-        BaseDefaultEventLoopPolicy = asyncio.events._BaseDefaultEventLoopPolicy
-    else:
-        BaseDefaultEventLoopPolicy = asyncio.events.BaseDefaultEventLoopPolicy
+    prefix = "_" if sys.version_info >= (3, 14) else ""
+    BaseDefaultEventLoopPolicy = getattr(asyncio.events, f"{prefix}BaseDefaultEventLoopPolicy")
 
     assert isinstance(policy, BaseDefaultEventLoopPolicy)
     assert type(policy).__module__.startswith(expected_loop)
