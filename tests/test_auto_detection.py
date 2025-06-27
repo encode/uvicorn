@@ -1,5 +1,6 @@
 import asyncio
 import importlib
+import sys
 
 import pytest
 
@@ -35,7 +36,14 @@ async def app(scope, receive, send):
 def test_loop_auto():
     auto_loop_setup()
     policy = asyncio.get_event_loop_policy()
-    assert isinstance(policy, asyncio.events.BaseDefaultEventLoopPolicy)
+
+    # https://github.com/python/cpython/issues/131148
+    if sys.version_info >= (3, 14):
+        BaseDefaultEventLoopPolicy = asyncio.events._BaseDefaultEventLoopPolicy
+    else:
+        BaseDefaultEventLoopPolicy = asyncio.events.BaseDefaultEventLoopPolicy
+
+    assert isinstance(policy, BaseDefaultEventLoopPolicy)
     assert type(policy).__module__.startswith(expected_loop)
 
 
