@@ -1,0 +1,1886 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The lightning-fast ASGI server.">
+      
+      
+      
+        <link rel="canonical" href="https://www.uvicorn.org/">
+      
+      
+      
+        <link rel="next" href="settings/">
+      
+      
+      <link rel="icon" href="uvicorn.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.13">
+    
+    
+      
+        <title>Uvicorn</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-KTS6TXPD85"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-KTS6TXPD85",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-KTS6TXPD85",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#quickstart" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+              <button class="md-banner__button md-icon" aria-label="Don't show this again">
+                
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+              </button>
+            
+            
+<style>
+    div[data-md-component="announce"] {
+        background-color: #f0f8ff;  /* Light blue */
+        color: #333;
+    }
+    div[data-md-component="announce"] a {
+        color: #0366d6;
+    }
+</style>
+     If you're using uvicorn in production, please consider <a href="/sponsorship">sponsoring the project</a> to help with maintenance and development. ✨
+
+          </div>
+          
+            <script>var el=document.querySelector("[data-md-component=announce]");if(el){var content=el.querySelector(".md-typeset");__md_hash(content.innerHTML)===__md_get("__announce")&&(el.hidden=!0)}</script>
+          
+        </aside>
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="." title="Uvicorn" class="md-header__button md-logo" aria-label="Uvicorn" data-md-component="logo">
+      
+  <img src="uvicorn.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Uvicorn
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Introduction
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7M9 21a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-1H9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7M9 21v-1h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1m3-17a5 5 0 0 0-5 5c0 2.05 1.23 3.81 3 4.58V16h4v-2.42c1.77-.77 3-2.53 3-4.58a5 5 0 0 0-5-5"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/encode/uvicorn" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    encode/uvicorn
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<!-- Determine class according to configuration -->
+ 
+ 
+ 
+
+ <!-- Main navigation -->
+ <nav
+   class="md-nav md-nav--primary"
+   aria-label="nav.title"
+   data-md-level="0"
+ >
+
+   <!-- Site title -->
+   <label class="md-nav__title" for="__drawer">
+     <a
+       href="."
+       title="Uvicorn"
+       class="md-nav__button md-logo"
+       aria-label="Uvicorn"
+       data-md-component="logo"
+     >
+       
+  <img src="uvicorn.png" alt="logo">
+
+     </a>
+     Uvicorn
+   </label>
+
+   <!-- Repository information -->
+   
+     <div class="md-nav__source">
+       <a href="https://github.com/encode/uvicorn" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    encode/uvicorn
+  </div>
+</a>
+     </div>
+   
+
+   <!-- Navigation list -->
+   <ul class="md-nav__list" data-md-scrollfix>
+     
+       
+       
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Introduction
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="." class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Introduction
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#quickstart" class="md-nav__link">
+    <span class="md-ellipsis">
+        Quickstart
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+      
+        <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+        Usage
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+<nav class="md-nav" aria-label="Usage">
+    <ul class="md-nav__list">
+        
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#command-line-options" class="md-nav__link">
+    <span class="md-ellipsis">
+        Command line options
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#running-programmatically" class="md-nav__link">
+    <span class="md-ellipsis">
+        Running programmatically
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+<nav class="md-nav" aria-label="Running programmatically">
+    <ul class="md-nav__list">
+        
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#uvicornrun" class="md-nav__link">
+    <span class="md-ellipsis">
+        uvicorn.run
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#config-and-server-instances" class="md-nav__link">
+    <span class="md-ellipsis">
+        Config and Server instances
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+              </ul>
+</nav>
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#running-with-gunicorn" class="md-nav__link">
+    <span class="md-ellipsis">
+        Running with Gunicorn
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#application-factories" class="md-nav__link">
+    <span class="md-ellipsis">
+        Application factories
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+              </ul>
+</nav>
+
+</li>
+      
+        <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#the-asgi-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+        The ASGI interface
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+<nav class="md-nav" aria-label="The ASGI interface">
+    <ul class="md-nav__list">
+        
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#http-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+        HTTP Scope
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#http-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+        HTTP Messages
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#requests-responses" class="md-nav__link">
+    <span class="md-ellipsis">
+        Requests &amp; responses
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#reading-the-request-body" class="md-nav__link">
+    <span class="md-ellipsis">
+        Reading the request body
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#streaming-responses" class="md-nav__link">
+    <span class="md-ellipsis">
+        Streaming responses
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+              </ul>
+</nav>
+
+</li>
+      
+        <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#why-asgi" class="md-nav__link">
+    <span class="md-ellipsis">
+        Why ASGI?
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+      
+        <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#alternative-asgi-servers" class="md-nav__link">
+    <span class="md-ellipsis">
+        Alternative ASGI servers
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+<nav class="md-nav" aria-label="Alternative ASGI servers">
+    <ul class="md-nav__list">
+        
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#daphne" class="md-nav__link">
+    <span class="md-ellipsis">
+        Daphne
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#hypercorn" class="md-nav__link">
+    <span class="md-ellipsis">
+        Hypercorn
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+              </ul>
+</nav>
+
+</li>
+      
+        <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#asgi-frameworks" class="md-nav__link">
+    <span class="md-ellipsis">
+        ASGI frameworks
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+<nav class="md-nav" aria-label="ASGI frameworks">
+    <ul class="md-nav__list">
+        
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#starlette" class="md-nav__link">
+    <span class="md-ellipsis">
+        Starlette
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#django-channels" class="md-nav__link">
+    <span class="md-ellipsis">
+        Django Channels
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#quart" class="md-nav__link">
+    <span class="md-ellipsis">
+        Quart
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#fastapi" class="md-nav__link">
+    <span class="md-ellipsis">
+        FastAPI
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#blacksheep" class="md-nav__link">
+    <span class="md-ellipsis">
+        BlackSheep
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#falcon" class="md-nav__link">
+    <span class="md-ellipsis">
+        Falcon
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#muffin" class="md-nav__link">
+    <span class="md-ellipsis">
+        Muffin
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#litestar" class="md-nav__link">
+    <span class="md-ellipsis">
+        Litestar
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#panther" class="md-nav__link">
+    <span class="md-ellipsis">
+        Panther
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+              </ul>
+</nav>
+
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+     
+       
+       
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Settings
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+     
+       
+       
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="deployment/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    Deployment
+    
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="deployment/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Docker
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+     
+       
+       
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="server-behavior/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Server Behavior
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+     
+       
+       
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="release-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Release Notes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+     
+       
+       
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+     
+       
+       
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="sponsorship/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Sponsorship
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+     
+   </ul>
+ </nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#quickstart" class="md-nav__link">
+    <span class="md-ellipsis">
+        Quickstart
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+      
+        <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+        Usage
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+<nav class="md-nav" aria-label="Usage">
+    <ul class="md-nav__list">
+        
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#command-line-options" class="md-nav__link">
+    <span class="md-ellipsis">
+        Command line options
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#running-programmatically" class="md-nav__link">
+    <span class="md-ellipsis">
+        Running programmatically
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+<nav class="md-nav" aria-label="Running programmatically">
+    <ul class="md-nav__list">
+        
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#uvicornrun" class="md-nav__link">
+    <span class="md-ellipsis">
+        uvicorn.run
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#config-and-server-instances" class="md-nav__link">
+    <span class="md-ellipsis">
+        Config and Server instances
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+              </ul>
+</nav>
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#running-with-gunicorn" class="md-nav__link">
+    <span class="md-ellipsis">
+        Running with Gunicorn
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#application-factories" class="md-nav__link">
+    <span class="md-ellipsis">
+        Application factories
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+              </ul>
+</nav>
+
+</li>
+      
+        <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#the-asgi-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+        The ASGI interface
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+<nav class="md-nav" aria-label="The ASGI interface">
+    <ul class="md-nav__list">
+        
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#http-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+        HTTP Scope
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#http-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+        HTTP Messages
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#requests-responses" class="md-nav__link">
+    <span class="md-ellipsis">
+        Requests &amp; responses
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#reading-the-request-body" class="md-nav__link">
+    <span class="md-ellipsis">
+        Reading the request body
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#streaming-responses" class="md-nav__link">
+    <span class="md-ellipsis">
+        Streaming responses
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+              </ul>
+</nav>
+
+</li>
+      
+        <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#why-asgi" class="md-nav__link">
+    <span class="md-ellipsis">
+        Why ASGI?
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+      
+        <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#alternative-asgi-servers" class="md-nav__link">
+    <span class="md-ellipsis">
+        Alternative ASGI servers
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+<nav class="md-nav" aria-label="Alternative ASGI servers">
+    <ul class="md-nav__list">
+        
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#daphne" class="md-nav__link">
+    <span class="md-ellipsis">
+        Daphne
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#hypercorn" class="md-nav__link">
+    <span class="md-ellipsis">
+        Hypercorn
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+              </ul>
+</nav>
+
+</li>
+      
+        <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#asgi-frameworks" class="md-nav__link">
+    <span class="md-ellipsis">
+        ASGI frameworks
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+<nav class="md-nav" aria-label="ASGI frameworks">
+    <ul class="md-nav__list">
+        
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#starlette" class="md-nav__link">
+    <span class="md-ellipsis">
+        Starlette
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#django-channels" class="md-nav__link">
+    <span class="md-ellipsis">
+        Django Channels
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#quart" class="md-nav__link">
+    <span class="md-ellipsis">
+        Quart
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#fastapi" class="md-nav__link">
+    <span class="md-ellipsis">
+        FastAPI
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#blacksheep" class="md-nav__link">
+    <span class="md-ellipsis">
+        BlackSheep
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#falcon" class="md-nav__link">
+    <span class="md-ellipsis">
+        Falcon
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#muffin" class="md-nav__link">
+    <span class="md-ellipsis">
+        Muffin
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#litestar" class="md-nav__link">
+    <span class="md-ellipsis">
+        Litestar
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+             
+         <!-- Copied from https://github.com/squidfunk/mkdocs-material/issues/4827#issuecomment-1869812019 -->
+<li class="md-nav__item"></li>
+<a href="#panther" class="md-nav__link">
+    <span class="md-ellipsis">
+        Panther
+    </span>
+</a>
+
+<!-- Table of contents list -->
+
+</li>
+              </ul>
+</nav>
+
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Introduction</h1>
+
+<style>
+  .md-typeset h1,
+  .md-content__button {
+    display: none;
+  }
+</style>
+
+<p align="center">
+  <img width="320" height="320" src="../../uvicorn.png" alt='uvicorn'>
+</p>
+
+<p align="center">
+<em>An ASGI web server, for Python.</em>
+</p>
+
+<p align="center">
+<a href="https://github.com/encode/uvicorn/actions">
+    <img src="https://github.com/encode/uvicorn/workflows/Test%20Suite/badge.svg" alt="Test Suite">
+</a>
+<a href="https://pypi.org/project/uvicorn/">
+    <img src="https://badge.fury.io/py/uvicorn.svg" alt="Package version">
+</a>
+<a href="https://pypi.org/project/uvicorn" target="_blank">
+    <img src="https://img.shields.io/pypi/pyversions/uvicorn.svg?color=%2334D058" alt="Supported Python versions">
+</a>
+</p>
+
+<hr />
+<p><strong>Documentation</strong>: <a href="https://www.uvicorn.org">https://www.uvicorn.org</a></p>
+<p><strong>Source Code</strong>: <a href="https://www.github.com/encode/uvicorn">https://www.github.com/encode/uvicorn</a></p>
+<hr />
+<p><strong>Uvicorn</strong> is an ASGI web server implementation for Python.</p>
+<p>Until recently Python has lacked a minimal low-level server/application interface for
+async frameworks. The <a href="https://asgi.readthedocs.io/en/latest/">ASGI specification</a> fills this gap, and means we're now able to
+start building a common set of tooling usable across all async frameworks.</p>
+<p>Uvicorn currently supports <strong>HTTP/1.1</strong> and <strong>WebSockets</strong>.</p>
+<h2 id="quickstart">Quickstart<a class="headerlink" href="#quickstart" title="Permanent link">&para;</a></h2>
+<p>Install using <code>pip</code>:</p>
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>uvicorn
+</code></pre></div>
+<p>This will install uvicorn with minimal (pure Python) dependencies.</p>
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">&#39;uvicorn[standard]&#39;</span>
+</code></pre></div>
+<p>This will install uvicorn with "Cython-based" dependencies (where possible) and other "optional extras".</p>
+<p>In this context, "Cython-based" means the following:</p>
+<ul>
+<li>the event loop <code>uvloop</code> will be installed and used if possible.</li>
+<li><code>uvloop</code> is a fast, drop-in replacement of the built-in asyncio event loop. It is implemented in Cython. Read more <a href="https://uvloop.readthedocs.io/">here</a>.</li>
+<li>The built-in asyncio event loop serves as an easy-to-read reference implementation and is there for easy debugging as it's pure-python based.</li>
+<li>the http protocol will be handled by <code>httptools</code> if possible.</li>
+<li>Read more about comparison with <code>h11</code> <a href="https://github.com/python-hyper/h11/issues/9">here</a>.</li>
+</ul>
+<p>Moreover, "optional extras" means that:</p>
+<ul>
+<li>the websocket protocol will be handled by <code>websockets</code> (should you want to use <code>wsproto</code> you'd need to install it manually) if possible.</li>
+<li>the <code>--reload</code> flag in development mode will use <code>watchfiles</code>.</li>
+<li>Windows users will have <code>colorama</code> installed for the colored logs.</li>
+<li><code>python-dotenv</code> will be installed should you want to use the <code>--env-file</code> option.</li>
+<li><code>PyYAML</code> will be installed to allow you to provide a <code>.yaml</code> file to <code>--log-config</code>, if desired.</li>
+</ul>
+<p>Create an application:</p>
+<div class="highlight"><span class="filename">main.py</span><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">scope</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;http&#39;</span>
+
+    <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
+        <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;http.response.start&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
+        <span class="s1">&#39;headers&#39;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;content-type&#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;text/plain&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;content-length&#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;13&#39;</span><span class="p">),</span>
+        <span class="p">],</span>
+    <span class="p">})</span>
+    <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
+        <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;http.response.body&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;body&#39;</span><span class="p">:</span> <span class="sa">b</span><span class="s1">&#39;Hello, world!&#39;</span><span class="p">,</span>
+    <span class="p">})</span>
+</code></pre></div>
+<p>Run the server:</p>
+<div class="highlight"><pre><span></span><code>uvicorn<span class="w"> </span>main:app
+</code></pre></div>
+<hr />
+<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
+<p>The uvicorn command line tool is the easiest way to run your application.</p>
+<h3 id="command-line-options">Command line options<a class="headerlink" href="#command-line-options" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>Usage:<span class="w"> </span>uvicorn<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w"> </span>APP
+
+Options:
+<span class="w">  </span>--host<span class="w"> </span>TEXT<span class="w">                     </span>Bind<span class="w"> </span>socket<span class="w"> </span>to<span class="w"> </span>this<span class="w"> </span>host.<span class="w">  </span><span class="o">[</span>default:
+<span class="w">                                  </span><span class="m">127</span>.0.0.1<span class="o">]</span>
+<span class="w">  </span>--port<span class="w"> </span>INTEGER<span class="w">                  </span>Bind<span class="w"> </span>socket<span class="w"> </span>to<span class="w"> </span>this<span class="w"> </span>port.<span class="w"> </span>If<span class="w"> </span><span class="m">0</span>,<span class="w"> </span>an<span class="w"> </span>available
+<span class="w">                                  </span>port<span class="w"> </span>will<span class="w"> </span>be<span class="w"> </span>picked.<span class="w">  </span><span class="o">[</span>default:<span class="w"> </span><span class="m">8000</span><span class="o">]</span>
+<span class="w">  </span>--uds<span class="w"> </span>TEXT<span class="w">                      </span>Bind<span class="w"> </span>to<span class="w"> </span>a<span class="w"> </span>UNIX<span class="w"> </span>domain<span class="w"> </span>socket.
+<span class="w">  </span>--fd<span class="w"> </span>INTEGER<span class="w">                    </span>Bind<span class="w"> </span>to<span class="w"> </span>socket<span class="w"> </span>from<span class="w"> </span>this<span class="w"> </span>file<span class="w"> </span>descriptor.
+<span class="w">  </span>--reload<span class="w">                        </span>Enable<span class="w"> </span>auto-reload.
+<span class="w">  </span>--reload-dir<span class="w"> </span>PATH<span class="w">               </span>Set<span class="w"> </span>reload<span class="w"> </span>directories<span class="w"> </span>explicitly,<span class="w"> </span>instead
+<span class="w">                                  </span>of<span class="w"> </span>using<span class="w"> </span>the<span class="w"> </span>current<span class="w"> </span>working<span class="w"> </span>directory.
+<span class="w">  </span>--reload-include<span class="w"> </span>TEXT<span class="w">           </span>Set<span class="w"> </span>glob<span class="w"> </span>patterns<span class="w"> </span>to<span class="w"> </span>include<span class="w"> </span><span class="k">while</span><span class="w"> </span>watching
+<span class="w">                                  </span><span class="k">for</span><span class="w"> </span>files.<span class="w"> </span>Includes<span class="w"> </span><span class="s1">&#39;*.py&#39;</span><span class="w"> </span>by<span class="w"> </span>default<span class="p">;</span><span class="w"> </span>these
+<span class="w">                                  </span>defaults<span class="w"> </span>can<span class="w"> </span>be<span class="w"> </span>overridden<span class="w"> </span>with<span class="w"> </span><span class="sb">`</span>--reload-
+<span class="w">                                  </span>exclude<span class="sb">`</span>.<span class="w"> </span>This<span class="w"> </span>option<span class="w"> </span>has<span class="w"> </span>no<span class="w"> </span>effect<span class="w"> </span>unless
+<span class="w">                                  </span>watchfiles<span class="w"> </span>is<span class="w"> </span>installed.
+<span class="w">  </span>--reload-exclude<span class="w"> </span>TEXT<span class="w">           </span>Set<span class="w"> </span>glob<span class="w"> </span>patterns<span class="w"> </span>to<span class="w"> </span>exclude<span class="w"> </span><span class="k">while</span><span class="w"> </span>watching
+<span class="w">                                  </span><span class="k">for</span><span class="w"> </span>files.<span class="w"> </span>Includes<span class="w"> </span><span class="s1">&#39;.*, .py[cod], .sw.*,</span>
+<span class="s1">                                  ~*&#39;</span><span class="w"> </span>by<span class="w"> </span>default<span class="p">;</span><span class="w"> </span>these<span class="w"> </span>defaults<span class="w"> </span>can<span class="w"> </span>be
+<span class="w">                                  </span>overridden<span class="w"> </span>with<span class="w"> </span><span class="sb">`</span>--reload-include<span class="sb">`</span>.<span class="w"> </span>This
+<span class="w">                                  </span>option<span class="w"> </span>has<span class="w"> </span>no<span class="w"> </span>effect<span class="w"> </span>unless<span class="w"> </span>watchfiles<span class="w"> </span>is
+<span class="w">                                  </span>installed.
+<span class="w">  </span>--reload-delay<span class="w"> </span>FLOAT<span class="w">            </span>Delay<span class="w"> </span>between<span class="w"> </span>previous<span class="w"> </span>and<span class="w"> </span>next<span class="w"> </span>check<span class="w"> </span><span class="k">if</span>
+<span class="w">                                  </span>application<span class="w"> </span>needs<span class="w"> </span>to<span class="w"> </span>be.<span class="w"> </span>Defaults<span class="w"> </span>to<span class="w"> </span><span class="m">0</span>.25s.
+<span class="w">                                  </span><span class="o">[</span>default:<span class="w"> </span><span class="m">0</span>.25<span class="o">]</span>
+<span class="w">  </span>--workers<span class="w"> </span>INTEGER<span class="w">               </span>Number<span class="w"> </span>of<span class="w"> </span>worker<span class="w"> </span>processes.<span class="w"> </span>Defaults<span class="w"> </span>to<span class="w"> </span>the
+<span class="w">                                  </span><span class="nv">$WEB_CONCURRENCY</span><span class="w"> </span>environment<span class="w"> </span>variable<span class="w"> </span><span class="k">if</span>
+<span class="w">                                  </span>available,<span class="w"> </span>or<span class="w"> </span><span class="m">1</span>.<span class="w"> </span>Not<span class="w"> </span>valid<span class="w"> </span>with<span class="w"> </span>--reload.
+<span class="w">  </span>--loop<span class="w"> </span><span class="o">[</span>auto<span class="p">|</span>asyncio<span class="p">|</span>uvloop<span class="o">]</span><span class="w">    </span>Event<span class="w"> </span>loop<span class="w"> </span>implementation.<span class="w">  </span><span class="o">[</span>default:<span class="w"> </span>auto<span class="o">]</span>
+<span class="w">  </span>--http<span class="w"> </span><span class="o">[</span>auto<span class="p">|</span>h11<span class="p">|</span>httptools<span class="o">]</span><span class="w">     </span>HTTP<span class="w"> </span>protocol<span class="w"> </span>implementation.<span class="w">  </span><span class="o">[</span>default:
+<span class="w">                                  </span>auto<span class="o">]</span>
+<span class="w">  </span>--ws<span class="w"> </span><span class="o">[</span>auto<span class="p">|</span>none<span class="p">|</span>websockets<span class="p">|</span>websockets-sansio<span class="p">|</span>wsproto<span class="o">]</span>
+<span class="w">                                  </span>WebSocket<span class="w"> </span>protocol<span class="w"> </span>implementation.
+<span class="w">                                  </span><span class="o">[</span>default:<span class="w"> </span>auto<span class="o">]</span>
+<span class="w">  </span>--ws-max-size<span class="w"> </span>INTEGER<span class="w">           </span>WebSocket<span class="w"> </span>max<span class="w"> </span>size<span class="w"> </span>message<span class="w"> </span><span class="k">in</span><span class="w"> </span>bytes
+<span class="w">                                  </span><span class="o">[</span>default:<span class="w"> </span><span class="m">16777216</span><span class="o">]</span>
+<span class="w">  </span>--ws-max-queue<span class="w"> </span>INTEGER<span class="w">          </span>The<span class="w"> </span>maximum<span class="w"> </span>length<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>WebSocket<span class="w"> </span>message
+<span class="w">                                  </span>queue.<span class="w">  </span><span class="o">[</span>default:<span class="w"> </span><span class="m">32</span><span class="o">]</span>
+<span class="w">  </span>--ws-ping-interval<span class="w"> </span>FLOAT<span class="w">        </span>WebSocket<span class="w"> </span>ping<span class="w"> </span>interval<span class="w"> </span><span class="k">in</span><span class="w"> </span>seconds.
+<span class="w">                                  </span><span class="o">[</span>default:<span class="w"> </span><span class="m">20</span>.0<span class="o">]</span>
+<span class="w">  </span>--ws-ping-timeout<span class="w"> </span>FLOAT<span class="w">         </span>WebSocket<span class="w"> </span>ping<span class="w"> </span>timeout<span class="w"> </span><span class="k">in</span><span class="w"> </span>seconds.
+<span class="w">                                  </span><span class="o">[</span>default:<span class="w"> </span><span class="m">20</span>.0<span class="o">]</span>
+<span class="w">  </span>--ws-per-message-deflate<span class="w"> </span>BOOLEAN
+<span class="w">                                  </span>WebSocket<span class="w"> </span>per-message-deflate<span class="w"> </span>compression
+<span class="w">                                  </span><span class="o">[</span>default:<span class="w"> </span>True<span class="o">]</span>
+<span class="w">  </span>--lifespan<span class="w"> </span><span class="o">[</span>auto<span class="p">|</span>on<span class="p">|</span>off<span class="o">]</span><span class="w">        </span>Lifespan<span class="w"> </span>implementation.<span class="w">  </span><span class="o">[</span>default:<span class="w"> </span>auto<span class="o">]</span>
+<span class="w">  </span>--interface<span class="w"> </span><span class="o">[</span>auto<span class="p">|</span>asgi3<span class="p">|</span>asgi2<span class="p">|</span>wsgi<span class="o">]</span>
+<span class="w">                                  </span>Select<span class="w"> </span>ASGI3,<span class="w"> </span>ASGI2,<span class="w"> </span>or<span class="w"> </span>WSGI<span class="w"> </span>as<span class="w"> </span>the
+<span class="w">                                  </span>application<span class="w"> </span>interface.<span class="w">  </span><span class="o">[</span>default:<span class="w"> </span>auto<span class="o">]</span>
+<span class="w">  </span>--env-file<span class="w"> </span>PATH<span class="w">                 </span>Environment<span class="w"> </span>configuration<span class="w"> </span>file.
+<span class="w">  </span>--log-config<span class="w"> </span>PATH<span class="w">               </span>Logging<span class="w"> </span>configuration<span class="w"> </span>file.<span class="w"> </span>Supported
+<span class="w">                                  </span>formats:<span class="w"> </span>.ini,<span class="w"> </span>.json,<span class="w"> </span>.yaml.
+<span class="w">  </span>--log-level<span class="w"> </span><span class="o">[</span>critical<span class="p">|</span>error<span class="p">|</span>warning<span class="p">|</span>info<span class="p">|</span>debug<span class="p">|</span>trace<span class="o">]</span>
+<span class="w">                                  </span>Log<span class="w"> </span>level.<span class="w"> </span><span class="o">[</span>default:<span class="w"> </span>info<span class="o">]</span>
+<span class="w">  </span>--access-log<span class="w"> </span>/<span class="w"> </span>--no-access-log<span class="w">  </span>Enable/Disable<span class="w"> </span>access<span class="w"> </span>log.
+<span class="w">  </span>--use-colors<span class="w"> </span>/<span class="w"> </span>--no-use-colors<span class="w">  </span>Enable/Disable<span class="w"> </span>colorized<span class="w"> </span>logging.
+<span class="w">  </span>--proxy-headers<span class="w"> </span>/<span class="w"> </span>--no-proxy-headers
+<span class="w">                                  </span>Enable/Disable<span class="w"> </span>X-Forwarded-Proto,
+<span class="w">                                  </span>X-Forwarded-For<span class="w"> </span>to<span class="w"> </span>populate<span class="w"> </span>url<span class="w"> </span>scheme<span class="w"> </span>and
+<span class="w">                                  </span>remote<span class="w"> </span>address<span class="w"> </span>info.
+<span class="w">  </span>--server-header<span class="w"> </span>/<span class="w"> </span>--no-server-header
+<span class="w">                                  </span>Enable/Disable<span class="w"> </span>default<span class="w"> </span>Server<span class="w"> </span>header.
+<span class="w">  </span>--date-header<span class="w"> </span>/<span class="w"> </span>--no-date-header
+<span class="w">                                  </span>Enable/Disable<span class="w"> </span>default<span class="w"> </span>Date<span class="w"> </span>header.
+<span class="w">  </span>--forwarded-allow-ips<span class="w"> </span>TEXT<span class="w">      </span>Comma<span class="w"> </span>separated<span class="w"> </span>list<span class="w"> </span>of<span class="w"> </span>IP<span class="w"> </span>Addresses,<span class="w"> </span>IP
+<span class="w">                                  </span>Networks,<span class="w"> </span>or<span class="w"> </span>literals<span class="w"> </span><span class="o">(</span>e.g.<span class="w"> </span>UNIX<span class="w"> </span>Socket
+<span class="w">                                  </span>path<span class="o">)</span><span class="w"> </span>to<span class="w"> </span>trust<span class="w"> </span>with<span class="w"> </span>proxy<span class="w"> </span>headers.<span class="w"> </span>Defaults
+<span class="w">                                  </span>to<span class="w"> </span>the<span class="w"> </span><span class="nv">$FORWARDED_ALLOW_IPS</span><span class="w"> </span>environment
+<span class="w">                                  </span>variable<span class="w"> </span><span class="k">if</span><span class="w"> </span>available,<span class="w"> </span>or<span class="w"> </span><span class="s1">&#39;127.0.0.1&#39;</span>.<span class="w"> </span>The
+<span class="w">                                  </span>literal<span class="w"> </span><span class="s1">&#39;*&#39;</span><span class="w"> </span>means<span class="w"> </span>trust<span class="w"> </span>everything.
+<span class="w">  </span>--root-path<span class="w"> </span>TEXT<span class="w">                </span>Set<span class="w"> </span>the<span class="w"> </span>ASGI<span class="w"> </span><span class="s1">&#39;root_path&#39;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span>applications
+<span class="w">                                  </span>submounted<span class="w"> </span>below<span class="w"> </span>a<span class="w"> </span>given<span class="w"> </span>URL<span class="w"> </span>path.
+<span class="w">  </span>--limit-concurrency<span class="w"> </span>INTEGER<span class="w">     </span>Maximum<span class="w"> </span>number<span class="w"> </span>of<span class="w"> </span>concurrent<span class="w"> </span>connections<span class="w"> </span>or
+<span class="w">                                  </span>tasks<span class="w"> </span>to<span class="w"> </span>allow,<span class="w"> </span>before<span class="w"> </span>issuing<span class="w"> </span>HTTP<span class="w"> </span><span class="m">503</span>
+<span class="w">                                  </span>responses.
+<span class="w">  </span>--backlog<span class="w"> </span>INTEGER<span class="w">               </span>Maximum<span class="w"> </span>number<span class="w"> </span>of<span class="w"> </span>connections<span class="w"> </span>to<span class="w"> </span>hold<span class="w"> </span><span class="k">in</span>
+<span class="w">                                  </span>backlog
+<span class="w">  </span>--limit-max-requests<span class="w"> </span>INTEGER<span class="w">    </span>Maximum<span class="w"> </span>number<span class="w"> </span>of<span class="w"> </span>requests<span class="w"> </span>to<span class="w"> </span>service<span class="w"> </span>before
+<span class="w">                                  </span>terminating<span class="w"> </span>the<span class="w"> </span>process.
+<span class="w">  </span>--timeout-keep-alive<span class="w"> </span>INTEGER<span class="w">    </span>Close<span class="w"> </span>Keep-Alive<span class="w"> </span>connections<span class="w"> </span><span class="k">if</span><span class="w"> </span>no<span class="w"> </span>new<span class="w"> </span>data
+<span class="w">                                  </span>is<span class="w"> </span>received<span class="w"> </span>within<span class="w"> </span>this<span class="w"> </span>timeout.<span class="w">  </span><span class="o">[</span>default:
+<span class="w">                                  </span><span class="m">5</span><span class="o">]</span>
+<span class="w">  </span>--timeout-graceful-shutdown<span class="w"> </span>INTEGER
+<span class="w">                                  </span>Maximum<span class="w"> </span>number<span class="w"> </span>of<span class="w"> </span>seconds<span class="w"> </span>to<span class="w"> </span><span class="nb">wait</span><span class="w"> </span><span class="k">for</span>
+<span class="w">                                  </span>graceful<span class="w"> </span>shutdown.
+<span class="w">  </span>--ssl-keyfile<span class="w"> </span>TEXT<span class="w">              </span>SSL<span class="w"> </span>key<span class="w"> </span>file
+<span class="w">  </span>--ssl-certfile<span class="w"> </span>TEXT<span class="w">             </span>SSL<span class="w"> </span>certificate<span class="w"> </span>file
+<span class="w">  </span>--ssl-keyfile-password<span class="w"> </span>TEXT<span class="w">     </span>SSL<span class="w"> </span>keyfile<span class="w"> </span>password
+<span class="w">  </span>--ssl-version<span class="w"> </span>INTEGER<span class="w">           </span>SSL<span class="w"> </span>version<span class="w"> </span>to<span class="w"> </span>use<span class="w"> </span><span class="o">(</span>see<span class="w"> </span>stdlib<span class="w"> </span>ssl<span class="w"> </span>module<span class="s1">&#39;s)</span>
+<span class="s1">                                  [default: 17]</span>
+<span class="s1">  --ssl-cert-reqs INTEGER         Whether client certificate is required (see</span>
+<span class="s1">                                  stdlib ssl module&#39;</span>s<span class="o">)</span><span class="w">  </span><span class="o">[</span>default:<span class="w"> </span><span class="m">0</span><span class="o">]</span>
+<span class="w">  </span>--ssl-ca-certs<span class="w"> </span>TEXT<span class="w">             </span>CA<span class="w"> </span>certificates<span class="w"> </span>file
+<span class="w">  </span>--ssl-ciphers<span class="w"> </span>TEXT<span class="w">              </span>Ciphers<span class="w"> </span>to<span class="w"> </span>use<span class="w"> </span><span class="o">(</span>see<span class="w"> </span>stdlib<span class="w"> </span>ssl<span class="w"> </span>module<span class="err">&#39;</span>s<span class="o">)</span>
+<span class="w">                                  </span><span class="o">[</span>default:<span class="w"> </span>TLSv1<span class="o">]</span>
+<span class="w">  </span>--header<span class="w"> </span>TEXT<span class="w">                   </span>Specify<span class="w"> </span>custom<span class="w"> </span>default<span class="w"> </span>HTTP<span class="w"> </span>response<span class="w"> </span>headers
+<span class="w">                                  </span>as<span class="w"> </span>a<span class="w"> </span>Name:Value<span class="w"> </span>pair
+<span class="w">  </span>--version<span class="w">                       </span>Display<span class="w"> </span>the<span class="w"> </span>uvicorn<span class="w"> </span>version<span class="w"> </span>and<span class="w"> </span>exit.
+<span class="w">  </span>--app-dir<span class="w"> </span>TEXT<span class="w">                  </span>Look<span class="w"> </span><span class="k">for</span><span class="w"> </span>APP<span class="w"> </span><span class="k">in</span><span class="w"> </span>the<span class="w"> </span>specified<span class="w"> </span>directory,<span class="w"> </span>by
+<span class="w">                                  </span>adding<span class="w"> </span>this<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>PYTHONPATH.<span class="w"> </span>Defaults<span class="w"> </span>to
+<span class="w">                                  </span>the<span class="w"> </span>current<span class="w"> </span>working<span class="w"> </span>directory.<span class="w">  </span><span class="o">[</span>default:
+<span class="w">                                  </span><span class="s2">&quot;&quot;</span><span class="o">]</span>
+<span class="w">  </span>--h11-max-incomplete-event-size<span class="w"> </span>INTEGER
+<span class="w">                                  </span>For<span class="w"> </span>h11,<span class="w"> </span>the<span class="w"> </span>maximum<span class="w"> </span>number<span class="w"> </span>of<span class="w"> </span>bytes<span class="w"> </span>to
+<span class="w">                                  </span>buffer<span class="w"> </span>of<span class="w"> </span>an<span class="w"> </span>incomplete<span class="w"> </span>event.
+<span class="w">  </span>--factory<span class="w">                       </span>Treat<span class="w"> </span>APP<span class="w"> </span>as<span class="w"> </span>an<span class="w"> </span>application<span class="w"> </span>factory,<span class="w"> </span>i.e.<span class="w"> </span>a
+<span class="w">                                  </span><span class="o">()</span><span class="w"> </span>-&gt;<span class="w"> </span>&lt;ASGI<span class="w"> </span>app&gt;<span class="w"> </span>callable.
+<span class="w">  </span>--help<span class="w">                          </span>Show<span class="w"> </span>this<span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span>exit.
+</code></pre></div>
+<p>For more information, see the <a href="settings/">settings documentation</a>.</p>
+<h3 id="running-programmatically">Running programmatically<a class="headerlink" href="#running-programmatically" title="Permanent link">&para;</a></h3>
+<p>There are several ways to run uvicorn directly from your application.</p>
+<h4 id="uvicornrun"><code>uvicorn.run</code><a class="headerlink" href="#uvicornrun" title="Permanent link">&para;</a></h4>
+<p>If you're looking for a programmatic equivalent of the <code>uvicorn</code> command line interface, use <code>uvicorn.run()</code>:</p>
+<div class="highlight"><span class="filename">main.py</span><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">uvicorn</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
+    <span class="o">...</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">uvicorn</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;main:app&quot;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="s2">&quot;info&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h4 id="config-and-server-instances"><code>Config</code> and <code>Server</code> instances<a class="headerlink" href="#config-and-server-instances" title="Permanent link">&para;</a></h4>
+<p>For more control over configuration and server lifecycle, use <code>uvicorn.Config</code> and <code>uvicorn.Server</code>:</p>
+<div class="highlight"><span class="filename">main.py</span><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">uvicorn</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
+    <span class="o">...</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">uvicorn</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="s2">&quot;main:app&quot;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="s2">&quot;info&quot;</span><span class="p">)</span>
+    <span class="n">server</span> <span class="o">=</span> <span class="n">uvicorn</span><span class="o">.</span><span class="n">Server</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+    <span class="n">server</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</code></pre></div>
+<p>If you'd like to run Uvicorn from an already running async environment, use <code>uvicorn.Server.serve()</code> instead:</p>
+<div class="highlight"><span class="filename">main.py</span><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uvicorn</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
+    <span class="o">...</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">uvicorn</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="s2">&quot;main:app&quot;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="s2">&quot;info&quot;</span><span class="p">)</span>
+    <span class="n">server</span> <span class="o">=</span> <span class="n">uvicorn</span><span class="o">.</span><span class="n">Server</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+    <span class="k">await</span> <span class="n">server</span><span class="o">.</span><span class="n">serve</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</code></pre></div>
+<h3 id="running-with-gunicorn">Running with Gunicorn<a class="headerlink" href="#running-with-gunicorn" title="Permanent link">&para;</a></h3>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The <code>uvicorn.workers</code> module is deprecated and will be removed in a future release.</p>
+<p>You should use the <a href="https://github.com/Kludex/uvicorn-worker"><code>uvicorn-worker</code></a> package instead.</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>uvicorn-worker
+</code></pre></div>
+</div>
+<p><a href="https://gunicorn.org/">Gunicorn</a> is a mature, fully featured server and process manager.</p>
+<p>Uvicorn includes a Gunicorn worker class allowing you to run ASGI applications,
+with all of Uvicorn's performance benefits, while also giving you Gunicorn's
+fully-featured process management.</p>
+<p>This allows you to increase or decrease the number of worker processes on the
+fly, restart worker processes gracefully, or perform server upgrades without downtime.</p>
+<p>For production deployments we recommend using gunicorn with the uvicorn worker class.</p>
+<div class="highlight"><pre><span></span><code>gunicorn example:app -w 4 -k uvicorn.workers.UvicornWorker
+</code></pre></div>
+<p>For a <a href="https://pypy.org/">PyPy</a> compatible configuration use <code>uvicorn.workers.UvicornH11Worker</code>.</p>
+<p>For more information, see the <a href="deployment/">deployment documentation</a>.</p>
+<h3 id="application-factories">Application factories<a class="headerlink" href="#application-factories" title="Permanent link">&para;</a></h3>
+<p>The <code>--factory</code> flag allows loading the application from a factory function, rather than an application instance directly. The factory will be called with no arguments and should return an ASGI application.</p>
+<div class="highlight"><span class="filename">main.py</span><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">create_app</span><span class="p">():</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="o">...</span>
+    <span class="k">return</span> <span class="n">app</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>uvicorn<span class="w"> </span>--factory<span class="w"> </span>main:create_app
+</code></pre></div>
+<h2 id="the-asgi-interface">The ASGI interface<a class="headerlink" href="#the-asgi-interface" title="Permanent link">&para;</a></h2>
+<p>Uvicorn uses the <a href="https://asgi.readthedocs.io/en/latest/">ASGI specification</a> for interacting with an application.</p>
+<p>The application should expose an async callable which takes three arguments:</p>
+<ul>
+<li><code>scope</code> - A dictionary containing information about the incoming connection.</li>
+<li><code>receive</code> - A channel on which to receive incoming messages from the server.</li>
+<li><code>send</code> - A channel on which to send outgoing messages to the server.</li>
+</ul>
+<p>Two common patterns you might use are either function-based applications:</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">scope</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;http&#39;</span>
+    <span class="o">...</span>
+</code></pre></div>
+<p>Or instance-based applications:</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">App</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">scope</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;http&#39;</span>
+        <span class="o">...</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="p">()</span>
+</code></pre></div>
+<p>It's good practice for applications to raise an exception on scope types
+that they do not handle.</p>
+<p>The content of the <code>scope</code> argument, and the messages expected by <code>receive</code> and <code>send</code> depend on the protocol being used.</p>
+<p>The format for HTTP messages is described in the <a href="https://asgi.readthedocs.io/en/latest/specs/www.html">ASGI HTTP Message format</a>.</p>
+<h3 id="http-scope">HTTP Scope<a class="headerlink" href="#http-scope" title="Permanent link">&para;</a></h3>
+<p>An incoming HTTP request might have a connection <code>scope</code> like this:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+    <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;http&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;scheme&#39;</span><span class="p">:</span> <span class="s1">&#39;http&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;root_path&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;server&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span> <span class="mi">8000</span><span class="p">),</span>
+    <span class="s1">&#39;http_version&#39;</span><span class="p">:</span> <span class="s1">&#39;1.1&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="s1">&#39;GET&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;path&#39;</span><span class="p">:</span> <span class="s1">&#39;/&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;headers&#39;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;host&#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;127.0.0.1:8000&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;user-agent&#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;curl/7.51.0&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;accept&#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;*/*&#39;</span><span class="p">)</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="http-messages">HTTP Messages<a class="headerlink" href="#http-messages" title="Permanent link">&para;</a></h3>
+<p>The instance coroutine communicates back to the server by sending messages to the <code>send</code> coroutine.</p>
+<div class="highlight"><pre><span></span><code><span class="k">await</span> <span class="n">send</span><span class="p">({</span>
+    <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;http.response.start&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
+    <span class="s1">&#39;headers&#39;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">[</span><span class="sa">b</span><span class="s1">&#39;content-type&#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;text/plain&#39;</span><span class="p">],</span>
+    <span class="p">]</span>
+<span class="p">})</span>
+<span class="k">await</span> <span class="n">send</span><span class="p">({</span>
+    <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;http.response.body&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;body&#39;</span><span class="p">:</span> <span class="sa">b</span><span class="s1">&#39;Hello, world!&#39;</span><span class="p">,</span>
+<span class="p">})</span>
+</code></pre></div>
+<h3 id="requests-responses">Requests &amp; responses<a class="headerlink" href="#requests-responses" title="Permanent link">&para;</a></h3>
+<p>Here's an example that displays the method and path used in the incoming request:</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Echo the method and path back in an HTTP response.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">scope</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;http&#39;</span>
+
+    <span class="n">body</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Received </span><span class="si">{</span><span class="n">scope</span><span class="p">[</span><span class="s2">&quot;method&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1"> request to </span><span class="si">{</span><span class="n">scope</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
+        <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;http.response.start&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
+        <span class="s1">&#39;headers&#39;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">[</span><span class="sa">b</span><span class="s1">&#39;content-type&#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;text/plain&#39;</span><span class="p">],</span>
+        <span class="p">]</span>
+    <span class="p">})</span>
+    <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
+        <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;http.response.body&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;body&#39;</span><span class="p">:</span> <span class="n">body</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span>
+    <span class="p">})</span>
+</code></pre></div>
+<h3 id="reading-the-request-body">Reading the request body<a class="headerlink" href="#reading-the-request-body" title="Permanent link">&para;</a></h3>
+<p>You can stream the request body without blocking the asyncio task pool,
+by fetching messages from the <code>receive</code> coroutine.</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">read_body</span><span class="p">(</span><span class="n">receive</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read and return the entire body from an incoming ASGI message.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;&#39;</span>
+    <span class="n">more_body</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">while</span> <span class="n">more_body</span><span class="p">:</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="k">await</span> <span class="n">receive</span><span class="p">()</span>
+        <span class="n">body</span> <span class="o">+=</span> <span class="n">message</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">more_body</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;more_body&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">body</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Echo the request body back in an HTTP response.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="k">await</span> <span class="n">read_body</span><span class="p">(</span><span class="n">receive</span><span class="p">)</span>
+    <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
+        <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;http.response.start&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
+        <span class="s1">&#39;headers&#39;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;content-type&#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;text/plain&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;content-length&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">body</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+        <span class="p">]</span>
+    <span class="p">})</span>
+    <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
+        <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;http.response.body&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;body&#39;</span><span class="p">:</span> <span class="n">body</span><span class="p">,</span>
+    <span class="p">})</span>
+</code></pre></div>
+<h3 id="streaming-responses">Streaming responses<a class="headerlink" href="#streaming-responses" title="Permanent link">&para;</a></h3>
+<p>You can stream responses by sending multiple <code>http.response.body</code> messages to
+the <code>send</code> coroutine.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">app</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">receive</span><span class="p">,</span> <span class="n">send</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Send a slowly streaming HTTP response back to the client.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
+        <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;http.response.start&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
+        <span class="s1">&#39;headers&#39;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">[</span><span class="sa">b</span><span class="s1">&#39;content-type&#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;text/plain&#39;</span><span class="p">],</span>
+        <span class="p">]</span>
+    <span class="p">})</span>
+    <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="p">[</span><span class="sa">b</span><span class="s1">&#39;Hello&#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;, &#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;world!&#39;</span><span class="p">]:</span>
+        <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
+            <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;http.response.body&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;body&#39;</span><span class="p">:</span> <span class="n">chunk</span><span class="p">,</span>
+            <span class="s1">&#39;more_body&#39;</span><span class="p">:</span> <span class="kc">True</span>
+        <span class="p">})</span>
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">await</span> <span class="n">send</span><span class="p">({</span>
+        <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;http.response.body&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;body&#39;</span><span class="p">:</span> <span class="sa">b</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="p">})</span>
+</code></pre></div>
+<hr />
+<h2 id="why-asgi">Why ASGI?<a class="headerlink" href="#why-asgi" title="Permanent link">&para;</a></h2>
+<p>Most well established Python Web frameworks started out as WSGI-based frameworks.</p>
+<p>WSGI applications are a single, synchronous callable that takes a request and returns a response.
+This doesn’t allow for long-lived connections, like you get with long-poll HTTP or WebSocket connections,
+which WSGI doesn't support well.</p>
+<p>Having an async concurrency model also allows for options such as lightweight background tasks,
+and can be less of a limiting factor for endpoints that have long periods being blocked on network
+I/O such as dealing with slow HTTP requests.</p>
+<hr />
+<h2 id="alternative-asgi-servers">Alternative ASGI servers<a class="headerlink" href="#alternative-asgi-servers" title="Permanent link">&para;</a></h2>
+<p>A strength of the ASGI protocol is that it decouples the server implementation
+from the application framework. This allows for an ecosystem of interoperating
+webservers and application frameworks.</p>
+<h3 id="daphne">Daphne<a class="headerlink" href="#daphne" title="Permanent link">&para;</a></h3>
+<p>The first ASGI server implementation, originally developed to power Django Channels, is <a href="https://github.com/django/daphne">the Daphne webserver</a>.</p>
+<p>It is run widely in production, and supports HTTP/1.1, HTTP/2, and WebSockets.</p>
+<p>Any of the example applications given here can equally well be run using <code>daphne</code> instead.</p>
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>daphne
+daphne<span class="w"> </span>app:App
+</code></pre></div>
+<h3 id="hypercorn">Hypercorn<a class="headerlink" href="#hypercorn" title="Permanent link">&para;</a></h3>
+<p><a href="https://github.com/pgjones/hypercorn">Hypercorn</a> was initially part of the Quart web framework, before
+being separated out into a standalone ASGI server.</p>
+<p>Hypercorn supports HTTP/1.1, HTTP/2, HTTP/3 and WebSockets.</p>
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>hypercorn
+hypercorn<span class="w"> </span>app:App
+</code></pre></div>
+<hr />
+<h2 id="asgi-frameworks">ASGI frameworks<a class="headerlink" href="#asgi-frameworks" title="Permanent link">&para;</a></h2>
+<p>You can use Uvicorn, Daphne, or Hypercorn to run any ASGI framework.</p>
+<p>For small services you can also write ASGI applications directly.</p>
+<h3 id="starlette">Starlette<a class="headerlink" href="#starlette" title="Permanent link">&para;</a></h3>
+<p><a href="https://github.com/encode/starlette">Starlette</a> is a lightweight ASGI framework/toolkit.</p>
+<p>It is ideal for building high performance asyncio services, and supports both HTTP and WebSockets.</p>
+<h3 id="django-channels">Django Channels<a class="headerlink" href="#django-channels" title="Permanent link">&para;</a></h3>
+<p>The ASGI specification was originally designed for use with <a href="https://channels.readthedocs.io/en/latest/">Django Channels</a>.</p>
+<p>Channels is a little different to other ASGI frameworks in that it provides
+an asynchronous frontend onto a threaded-framework backend. It allows Django
+to support WebSockets, background tasks, and long-running connections,
+with application code still running in a standard threaded context.</p>
+<h3 id="quart">Quart<a class="headerlink" href="#quart" title="Permanent link">&para;</a></h3>
+<p><a href="https://pgjones.gitlab.io/quart/">Quart</a> is a Flask-like ASGI web framework.</p>
+<h3 id="fastapi">FastAPI<a class="headerlink" href="#fastapi" title="Permanent link">&para;</a></h3>
+<p><a href="https://github.com/tiangolo/fastapi"><strong>FastAPI</strong></a> is an API framework based on <strong>Starlette</strong> and <strong>Pydantic</strong>, heavily inspired by previous server versions of <strong>APIStar</strong>.</p>
+<p>You write your API function parameters with Python 3.6+ type declarations and get automatic data conversion, data validation, OpenAPI schemas (with JSON Schemas) and interactive API documentation UIs.</p>
+<h3 id="blacksheep">BlackSheep<a class="headerlink" href="#blacksheep" title="Permanent link">&para;</a></h3>
+<p><a href="https://www.neoteroi.dev/blacksheep/">BlackSheep</a> is a web framework based on ASGI, inspired by Flask and ASP.NET Core.</p>
+<p>Its most distinctive features are built-in support for dependency injection, automatic binding of parameters by request handler's type annotations, and automatic generation of OpenAPI documentation and Swagger UI.</p>
+<h3 id="falcon">Falcon<a class="headerlink" href="#falcon" title="Permanent link">&para;</a></h3>
+<p><a href="https://falconframework.org">Falcon</a> is a minimalist REST and app backend framework for Python, with a focus on reliability, correctness, and performance at scale.</p>
+<h3 id="muffin">Muffin<a class="headerlink" href="#muffin" title="Permanent link">&para;</a></h3>
+<p><a href="https://github.com/klen/muffin">Muffin</a> is a fast, lightweight and asynchronous ASGI web-framework for Python 3.</p>
+<h3 id="litestar">Litestar<a class="headerlink" href="#litestar" title="Permanent link">&para;</a></h3>
+<p><a href="https://litestar.dev">Litestar</a> is a powerful, lightweight and flexible ASGI framework.</p>
+<p>It includes everything that's needed to build modern APIs - from data serialization and validation to websockets, ORM integration, session management, authentication and more.</p>
+<h3 id="panther">Panther<a class="headerlink" href="#panther" title="Permanent link">&para;</a></h3>
+<p><a href="https://PantherPy.github.io/">Panther</a> is a fast &amp; friendly web framework for building async APIs with Python 3.10+.</p>
+<p>It has built-in Document-oriented Database, Caching System, Authentication and Permission Classes, Visual API Monitoring and also supports Websocket, Throttling, Middlewares.</p>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+        
+          
+          <a href="settings/" class="md-footer__link md-footer__link--next" aria-label="Next: Settings">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Settings
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": ".", "features": ["search.suggest", "search.highlight", "content.tabs.link", "content.code.annotate", "content.code.copy", "navigation.path", "navigation.indexes", "navigation.sections", "navigation.top", "navigation.tracking", "navigation.footer", "toc.follow", "announce.dismiss"], "search": "assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+    
+  </body>
+</html>
