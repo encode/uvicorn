@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import socket
+import ssl
 import sys
 from collections.abc import Iterator
 from pathlib import Path
@@ -25,7 +26,7 @@ from uvicorn._types import (
     Scope,
     StartResponse,
 )
-from uvicorn.config import Config
+from uvicorn.config import Config, is_dir
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -267,6 +268,19 @@ def test_socket_bind() -> None:
     sock.close()
 
 
+def test_is_dir() -> None:
+    class P:
+        @staticmethod
+        def is_absolute():
+            return True
+
+        @staticmethod
+        def is_dir():
+            raise OSError
+
+    assert not is_dir(path=P)  # type: ignore
+
+
 def test_ssl_config(
     tls_ca_certificate_pem_path: str,
     tls_ca_certificate_private_key_path: str,
@@ -279,6 +293,34 @@ def test_ssl_config(
     config.load()
 
     assert config.is_ssl is True
+
+
+def ssl_context():
+    context = ssl.SSLContext(int(ssl.PROTOCOL_TLS_SERVER))
+    allowed_ciphers = "DEFAULT:!aNULL:!eNULL:!MD5:!3DES:!DES:!RC4:!IDEA:!SEED:!aDSS:!SRP:!PSK"
+    context.set_ciphers(allowed_ciphers)
+    list_options = [ssl.OP_NO_RENEGOTIATION]
+    for each_option in list_options:
+        context.options |= each_option
+    return context
+
+
+def test_ssl_context() -> None:
+    config = Config(app=asgi_app, ssl_context=ssl_context)
+    config.load()
+    if config.ssl_context is not None:
+        assert ssl.PROTOCOL_TLS_SERVER is config.ssl_version
+        assert "TLSv1" in config.ssl_ciphers
+    if config.ssl is not None:
+        assert ssl.OP_NO_RENEGOTIATION in config.ssl.options
+
+
+def test_ssl_context_load_cert() -> None:
+    config = Config(
+        app=asgi_app, ssl_context=ssl_context, ssl_certfile="tests/server.crt", ssl_keyfile="tests/server.key"
+    )
+    config.load()
+    assert config.ssl_context is not None
 
 
 def test_ssl_config_combined(tls_certificate_key_and_chain_path: str) -> None:
