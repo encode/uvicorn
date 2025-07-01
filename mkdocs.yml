@@ -48,6 +48,8 @@ validation:
 nav:
   - Introduction: index.md
   - Settings: settings.md
+  - Core:
+      - Lifespan: core/lifespan.md
   - Deployment:
       - Deployment: deployment/index.md
       - Docker: deployment/docker.md
@@ -77,6 +79,20 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.tasklist:
       custom_checkbox: true
+  - pymdownx.extra:
+      pymdownx.superfences:
+        custom_fences:
+          - name: mermaid
+            class: mermaid
+            format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          import:
+            - url: https://docs.python.org/3/objects.inv
 
 hooks:
   - docs/plugins/main.py
