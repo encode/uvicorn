@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Union
 
 import click
 
+from uvicorn._compat import asyncio_run
 from uvicorn.config import Config
 
 if TYPE_CHECKING:
@@ -63,8 +64,7 @@ class Server:
         self._captured_signals: list[int] = []
 
     def run(self, sockets: list[socket.socket] | None = None) -> None:
-        self.config.setup_event_loop()
-        return asyncio.run(self.serve(sockets=sockets))
+        return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
 
     async def serve(self, sockets: list[socket.socket] | None = None) -> None:
         with self.capture_signals():
