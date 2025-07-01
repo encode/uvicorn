@@ -77,6 +77,26 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.tasklist:
       custom_checkbox: true
+  - pymdownx.extra:
+      pymdownx.superfences:
+        custom_fences:
+          - name: mermaid
+            class: mermaid
+            format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  - search
+  - llmstxt:
+      full_output: llms-full.txt
+      markdown_description: |-
+        Uvicorn is a lightning-fast ASGI server implementation, designed to run asynchronous web applications.
+        It supports the ASGI specification, which allows for both HTTP/1.1 and WebSocket protocols.
+      sections:
+        Sections:
+          - index.md
+          - settings.md
+          - deployment/*.md
+          - server-behavior.md
 
 hooks:
   - docs/plugins/main.py
