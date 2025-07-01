@@ -25,7 +25,7 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from uvicorn.middleware.wsgi import WSGIMiddleware
 
 HTTPProtocolType = Literal["auto", "h11", "httptools"]
-WSProtocolType = Literal["auto", "none", "websockets", "wsproto"]
+WSProtocolType = Literal["auto", "none", "websockets", "websockets-sansio", "wsproto"]
 LifespanType = Literal["auto", "on", "off"]
 LoopFactoryType = Literal["none", "auto", "asyncio", "uvloop"]
 InterfaceType = Literal["auto", "asgi3", "asgi2", "wsgi"]
@@ -47,6 +47,7 @@ WS_PROTOCOLS: dict[WSProtocolType, str | None] = {
     "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",
     "none": None,
     "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
+    "websockets-sansio": "uvicorn.protocols.websockets.websockets_sansio_impl:WebSocketsSansIOProtocol",
     "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
 }
 LIFESPAN: dict[LifespanType, str] = {
@@ -138,7 +139,7 @@ def resolve_reload_patterns(patterns_list: list[str], directories_list: list[str
         # Special case for the .* pattern, otherwise this would only match
         # hidden directories which is probably undesired
         if pattern == ".*":
-            continue  # pragma: py-darwin
+            continue  # pragma: py-not-linux
         patterns.append(pattern)
         if is_dir(Path(pattern)):
             directories.append(Path(pattern))
@@ -280,7 +281,7 @@ class Config:
 
         if (reload_dirs or reload_includes or reload_excludes) and not self.should_reload:
             logger.warning(
-                "Current configuration will not reload as not all conditions are met, " "please refer to documentation."
+                "Current configuration will not reload as not all conditions are met, please refer to documentation."
             )
 
         if self.should_reload:
@@ -313,7 +314,7 @@ class Config:
                         + "directories, watching current working directory.",
                         reload_dirs,
                     )
-                self.reload_dirs = [Path(os.getcwd())]
+                self.reload_dirs = [Path.cwd()]
 
             logger.info(
                 "Will watch for changes in these directories: %s",
@@ -446,7 +447,7 @@ class Config:
         else:
             if not self.factory:
                 logger.warning(
-                    "ASGI app factory detected. Using it, " "but please consider setting the --factory flag explicitly."
+                    "ASGI app factory detected. Using it, but please consider setting the --factory flag explicitly."
                 )
 
         if self.interface == "auto":

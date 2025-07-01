@@ -34,6 +34,7 @@ from uvicorn.config import Config
 from uvicorn.logging import TRACE_LOG_LEVEL
 from uvicorn.protocols.utils import (
     ClientDisconnected,
+    get_client_addr,
     get_local_addr,
     get_path_with_query_string,
     get_remote_addr,
@@ -214,7 +215,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
     def send_500_response(self) -> None:
         msg = b"Internal Server Error"
         content = [
-            b"HTTP/1.1 500 Internal Server Error\r\n" b"content-type: text/plain; charset=utf-8\r\n",
+            b"HTTP/1.1 500 Internal Server Error\r\ncontent-type: text/plain; charset=utf-8\r\n",
             b"content-length: " + str(len(msg)).encode("ascii") + b"\r\n",
             b"connection: close\r\n",
             b"\r\n",
@@ -271,7 +272,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 message = cast("WebSocketAcceptEvent", message)
                 self.logger.info(
                     '%s - "WebSocket %s" [accepted]',
-                    self.scope["client"],
+                    get_client_addr(self.scope),
                     get_path_with_query_string(self.scope),
                 )
                 self.initial_response = None
@@ -289,7 +290,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 message = cast("WebSocketCloseEvent", message)
                 self.logger.info(
                     '%s - "WebSocket %s" 403',
-                    self.scope["client"],
+                    get_client_addr(self.scope),
                     get_path_with_query_string(self.scope),
                 )
                 self.initial_response = (http.HTTPStatus.FORBIDDEN, [], b"")
@@ -300,7 +301,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 message = cast("WebSocketResponseStartEvent", message)
                 self.logger.info(
                     '%s - "WebSocket %s" %d',
-                    self.scope["client"],
+                    get_client_addr(self.scope),
                     get_path_with_query_string(self.scope),
                     message["status"],
                 )
@@ -338,7 +339,7 @@ class WebSocketProtocol(WebSocketServerProtocol):
                     self.closed_event.set()
 
                 else:
-                    msg = "Expected ASGI message 'websocket.send' or 'websocket.close'," " but got '%s'."
+                    msg = "Expected ASGI message 'websocket.send' or 'websocket.close', but got '%s'."
                     raise RuntimeError(msg % message_type)
             except ConnectionClosed as exc:
                 raise ClientDisconnected from exc
@@ -351,11 +352,11 @@ class WebSocketProtocol(WebSocketServerProtocol):
                 if not message.get("more_body", False):
                     self.closed_event.set()
             else:
-                msg = "Expected ASGI message 'websocket.http.response.body' " "but got '%s'."
+                msg = "Expected ASGI message 'websocket.http.response.body' but got '%s'."
                 raise RuntimeError(msg % message_type)
 
         else:
-            msg = "Unexpected ASGI message '%s', after sending 'websocket.close' " "or response already completed."
+            msg = "Unexpected ASGI message '%s', after sending 'websocket.close' or response already completed."
             raise RuntimeError(msg % message_type)
 
     async def asgi_receive(self) -> WebSocketDisconnectEvent | WebSocketConnectEvent | WebSocketReceiveEvent:

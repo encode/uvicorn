@@ -1,3 +1,10 @@
+<style>
+  .md-typeset h1,
+  .md-content__button {
+    display: none;
+  }
+</style>
+
 <p align="center">
   <img width="320" height="320" src="../../uvicorn.png" alt='uvicorn'>
 </p>
@@ -16,13 +23,19 @@
 <a href="https://pypi.org/project/uvicorn" target="_blank">
     <img src="https://img.shields.io/pypi/pyversions/uvicorn.svg?color=%2334D058" alt="Supported Python versions">
 </a>
+<a href="https://discord.gg/RxKUF5JuHs">
+    <img src="https://img.shields.io/discord/1051468649518616576?logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" alt="Discord">
+</a>
 </p>
 
 ---
 
-# Introduction
+**Documentation**: [https://www.uvicorn.org](https://www.uvicorn.org)<br>
+**Source Code**: [https://www.github.com/encode/uvicorn](https://www.github.com/encode/uvicorn)
 
-Uvicorn is an ASGI web server implementation for Python.
+---
+
+**Uvicorn** is an ASGI web server implementation for Python.
 
 Until recently Python has lacked a minimal low-level server/application interface for
 async frameworks. The [ASGI specification][asgi] fills this gap, and means we're now able to
@@ -35,13 +48,13 @@ Uvicorn currently supports **HTTP/1.1** and **WebSockets**.
 Install using `pip`:
 
 ```shell
-$ pip install uvicorn
+pip install uvicorn
 ```
 
 This will install uvicorn with minimal (pure Python) dependencies.
 
 ```shell
-$ pip install 'uvicorn[standard]'
+pip install 'uvicorn[standard]'
 ```
 
 This will install uvicorn with "Cython-based" dependencies (where possible) and other "optional extras".
@@ -58,7 +71,7 @@ Moreover, "optional extras" means that:
 
 - the websocket protocol will be handled by `websockets` (should you want to use `wsproto` you'd need to install it manually) if possible.
 - the `--reload` flag in development mode will use `watchfiles`.
-- windows users will have `colorama` installed for the colored logs.
+- Windows users will have `colorama` installed for the colored logs.
 - `python-dotenv` will be installed should you want to use the `--env-file` option.
 - `PyYAML` will be installed to allow you to provide a `.yaml` file to `--log-config`, if desired.
 
@@ -72,7 +85,8 @@ async def app(scope, receive, send):
         'type': 'http.response.start',
         'status': 200,
         'headers': [
-            [b'content-type', b'text/plain'],
+            (b'content-type', b'text/plain'),
+            (b'content-length', b'13'),
         ],
     })
     await send({
@@ -84,7 +98,7 @@ async def app(scope, receive, send):
 Run the server:
 
 ```shell
-$ uvicorn main:app
+uvicorn main:app
 ```
 
 ---
@@ -181,7 +195,7 @@ gunicorn example:app -w 4 -k uvicorn.workers.UvicornWorker
 
 For a [PyPy][pypy] compatible configuration use `uvicorn.workers.UvicornH11Worker`.
 
-For more information, see the [deployment documentation](deployment.md).
+For more information, see the [deployment documentation](deployment/index.md).
 
 ### Application factories
 
@@ -194,7 +208,7 @@ def create_app():
 ```
 
 ```shell
-$ uvicorn --factory main:create_app
+uvicorn --factory main:create_app
 ```
 
 ## The ASGI interface
@@ -400,9 +414,9 @@ It is run widely in production, and supports HTTP/1.1, HTTP/2, and WebSockets.
 
 Any of the example applications given here can equally well be run using `daphne` instead.
 
-```
-$ pip install daphne
-$ daphne app:App
+```shell
+pip install daphne
+daphne app:App
 ```
 
 ### Hypercorn
@@ -412,9 +426,9 @@ being separated out into a standalone ASGI server.
 
 Hypercorn supports HTTP/1.1, HTTP/2, HTTP/3 and WebSockets.
 
-```
-$ pip install hypercorn
-$ hypercorn app:App
+```shell
+pip install hypercorn
+hypercorn app:App
 ```
 
 ---
