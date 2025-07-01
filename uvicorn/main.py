@@ -120,7 +120,7 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
     type=str,
     default="auto",
     help=f"Event loop implementation. Can be one of [{'|'.join(LOOP_CHOICES)}] "
-    f"or an import string to a function of type: (use_subprocess: bool) -> Callable[[], asyncio.AbstractEventLoop].",
+    "or an import string to a callable that returns a `asyncio.AbstractEventLoop`.",
     show_default=True,
 )
 @click.option(
