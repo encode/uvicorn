@@ -55,7 +55,7 @@ LIFESPAN: dict[LifespanType, str] = {
     "on": "uvicorn.lifespan.on:LifespanOn",
     "off": "uvicorn.lifespan.off:LifespanOff",
 }
-LOOP_FACTORIES: dict[str, str | None] = {
+LOOP_FACTORIES: dict[LoopFactoryType | str, str | None] = {
     "none": None,
     "auto": "uvicorn.loops.auto:auto_loop_factory",
     "asyncio": "uvicorn.loops.asyncio:asyncio_loop_factory",
@@ -182,7 +182,7 @@ class Config:
         port: int = 8000,
         uds: str | None = None,
         fd: int | None = None,
-        loop: str = "auto",
+        loop: LoopFactoryType | str = "auto",
         http: type[asyncio.Protocol] | HTTPProtocolType = "auto",
         ws: type[asyncio.Protocol] | WSProtocolType = "auto",
         ws_max_size: int = 16 * 1024 * 1024,

@@ -27,6 +27,7 @@ from uvicorn.config import (
     HTTPProtocolType,
     InterfaceType,
     LifespanType,
+    LoopFactoryType,
     WSProtocolType,
 )
 from uvicorn.server import Server
@@ -36,7 +37,7 @@ LEVEL_CHOICES = click.Choice(list(LOG_LEVELS.keys()))
 HTTP_CHOICES = click.Choice(list(HTTP_PROTOCOLS.keys()))
 WS_CHOICES = click.Choice(list(WS_PROTOCOLS.keys()))
 LIFESPAN_CHOICES = click.Choice(list(LIFESPAN.keys()))
-LOOP_CHOICES = [key for key in LOOP_FACTORIES.keys() if key != "none"]
+LOOP_CHOICES = click.Choice([key for key in LOOP_FACTORIES.keys() if key != "none"])
 INTERFACE_CHOICES = click.Choice(INTERFACES)
 
 STARTUP_FAILURE = 3
@@ -117,10 +118,9 @@ def print_version(ctx: click.Context, param: click.Parameter, value: bool) -> No
 )
 @click.option(
     "--loop",
-    type=str,
+    type=LOOP_CHOICES,
     default="auto",
-    help=f"Event loop implementation. Can be one of [{'|'.join(LOOP_CHOICES)}] "
-    "or an import string to a callable that returns a `asyncio.AbstractEventLoop`.",
+    help="Event loop factory implementation.",
     show_default=True,
 )
 @click.option(
@@ -367,7 +367,7 @@ def main(
     port: int,
     uds: str,
     fd: int,
-    loop: str,
+    loop: LoopFactoryType | str,
     http: HTTPProtocolType,
     ws: WSProtocolType,
     ws_max_size: int,
@@ -468,7 +468,7 @@ def run(
     port: int = 8000,
     uds: str | None = None,
     fd: int | None = None,
-    loop: str = "auto",
+    loop: LoopFactoryType | str = "auto",
     http: type[asyncio.Protocol] | HTTPProtocolType = "auto",
     ws: type[asyncio.Protocol] | WSProtocolType = "auto",
     ws_max_size: int = 16777216,
