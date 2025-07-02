@@ -38,24 +38,24 @@ LOG_LEVELS: dict[str, int] = {
     "debug": logging.DEBUG,
     "trace": TRACE_LOG_LEVEL,
 }
-HTTP_PROTOCOLS: dict[HTTPProtocolType, str] = {
+HTTP_PROTOCOLS: dict[str, str] = {
     "auto": "uvicorn.protocols.http.auto:AutoHTTPProtocol",
     "h11": "uvicorn.protocols.http.h11_impl:H11Protocol",
     "httptools": "uvicorn.protocols.http.httptools_impl:HttpToolsProtocol",
 }
-WS_PROTOCOLS: dict[WSProtocolType, str | None] = {
+WS_PROTOCOLS: dict[str, str | None] = {
     "auto": "uvicorn.protocols.websockets.auto:AutoWebSocketsProtocol",
     "none": None,
     "websockets": "uvicorn.protocols.websockets.websockets_impl:WebSocketProtocol",
     "websockets-sansio": "uvicorn.protocols.websockets.websockets_sansio_impl:WebSocketsSansIOProtocol",
     "wsproto": "uvicorn.protocols.websockets.wsproto_impl:WSProtocol",
 }
-LIFESPAN: dict[LifespanType, str] = {
+LIFESPAN: dict[str, str] = {
     "auto": "uvicorn.lifespan.on:LifespanOn",
     "on": "uvicorn.lifespan.on:LifespanOn",
     "off": "uvicorn.lifespan.off:LifespanOff",
 }
-LOOP_FACTORIES: dict[LoopFactoryType | str, str | None] = {
+LOOP_FACTORIES: dict[str, str | None] = {
     "none": None,
     "auto": "uvicorn.loops.auto:auto_loop_factory",
     "asyncio": "uvicorn.loops.asyncio:asyncio_loop_factory",
@@ -183,8 +183,8 @@ class Config:
         uds: str | None = None,
         fd: int | None = None,
         loop: LoopFactoryType | str = "auto",
-        http: type[asyncio.Protocol] | HTTPProtocolType = "auto",
-        ws: type[asyncio.Protocol] | WSProtocolType = "auto",
+        http: type[asyncio.Protocol] | HTTPProtocolType | str = "auto",
+        ws: type[asyncio.Protocol] | WSProtocolType | str = "auto",
         ws_max_size: int = 16 * 1024 * 1024,
         ws_max_queue: int = 32,
         ws_ping_interval: float | None = 20.0,
@@ -419,13 +419,13 @@ class Config:
         )
 
         if isinstance(self.http, str):
-            http_protocol_class = import_from_string(HTTP_PROTOCOLS[self.http])
+            http_protocol_class = import_from_string(HTTP_PROTOCOLS.get(self.http, self.http))
             self.http_protocol_class: type[asyncio.Protocol] = http_protocol_class
         else:
             self.http_protocol_class = self.http
 
         if isinstance(self.ws, str):
-            ws_protocol_class = import_from_string(WS_PROTOCOLS[self.ws])
+            ws_protocol_class = import_from_string(WS_PROTOCOLS.get(self.ws, self.ws))
             self.ws_protocol_class: type[asyncio.Protocol] | None = ws_protocol_class
         else:
             self.ws_protocol_class = self.ws
