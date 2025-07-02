@@ -1,6 +1,35 @@
----
+
 toc_depth: 2
 ---
+
+## 0.35.0 (June 28, 2025)
+
+### Added
+
+* Add `WebSocketsSansIOProtocol` (#2540)
+
+### Changed
+
+* Refine help message for option `--proxy-headers` (#2653)
+
+## 0.34.3 (June 1, 2025)
+
+### Fixed
+
+* Don't include `cwd()` when non-empty `--reload-dirs` is passed (#2598)
+* Apply `get_client_addr` formatting to WebSocket logging (#2636)
+
+## 0.34.2 (April 19, 2025)
+
+### Fixed
+
+* Flush stdout buffer on Windows to trigger reload (#2604)
+
+## 0.34.1 (April 13, 2025)
+
+### Deprecated
+
+* Deprecate `ServerState` in the main module (#2581)
 
 ## 0.34.0 (December 15, 2024)
 

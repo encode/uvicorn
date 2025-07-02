@@ -41,7 +41,7 @@ standard = [
     "httptools>=0.6.3",
     "python-dotenv>=0.13",
     "PyYAML>=5.1",
-    "uvloop>=0.14.0,!=0.15.0,!=0.15.1; sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')",
+    "uvloop>=0.15.1; sys_platform != 'win32' and (sys_platform != 'cygwin' and platform_python_implementation != 'PyPy')",
     "watchfiles>=0.13",
     "websockets>=10.4",
 ]
@@ -85,19 +85,23 @@ disallow_untyped_defs = false
 check_untyped_defs = true
 
 [tool.pytest.ini_options]
-addopts = "-rxXs --strict-config --strict-markers"
+addopts = "-rxXs --strict-config --strict-markers -n 8"
 xfail_strict = true
 filterwarnings = [
     "error",
     "ignore:Uvicorn's native WSGI implementation is deprecated.*:DeprecationWarning",
     "ignore: 'cgi' is deprecated and slated for removal in Python 3.13:DeprecationWarning",
     "ignore: remove second argument of ws_handler:DeprecationWarning:websockets",
+    "ignore: websockets.legacy is deprecated.*:DeprecationWarning",
+    "ignore: websockets.server.WebSocketServerProtocol is deprecated.*:DeprecationWarning",
+    "ignore: websockets.client.connect is deprecated.*:DeprecationWarning",
 ]
 
 [tool.coverage.run]
+parallel = true
 source_pkgs = ["uvicorn", "tests"]
 plugins = ["coverage_conditional_plugin"]
-omit = ["uvicorn/workers.py", "uvicorn/__main__.py"]
+omit = ["uvicorn/workers.py", "uvicorn/__main__.py", "uvicorn/_compat.py"]
 
 [tool.coverage.report]
 precision = 2
@@ -125,6 +129,7 @@ exclude_lines = [
 py-win32 = "sys_platform == 'win32'"
 py-not-win32 = "sys_platform != 'win32'"
 py-linux = "sys_platform == 'linux'"
+py-not-linux = "sys_platform != 'linux'"
 py-darwin = "sys_platform == 'darwin'"
 py-gte-39 = "sys_version_info >= (3, 9)"
 py-lt-39 = "sys_version_info < (3, 9)"
