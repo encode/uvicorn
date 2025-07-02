@@ -454,10 +454,10 @@ class Config:
             if inspect.isclass(self.loaded_app):
                 use_asgi_3 = hasattr(self.loaded_app, "__await__")
             elif inspect.isfunction(self.loaded_app):
-                use_asgi_3 = asyncio.iscoroutinefunction(self.loaded_app)
+                use_asgi_3 = inspect.iscoroutinefunction(self.loaded_app)
             else:
                 call = getattr(self.loaded_app, "__call__", None)
-                use_asgi_3 = asyncio.iscoroutinefunction(call)
+                use_asgi_3 = inspect.iscoroutinefunction(call)
             self.interface = "asgi3" if use_asgi_3 else "asgi2"
 
         if self.interface == "wsgi":
