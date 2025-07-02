@@ -480,7 +480,7 @@ class Config:
             try:
                 return import_from_string(self.loop)
             except ImportFromStringError as exc:
-                logger.exception("Error loading custom loop setup function. %s" % exc)
+                logger.error("Error loading custom loop setup function. %s" % exc)
                 sys.exit(1)
         if loop_factory is None:
             return None
