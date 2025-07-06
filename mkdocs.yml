@@ -46,10 +46,10 @@ validation:
   unrecognized_links: warn
 
 nav:
-  - Introduction: index.md
+  - Welcome: index.md
   - Settings: settings.md
-  - Core:
-      - Lifespan: core/lifespan.md
+  - Concepts:
+      - Lifespan: concepts/lifespan.md
   - Deployment:
       - Deployment: deployment/index.md
       - Docker: deployment/docker.md
