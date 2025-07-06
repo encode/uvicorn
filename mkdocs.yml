@@ -27,7 +27,6 @@ theme:
     - content.code.annotate
     - content.code.copy # https://squidfunk.github.io/mkdocs-material/upgrade/?h=content+copy#contentcodecopy
     - navigation.path
-    - navigation.indexes
     - navigation.sections # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation
     - navigation.top # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#back-to-top-button
     - navigation.tracking
@@ -46,12 +45,17 @@ validation:
   unrecognized_links: warn
 
 nav:
-  - Introduction: index.md
+  - Welcome: index.md
+  - Installation: installation.md
   - Settings: settings.md
+  - Server Behavior: server-behavior.md
+  - Concepts:
+      - ASGI: concepts/asgi.md
+      - Lifespan: concepts/lifespan.md
+      - WebSockets: concepts/websockets.md
   - Deployment:
       - Deployment: deployment/index.md
       - Docker: deployment/docker.md
-  - Server Behavior: server-behavior.md
   - Release Notes: release-notes.md
   - Contributing: contributing.md
   - Sponsorship: sponsorship.md
@@ -72,11 +76,27 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.tasklist:
       custom_checkbox: true
+  - pymdownx.extra:
+      pymdownx.superfences:
+        custom_fences:
+          - name: mermaid
+            class: mermaid
+            format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          import:
+            - url: https://docs.python.org/3/objects.inv
 
 plugins:
   - search
@@ -91,6 +111,8 @@ plugins:
           - settings.md
           - deployment/*.md
           - server-behavior.md
+        Concepts:
+          - concepts/*.md
 
 hooks:
   - docs/plugins/main.py
