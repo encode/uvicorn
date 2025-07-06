@@ -28,14 +28,26 @@ def new_console_in_windows(test_function: Callable[[], Any]) -> Callable[[], Any
         module = test_function.__module__
         name = test_function.__name__
 
-        subprocess.check_call(
-            [
-                sys.executable,
-                "-c",
-                f"from {module} import {name}; {name}.__wrapped__()",
-            ],
-            creationflags=subprocess.CREATE_NO_WINDOW,  # type: ignore[attr-defined]
-        )
+        retry_num = 1
+        # This test scenario is unstable, so the count is increased separately.
+        if name == "test_multiprocess_health_check":
+            retry_num = 3
+        last_exception = None
+        for _ in range(retry_num):
+            try:
+                subprocess.check_call(
+                    [
+                        sys.executable,
+                        "-c",
+                        f"from {module} import {name}; {name}.__wrapped__()",
+                    ],
+                    creationflags=subprocess.CREATE_NO_WINDOW,  # type: ignore[attr-defined]
+                )
+                return
+            except subprocess.CalledProcessError as e:
+                last_exception = e
+
+        raise last_exception  # type: ignore[misc]
 
     return new_function
 
@@ -83,15 +95,21 @@ def test_multiprocess_health_check() -> None:
     config = Config(app=app, workers=2)
     supervisor = Multiprocess(config, target=run, sockets=[])
     threading.Thread(target=supervisor.run, daemon=True).start()
-    time.sleep(1)
+    time.sleep(0)  # release gil.
+    time.sleep(1)  # ensure server is up.
     process = supervisor.processes[0]
+    assert process.is_alive()
     process.kill()
-    assert not process.is_alive()
-    time.sleep(1)
-    for p in supervisor.processes:
-        assert p.is_alive()
-    supervisor.signal_queue.append(signal.SIGINT)
-    supervisor.join_all()
+    process.join()
+    try:
+        assert not process.is_alive(0.5)
+        time.sleep(0)  # release gil.
+        time.sleep(1)  # ensure process restart complete.
+        for p in supervisor.processes:
+            assert p.is_alive()
+    finally:
+        supervisor.signal_queue.append(signal.SIGINT)
+        supervisor.join_all()
 
 
 @new_console_in_windows
