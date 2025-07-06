@@ -1,7 +1,7 @@
 By default, Uvicorn automatically selects the best available event loop:
 
 - **uvloop** if available (preferred for performance)
-- **asyncio** as a fallback
+- **asyncio** as a fallback in case uvloop is not installed
 
 This is the recommended setting for most applications since it provides better performance when
 possible while maintaining compatibility.
