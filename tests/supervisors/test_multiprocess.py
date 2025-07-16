@@ -10,6 +10,7 @@ from typing import Any, Callable
 
 import pytest
 
+from tests.utils import with_retry
 from uvicorn import Config
 from uvicorn._types import ASGIReceiveCallable, ASGISendCallable, Scope
 from uvicorn.supervisors import Multiprocess
@@ -28,26 +29,14 @@ def new_console_in_windows(test_function: Callable[[], Any]) -> Callable[[], Any
         module = test_function.__module__
         name = test_function.__name__
 
-        retry_num = 1
-        # This test scenario is unstable, so the count is increased separately.
-        if name == "test_multiprocess_health_check":
-            retry_num = 3
-        last_exception = None
-        for _ in range(retry_num):
-            try:
-                subprocess.check_call(
-                    [
-                        sys.executable,
-                        "-c",
-                        f"from {module} import {name}; {name}.__wrapped__()",
-                    ],
-                    creationflags=subprocess.CREATE_NO_WINDOW,  # type: ignore[attr-defined]
-                )
-                return
-            except subprocess.CalledProcessError as e:
-                last_exception = e
-
-        raise last_exception  # type: ignore[misc]
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-c",
+                f"from {module} import {name}; {name}.__wrapped__()",
+            ],
+            creationflags=subprocess.CREATE_NO_WINDOW,  # type: ignore[attr-defined]
+        )
 
     return new_function
 
@@ -88,6 +77,7 @@ def test_multiprocess_run() -> None:
 
 
 @new_console_in_windows
+@with_retry(3)
 def test_multiprocess_health_check() -> None:
     """
     Ensure that the health check works as expected.
