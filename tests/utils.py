@@ -62,7 +62,7 @@ def with_retry(retry_count: int = 1) -> Callable[[Callable[..., Any]], Callable[
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         if inspect.iscoroutinefunction(func):
 
-            @functools.wraps(func) # pragma: nocover
+            @functools.wraps(func)  # pragma: nocover
             async def async_wrapper(*args, **kwargs):
                 for attempt in range(retry_count):
                     try:
