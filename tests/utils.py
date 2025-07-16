@@ -62,7 +62,7 @@ def with_retry(retry_count: int = 1) -> Callable[[Callable[..., Any]], Callable[
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         if inspect.iscoroutinefunction(func):
 
-            @functools.wraps(func)
+            @functools.wraps(func) # pragma: nocover
             async def async_wrapper(*args, **kwargs):
                 for attempt in range(retry_count):
                     try:
@@ -76,7 +76,7 @@ def with_retry(retry_count: int = 1) -> Callable[[Callable[..., Any]], Callable[
 
         else:
             # Maintain the original calling method of the test case, e.g. test_multiprocess_health_check.
-            @functools.wraps(func)
+            @functools.wraps(func)  # pragma: nocover
             def sync_wrapper(*args, **kwargs):
                 for attempt in range(retry_count):
                     try:
