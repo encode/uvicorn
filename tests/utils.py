@@ -72,7 +72,7 @@ def with_retry(retry_count: int = 1) -> Callable[[Callable[..., Any]], Callable[
                             raise e
                 return None
 
-            return async_wrapper
+            return async_wrapper  # pragma: nocover
 
         else:
             # Maintain the original calling method of the test case, e.g. test_multiprocess_health_check.
