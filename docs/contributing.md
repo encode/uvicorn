@@ -16,7 +16,7 @@ Stumbled upon some unexpected behaviour?
 Need a missing functionality?
 
 Contributions should generally start out from a previous discussion.
-You can reach out someone at the [community chat](https://gitter.im/encode/community)
+You can reach out someone at the [community chat](https://discord.com/invite/SWU73HffbV)
 or at the [github discussions tab](https://github.com/encode/uvicorn/discussions).
 
 When creating a new topic in the discussions tab, possible bugs may be raised

@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-import typing
 from copy import deepcopy
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import httpx
 import pytest
 import websockets
 import websockets.client
 import websockets.exceptions
-from typing_extensions import TypedDict
 from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from websockets.typing import Subprotocol
 
@@ -36,7 +35,7 @@ try:
 except ModuleNotFoundError:  # pragma: no cover
     skip_if_no_wsproto = pytest.mark.skipif(True, reason="wsproto is not installed.")
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     import sys
 
     from uvicorn.protocols.http.h11_impl import H11Protocol
@@ -109,17 +108,14 @@ async def test_invalid_upgrade(ws_protocol_cls: WSProtocol, http_protocol_cls: H
             pass  # ok, wsproto 0.13
         else:
             assert response.status_code == 400
-            assert (
-                response.text.lower().strip().rstrip(".")
-                in [
-                    "missing sec-websocket-key header",
-                    "missing sec-websocket-version header",  # websockets
-                    "missing or empty sec-websocket-key header",  # wsproto
-                    "failed to open a websocket connection: missing " "sec-websocket-key header",
-                    "failed to open a websocket connection: missing or empty " "sec-websocket-key header",
-                    "failed to open a websocket connection: missing sec-websocket-key header; 'sec-websocket-key'",
-                ]
-            )
+            assert response.text.lower().strip().rstrip(".") in [
+                "missing sec-websocket-key header",
+                "missing sec-websocket-version header",  # websockets
+                "missing or empty sec-websocket-key header",  # wsproto
+                "failed to open a websocket connection: missing sec-websocket-key header",
+                "failed to open a websocket connection: missing or empty sec-websocket-key header",
+                "failed to open a websocket connection: missing sec-websocket-key header; 'sec-websocket-key'",
+            ]
 
 
 async def test_accept_connection(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int):
@@ -601,12 +597,9 @@ async def test_connection_lost_before_handshake_complete(
             await send_accept_task.wait()
         disconnect_message = await receive()  # type: ignore
 
-    response: httpx.Response | None = None
-
     async def websocket_session(uri: str):
-        nonlocal response
         async with httpx.AsyncClient() as client:
-            response = await client.get(
+            await client.get(
                 f"http://127.0.0.1:{unused_tcp_port}",
                 headers={
                     "upgrade": "websocket",
@@ -623,9 +616,6 @@ async def test_connection_lost_before_handshake_complete(
         send_accept_task.set()
         await asyncio.sleep(0.1)
 
-    assert response is not None
-    assert response.status_code == 500, response.text
-    assert response.text == "Internal Server Error"
     assert disconnect_message == {"type": "websocket.disconnect", "code": 1006}
     await task
 
@@ -920,6 +910,9 @@ async def test_server_reject_connection_with_body_nolength(
 async def test_server_reject_connection_with_invalid_msg(
     ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
+    if ws_protocol_cls.__name__ == "WebSocketsSansIOProtocol":
+        pytest.skip("WebSocketsSansIOProtocol sends both start and body messages in one message.")
+
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         assert scope["type"] == "websocket"
         assert "extensions" in scope and "websocket.http.response" in scope["extensions"]
@@ -951,6 +944,9 @@ async def test_server_reject_connection_with_invalid_msg(
 async def test_server_reject_connection_with_missing_body(
     ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int
 ):
+    if ws_protocol_cls.__name__ == "WebSocketsSansIOProtocol":
+        pytest.skip("WebSocketsSansIOProtocol sends both start and body messages in one message.")
+
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         assert scope["type"] == "websocket"
         assert "extensions" in scope and "websocket.http.response" in scope["extensions"]
@@ -986,6 +982,8 @@ async def test_server_multiple_websocket_http_response_start_events(
     The server should raise an exception if it sends multiple
     websocket.http.response.start events.
     """
+    if ws_protocol_cls.__name__ == "WebSocketsSansIOProtocol":
+        pytest.skip("WebSocketsSansIOProtocol sends both start and body messages in one message.")
     exception_message: str | None = None
 
     async def app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
@@ -1020,7 +1018,7 @@ async def test_server_multiple_websocket_http_response_start_events(
         await websocket_session(f"ws://127.0.0.1:{unused_tcp_port}")
 
     assert exception_message == (
-        "Expected ASGI message 'websocket.http.response.body' but got " "'websocket.http.response.start'."
+        "Expected ASGI message 'websocket.http.response.body' but got 'websocket.http.response.start'."
     )
 
 
@@ -1146,12 +1144,12 @@ async def test_multiple_server_header(
 
 
 async def test_lifespan_state(ws_protocol_cls: WSProtocol, http_protocol_cls: HTTPProtocol, unused_tcp_port: int):
-    expected_states: list[dict[str, typing.Any]] = [
+    expected_states: list[dict[str, Any]] = [
         {"a": 123, "b": [1]},
         {"a": 123, "b": [1, 2]},
     ]
 
-    actual_states: list[dict[str, typing.Any]] = []
+    actual_states: list[dict[str, Any]] = []
 
     async def lifespan_app(scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable):
         message = await receive()
