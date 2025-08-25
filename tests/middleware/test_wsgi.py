@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import io
 import sys
-from typing import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator
+from typing import Callable
 
 import a2wsgi
 import httpx
@@ -72,7 +73,7 @@ async def test_wsgi_post(wsgi_middleware: Callable) -> None:
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         response = await client.post("/", json={"example": 123})
     assert response.status_code == 200
-    assert response.text == '{"example": 123}'
+    assert response.text == '{"example":123}'
 
 
 @pytest.mark.anyio

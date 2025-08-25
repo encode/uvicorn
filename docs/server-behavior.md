@@ -83,6 +83,9 @@ Server errors will be logged at the `error` log level. All logging defaults to b
 
 If an exception is raised by an ASGI application, and a response has not yet been sent on the connection, then a `500 Server Error` HTTP response will be sent.
 
+Uvicorn sends the headers and the status code as soon as it receives from the ASGI application. This means that if the application sends a [Response Start](https://asgi.readthedocs.io/en/latest/specs/www.html#response-start-send-event)
+message with a status code of `200 OK`, and then an exception is raised, the response will still be sent with a status code of `200 OK`.
+
 ### Invalid responses
 
 Uvicorn will ensure that ASGI applications send the correct sequence of messages, and will raise errors otherwise. This includes checking for no response sent, partial response sent, or invalid message sequences being sent.

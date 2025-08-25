@@ -32,20 +32,8 @@ from __future__ import annotations
 
 import sys
 import types
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Iterable,
-    Literal,
-    MutableMapping,
-    Optional,
-    Protocol,
-    Tuple,
-    Type,
-    TypedDict,
-    Union,
-)
+from collections.abc import Awaitable, Iterable, MutableMapping
+from typing import Any, Callable, Literal, Optional, Protocol, TypedDict, Union
 
 if sys.version_info >= (3, 11):  # pragma: py-lt-311
     from typing import NotRequired
@@ -54,8 +42,8 @@ else:  # pragma: py-gte-311
 
 # WSGI
 Environ = MutableMapping[str, Any]
-ExcInfo = Tuple[Type[BaseException], BaseException, Optional[types.TracebackType]]
-StartResponse = Callable[[str, Iterable[Tuple[str, str]], Optional[ExcInfo]], None]
+ExcInfo = tuple[type[BaseException], BaseException, Optional[types.TracebackType]]
+StartResponse = Callable[[str, Iterable[tuple[str, str]], Optional[ExcInfo]], None]
 WSGIApp = Callable[[Environ, StartResponse], Union[Iterable[bytes], BaseException]]
 
 
@@ -281,7 +269,7 @@ class ASGI2Protocol(Protocol):
     async def __call__(self, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None: ...  # pragma: no cover
 
 
-ASGI2Application = Type[ASGI2Protocol]
+ASGI2Application = type[ASGI2Protocol]
 ASGI3Application = Callable[
     [
         Scope,

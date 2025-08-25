@@ -14,8 +14,8 @@ from uvicorn._types import ASGIApplication, ASGIReceiveCallable, ASGISendCallabl
 from uvicorn.config import WS_PROTOCOLS, Config
 from uvicorn.lifespan.off import LifespanOff
 from uvicorn.lifespan.on import LifespanOn
-from uvicorn.main import ServerState
 from uvicorn.protocols.http.h11_impl import H11Protocol
+from uvicorn.server import ServerState
 
 try:
     from uvicorn.protocols.http.httptools_impl import HttpToolsProtocol
@@ -914,7 +914,7 @@ def test_fragmentation(unused_tcp_port: int):
     def send_fragmented_req(path: str):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(("127.0.0.1", unused_tcp_port))
-        d = (f"GET {path} HTTP/1.1\r\n" "Host: localhost\r\n" "Connection: close\r\n\r\n").encode()
+        d = (f"GET {path} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n").encode()
         split = len(path) // 2
         sock.sendall(d[:split])
         time.sleep(0.01)
