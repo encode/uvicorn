@@ -6,7 +6,9 @@ import signal
 import socket
 import threading
 import time
+import json
 from typing import Any, Callable
+from multiprocessing import Barrier
 
 import pytest
 
@@ -92,6 +94,40 @@ def test_multiprocess_health_check() -> None:
         assert p.is_alive()
     supervisor.signal_queue.append(signal.SIGINT)
     supervisor.join_all()
+
+
+def computation_intensive_process(sockets: list[socket.socket] | None) -> None:
+    data = [1] * 200000000
+    while True:  # pragma: no cover
+        json.dumps(data)  # about 7s
+        time.sleep(0.5)
+        
+
+@new_console_in_windows
+def test_computation_intensive_multiprocess_health_check() -> None:
+    """
+    Ensure that health checks run as expected in computationally intensive scenarios.
+    """
+
+    def get_pids(target, timeout):
+        config = Config(app=app, workers=1, timeout_process_probing=timeout)
+        supervisor = Multiprocess(config, target=target, sockets=[])
+        supervisor.init_processes()
+        time.sleep(1)
+
+        pid1 = supervisor.processes[0].pid
+        supervisor.keep_subprocess_alive()
+        pid2 = supervisor.processes[0].pid
+
+        supervisor.terminate_all()
+        supervisor.join_all()
+        return (pid1, pid2)
+
+    pid1, pid2 = get_pids(target=computation_intensive_process, timeout=2)
+    assert pid1 != pid2
+
+    pid1, pid2 = get_pids(target=computation_intensive_process, timeout=12)
+    assert pid1 == pid2
 
 
 @new_console_in_windows
