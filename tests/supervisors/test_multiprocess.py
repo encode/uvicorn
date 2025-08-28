@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import functools
+import json
 import os
 import signal
 import socket
 import threading
 import time
-import json
 from typing import Any, Callable
 
 import pytest
