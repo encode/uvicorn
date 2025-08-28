@@ -8,7 +8,6 @@ import threading
 import time
 import json
 from typing import Any, Callable
-from multiprocessing import Barrier
 
 import pytest
 
